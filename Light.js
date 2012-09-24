@@ -2,9 +2,9 @@
 
 function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, rotIn, coneAngleIn){
     this.Type = {
-        Directional : "Directional",
-        Point : "Point",
-        Spot : "Spot"
+        Directional : 1,
+        Point : 0,
+        Spot : 2
     }
 
     var lname = nameIn;
@@ -22,11 +22,10 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
 
     //depending on the type of light, igonore constructor inputs
     Vect3_Copy(color, colorIn);
-    
-    if(lightType == Light_Type::Directional){
+    if(lightType == this.Type.Directional){
         Vect3_Copy(rot, rotIn);
     }
-    else if(lightType == Light_Type::Point){
+    else if(lightType == this.Type.Point){
         Vect3_Copy(pos, posIn);
     }
     else{ //Spot
@@ -36,9 +35,9 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
 
     
     this.GetName = function(){ return lname; }
-    this.GetPos() = function() { return pos; }
-    this.GetRot() = function() { return rot; }
-    this.GetColor() = function() { return color; }
+    this.GetPos = function() { return pos; }
+    this.GetRot = function() { return rot; }
+    this.GetColor = function() { return color; }
     
     this.Update = function(time) { updatedTime = time; }
 
