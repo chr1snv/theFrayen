@@ -1,5 +1,19 @@
 //Graphics.js
 
+//helper function for printing gl errors
+function CheckGLError(where){
+    var error = gl.getError();
+    var iter = 0;
+    while(error != gl.NO_ERROR && iter < 100){
+        alert(where + ': glError ' + iter + ' ' + error);
+        error = gl.getError();
+        ++iter;
+    }
+    if(iter > 0)
+        return true;
+    return false;
+}
+
 function Graphics(canvasIn, bpp, depthIn){
 
 //maps used to keep track of primative graphics objects
@@ -95,37 +109,31 @@ this.setTexture = function(texId){
 this.setColor4f = function(col){
     if( !Vect3_Cmp(currentColor, col) ){
         Vect3_Copy(currentColor, col);
-        gl.uniform4fv(gl.getUniformLocation(this.currentShader.program, 'color'), currentColor);
+        gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), currentColor);
     }
 }
 this.setAmbientAndDiffuse = function(col){
-    if(ambAndDiffuse[0] != col[0] || ambAndDiffuse[1] != col[1] ||
-       ambAndDiffuse[2] != col[2] || ambAndDiffuse[3] != col[3]){
-        ambAndDiffuse[0] = col[0]; ambAndDiffuse[1] = col[1];
-        ambAndDiffuse[2] = col[2]; ambAndDiffuse[3] = col[3];
-        gl.materialfv(gl.FRONT_AND_BACK, gl.AMBIENT_AND_DIFFUSE, ambAndDiffuse);
+    if(!Vect3_Cmp(ambAndDiffuse, col)){
+        Vect3_Copy(ambAndDiffuse, col);
+        gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), ambAndDiffuse);
     }
 }
 this.setEmission = function(col){
-    if(emission[0] != col[0] || emission[1] != col[1] ||
-       emission[2] != col[2] || emission[3] != col[3]){
-        emission[0] = col[0]; emission[1] = col[1];
-        emission[2] = col[2]; emission[3] = col[3];
-        gl.materialfv(gl.FRONT_AND_BACK, gl.EMISSION, emission);
+    if(!Vect3_Cmp(emission, col)){
+        Vect3_Copy(emission, col);
+        gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), emission);
     }
 }
 this.setSpecular = function(col){
-    if(specular[0] != col[0] || specular[1] != col[1] ||
-       specular[2] != col[2] || specular[3] != col[3]){
-        specular[0] = col[0]; specular[1] = col[1];
-        specular[2] = col[2]; specular[3] = col[3];
-        gl.materialfv(gl.FRONT_AND_BACK, gl.SPECULAR, specular);
+    if(!Vect3_Cmp(specular, col)){
+        Vect3_Copy(specular, col);
+        gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), specular);
     }
 }
 this.setShinyness = function(exp){
-    if(shinyness != col){
-        shinyness = col;
-        gl.materialf(gl.FRONT_AND_BACK, gl.SHININESS, shinyness);
+    if(shinyness != exp){
+        shinyness = exp;
+        gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), shinyness);
     }
 }
 
@@ -189,51 +197,52 @@ this.UnrefQuadMesh = function(filename, sceneName) {}
     
     //load and compile the program
     this.currentProgram = gl.createProgram();
-    loadTextFile('frayenVertShader.vs', compileVertexShader, this);
+    loadTextFile('frayenVertShader.vsh', compileVertexShader, this);
     
     function compileVertexShader(textFile, thisP){
         var vertexShader = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vertexShader, textFile);
         gl.compileShader(vertexShader);
-        alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
+        if(gl.getShaderInfoLog(vertexShader))
+            alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
         gl.attachShader(thisP.currentProgram, vertexShader);
-        loadTextFile('frayenFragmentShader.fs', compileFragmentShader, thisP);
+        loadTextFile('frayenFragShader.fsh', compileFragmentShader, thisP);
     }
     function compileFragmentShader(textFile, thisP){
         var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fragmentShader, textFile);
         gl.compileShader(fragmentShader);
-        alert('fragment shader log: ' + gl.getShaderInfoLog(vertexShader));
+        if(gl.getShaderInfoLog(fragmentShader))
+            alert('fragment shader log: ' + gl.getShaderInfoLog(fragmentShader));
         gl.attachShader(thisP.currentProgram, fragmentShader);
         finishGraphicsInit(thisP);
     }
     
-    
    function finishGraphicsInit(thisP){
        gl.validateProgram(thisP.currentProgram);
        gl.linkProgram(thisP.currentProgram);
-       alert('gl currentProgram status: ' + gl.getProgramInfoLog(thisP.currentProgram));
+       if(gl.getProgramInfoLog(thisP.currentProgram))
+        alert('gl currentProgram status: ' + gl.getProgramInfoLog(thisP.currentProgram));
    
         //enable passing render data by arrays
         var maxArrays = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
-        alert('alert max vertex arrays ' + maxArrays);
         gl.enableVertexAttribArray(0);
         gl.enableVertexAttribArray(1);
         gl.enableVertexAttribArray(2);
 
         //clear the render buffer
-        this.Clear();
+        thisP.Clear();
         
         //set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
         var temp = [1.0,1.0,1.0,1.0];
-        this.setColor4f(temp);
-        this.setAmbientAndDiffuse(temp);
-        this.setEmission(temp);
-        this.setSpecular(temp);
-        this.setShinyness(1.0);
+        thisP.setColor4f(temp);
+        thisP.setAmbientAndDiffuse(temp);
+        thisP.setEmission(temp);
+        thisP.setSpecular(temp);
+        thisP.setShinyness(1.0);
         
         //lighting setup
-        this.enableLighting(true);
+        thisP.enableLighting(true);
         
         //the world ambient lighting
         //var params = [0.0, 0.0, 0.0, 1.0];
@@ -241,7 +250,6 @@ this.UnrefQuadMesh = function(filename, sceneName) {}
         
         numLightsBounded = 0;
 
-        if(CheckGLError("Graphics::end constructor "))
-            exit(1);
+        CheckGLError("Graphics::end constructor ");
     }
 }
