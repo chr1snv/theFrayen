@@ -9,6 +9,8 @@ function IPOAnimation(nameIn, sceneNameIn){
 
     this.duration;
 
+    this.isValid = false;
+
     this.GetLocation = function(ret, time)
     {
         var success = false;
@@ -93,7 +95,7 @@ function IPOAnimation(nameIn, sceneNameIn){
     var txtFile = loadTextFileSynchronous( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO' );
     if(txtFile === undefined)
         return;
-    var textFileLines = txtFile.split("\n");
+    var textFileLines = txtFile.split('\n');
     for(var lineNum = 0; lineNum < textFileLines.length; ++lineNum )
     {
         var temp = textFileLines[ lineNum ];
@@ -108,8 +110,7 @@ function IPOAnimation(nameIn, sceneNameIn){
                 if(temp[0] == 'i') //this is the curve interpolation type
                 {
                     var words = temp.split(' ');
-                    var interpType = parseInt(words[1]);
-                    curves[curveName].SetInterpolationType(interpType);
+                    this.curves[curveName].interpolationType = parseInt(words[1]);
                 }
                 //read in the bezier points
                 if(temp[0] == 'b')
@@ -120,9 +121,9 @@ function IPOAnimation(nameIn, sceneNameIn){
                         words = textFileLines[lineNum];
                         //read in a point
                         if(temp[0] == 'p')
-                            curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
+                            this.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
                         if(temp[0] == 'e'){
-                            var tempDuration = curves[curveName].GetLength();
+                            var tempDuration = this.curves[curveName].GetLength();
                             if(tempDuration > this.duration) //set the duration
                                 this.duration = tempDuration;
                             break; // finish reading in bezier points

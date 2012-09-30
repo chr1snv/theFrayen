@@ -36,8 +36,8 @@ function Model(nameIn, meshNameIn, sceneNameIn){
     //draw transformation manipulation functions
     //getters
     this.GetPosition = function(pos) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetPosition(pos); }
-    this.GetScale = function(scaleOut) { Graphics.GetQuadMesh(meshName, sceneName).GetScale(scaleOut); }
-    this.GetRotation = function(rotOut) { Graphics.GetQuadMesh(meshName, sceneName).GetRotation(rotOut); }
+    this.GetScale = function(scaleOut) { Graphics.GetQuadMesh(this.meshName, this.sceneName).GetScale(scaleOut); }
+    this.GetRotation = function(rotOut) { Graphics.GetQuadMesh(this.meshName, this.sceneName).GetRotation(rotOut); }
     //setters
     this.SetPosition = function(newPos) { Vect3_Copy(positionOff, newPos); positionSet = true; optTransformUpdated = true; }
     this.SetScale = function(scaleIn){ Vect3_Copy(scaleOff, scaleIn); scaleSet = true; optTransformUpdated = true; }
@@ -49,17 +49,16 @@ function Model(nameIn, meshNameIn, sceneNameIn){
     this.GetShaderName = function(shaderNameOut, sceneNameOut) {}
 
     //draw functions
-    this.GetNumVerts = function(){ return Graphics.GetQuadMesh(meshName, sceneName).GetFaceVertsCt(); }
+    this.GetNumVerts = function(){ return Graphics.GetQuadMesh(this.meshName, this.sceneName).GetFaceVertsCt(); }
     this.Draw = function(frustum, verts, normals, uvs, mustDraw) {}
     this.GetOptTransform = function(retMat)  {}
-    this.DrawSkeleton = function(){ Graphics.GetQuadMesh(meshName, sceneName).DrawSkeleton(); }
+    this.DrawSkeleton = function(){ Graphics.GetQuadMesh(this.meshName, this.sceneName).DrawSkeleton(); }
     
     //type query functions
-    this.IsTransparent = function() { return Graphics.GetShader(shaderName, shaderScene).IsTransparent(); }
-    this.IsHit = function() {return graphics.GetQuadMesh(meshName, sceneName).IsHit();}
+    this.IsTransparent = function() { return Graphics.GetShader(this.shaderName, this.shaderScene).IsTransparent(); }
+    this.IsHit = function() {return graphics.GetQuadMesh(this.meshName, this.sceneName).IsHit();}
 
     //geometry query functions
     this.RayIntersects = function(t, rayOrig, rayDir) {}
     this.GetBoundingPlanes = function(bPs, bpSize) {}
-    this.GetMeshName = function(){ return meshName; }
 };

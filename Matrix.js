@@ -4,33 +4,41 @@
 MatrixType =
 {
     scale: 1,
-    euler_rotate: 2, xRot: 3, yRot: 4, zRot: 5,
+    euler_rotate: 2,
+    xRot: 3, yRot: 4, zRot: 5,
     quat_rotate: 6,
     translate: 7,
     orientation: 8,
     identity: 9,
     euler_transformation: 10,
-    quat_transformation: 11
+    quat_transformation: 11,
+    zero: 12
 }
 
 //initialization helpers
 function Matrix_SetZero( m )
 {
-    for( var i in m )
-        m[i] = 0;
+    m = [ 0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0 ];
 }
 function Matrix_SetIdentity( m )
 {
-    m[0*4+0]=1.0; m[0*4+1]=0.0; m[0*4+2]=0.0; m[0*4+3]=0.0;
-    m[1*4+0]=0.0; m[1*4+1]=1.0; m[1*4+2]=0.0; m[1*4+3]=0.0;
-    m[2*4+0]=0.0; m[2*4+1]=0.0; m[2*4+2]=1.0; m[2*4+3]=0.0;
-    m[3*4+0]=0.0; m[3*4+1]=0.0; m[3*4+2]=0.0; m[3*4+3]=1.0;
+    m = [ 1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1 ];
 }
 
 //high level euler rotation angle Transformation matrix constructor
 function Matrix( m, type, scale, rot, translation )
 {
-    if(type == MatrixType.euler_transformation)
+    if(type == MatrixType.identity)
+    {
+        Matrix_SetIdentity(m);
+    }
+    else if(type == MatrixType.euler_transformation)
     {
         var scale = arguments[2];
         var rot = arguments[3];
@@ -38,7 +46,6 @@ function Matrix( m, type, scale, rot, translation )
         var tempMat1 = new Array(4*4);
         var tempMat2 = new Array(4*4);
         var tempMat3 = new Array(4*4);
-        //generate the transformation matrix from an euler rotation
         //scale, rotate, then translate
         Matrix(m,        MatrixType.scale, scale);
         Matrix(tempMat1, MatrixType.eulerRotate, rot);
@@ -195,6 +202,10 @@ function Matrix( m, type, scale, rot, translation )
         m[0*4+3] = translation[0];
         m[1*4+3] = translation[1];
         m[2*4+3] = translation[2];
+    }
+    else
+    {
+        Matrix_SetZero(m);
     }
 }
 
