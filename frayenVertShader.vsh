@@ -11,9 +11,7 @@ varying vec3 normalVarying;
 varying vec2 texCoordVarying;
 
 void main() {
-    gl_Position = projectionMatrix *
-                  modelViewMatrix *
-                  vec4(position,1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
     normalVarying = normal;
     texCoordVarying = texCoord;
 }

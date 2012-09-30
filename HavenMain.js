@@ -15,10 +15,27 @@ function loadTextFile(filename, callback, thisP){
     txtFile.overrideMimeType("text/plain;");
     txtFile.send();
 }
+function loadTextFileSynchronous(filename){
+        var txtFile = new XMLHttpRequest();
+        txtFile.open("GET", filename, false);
+        txtFile.overrideMimeType("text/plain;");
+        txtFile.send();
+        if(txtFile.status == 200 || txtFile.status == 0)
+            return txtFile.responseText;
+        alert( "Unable to open text file: " +  filename);
+        return undefined;
+}
 
 
 function havenMain(){
-    graphics = new Graphics(document.getElementById('frayenCanvas'));
-    var mainScene = new HavenScene("wonText");
-    mainScene.Draw();
+    try{
+        graphics = new Graphics(document.getElementById('frayenCanvas'));
+        var mainScene = new HavenScene("wonText");
+        alert('in main');
+        mainScene.Draw();
+        graphics.Clear();
+    }catch(err)
+    {
+        alert(err.message);
+    }
 }

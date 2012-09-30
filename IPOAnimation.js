@@ -1,7 +1,7 @@
 //IPOAnimation.js
 
 function IPOAnimation(nameIn, sceneNameIn){
-    var lname = nameIn;
+    var ipoName = nameIn;
     var sceneName = sceneNameIn;
 
     // animation data
@@ -24,4 +24,8 @@ function IPOAnimation(nameIn, sceneNameIn){
     this.GetDuration = function(){ return duration; }
 
     this.IsValid = function(){ return isValid; }
+
+    //constructor functionality
+    alert('opening: ' + 'scenes/' + sceneName + '/IPOs/' + ipoName + '.hvtIPO' );
+    var txtFile = loadTextFileSynchronous( 'scenes/' + sceneName + '/IPOs/' + ipoName + '.hvtIPO' );
 };

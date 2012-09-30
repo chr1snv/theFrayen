@@ -20,7 +20,7 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
 
     var updatedTime = 0.0;
 
-    //depending on the type of light, igonore constructor inputs
+    //depending on the type of light, ignore constructor inputs
     Vect3_Copy(color, colorIn);
     if(lightType == this.Type.Directional){
         Vect3_Copy(rot, rotIn);
@@ -41,6 +41,56 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
     
     this.Update = function(time) { updatedTime = time; }
 
-    this.BindToGL = function(lightEnum) {}
+    this.BindToGL = function(lightNumber) {
+        
+        //pass color and intensity data
+        var colIntens = new Array(4);
+        Vect3_Copy(colIntens, color);
+        colIntens[3] = intensity;
+        gl.uniform4fv(gl.getUniformLocation(graphics.currentProgram, 'lightColor[' + lightNumber + ']'), colIntens);
+        
+        //get the position and rotation
+        var position = new Array(3);
+        var rotation = new Array(3);
+        if(ipoAnimation.IsValid()){
+            ipoAnimation.GetLocation(position, updatedTime);
+            ipoAnimation.GetRotation(rotation, updatedTime);
+        }
+        else{ //if the ipo isn't valid just use the static values
+            Vect3_Copy(position, pos);
+            Vect3_Copy(rotation, rot);
+        }
+
+        //calculate the light direction normal
+        var basisVect = [0.0,-1.0, 0.0];
+        var lightNormal = new Array(4);
+        var rotMatrix = new Array(4*4);
+        Matrix(rotMatrix, MatrixType.euler_rotate, rotation);
+        Matrix_Multiply(lightNormal, rotMatrix, basisVect);
+        
+        //pass data dependent on the type of light
+        if(lightType == this.Type.Directional){ //directional light
+            lightNormal[3] = 0.0;
+            Vect3_Negative(lightNormal);
+            gl.uniform4fv(gl.getUniformLocation(graphics.currentProgram, 'lightVector[' + lightNumber + ']'), lightNormal);
+            gl.uniform1f(gl.getUniformLocation(graphics.currentProgram, 'lightSpotConeAngle[' + lightNumber + ']'), 180);
+        }
+        else{ //either a point light or a spot light
+            var lightPos = new Array(4);
+            Vect3_Copy(lightPos, position);
+            lightPos[3] = 1.0;
+            gl.uniform4fv(gl.getUniformLocation(graphics.currentProgram, 'lightVector[' + lightNumber + ']'), lightPos);
+            
+            //pass the direction and angle data (if spot)
+            if(lightType == this.Type.Spot){
+                lightNormal[3] = 1.0; //positional light
+                gl.uniform4fv(gl.getUniformLocation(graphics.currentProgram, 'lightDirection[' + lightNumber + ']'), lightNormal);
+                gl.uniform1f(gl.getUniformLocation(graphics.currentProgram, 'lightSpotConeAngle[' + lightNumber + ']'), coneAngle);
+            }
+            else{ //point light, set the spot cutoff to 180
+                gl.uniform1f(gl.getUniformLocation(graphics.currentProgram, 'lightSpotConeAngle[' + lightNumber + ']'), 180);
+            }
+        }
+    }
 }
 
