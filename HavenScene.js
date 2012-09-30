@@ -27,7 +27,6 @@ function HavenScene(sceneName){
             this.lights[light].Update(time);
         for(var cam in this.cameras)
             this.cameras[cam].Update(time);
-        alert('in scene update');
     }
     this.Draw = function()
     {
@@ -68,15 +67,7 @@ function HavenScene(sceneName){
 
     //constructor functionality
     var txtFile = loadTextFileSynchronous("scenes/"+sceneName+".hvtScene");
-
     var textFileLines = txtFile.split("\n");
-    var discard = '0';
-    var pos = new Float32Array(3);
-    var rot = new Float32Array(3);
-    var col = new Float32Array(3);
-    var intensity = 0.0;
-    var lightType = 0;
-    var coneAngle = 0.0;
     for(var i=0; i<textFileLines.length; ++i)
     {
         var temp = textFileLines[i];
@@ -98,11 +89,11 @@ function HavenScene(sceneName){
             
             var lampName = words[1];
             var lightType = parseInt(words[2]);
-            pos[0] = words[3]; pos[1] = words[4]; pos[2] = words[5];
-            rot[0] = words[6]; rot[1] = words[7]; rot[2] = words[8];
-            col[0] = words[9]; col[1] = words[10];col[2] = words[11];
-            intensity = words[12];
-            coneAngle = words[13];
+            var pos = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
+            var rot = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
+            var col = [ parseFloat(words[9]), parseFloat(words[10]), parseFloat(words[11]) ];
+            var intensity = parseFloat(words[12]);
+            var coneAngle = parseFloat(words[13]);
             this.lights.push(new Light(lampName, sceneName, col, intensity, lightType, pos, rot, coneAngle));
         }
         //this is a camera to be read in
@@ -110,9 +101,9 @@ function HavenScene(sceneName){
             var words = temp.split(' ');
             var angle, clipStart, clipEnd;
             var cameraName = words[1];
-            pos[0] = words[2]; pos[1] = words[3]; pos[2] = words[4];
-            rot[0] = words[5]; rot[1] = words[6]; rot[2] = words[7];
-            angle = words[8]; clipStart = words[9]; clipEnd = words[10];
+            var pos   = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
+            var rot   = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
+            var angle = [ parseFloat(words[8]), parseFloat(words[9]), parseFloat(words[10]) ];
             this.cameras.push(new Camera(cameraName, sceneName, angle, clipStart, clipEnd, pos, rot));
         }
         //this is the name of the active camera to be read in
@@ -126,7 +117,6 @@ function HavenScene(sceneName){
             }
         }
     }
-    alert('successfully read in: ' + sceneName);
     this.isValid = true;
     this.Update(0.0); //init animated objs
 }

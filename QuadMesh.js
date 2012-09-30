@@ -1,38 +1,38 @@
 //QuadMesh.
 
 function QuadMesh(nameIn, sceneNameIn){
-    var name = nameIn;
-    var sceneName = sceneNameIn;
+    this.name = nameIn;
+    this.sceneName = sceneNameIn;
 
-    var isValid = false;
-    var isAnimated = false;
+    this.isValid = false;
+    this.isAnimated = false;
 
     //the orientation matrix
-    var scale = [1,1,1];
-    var rotation = [0,0,0];
-    var origin = [0,0,0];
+    this.scale = [1,1,1];
+    this.rotation = [0,0,0];
+    this.origin = [0,0,0];
 
-    var shaderNames = [];
+    this.shaderNames = [];
 
-    var facesCt = 0;
-    var faces = [];
-    var faceVertsCt = 0;
+    this.facesCt = 0;
+    this.faces = [];
+    this.faceVertsCt = 0;
 
     //the raw mesh data
-    var vertsCt = 0;
-    var vertPositions = [];
-    var vertNormals = [];
-    var vertBoneWeights = [];
+    this.vertsCt = 0;
+    this.vertPositions = [];
+    this.vertNormals = [];
+    this.vertBoneWeights = [];
 
     //animated mesh
-    var keyedPositions = [];
-    var skelPositions = [];
-    var ipoOriginMatrix = new Array(16);
+    this.keyedPositions = [];
+    this.skelPositions = [];
+    this.ipoOriginMatrix = new Array(16);
 
     //animation classes
-    var ipoAnimation  = 0;
-    var keyAnimation  = 0;
-    var skelAnimation = 0;
+    this.ipoAnimation  = 0;
+    this.keyAnimation  = 0;
+    this.skelAnimation = 0;
 
     //returns the non tessilated verts. returns new memory
     getWorldSpaceVerts = function() {}

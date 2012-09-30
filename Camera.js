@@ -43,7 +43,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
     this.frustum;
         
-    this.ipoAnimation = 0;
+    this.ipoAnimation = new IPOAnimation(nameIn, sceneNameIn);
     this.time = 0;
 
     this.updateFrustum = function() {}
@@ -51,30 +51,31 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     this.getRotation = function(rotOut)
     {
         if(!this.ipoAnimation.GetRotation(rotOut, time))
-            Vect3_Copy(rotOut, rotation);
+            Vect3_Copy(rotOut, this.rotation);
         //urotate the camera by 90 degrees (blender camera starts off looking straight down)
-        rotOut[0] -= 90.0*(M_PI/180.0);
-        Vect3_Add(rotOut, setRotationDelta);
+        rotOut[0] -= 90.0*(Math.PI/180.0);
+        Vect3_Add(rotOut, this.setRotationDelta);
     }
     this.getLocation = function(locOut)
     {
         if(!this.ipoAnimation.GetLocation(locOut, time))
-            Vect3_Copy(locOut, position);
-        Vect3_Add(locOut, setPositionDelta);
+            Vect3_Copy(locOut, this.position);
+        Vect3_Add(locOut, this.setPositionDelta);
     }
 
     //apply the Cameras transformation
     this.applyTransform = function()
     {
-        alert('applying camera transform');
+        var transposeTemp = new Array(4*4);
         if(this.fov == 0.0)
         {
             var m = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
                             -graphics.GetScreenHeight(), graphics.GetScreenHeight(),
                             -1, 1);
-            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'projectionMatrix'), true, m);
+            Matrix_Transpose(transposeTemp, m);
+            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'projectionMatrix'), false, transposeTemp);
             Matrix_SetIdentity(m);
-            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'modelViewMatrix'), true, m);
+            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'modelViewMatrix'), false, transposeTemp);
         }
         else
         {
@@ -83,7 +84,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                                    this.nearClip,              //near clip plane distance
                                    this.farClip                //far clip plane distance
                                    );
-            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'projectionMatrix'), true, m);
+            Matrix_Transpose(transposeTemp, m);
+            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'projectionMatrix'), false, transposeTemp);
 
             //get the camera rotation and translation from the ipo
             var translation = new Array(3);
@@ -108,21 +110,113 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             Matrix_Inverse( invTransMat, transMat );
             Matrix_Multiply(invTransformationMat, invRotMat, invTransMat);
 
-            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'modelViewMatrix'), true, invTransformationMat);
+            Matrix_Transpose(transposeTemp, m);
+            gl.uniformMatrix4fv(gl.getUniformLocation(graphics.currentProgram, 'modelViewMatrix'), false, transposeTemp);
         }
-        alert('successfully uploaded camera matricies');
         CheckGLError("Camera::applyTransform end");
     }
 
     //update the Cameras position
     this.Update = function(timeIn) { time = timeIn; }
-    this.update = function(positionDelta, rotationDelta) {}
+    this.update = function(positionDelta, rotationDelta)
+    {
+        //Update the cameras transformation given a change in position and rotation.
+
+        //apply the change in rotation
+        this.setRotationDelta[0] += rotationDelta[0];
+        this.setRotationDelta[1] += rotationDelta[1];
+
+        //get the new rotation
+        var rot = new Array(3);
+        this.getRotation(rot);
+
+        //    //prevent up down rotation past vertical
+        //    if (rotation[0] > 90.0)
+        //        rotation[0] = 90.0;
+        //    if (rotation[0] < -90.0)
+        //        rotation[0] = -90.0;
+
+        //calculate the normal of the camera
+        var nz =  Math.cos(rot[1]*Math.PI/180.0);
+        var nx = -Math.sin(rot[1]*Math.PI/180.0);
+        var ny =  Math.sin(rot[0]*Math.PI/180.0);
+        //and the orthogonal of that normal
+        var oz = -nx;
+        var ox =  nz;
+        var oy = 0.0;
+        //one last step to get the proper normal (rotation.y is being converted to
+        //radians before applying cos here)
+        var xzNormalLength = Math.cos(rot[0]*Math.PI/180.0);
+        if (xzNormalLength != 0)
+        {
+            nz = nz*xzNormalLength;
+            nx = nx*xzNormalLength;
+        }
+
+        //now use the camera normal to apply the forward and sideways motion.
+
+        //forwards backwards
+        setPositionDelta[0] += nx*positionDelta[1];
+        setPositionDelta[1] += ny*positionDelta[1];
+        setPositionDelta[2] += nz*positionDelta[1];
+
+        //sideways
+        setPositionDelta[0] += ox*positionDelta[0];
+        setPositionDelta[1] += oy*positionDelta[0];
+        setPositionDelta[2] += oz*positionDelta[0];
+    }
     this.SetPosDelta = function(posIn) { Vect3_Copy(setPositionDelta, posIn); }
 
     //return a Frustum representing the volume to be rendered by the Camera
     this.GetFrustum = function() {}
 
-    //generate a ray from the camera origin passing through the screen coordinates given
-    this.GenerateWorldCoordRay = function(rayOrig, rayDir, screenCoords) {}
+    function GetFarClipBounds( bounds, fovy, aspect, zFar )
+    {
+        var ymax = zFar * Math.tan(fovy * Math.PI / 360.0);
+        var ymin = -ymax;
+        var xmin = ymin * aspect;
+        var xmax = ymax * aspect;
+        
+        bounds = [ [xmin, ymin, -zFar],   //bottom left
+                   [xmin, ymax, -zFar],   //top left
+                   [xmax, ymin, -zFar],   //bottom right
+                   [xmax, ymax, -zFar] ]; //top right
+    }
+
+    //generate a ray from the camera origin in the direction of the screen
+    this.GenerateWorldCoordRay = function(rayOrig, rayDir, screenCoords)
+    {
+        var vertCard = 3;
+        
+        //get the camera origin
+        this.getLocation(rayOrig);
+        
+        //construct the far clip plane, and get the rayDir by
+        //lerping between the boundries of the farClip plane
+        /////////
+        
+        //get the camera rotation matrix
+        var rot = new Array(3);
+        this.getRotation(rot);
+        var rotMat = new Array(4*4);
+        Matrix(rotMat, MatrixType.euler_rotate, rot);
+        //get the far clip plane bounds and rotate them by the camera rotation matrix
+        var boundsTemp = new Array(4);
+        var bounds =     new Array(4);
+        GetFarClipBounds(boundsTemp, fov, 1.0, farClip);
+
+        Matrix_Multiply_Array3(bounds, rotMat, boundsTemp);
+        
+        //interpolate between the points to get the end point of the ray
+        var leftTemp =     new Array(vertCard);
+        var rightTemp =    new Array(vertCard);
+        var frustumPoint = new Array(vertCard);
+        Vect3_LERP(leftTemp,  bounds[0], bounds[1], screenCoords[1]*0.5+0.5); //bottom left, top left lerp
+        Vect3_LERP(rightTemp, bounds[2], bounds[3], screenCoords[1]*0.5+0.5); //bottom right, top right lerp
+        Vect3_LERP(frustumPoint, leftTemp, rightTemp, screenCoords[0]*0.5+0.5); //left, right lerp
+
+        Vect3_Copy(rayDir, frustumPoint);
+    }
+
 
 }

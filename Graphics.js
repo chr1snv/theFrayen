@@ -191,32 +191,30 @@ function Graphics(canvasIn, bpp, depthIn){
 
     //load and compile the program
     this.currentProgram = gl.createProgram();
+
     var textFile = loadTextFileSynchronous('frayenVertShader.vsh');
-        
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, textFile);
     gl.compileShader(vertexShader);
-    if(gl.getShaderInfoLog(vertexShader))
+    if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
         alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
     gl.attachShader(this.currentProgram, vertexShader);
 
     textFile = loadTextFileSynchronous('frayenFragShader.fsh');
-
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fragmentShader, textFile);
     gl.compileShader(fragmentShader);
-    if(gl.getShaderInfoLog(fragmentShader))
+    if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
         alert('fragment shader log: ' + gl.getShaderInfoLog(fragmentShader));
     gl.attachShader(this.currentProgram, fragmentShader);
 
     gl.validateProgram(this.currentProgram);
     gl.linkProgram(this.currentProgram);
-    if(gl.getProgramInfoLog(this.currentProgram))
+    if(!gl.getProgramParameter(this.currentProgram, gl.LINK_STATUS) && gl.getProgramInfoLog(this.currentProgram))
         alert('gl currentProgram status: ' + gl.getProgramInfoLog(this.currentProgram));
     gl.useProgram(this.currentProgram);
 
     //enable passing render data by arrays
-    var maxArrays = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     gl.enableVertexAttribArray(0);
     gl.enableVertexAttribArray(1);
     gl.enableVertexAttribArray(2);

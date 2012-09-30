@@ -1,32 +1,31 @@
 //Model.js
 
 function Model(nameIn, meshNameIn, sceneNameIn){
-    var mname = nameIn;
-    var meshName = meshNameIn;
-    var sceneName = sceneNameIn;
+    this.modelName = nameIn;
+    this.meshName = meshNameIn;
+    this.sceneName = sceneNameIn;
 
-    var modelDrawable = 0;
-    var sceneGraph = 0;
+    this.modelDrawable = 0;
+    this.sceneGraph = 0;
 
     //modifiers for manipulating the mesh from its default position
-    var scaleOff = new Float32Array(3);
-    var scaleSet = false;
-    var rotationOff = new Float32Array(3);
-    var rotationSet = false;
-    var positionOff = new Float32Array(3);
-    var positionSet = false;
+    this.scaleOff = new Float32Array(3);
+    this.scaleSet = false;
+    this.rotationOff = new Float32Array(3);
+    this.rotationSet = false;
+    this.positionOff = new Float32Array(3);
+    this.positionSet = false;
     //modified shader
-    var shaderName = "";
-    var shaderScene = "";
+    this.shaderName = "";
+    this.shaderScene = "";
 
-    var timeUpdate;
-    var optTransformUpdated;
+    this.timeUpdate;
+    this.optTransformUpdated;
 
-    var generateModelMatrix = function(ret){}
+    this.generateModelMatrix = function(ret){}
 
 //public methods
     //Identification / registration functions
-    this.GetName = function(){ return name; }
     this.AddToSceneGraph = function(sgIn){}
     this.RemoveFromSceneGraph = function(){}
 
@@ -36,7 +35,7 @@ function Model(nameIn, meshNameIn, sceneNameIn){
 
     //draw transformation manipulation functions
     //getters
-    this.GetPosition = function(pos) { Graphics.GetQuadMesh(meshName, sceneName).GetPosition(pos); }
+    this.GetPosition = function(pos) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetPosition(pos); }
     this.GetScale = function(scaleOut) { Graphics.GetQuadMesh(meshName, sceneName).GetScale(scaleOut); }
     this.GetRotation = function(rotOut) { Graphics.GetQuadMesh(meshName, sceneName).GetRotation(rotOut); }
     //setters

@@ -1,21 +1,26 @@
 //HavenMain.js
 
 function loadTextFile(filename, callback, thisP){
-    var txtFile = new XMLHttpRequest();
-    txtFile.onreadystatechange = function(){
-        if(txtFile.readyState == 4){
-            if(txtFile.status == 200 || txtFile.status == 0){
-                callback(txtFile.responseText, thisP); //callback
+    try{
+        var txtFile = new XMLHttpRequest();
+        txtFile.onreadystatechange = function(){
+            if(txtFile.readyState == 4){
+                if(txtFile.status == 200 || txtFile.status == 0){
+                    callback(txtFile.responseText, thisP); //callback
+                }
+                else
+                    alert( "Unable to open text file: " +  filename);
             }
-            else
-                alert( "Unable to open text file: " +  filename);
         }
+        txtFile.open("GET", filename, true);
+        txtFile.overrideMimeType("text/plain;");
+        txtFile.send();
+    }catch(err){
+        return undefined;
     }
-    txtFile.open("GET", filename, true);
-    txtFile.overrideMimeType("text/plain;");
-    txtFile.send();
 }
 function loadTextFileSynchronous(filename){
+    try{
         var txtFile = new XMLHttpRequest();
         txtFile.open("GET", filename, false);
         txtFile.overrideMimeType("text/plain;");
@@ -23,7 +28,8 @@ function loadTextFileSynchronous(filename){
         if(txtFile.status == 200 || txtFile.status == 0)
             return txtFile.responseText;
         alert( "Unable to open text file: " +  filename);
-        return undefined;
+    }catch(err){
+    }
 }
 
 
@@ -31,11 +37,9 @@ function havenMain(){
     try{
         graphics = new Graphics(document.getElementById('frayenCanvas'));
         var mainScene = new HavenScene("wonText");
-        alert('in main');
         mainScene.Draw();
         graphics.Clear();
-    }catch(err)
-    {
-        alert(err.message);
+    }catch(err){
+        alert( 'havenMain caught error: ' + err.name + ' : ' + err.message );
     }
 }

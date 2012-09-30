@@ -337,7 +337,7 @@ function Matrix_Inverse(ret, m)
     return;
 }
 
-function Matrix_Multiply( ret, m, vect)
+function Matrix_Multiply_Vect3( ret, m, vect)
 {
     //turn the vect3 into a 4d vector (set w=1) and preform the matrix
     //multiplication on it
@@ -373,13 +373,13 @@ function Matrix_Multiply( ret, m, vect)
     //matrix to preform translation as well as rotation and scaling
 }
 
-function Matrix_Multiply_Array3( arrayOut, arraySize, m, arrayIn)
+function Matrix_Multiply_Array3( arrayOut, m, arrayIn )
 {
-    for(var i=0; i<arraySize; i+=3)
-        Matrix_Multiply(arrayOut, m, arrayIn);
+    for(var idx in arrayIn)
+        Matrix_Multiply_Vect3(arrayOut, m, arrayIn[idx]);
 }
 
-function Matrix_Multiply( ret, a, b)
+function Matrix_Multiply( ret, a, b )
 {
     //multiply the two 4x4 matricies together
 

@@ -52,7 +52,7 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
         //get the position and rotation
         var position = new Array(3);
         var rotation = new Array(3);
-        if(ipoAnimation.IsValid()){
+        if(ipoAnimation.isValid){
             ipoAnimation.GetLocation(position, updatedTime);
             ipoAnimation.GetRotation(rotation, updatedTime);
         }
