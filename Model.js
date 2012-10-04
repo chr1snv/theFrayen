@@ -30,7 +30,11 @@ function Model(nameIn, meshNameIn, sceneNameIn){
     this.RemoveFromSceneGraph = function(){}
 
     //animation functions
-    this.Update = function(time){}
+    this.Update = function(time)
+    {
+        graphics.GetQuadMesh(this.meshName, this.sceneName).Update(time);
+        this.timeUpdate = true;
+    }
     this.GetAnimationLength = function() { return Graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
 
     //draw transformation manipulation functions
@@ -50,7 +54,19 @@ function Model(nameIn, meshNameIn, sceneNameIn){
 
     //draw functions
     this.GetNumVerts = function(){ return Graphics.GetQuadMesh(this.meshName, this.sceneName).GetFaceVertsCt(); }
-    this.Draw = function(frustum, verts, normals, uvs, mustDraw) {}
+    this.Draw = function(frustum, verts, normals, uvs, mustDraw)
+    {
+        alert('in mesh draw');
+        if(this.timeUpdate || mustDraw)
+        {
+            var transformation = new Array(4*4);
+            this.generateModelMatrix(transformation);
+            graphics.GetQuadMesh(this.meshName, this.sceneName).Draw(verts, normals, uvs);
+            this.timeUpdate = false; //clear the time update flag
+            return true;
+        }
+        return false;
+    }
     this.GetOptTransform = function(retMat)  {}
     this.DrawSkeleton = function(){ Graphics.GetQuadMesh(this.meshName, this.sceneName).DrawSkeleton(); }
     
