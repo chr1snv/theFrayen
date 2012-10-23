@@ -39,15 +39,30 @@ function SceneGraph()
     //adds a drawable to the scene and returns its name
     this.Add = function(newDrawable){
         if(newDrawable.IsTransparent())
-            this.collections.transparent[newDrawable.GetShaderName()] = newDrawable;
+            this.collections.transparent[newDrawable.GetShaderName()][newDrawable.GetName()] = newDrawable;
+        else
+            this.collections.opaque[newDrawable.GetShaderName()][newDrawable.GetName()] = newDrawable;
+        this.alterAllocationSize(newDrawable.GetNumVerts());
     }
     
     //removes the drawable with the given name from the scene
-    this.Remove = function(newDrawable){
+    this.Remove = function(givenDrawable){
+        if(givenDrawable.IsTransparent())
+            this.collections.transparent[givenDrawable.GetShaderName()][givenDrawable.GetName()] = undefined;
+        else
+            this.collections.opaque[givenDrawable.GetShaderName()][givenDrawable.GetName()] = undefined;
+        alterAllocationSize(-givenDrawable.GetNumVerts());
     }
     
     //draws the drawables that are within the frustrum
-    this.Draw = function(frustum){
+    this.Draw = function(frustum)
+    {
+        for(var i in this.collections) //loop through the transparent and opaque lists
+            for(var j in this.collections[i]) //loop through the shaders
+                for(var k in this.collections[i][j]) //loop through the drawables
+                {
+                    this.collections[i][j][k]
+                }
     }
 
     //returns the closest model that the given ray intersects
