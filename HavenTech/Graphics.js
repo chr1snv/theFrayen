@@ -226,8 +226,8 @@ function Graphics(canvasIn, bpp, depthIn){
 
     //gl.viewport(0, 0, screenWidth, screenHeight);
 
-    gl.disable(gl.CULL_FACE);
-    //gl.cullFace(gl.BACK);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
 
     //enable depth testing
     //gl.depthFunc(gl.LESS);

@@ -143,7 +143,7 @@ function SceneGraph(sceneNameIn)
 
                                 attributeSetFloats( graphics.currentProgram,
                                                     "position", graphics.vertCard,
-                                                    vertices );
+                                                    verts );
                                 attributeSetFloats( graphics.currentProgram,
                                                     "normal", graphics.normCard,
                                                     verts );
@@ -151,7 +151,7 @@ function SceneGraph(sceneNameIn)
                                                     "texCoord", graphics.uvCard,
                                                     uvs );
 
-                                gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts/3 );
+                                gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts );
 
 
                                 UpdateCamera();

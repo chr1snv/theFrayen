@@ -23,43 +23,10 @@ function loadTextFileSynchronous(filename){
         return txtFile.responseText;
 }
 
-
-function canvasMouseMoveHandler(event){
-    mCoords = document.getElementById('frayenCanvas').relMouseCoords(event);
-
-}
-
-//mouse cordinates for canvas
-//http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
-function relMouseCoords(event){
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    var currentElement = this;
-    
-    do{
-        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-    }
-    while(currentElement = currentElement.offsetParent)
-        
-        canvasX = event.pageX - totalOffsetX;
-    canvasY = event.pageY - totalOffsetY;
-    
-    return {x:canvasX, y:canvasY}
-}
-HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
-
-
 function havenMain(){
     //cameraStream = new CameraStream();
 
-    mCoords = {x:0, y:0};
-
-   //register the canvas mouse move callback
-    document.getElementById("frayenCanvas").onmousemove = canvasMouseMoveHandler;
-    document.getElementById("frayenCanvas").ontouchmove = canvasMouseMoveHandler;
+    registerInputHandlers();
 
     graphics = new Graphics(document.getElementById('frayenCanvas'));
     mainScene = new HavenScene("cubeTest", sceneLoaded);
@@ -75,55 +42,38 @@ function MainLoop(){
     UpdateCamera();
     mainScene.Draw();
 
-
     window.requestAnimFrame(MainLoop);
 }
 
-
 function UpdateCamera(){
 
-    var camPositionUpdate = new Float32Array([0,0,0]);
-    mX = mCoords.x/graphics.screenWidth - 0.5;
-    mY = mCoords.y/graphics.screenHeight - 0.5;
-    var camRotUpdate = new Float32Array([(mY*Math.PI/180),(mX*Math.PI/180),0]);
+    //generate the position update
+    var moveAmt = 0.2;
+    var camPositionUpdate = new Float32Array( [ 0, 0, 0 ] );
+    if( keys[keyCodes.KEY_W] == true ){
+        camPositionUpdate[2] -= moveAmt;
+    }
+    if( keys[keyCodes.KEY_S] == true ){
+        camPositionUpdate[2] += moveAmt;
+    }
+    if( keys[keyCodes.KEY_A] == true ){
+        camPositionUpdate[0] -= moveAmt;
+    }
+    if( keys[keyCodes.KEY_D] == true ){
+        camPositionUpdate[0] += moveAmt;
+    }
+
+    //generate the rotation update
+    var mY = 0;
+    var mX = 0;
+    if( mDown ){
+        var relMx = mCoords.x - mDownCoords.x;
+        var relMy = mCoords.y - mDownCoords.y;
+        var mX = relMx/graphics.screenWidth;// - 0.5;
+        var mY = relMy/graphics.screenHeight;// - 0.5;
+    }
+    var camRotUpdate     = new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
+
+    //send the updates to the camera
     mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation(camPositionUpdate, camRotUpdate);
-/*
-    var uploadMatrixTemp = new Float32Array(4*4);
-    mainScene.cameras[mainScene.activeCameraIdx].calculateTransform(uploadMatrixTemp);
-    var uploadMatrix = new Float32Array(4*4);
-    //Matrix_SetIdentity(uploadMatrixTemp);
-    Matrix_Transpose( uploadMatrix, uploadMatrixTemp );
-    var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
-    gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
-
-    var vertices = new Float32Array([
-        // Front face
-         0.0,  1.0,  0.0,
-        -1.0, -1.0,  1.0,
-         1.0, -1.0,  1.0,
-        // Right face
-         0.0,  1.0,  0.0,
-         1.0, -1.0,  1.0,
-         1.0, -1.0, -1.0,
-        // Back face
-         0.0,  1.0,  0.0,
-         1.0, -1.0, -1.0,
-        -1.0, -1.0, -1.0,
-        // Left face
-         0.0,  1.0,  0.0,
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0,  1.0
-    ]);
-    attributeSetFloats( graphics.currentProgram,
-                        "position", graphics.vertCard,
-                        vertices );
-    attributeSetFloats( graphics.currentProgram,
-                        "normal", graphics.normCard,
-                        vertices );
-    attributeSetFloats( graphics.currentProgram,
-                        "texCoord", graphics.uvCard,
-                        vertices );
-
-    gl.drawArrays( gl.TRIANGLES, 0, 4 );
-*/
 }

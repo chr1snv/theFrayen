@@ -82,32 +82,36 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                                                this.farClip                //far clip plane distance
                                               );
 
-            //get the camera rotation and translation from the ipo
-            var translation = new Float32Array(3);
-            var rot = new Float32Array(3);
-            this.getRotation(rot);
-            this.getLocation(translation);
-
             //calculate the inverse position transformation matrix for the camera
             //(the transformation matrix for the camera would be the matrix required
             //to transform the camera to its position in the world, but we want the
             //model view matrix to be the inverse of that, the matrix required to
             //bring the world into the view of the camera)
-            var invTransformationMat = new Float32Array(4*4);
+            var invTransformMat = new Float32Array(4*4);
+            var transformMat = this.getCameraToWorldMatrix();
+            Matrix_Inverse( invTransformMat, transformMat );
 
-            var rotMat      = new Float32Array(4*4);
-            var transMat    = new Float32Array(4*4);
-            var invTransMat = new Float32Array(4*4);
-            var invRotMat   = new Float32Array(4*4);
-            Matrix( rotMat, MatrixType.euler_rotate, rot );
-            Matrix_Inverse( invRotMat, rotMat );
-            Matrix( transMat, MatrixType.translate, translation );
-            Matrix_Inverse( invTransMat, transMat );
-            Matrix_Multiply(invTransformationMat, invRotMat, invTransMat);
-
-            //multiply the inverseTransformationMatrix by the perspective matrix to get the mvpMatrix
-            Matrix_Multiply( cameraProjectionMatrix, projectionMat, invTransformationMat );
+            //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
+            Matrix_Multiply( cameraProjectionMatrix, projectionMat, invTransformMat );
         }
+    }
+
+    this.getCameraToWorldMatrix = function(){
+        //get the camera rotation and translation from the ipo
+        var translation = new Float32Array(3);
+        var rot = new Float32Array(3);
+        this.getRotation(rot);
+        this.getLocation(translation);
+
+        var transMat        = new Float32Array(4*4);
+        var invTransMat     = new Float32Array(4*4);
+        var rotMat          = new Float32Array(4*4);
+
+        var transformMat    = new Float32Array(4*4);
+        Matrix( transMat, MatrixType.translate, translation );
+        Matrix( rotMat, MatrixType.euler_rotate, rot );
+        Matrix_Multiply( transformMat, transMat, rotMat );
+        return transformMat;
     }
 
     //update the Cameras position
@@ -124,40 +128,22 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         var rot = new Float32Array(3);
         this.getRotation(rot);
 
+        var rotMat = new Float32Array(4*4);
+        Matrix( rotMat, MatrixType.euler_rotate, rot );
+
+        var transformedRot = new Float32Array(4*4);
+        Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
+
         //    //prevent up down rotation past vertical
         //    if (rotation[0] > 90.0)
         //        rotation[0] = 90.0;
         //    if (rotation[0] < -90.0)
         //        rotation[0] = -90.0;
 
-        //calculate the normal of the camera
-        var nz =  Math.cos(rot[1]*Math.PI/180.0);
-        var nx = -Math.sin(rot[1]*Math.PI/180.0);
-        var ny =  Math.sin(rot[0]*Math.PI/180.0);
-        //and the orthogonal of that normal
-        var oz = -nx;
-        var ox =  nz;
-        var oy = 0.0;
-        //one last step to get the proper normal (rotation.y is being converted to
-        //radians before applying cos here)
-        var xzNormalLength = Math.cos(rot[0]*Math.PI/180.0);
-        if (xzNormalLength != 0)
-        {
-            nz = nz*xzNormalLength;
-            nx = nx*xzNormalLength;
-        }
-
-        //now use the camera normal to apply the forward and sideways motion.
-
         //forwards backwards
-        this.setPositionDelta[0] += nx*positionDelta[1];
-        this.setPositionDelta[1] += ny*positionDelta[1];
-        this.setPositionDelta[2] += nz*positionDelta[1];
-
-        //sideways
-        this.setPositionDelta[0] += ox*positionDelta[0];
-        this.setPositionDelta[1] += oy*positionDelta[0];
-        this.setPositionDelta[2] += oz*positionDelta[0];
+        this.setPositionDelta[0] += transformedRot[0];
+        this.setPositionDelta[1] += transformedRot[1];
+        this.setPositionDelta[2] += transformedRot[2];
     }
     this.SetPosDelta = function(posIn) { Vect3_Copy(setPositionDelta, posIn); }
 

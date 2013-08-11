@@ -122,24 +122,6 @@ function SceneGraph(sceneNameIn)
                                 var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
                                 gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
 
-                                var vertices = new Float32Array([
-                                    // Front face
-                                     0.0,  1.0,  0.0,
-                                    -1.0, -1.0,  1.0,
-                                     1.0, -1.0,  1.0,
-                                    // Right face
-                                     0.0,  1.0,  0.0,
-                                     1.0, -1.0,  1.0,
-                                     1.0, -1.0, -1.0,
-                                    // Back face
-                                     0.0,  1.0,  0.0,
-                                     1.0, -1.0, -1.0,
-                                    -1.0, -1.0, -1.0,
-                                    // Left face
-                                     0.0,  1.0,  0.0,
-                                    -1.0, -1.0, -1.0,
-                                    -1.0, -1.0,  1.0
-                                ]);
 
                                 attributeSetFloats( graphics.currentProgram,
                                                     "position", graphics.vertCard,
@@ -151,7 +133,7 @@ function SceneGraph(sceneNameIn)
                                                     "texCoord", graphics.uvCard,
                                                     uvs );
 
-                                gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts/3 );
+                                gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts );
 
 
                                 UpdateCamera();

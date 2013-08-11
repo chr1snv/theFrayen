@@ -22,7 +22,7 @@ function drawSquare(graphics) { // Draw the picture
 
     attributeSetFloats( graphics.currentProgram, "position",  3, verts );
     attributeSetFloats( graphics.currentProgram, "normal",    3, verts );
-    attributeSetFloats( graphics.currentProgram, "texCoord", 2, verts );
+    attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
     gl.drawArrays(gl.TRIANGLES, 0, 3); 
     gl.flush();
 }
@@ -226,8 +226,8 @@ function Graphics(canvasIn, bpp, depthIn){
 
     //gl.viewport(0, 0, screenWidth, screenHeight);
 
-    gl.disable(gl.CULL_FACE);
-    //gl.cullFace(gl.BACK);
+    //gl.disable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
 
     //enable depth testing
     //gl.depthFunc(gl.LESS);

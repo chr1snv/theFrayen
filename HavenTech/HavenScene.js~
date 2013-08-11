@@ -31,11 +31,11 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
                 return;
             }
             while(l < this.lights.length){
-                this.lights[l++].Update(time, undefined, updateLoop);
+                this.lights[l++].Update(time);
                 return;
             }
             while(c < this.cameras.length){
-                this.cameras[c++].Update(time, undefined, updateLoop);
+                this.cameras[c++].Update(time);
                 return;
             }
             updateCompleteCb();
@@ -126,24 +126,24 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
             if(temp[0] == "l"){
                 var words = temp.split(' ');
                 
-                var lampName = words[1];
+                var lampName  = words[1];
                 var lightType = parseInt(words[2]);
-                var pos = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
-                var rot = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
-                var col = [ parseFloat(words[9]),  parseFloat(words[10]), parseFloat(words[11]) ];
+                var pos       = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
+                var rot       = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
+                var col       = [ parseFloat(words[9]),  parseFloat(words[10]), parseFloat(words[11]) ];
                 var intensity = parseFloat(words[12]);
                 var coneAngle = parseFloat(words[13]);
                 thisSceneP.lights.push(new Light(lampName, thisSceneP.sceneName, col, intensity, lightType, pos, rot, coneAngle));
             }
             //this is a camera to be read in
             if(temp[0] == 'c'){
-                var words = temp.split(' ');
+                var words      = temp.split(' ');
                 var cameraName = words[1];
-                var pos       = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
-                var rot       = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
-                var angle     =   parseFloat(words[8]);
-                var clipStart =   parseFloat(words[9]);
-                var clipEnd   =   parseFloat(words[10]);
+                var pos        = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
+                var rot        = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
+                var angle      =   parseFloat(words[8]);
+                var clipStart  =   parseFloat(words[9]);
+                var clipEnd    =   parseFloat(words[10]);
                 thisSceneP.cameras.push(new Camera(cameraName, thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
             }
             //this is the name of the active camera to be read in
