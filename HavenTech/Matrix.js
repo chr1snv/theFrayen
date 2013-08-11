@@ -46,8 +46,9 @@ function Matrix( m, type, scale, rot, translation )
     }
     else if(type == MatrixType.euler_transformation )
     {
-        var scale = arguments[2];
-        var rot   = arguments[3];
+        var scale       = arguments[2];
+        var rot         = arguments[3];
+        var translation = arguments[4];
         var tempMat1 = new Float32Array(4*4);
         var tempMat2 = new Float32Array(4*4);
         var tempMat3 = new Float32Array(4*4);

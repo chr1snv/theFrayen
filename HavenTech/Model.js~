@@ -2,27 +2,29 @@
 
 function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback){
 
-    this.generateModelMatrix = function( completeCallback ){
+    this.generateModelMatrix = function( cbObjs, completeCallback ){
+        var thisP = cbObjs[1];
         //get the quadMesh transformationMatrix
         var quadMeshMatrix = new Float32Array(4*4);
-        var quadMesh = graphics.GetQuadMesh(meshNameIn, sceneNameIn);
-        var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
-        var rot      = new Float32Array(3); quadMesh.GetPosition(rot);
-        var scale    = new Float32Array(3); quadMesh.GetPosition(scale);
-        Matrix(quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos);
+        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbObjs, 2:completeCallback}, function(quadMesh, cbObj2){
+            var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
+            var rot      = new Float32Array(3); quadMesh.GetRotation(rot);
+            var scale    = new Float32Array(3); quadMesh.GetScale(scale);
+            Matrix(quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos);
 
-        //calculate the set transformation matrix
-        var offsetMatrix = new Float32Array(4*4);
-        Matrix(offsetMatrix,
-               MatrixType.euler_transformation,
-               this.scaleOff, this.rotationOff, new Float32Array([0,0,0]));
-        var transformation = new Float32Array(4*4);
-        Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
-        transformation[0*4+3] += this.positionOff[0];
-        transformation[1*4+3] += this.positionOff[1];
-        transformation[2*4+3] += this.positionOff[2];
+            //calculate the set transformation matrix
+            var offsetMatrix = new Float32Array(4*4);
+            Matrix(offsetMatrix,
+                   MatrixType.euler_transformation,
+                   thisP.scaleOff, thisP.rotationOff, new Float32Array([0,0,0]));
+            var transformation = new Float32Array(4*4);
+            Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
+            transformation[0*4+3] += thisP.positionOff[0];
+            transformation[1*4+3] += thisP.positionOff[1];
+            transformation[2*4+3] += thisP.positionOff[2];
 
-        completeCallback( transformation );
+            cbObj2[2]( transformation, cbObj2[1] );
+        });
     }
 
 //public methods
@@ -42,10 +44,16 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     }
 
     //animation functions
-    this.Update = function(time)
+    this.Update = function(time, updateCompleteParams, updateCompleteCallback)
     {
-        graphics.GetQuadMesh(this.meshName, this.sceneName).Update(time);
-        this.timeUpdate = true;
+        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
+            function(quadMesh, cbObj){
+                quadMesh.Update(time);
+                cbObj[1].timeUpdate = true;
+                cbObj[3](cbObj[2]);
+            }
+        );
+
     }
     this.GetAnimationLength = function() { return graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
 
@@ -72,20 +80,24 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
         this.shaderName = shaderNameIn;
         this.shaderScene = sceneNameIn;
         this.AddToSceneGraph(currentSceneGraph);
-
     }
 
     //draw functions
-    this.GetNumVerts = function(){ return graphics.GetQuadMesh(this.meshName, this.sceneName).faceVertsCt; }
+    this.GetNumVerts = function(cbParams, cb){ 
+        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
+            function(quadMesh, cbObj){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }) }
     this.Draw = function( frustum, verts, normals, uvs, modelTransform, mustDraw, completeCallback )
     {
         if(this.timeUpdate || mustDraw)
         {
-            this.generateModelMatrix(function(){
-                graphics.GetQuadMesh(this.meshName, this.sceneName, function(quadMesh){
-                    quadMesh.Draw(verts, normals, uvs);
-                    this.timeUpdate = false; //clear the time update flag
-                    completeCallback( true );
+            this.generateModelMatrix(
+                {1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback},
+                function( transformation, cmpCb ){
+                Matrix_Copy( cmpCb[6], transformation );
+                graphics.GetQuadMesh( cmpCb[1].meshName, cmpCb[1].sceneName, cmpCb, function(quadMesh, cmpCb){
+                    quadMesh.Draw(cmpCb[3], cmpCb[4], cmpCb[5]);
+                    cmpCb[1].timeUpdate = false; //clear the time update flag
+                    cmpCb[8]( true );
                 });
             });
         }
@@ -93,17 +105,21 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     }
     this.GetOptTransform = function(retMat)  {
         if( optTransformUpdated )
-            this.generateModelMatrix(retMat);
+            this.generateModelMatrix(this, retMat);
         return scaleSet || rotationSet || positionSet;
     }
     this.DrawSkeleton = function(){ graphics.GetQuadMesh(this.meshName, this.sceneName).DrawSkeleton(); }
     
     //type query functions
     this.IsTransparent = function(isTransparentCallback) {
-        graphics.GetShader(this.shaderName, this.shaderScene, {},
-                        function( shader, unused ){ isTransparentCallback(shader.IsTransparent()); });
+        graphics.GetShader(this.shaderName, this.shaderScene, isTransparentCallback,
+            function( shader, cb ){ cb(shader.IsTransparent());
+            });
     }
-    this.IsHit = function() {return graphics.GetQuadMesh(this.meshName, this.sceneName).IsHit();}
+    this.IsHit = function(cbParams, callback) {
+        graphics.GetQuadMesh( this.meshName, this.sceneName,
+            {1:cbParams, 2:callback}, function(quadmesh, cbObj){ cbObj[2](quadmesh.IsHit(), cbObj[1]); });
+    }
 
     //geometry query functions
     this.RayIntersects = function(t, rayOrig, rayDir) {
@@ -132,18 +148,15 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
         return false;
 
     }
-    this.GetBoundingPlanes = function( bPs, bpSize, finishedCallback ) {
+    this.GetBoundingPlanes = function( finishedCallback ) {
         graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetBoundingPlanes() );
-        }
+        });
     }
 
     this.modelName = nameIn;
     this.meshName = meshNameIn;
     this.sceneName = sceneNameIn;
-
-
-    this.GetName = function(){ return this.modelName; }
 
     this.modelDrawable = null;
     this.sceneGraph = null;
@@ -159,11 +172,12 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.shaderName  = this.shaderScene = "";
 
     var thisP = this;
-    graphics.GetQuadMesh(meshNameIn, sceneNameIn, function(quadMesh){
+    graphics.GetQuadMesh(meshNameIn, sceneNameIn,
+        {1:this, 2:modelLoadedParameters, 3:modelLoadedCallback}, function(quadMesh, cbObj){
         var sNameArr = quadMesh.GetShaderName();
         thisP.shaderName  = sNameArr[0];
         thisP.shaderScene = sNameArr[1];
-        modelLoadedCallback(thisP, modelLoadedParameters);
+        cbObj[3](cbObj[1], cbObj[2]);
     } );
 
 };

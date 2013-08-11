@@ -18,15 +18,28 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
 
     //function members
     this.GetName = function(){ return this.sceneName; }
-    this.Update = function(time)
+    this.Update = function(time, updateCompleteCb)
     {
-        //update the models, lights and cameras
-        for(var mdl in this.models)
-            this.models[mdl].Update(time);
-        for(var light in this.lights)
-            this.lights[light].Update(time);
-        for(var cam in this.cameras)
-            this.cameras[cam].Update(time);
+        var m = 0;
+        var l = 0;
+        var c = 0;
+        var thisP = this;
+        var updateLoop = function(){
+            //update the models, lights and cameras
+            while( m < thisP.models.length ){
+                thisP.models[m++].Update(time, undefined, updateLoop);
+                return;
+            }
+            while(l < this.lights.length){
+                this.lights[l++].Update(time);
+                return;
+            }
+            while(c < this.cameras.length){
+                this.cameras[c++].Update(time);
+                return;
+            }
+            updateCompleteCb();
+        }
     }
     this.Draw = function()
     {
@@ -76,20 +89,30 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
     this.loadScene = function(newMdl, thisSceneP){
 
         if( newMdl != undefined ){
-            thisSceneP.models[modelName] = newMdl;
+            thisSceneP.models[newMdl.modelName] = newMdl;
             //register the model with the proper SceneGraph
             thisSceneP.pendingModelsAdded++;
-            if(newMdl.IsHit())
-                newMdl.AddToSceneGraph(thisSceneP.hitSceneGraph,
-                    function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
-            else
-                newMdl.AddToSceneGraph(thisSceneP.sceneGraph,
-                    function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
-        }
 
-        for(; i<textFileLines.length; ++i)
+            newMdl.IsHit({1:newMdl, 2:thisSceneP}, function(isHit, cbObj){
+                if( isHit )
+                    newMdl.AddToSceneGraph(thisSceneP.hitSceneGraph,
+                        function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
+                else
+                     newMdl.AddToSceneGraph(thisSceneP.sceneGraph,
+                        function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
+    
+                thisSceneP.loadScene2( cbObj[1], cbObj[2]);
+            });
+
+        }else{
+            thisSceneP.loadScene2( newMdl, thisSceneP);
+        }
+    }
+
+    this.loadScene2 = function( newMdl, thisSceneP ){
+        while( i<textFileLines.length )
         {
-            var temp = textFileLines[i];
+            var temp = textFileLines[i++];
             //this is a model to be read in
             if(temp[0] == 'm'){
                 var words = temp.split(' ');

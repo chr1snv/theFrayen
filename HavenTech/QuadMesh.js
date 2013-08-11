@@ -110,7 +110,6 @@ function QuadMesh(nameIn, sceneNameIn)
                                      faces,
                                      inputCoords )
     {
-        var card = 3; //x,y,z components, cardinality 3
         var cI = 0;
         
         //create the vertex array
@@ -122,7 +121,7 @@ function QuadMesh(nameIn, sceneNameIn)
             {
                 for(var j=0; j<faces[i].vertIdxs.length; ++j)
                 {
-                    var coordIdx = (faces[i].vertIdxs[j])*card;
+                    var coordIdx = (faces[i].vertIdxs[j])*graphics.vertCard;
                     coords[cI++] = inputCoords[coordIdx];
                     coords[cI++] = inputCoords[coordIdx+1];
                     coords[cI++] = inputCoords[coordIdx+2];
@@ -130,32 +129,32 @@ function QuadMesh(nameIn, sceneNameIn)
             }
             else if(coordsSize == 4) //quad. tesselate into two triangles
             {
-                var coordIdx = (faces[i].vertIdxs[0])*card;
+                var coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
                 
-                vertIdx = (faces[i].vertIdxs[1])*card;
+                coordIdx = (faces[i].vertIdxs[1])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
                 
-                vertIdx = (faces[i].vertIdxs[2])*card;
+                coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
                 
-                vertIdx = (faces[i].vertIdxs[2])*card;
+                coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
                 
-                vertIdx = (faces[i].vertIdxs[3])*card;
+                coordIdx = (faces[i].vertIdxs[3])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
                 
-                vertIdx = (faces[i].vertIdxs[0])*card;
+                coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
                 coords[cI++] = inputCoords[coordIdx];
                 coords[cI++] = inputCoords[coordIdx+1];
                 coords[cI++] = inputCoords[coordIdx+2];
@@ -176,31 +175,31 @@ function QuadMesh(nameIn, sceneNameIn)
             
             if( vertsSize == 3) //triangle
             {
-                for(var j=0; j<faces[i].vertIdxs.length; ++j)
+                for(var j=0; j<3*graphics.uvCard; j+=graphics.uvCard)
                 {
-                    uvCoords[cI++] = faces[i].uvs[j].u;
-                    uvCoords[cI++] = faces[i].uvs[j].v;
+                    uvCoords[cI++] = faces[i].uvs[j+0];
+                    uvCoords[cI++] = faces[i].uvs[j+1];
                 }
             }
             else if(vertsSize == 4) //quad. tesselate into two triangles
             {
-                uvCoords[cI++] = faces[i].uvs[0].u;
-                uvCoords[cI++] = faces[i].uvs[0].v;
+                uvCoords[cI++] = faces[i].uvs[0+0];
+                uvCoords[cI++] = faces[i].uvs[0+1];
                 
-                uvCoords[cI++] = faces[i].uvs[1].u;
-                uvCoords[cI++] = faces[i].uvs[1].v;
+                uvCoords[cI++] = faces[i].uvs[1+0];
+                uvCoords[cI++] = faces[i].uvs[1+1];
                 
-                uvCoords[cI++] = faces[i].uvs[2].u;
-                uvCoords[cI++] = faces[i].uvs[2].v;
+                uvCoords[cI++] = faces[i].uvs[2+0];
+                uvCoords[cI++] = faces[i].uvs[2+1];
                 
-                uvCoords[cI++] = faces[i].uvs[2].u;
-                uvCoords[cI++] = faces[i].uvs[2].v;
+                uvCoords[cI++] = faces[i].uvs[2+0];
+                uvCoords[cI++] = faces[i].uvs[2+1];
                 
-                uvCoords[cI++] = faces[i].uvs[3].u;
-                uvCoords[cI++] = faces[i].uvs[3].v;
+                uvCoords[cI++] = faces[i].uvs[3+0];
+                uvCoords[cI++] = faces[i].uvs[3+1];
                 
-                uvCoords[cI++] = faces[i].uvs[0].u;
-                uvCoords[cI++] = faces[i].uvs[0].v;
+                uvCoords[cI++] = faces[i].uvs[0+0];
+                uvCoords[cI++] = faces[i].uvs[0+1];
             }
         }
     }
@@ -208,7 +207,6 @@ function QuadMesh(nameIn, sceneNameIn)
     //returns the non tessilated verts. returns new memory
     this.getTransformedVerts = function()
     {
-        var vertCard = 3;
         var positionCoords;
         if(this.skelPositions.length != 0)
             positionCoords = this.skelPositions;
@@ -288,10 +286,15 @@ function QuadMesh(nameIn, sceneNameIn)
 
     //type query functions
     this.IsHit = function() {}
-    this.IsTransparent = function() { return graphics.GetShader(this.shaderNames[0], this.sceneName).IsTransparent(); }
+    this.IsTransparent = function(callback) {
+        graphics.GetShader( this.shaderNames[0], this.sceneName, callback,
+            function( shader, cb ){
+                cb( shader.IsTransparent() );
+            });
+    }
 
     //geometry query function
-    this.GetBoundingPlanes = function(boxPlanes, boxPlanesSize) {}
+    this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
 
     //constructor functionality
     ///////////////////////////

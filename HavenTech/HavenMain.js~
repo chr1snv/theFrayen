@@ -13,6 +13,7 @@ function loadTextFile(filename, callback, thisP){
     txtFile.overrideMimeType("text/plain;");
     txtFile.send();
 }
+
 function loadTextFileSynchronous(filename){
     var txtFile = new XMLHttpRequest();
     txtFile.open("GET", filename, false);
@@ -23,18 +24,106 @@ function loadTextFileSynchronous(filename){
 }
 
 
+function canvasMouseMoveHandler(event){
+    mCoords = document.getElementById('frayenCanvas').relMouseCoords(event);
+
+}
+
+//mouse cordinates for canvas
+//http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+function relMouseCoords(event){
+    var totalOffsetX = 0;
+    var totalOffsetY = 0;
+    var canvasX = 0;
+    var canvasY = 0;
+    var currentElement = this;
+    
+    do{
+        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
+        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+    }
+    while(currentElement = currentElement.offsetParent)
+        
+        canvasX = event.pageX - totalOffsetX;
+    canvasY = event.pageY - totalOffsetY;
+    
+    return {x:canvasX, y:canvasY}
+}
+HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
+
+
 function havenMain(){
     //cameraStream = new CameraStream();
+
+    mCoords = {x:0, y:0};
+
+   //register the canvas mouse move callback
+    document.getElementById("frayenCanvas").onmousemove = canvasMouseMoveHandler;
+    document.getElementById("frayenCanvas").ontouchmove = canvasMouseMoveHandler;
+
     graphics = new Graphics(document.getElementById('frayenCanvas'));
     mainScene = new HavenScene("cubeTest", sceneLoaded);
 }
 
 function sceneLoaded(havenScene){
-    graphics.Clear();
-    mainScene.Draw();
+    havenScene.Draw();
+    window.setTimeout(MainLoop, 300);
 }
 
 function MainLoop(){
     graphics.Clear();
+    UpdateCamera();
     mainScene.Draw();
+
+
+    window.requestAnimFrame(MainLoop);
+}
+
+
+function UpdateCamera(){
+
+    var camPositionUpdate = new Float32Array([0,0,0]);
+    mX = mCoords.x/graphics.screenWidth - 0.5;
+    mY = mCoords.y/graphics.screenHeight - 0.5;
+    var camRotUpdate = new Float32Array([(mX*Math.PI/180),(mY*Math.PI/180),0]);
+    mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation(camPositionUpdate, camRotUpdate);
+/*
+    var uploadMatrixTemp = new Float32Array(4*4);
+    mainScene.cameras[mainScene.activeCameraIdx].calculateTransform(uploadMatrixTemp);
+    var uploadMatrix = new Float32Array(4*4);
+    //Matrix_SetIdentity(uploadMatrixTemp);
+    Matrix_Transpose( uploadMatrix, uploadMatrixTemp );
+    var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
+    gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
+
+    var vertices = new Float32Array([
+        // Front face
+         0.0,  1.0,  0.0,
+        -1.0, -1.0,  1.0,
+         1.0, -1.0,  1.0,
+        // Right face
+         0.0,  1.0,  0.0,
+         1.0, -1.0,  1.0,
+         1.0, -1.0, -1.0,
+        // Back face
+         0.0,  1.0,  0.0,
+         1.0, -1.0, -1.0,
+        -1.0, -1.0, -1.0,
+        // Left face
+         0.0,  1.0,  0.0,
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0,  1.0
+    ]);
+    attributeSetFloats( graphics.currentProgram,
+                        "position", graphics.vertCard,
+                        vertices );
+    attributeSetFloats( graphics.currentProgram,
+                        "normal", graphics.normCard,
+                        vertices );
+    attributeSetFloats( graphics.currentProgram,
+                        "texCoord", graphics.uvCard,
+                        vertices );
+
+    gl.drawArrays( gl.TRIANGLES, 0, 4 );
+*/
 }

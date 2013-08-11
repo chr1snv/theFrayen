@@ -65,10 +65,10 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
                 var temp = shaderFileLines[i].split(' ');
                 if(temp[0] == 'd') //read in diffuse color
                 {
-                    this.diffuseCol = [ parseFloat( temp[2] ),
-                                        parseFloat( temp[3] ),
-                                        parseFloat( temp[4] ) ];
-                    this.diffuseMix = parseFloat( temp[5] );
+                    this.diffuseCol = [ parseFloat( temp[1] ),
+                                        parseFloat( temp[2] ),
+                                        parseFloat( temp[3] ) ];
+                    this.diffuseMix =   parseFloat( temp[4] );
                 }
                 if(temp[0] == 's' && temp[1] != 'h') //read in specular color
                 {
@@ -190,6 +190,7 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
                 var thisP = this;
                 //var finishedCallback = bindFinshedCallback;
                 graphics.GetTexture(this.diffuseTextureName, this.sceneName, function(texture){
+                    gl.uniform1f(gl.getUniformLocation(thisP.glRefId, 'texturingEnabled'), 1 );
                     texture.Bind(0);
                     thisP.shaderTextureBindFinishedCallback(previousShader);
                     CheckGLError("Shader: bind");
@@ -211,13 +212,13 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
             var colAlph = new Float32Array([0,0,0,this.alpha]);
 
             Vect3_Copy(colAlph, this.diffuseCol);
-            Vect3_Multiply(colAlph, this.diffuseMix);
+            Vect3_MultiplyScalar(colAlph, this.diffuseMix);
 
             gl.uniform4f(gl.getUniformLocation(this.glRefId, 'diffuseColor'),
                 colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
 
             Vect3_Copy(colAlph, this.specularCol);
-            Vect3_Multiply(colAlph, this.specularMix);
+            Vect3_MultiplyScalar(colAlph, this.specularMix);
             gl.uniform4f(gl.getUniformLocation(this.glRefId, 'specularColor'),
                 colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
 
@@ -227,7 +228,7 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
             gl.uniform1f(gl.getUniformLocation(this.glRefId, 'specularExponent'), specularExponent);
 
             Vect3_Copy(colAlph, this.diffuseCol);
-            Vect3_Multiply(colAlph, this.emitAmount);
+            Vect3_MultiplyScalar(colAlph, this.emitAmount);
             gl.uniform4fv(gl.getUniformLocation(this.glRefId, 'emissionColor'), colAlph);
         }
         else{

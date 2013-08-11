@@ -1,0 +1,4 @@
+August 10th
+- changed shader to show diffuse and texture color
+- fixed missing texture on mobile chrome
+- fixed bug in quadmesh vert tessilation function

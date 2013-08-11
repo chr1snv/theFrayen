@@ -22,16 +22,16 @@ function drawSquare(graphics) { // Draw the picture
 
     attributeSetFloats( graphics.currentProgram, "position",  3, verts );
     attributeSetFloats( graphics.currentProgram, "normal",    3, verts );
-    attributeSetFloats( graphics.currentProgram, "texCoord", 2, verts );
+    attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
     gl.drawArrays(gl.TRIANGLES, 0, 3); 
     gl.flush();
 }
 
 function attributeSetFloats( prog, attr_name, rsize, arr) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
     var attr = gl.getAttribLocation( prog, attr_name);
     gl.enableVertexAttribArray(attr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
@@ -45,25 +45,25 @@ function Graphics(canvasIn, bpp, depthIn){
     this.shaderRefCts = {};
     this.quadMeshRefCts = {};
 
-    var maxLights = 8;
-    var numLightsBounded = 0;
+    this.maxLights = 8;
+    this.numLightsBounded = 0;
 
-    var screenWidth = canvasIn.width;
-    var screenHeight = canvasIn.height;
-    var bpp = 0;
+    this.screenWidth = canvasIn.width;
+    this.screenHeight = canvasIn.height;
+    this.bpp = 0;
 
     //information about the rendering state (used to minimize the number of calls to gl)
-    var tex2Denb         = false;
-    var lightingEnb      = false;
-    var colorMaterialEnb = false;
-    var depthMaskEnb     = false;
-    var depthTestEnb     = false;
-    var currentTexId     = -1;
-    var currentColor     = [0.0, 0.0, 0.0, 0.0];
-    var ambAndDiffuse    = [0.0, 0.0, 0.0, 0.0];
-    var emission         = [0.0, 0.0, 0.0, 0.0];
-    var specular         = [0.0, 0.0, 0.0, 0.0];
-    var shinyness        = 0;
+    this.tex2Denb         = false;
+    this.lightingEnb      = false;
+    this.colorMaterialEnb = false;
+    this.depthMaskEnb     = false;
+    this.depthTestEnb     = false;
+    this.currentTexId     = -1;
+    this.currentColor     = [0.0, 0.0, 0.0, 0.0];
+    this.ambAndDiffuse    = [0.0, 0.0, 0.0, 0.0];
+    this.emission         = [0.0, 0.0, 0.0, 0.0];
+    this.specular         = [0.0, 0.0, 0.0, 0.0];
+    this.shinyness        = 0;
     
     //globally used constants
     this.vertCard = 3;
@@ -92,84 +92,73 @@ function Graphics(canvasIn, bpp, depthIn){
     }
     this.DisableFog = function() {glDisable(gl.FOG);}
 
-    this.GetScreenWidth = function(){ return screenWidth; }
-    this.GetScreenHeight = function(){ return screenHeight; }
-    this.GetScreenAspect = function(){ return screenWidth/screenHeight; }
+    this.GetScreenAspect = function(){ return this.screenWidth/this.screenHeight; }
         
     //functions for altering the rendering state
-    this.enableTexture2D = function(val){
-        if(tex2Denb != val){
-            tex2Denb = val;
-            if(val)
-                gl.Enable(gl.TEXTURE_2D);
-            else
-                gl.Disable(gl.TEXTURE_2D);
-        }
-    }
     this.enableLighting = function(val){
-        if(lightingEnb != val){
-            lightingEnb = val;
-            gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightingEnb'), lightingEnb);
+        if(this.lightingEnb != val){
+            this.lightingEnb = val;
+            gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightingEnb'), this.lightingEnb);
         }
     }
     this.enableDepthMask = function(val){
-        if(depthMaskEnb != val){
-            depthMaskEnb = val;
+        if(this.depthMaskEnb != val){
+            this.depthMaskEnb = val;
             val ? gl.depthMask(gl.TRUE) : gl.depthMask(gl.FALSE);
         }
     }
     this.enableDepthTest = function(val){
-        if(depthTestEnb != val){
-            depthTestEnb = val;
+        if(this.depthTestEnb != val){
+            this.depthTestEnb = val;
             val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
 
         }
     }
     this.setTexture = function(texId){
-        if(currentTexId != texId){
-            currentTexId = texId;
-            gl.bindTexture(gl.TEXTURE_2D, currentTexId);
+        if(this.currentTexId != texId){
+            this.currentTexId = texId;
+            gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);
         }
     }
     this.setColor = function(col){
-        if( !Vect3_Cmp(currentColor, col) ){
-            Vect3_Copy(currentColor, col);
-            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), currentColor);
+        if( !Vect3_Cmp(this.currentColor, col) ){
+            Vect3_Copy(this.currentColor, col);
+            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), this.currentColor);
         }
     }
     this.setAmbientAndDiffuse = function(col){
-        if(!Vect3_Cmp(ambAndDiffuse, col)){
-            Vect3_Copy(ambAndDiffuse, col);
-            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), ambAndDiffuse);
+        if(!Vect3_Cmp(this.ambAndDiffuse, col)){
+            Vect3_Copy(this.ambAndDiffuse, col);
+            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), this.ambAndDiffuse);
         }
     }
     this.setEmission = function(col){
-        if(!Vect3_Cmp(emission, col)){
-            Vect3_Copy(emission, col);
-            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), emission);
+        if(!Vect3_Cmp(this.emission, col)){
+            Vect3_Copy(this.emission, col);
+            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), this.emission);
         }
     }
     this.setSpecular = function(col){
-        if(!Vect3_Cmp(specular, col)){
-            Vect3_Copy(specular, col);
-            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), specular);
+        if(!Vect3_Cmp(this.specular, col)){
+            Vect3_Copy(this.specular, col);
+            gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), this.specular);
         }
     }
-    this.setShinyness = function(exp){
-        if(shinyness != exp){
-            shinyness = exp;
-            gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), shinyness);
+    this.setShinyness = function(expV){
+        if(this.shinyness != expV){
+            this.shinyness = expV;
+            gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), this.shinyness);
         }
     }
 
     this.ClearLights = function(){
         for(var i=0; i<this.maxLights; ++i)
-            gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightEnb[0]'), 0);
+            gl.uniform4f(gl.getUniformLocation(this.currentProgram, 'lightColor['+i+']'), 0,0,0,0);
         this.numLightsBounded = 0;
     }
     this.BindLight = function(light)
     {
-        if(numLightsBounded >= maxLights){
+        if(this.numLightsBounded >= this.maxLights){
             alert("Graphics: error Max number of lights already bound.\n");
             return;
         }
@@ -179,7 +168,7 @@ function Graphics(canvasIn, bpp, depthIn){
     }
 
     //content access functions
-    this.CopyShader = function(newName, newSceneName, oldShader) {}
+    this.CopyShader = function( newName, newSceneName, oldShader ) {}
     this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback ){
         var concatName = filename + sceneName;
         var shader = this.shaders[ concatName ];
@@ -188,8 +177,8 @@ function Graphics(canvasIn, bpp, depthIn){
             new Shader( filename, sceneName, readyCallbackParams, function( newShader, readyCallbackParams1 ){
                 if( newShader.isValid ){
                     graphics.shaders[concatName] = newShader;
-                    shaderReadyCallback(newShader, readyCallbackParams1);
                 }
+                shaderReadyCallback(newShader, readyCallbackParams1);
             });
         }else{
            shaderReadyCallback(shader, readyCallbackParams);
@@ -204,8 +193,11 @@ function Graphics(canvasIn, bpp, depthIn){
         var concatName = filename + sceneName;
         var texture = this.textures[concatName];
         if(texture === undefined) {
-            //texture is not loaded, load the new texture and have it return when it's ready
-            new Texture(filename, sceneName, textureReadyCallback);
+            //texture is not loaded, load the new texture and have it return when it's ready (async load)
+            Texture(filename, sceneName, textureReadyCallback, function(newTexture, textureReadyCallback){
+                graphics.textures[concatName] = newTexture;
+                textureReadyCallback(newTexture);
+            });
         }else{
             //the texture is ready, have it return through the callback
             textureReadyCallback(texture);
@@ -216,12 +208,13 @@ function Graphics(canvasIn, bpp, depthIn){
         var concatName = filename + sceneName;
         var quadMesh = this.quadMeshes[concatName];
         if(quadMesh === undefined){
-            //mesh is not loaded, load the new mesh and return it
+            //mesh is not loaded, load the new mesh and return it (synchronous load)
             var newMesh = new QuadMesh(filename, sceneName);
-            this.quadMeshes.concatName = newMesh;
+            this.quadMeshes[concatName] = newMesh;
             quadMeshReadyCallback( newMesh, readyCallbackParameters );
+        }else{
+          quadMeshReadyCallback( quadMesh, readyCallbackParameters );
         }
-        quadMeshReadyCallback( quadMesh, readyCallbackParameters );
     }
     this.UnrefQuadMesh = function(filename, sceneName) {}
 

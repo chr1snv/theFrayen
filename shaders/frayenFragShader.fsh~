@@ -21,8 +21,9 @@ varying vec2      texCoordVarying;
 void main() {
 
     //calculate the diffuse color
-    vec4 texColor          = texture2D( texSampler, texCoordVarying );
-    vec4 diffuseColor      = texColor * texturingEnabled + diffuseColor * ( 1.0-texturingEnabled );
+    vec4 texColor            = texture2D( texSampler, texCoordVarying );
+    vec4 diffuseCol          = texColor * texturingEnabled +
+                               ( diffuseColor * ( 1.0-texturingEnabled ) );
 
     //calculate the light color
     float lightDotProd     = dot( normalVarying, normalVarying );
@@ -33,4 +34,6 @@ void main() {
     gl_FragColor           = diffuseColor * diffuseLightAmt +
                              specularLightAmt * specularColor +
                              emissionColor;
+
+    //gl_FragColor = diffuseCol;//vec4(1,0.5,1,0.5);
 }

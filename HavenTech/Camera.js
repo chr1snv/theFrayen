@@ -52,7 +52,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
     this.getRotation = function(rotOut)
     {
-        if(!this.ipoAnimation.GetRotation(rotOut, time))
+        if(!this.ipoAnimation.GetRotation(rotOut, this.time))
             Vect3_Copy(rotOut, this.rotation);
         //urotate the camera by 90 degrees (blender camera starts off looking straight down)
         rotOut[0] -= 90.0*(Math.PI/180.0);
@@ -60,7 +60,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     }
     this.getLocation = function(locOut)
     {
-        if(!this.ipoAnimation.GetLocation(locOut, time))
+        if(!this.ipoAnimation.GetLocation(locOut, this.time))
             Vect3_Copy(locOut, this.position);
         Vect3_Add(locOut, this.setPositionDelta);
     }
@@ -71,7 +71,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         if(this.fov == 0.0)
         {
             var cameraProjectionMatrix = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
-                                         -graphics.GetScreenHeight(), graphics.GetScreenHeight(),
+                                         -graphics.screenHeight, graphics.screenHeight,
                                          -1, 1);
         }
         else
@@ -112,7 +112,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
     //update the Cameras position
     this.Update = function(timeIn) { time = timeIn; }
-    this.update = function(positionDelta, rotationDelta)
+    this.UpdateOrientation = function(positionDelta, rotationDelta)
     {
         //Update the cameras transformation given a change in position and rotation.
 
@@ -150,14 +150,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //now use the camera normal to apply the forward and sideways motion.
 
         //forwards backwards
-        setPositionDelta[0] += nx*positionDelta[1];
-        setPositionDelta[1] += ny*positionDelta[1];
-        setPositionDelta[2] += nz*positionDelta[1];
+        this.setPositionDelta[0] += nx*positionDelta[1];
+        this.setPositionDelta[1] += ny*positionDelta[1];
+        this.setPositionDelta[2] += nz*positionDelta[1];
 
         //sideways
-        setPositionDelta[0] += ox*positionDelta[0];
-        setPositionDelta[1] += oy*positionDelta[0];
-        setPositionDelta[2] += oz*positionDelta[0];
+        this.setPositionDelta[0] += ox*positionDelta[0];
+        this.setPositionDelta[1] += oy*positionDelta[0];
+        this.setPositionDelta[2] += oz*positionDelta[0];
     }
     this.SetPosDelta = function(posIn) { Vect3_Copy(setPositionDelta, posIn); }
 

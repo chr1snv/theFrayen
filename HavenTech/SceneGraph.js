@@ -53,28 +53,32 @@ function SceneGraph(sceneNameIn)
         var shaderName = newDrawable.shaderName;
         if( shaderName == "undefined" )
             console.log( "shadername is undefined" );
-        var drawablePair = new ShaderDrawablePair();
-        drawablePair.drawable = newDrawable;
-        drawablePair.mustDraw = true;
-        drawablePair.numVerts = newDrawable.GetNumVerts();
-        
-        var thisP = this;
-        newDrawable.IsTransparent(
-            function( transparent ){
-                if( transparent ){
-                    if( thisP.collections.transparent[shaderName] === undefined )
-                        thisP.collections.transparent[shaderName] = {};
-                    thisP.collections.transparent[shaderName][newDrawable.GetName()] = drawablePair;
+
+        newDrawable.GetNumVerts( {1:this, 2:newDrawable, 3:addedCallback}, function(numVerts, cbObj){
+            var drawablePair = new ShaderDrawablePair();
+            drawablePair.drawable = cbObj[2];
+            drawablePair.mustDraw = true;
+            drawablePair.numVerts = numVerts;
+
+            var thisP = cbObj[1];
+            newDrawable.IsTransparent(
+                function( transparent ){
+                    if( transparent ){
+                        if( thisP.collections.transparent[shaderName] === undefined )
+                            thisP.collections.transparent[shaderName] = {};
+                        thisP.collections.transparent[shaderName][newDrawable.modelName] = drawablePair;
+                    }
+                    else{
+                        if( thisP.collections.opaque[shaderName] === undefined )
+                            thisP.collections.opaque[shaderName] = {};
+                        thisP.collections.opaque[shaderName][newDrawable.modelName] = drawablePair;
+                    }
+                    thisP.alterAllocationSize( numVerts );
+                    cbObj[3]();
                 }
-                else{
-                    if( thisP.collections.opaque[shaderName] === undefined )
-                        thisP.collections.opaque[shaderName] = {};
-                    thisP.collections.opaque[shaderName][newDrawable.GetName()] = drawablePair;
-                }
-                thisP.alterAllocationSize(newDrawable.GetNumVerts());
-                addedCallback();
-            }
-        );
+            );
+
+        });
     }
     
     //removes the drawable with the given name from the scene
@@ -111,25 +115,47 @@ function SceneGraph(sceneNameIn)
                             var uvs          = new Float32Array( drawablePair.numVerts*graphics.uvCard );
                             var modelMatrix  = new Float32Array( 4*4 );
                             drawablePair.drawable.Draw( frustum, verts, normals, uvs, modelMatrix,
-                                                        true );
+                                                        true, function(){
 
-                            Matrix_Multiply( uploadMatrixTemp, cameraProjectionMatrix, modelMatrix);
-                            Matrix_Transpose( uploadMatrix, uploadMatrixTemp );
-                            var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
-                            gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
+                                Matrix_Multiply( uploadMatrixTemp, cameraProjectionMatrix, modelMatrix);
+                                Matrix_Transpose( uploadMatrix, uploadMatrixTemp );
+                                var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
+                                gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
 
-                            attributeSetFloats( graphics.currentProgram,
-                                                "position", graphics.vertCard,
-                                                verts );
-                            attributeSetFloats( graphics.currentProgram,
-                                                "normal", graphics.normCard,
-                                                normals );
-                            attributeSetFloats( graphics.currentProgram,
-                                                "texCoord", graphics.uvCard,
-                                                uvs );
-                            gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts );
-                            gl.flush();
-                            //drawSquare(graphics);
+                                var vertices = new Float32Array([
+                                    // Front face
+                                     0.0,  1.0,  0.0,
+                                    -1.0, -1.0,  1.0,
+                                     1.0, -1.0,  1.0,
+                                    // Right face
+                                     0.0,  1.0,  0.0,
+                                     1.0, -1.0,  1.0,
+                                     1.0, -1.0, -1.0,
+                                    // Back face
+                                     0.0,  1.0,  0.0,
+                                     1.0, -1.0, -1.0,
+                                    -1.0, -1.0, -1.0,
+                                    // Left face
+                                     0.0,  1.0,  0.0,
+                                    -1.0, -1.0, -1.0,
+                                    -1.0, -1.0,  1.0
+                                ]);
+
+                                attributeSetFloats( graphics.currentProgram,
+                                                    "position", graphics.vertCard,
+                                                    verts );
+                                attributeSetFloats( graphics.currentProgram,
+                                                    "normal", graphics.normCard,
+                                                    verts );
+                                attributeSetFloats( graphics.currentProgram,
+                                                    "texCoord", graphics.uvCard,
+                                                    uvs );
+
+                                gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts/3 );
+
+
+                                UpdateCamera();
+                            });
                         }
                     });
                 });

@@ -12,13 +12,11 @@ function Vect3_Subtract(v1, v2) { v1[0] -= v2[0]; v1[1] -= v2[1]; v1[2] -= v2[2]
 
 function Vect3_Multiply(v1, v2) { v1[0] *= v2[0]; v1[1] *= v2[1]; v1[2] *= v2[2]; }
 
+function Vect3_MultiplyScalar(v1, scalar) { v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
+
 function Vect3_Divide(v1, v2) { v1[0] /= v2[0]; v1[1] /= v2[1]; v1[2] /= v2[2]; }
 
-function Vect3_Multiply(v1, scalar) { v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
-
-function Vect3_Divide(v1, scalar){
-    v1[0] /= scalar; v1[1] /= scalar; v1[2] /= scalar;
-}
+function Vect3_DivideScalar(v1, scalar) { v1[0] /= scalar; v1[1] /= scalar; v1[2] /= scalar; }
 
 function Vect3_Cross(ret, v1, v2) {
     ret[0] = v1[1]*v2[2] - v2[1]*v1[2];
@@ -48,7 +46,7 @@ function Vect3_LengthSquared(len, v1){ len = v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]
 function Vect3_Unit(v1){
     var len;
     Vect3_Length(len, v1);
-    Vect3_Divide(v1, len);
+    Vect3_DivideScalar(v1, len);
 }
 
 function Vect3_Orthogonal(v1){

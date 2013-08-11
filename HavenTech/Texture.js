@@ -19,7 +19,7 @@ function isPowerOfTwo(x) {
     return (x & (x - 1)) == 0;
 }
 
-function Texture(nameIn, sceneNameIn, textureReadyCallback){
+function Texture(nameIn, sceneNameIn, textureReadyCallbackParams, textureReadyCallback){
     
     this.textureHandle = 0;
     this.texName = nameIn;
@@ -37,21 +37,24 @@ function Texture(nameIn, sceneNameIn, textureReadyCallback){
 
     loadedImage.onload = function() {
         thisP.textureHandle = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, thisP.textureHandle);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, loadedImage);
-        //gl.texSubImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, loadedImage);
         gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
         thisP.isValid = true;
 
         graphics.AppendTexture( thisP.texName, thisP.sceneName, thisP );
-        textureReadyCallback( thisP );
+        textureReadyCallback( thisP, textureReadyCallbackParams );
     }
     loadedImage.onerror = function(){
         textureReadyCallback( thisP );
         graphics.GetTexture("default", "default", textureReadyCallback);
     }
     loadedImage.onabort = function(){
-        textureReadyCallback( thisP );
+        textureReadyCallback( thisP, textureReadyCallbackParams );
     }
     loadedImage.src = filename;
 
