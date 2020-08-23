@@ -1,7 +1,8 @@
 //Shader.js: implementation of Shader class
 
 
-function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
+function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
+{
     this.shaderName = nameIn;
     this.sceneName = sceneNameIn;
     this.glRefId = graphics.currentProgram;
@@ -23,13 +24,131 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
 
     this.isHit = false;
     this.isValid = false;
+    
+    this.shaderTextLoaded = function(shaderFile, thisP)
+    {
+    	if( shaderFile === undefined )
+    	{
+            //if unable to open, try loading the texture of the same name as diffuse
+            DPrintf("Unable to open Shader file: " + nameIn);
+            thisP.isHit = true;
+            thisP.isValid = true;
+            //only valid if we successfully loaded the texture of the corresponding name
+            shaderReadyCallback( thisP, readyCallbackParams );
+        }else
+        {
 
+            //read in the file contents
+            var shaderFileLines = shaderFile.split('\n');
+            for( var i = 0; i < shaderFileLines.length; ++i )
+            {
+                var temp = shaderFileLines[i].split(' ');
+                if(temp[0] == 'd') //read in diffuse color
+                {
+                    thisP.diffuseCol = [ parseFloat( temp[1] ),
+                                        parseFloat( temp[2] ),
+                                        parseFloat( temp[3] ) ];
+                    thisP.diffuseMix =   parseFloat( temp[4] );
+                }
+                if(temp[0] == 's' && temp[1] != 'h') //read in specular color
+                {
+                    thisP.specularCol      = [ temp[1], temp[2], temp[3] ];
+                    thisP.specularMix      =   parseFloat( temp[4] );
+                    thisP.specularHardness =   parseFloat( temp[5] );
+                }
+                if(temp[0] == 's' && temp[1] == 'h') //read in specular color
+                {
+                    thisP.isShadeless = temp[3] == 'true' ? true : false;
+                }
+                if(temp[0] == 'a') // read in alpha amount
+                {
+                    thisP.alpha = parseFloat( temp[1] );
+                }
+                if(temp[0] == 'l') // read in emit amount
+                {
 
-    if(this.shaderName == "hit"){
+                    thisP.emitAmount = parseFloat( temp[1] );
+                }
+
+                if(temp[0] == 't') //read in texture information
+                {
+
+                    //keep track of the type of texture this one is
+                    var isDiffuse = false;
+                    var isNormal = false;
+                    var isEmit = false;
+                    while(++i < shaderFileLines.length)
+
+                    {
+                        temp = shaderFileLines[i].split(' ');
+                        if(temp[0] == 'd' && temp[1] == 'a')
+                            thisP.diffuseTextureAlpha = true;
+                        else if(temp[0] == 'd') // the texture is diffuse type
+                        {
+                            thisP.diffuseMix = parseFloat( temp[1] );
+                            isDiffuse = true;
+                        }
+                        if(temp[0] == 'n') // the texture is normal type
+
+                        {
+                            thisP.normalMix = parseFloat( temp[1] );
+                            isNormal = true;
+                        }
+                        if(temp[0] == 'l') // the texture is emit type
+
+                        {
+                            thisP.emitMix = parseFloat( temp[1] );
+                            isEmit = true;
+                        }
+                        if(temp[0] == 'f') //read in the texture file name
+
+                        {
+                            var textureName = temp[1];
+                            //ask the graphics instance to load the corresponding texture file
+                            //graphics.GetTexture(textureName, this.sceneName);
+                            if(isDiffuse)
+
+                                thisP.diffuseTextureName = textureName;
+                            if(isNormal)
+                                thisP.normalTextureName = textureName;
+                            if(isEmit)
+                                thisP.emitTextureName = textureName;
+
+                        }
+                        if(temp[0] == 'e') // sort of unnesscary, as soon as the file
+                            break;         //name is read reading this texture is done
+                    }
+                }
+            }
+
+            //loosely check that some of the values were read in correctly
+            if( thisP.diffuseMix == -1.0 &&
+                thisP.specularMix == -1.0 &&
+                thisP.emitMix == -1.0 )
+                 return;
+
+            if(thisP.diffuseMix == -1.0)
+                thisP.diffuseMix = 0.0;
+
+            if(thisP.specularMix == -1.0)
+                thisP.specularMix = 0.0;
+            if(thisP.emitMix == -1.0)
+                thisP.emitMix = 0.0;
+            //only set the valid flag if everything loaded correctly
+
+            thisP.isValid = true;
+       }
+       shaderReadyCallback( thisP, readyCallbackParams );
+    }
+
+    if(this.shaderName == "hit")
+    {
         //this is a hit geometry shader
         this.isHit = true;
         this.isValid = true;
-    }else{
+        shaderReadyCallback( this, readyCallbackParams );
+    }else
+    {
         //read in the shader settings from a file
     
         //initialize diffuse color and specular color
@@ -40,115 +159,7 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
         var filename = "scenes/"+this.sceneName+"/shaders/"+this.shaderName+".hvtShd";
 
         //open the shader file
-        var shaderFile = loadTextFileSynchronous(filename);
-        
-        if( shaderFile === undefined ){
-            //if unable to open, try loading the texture of the same name as diffuse
-            DPrintf("Unable to open Shader file: " + nameIn);
-            this.diffuseTextureName = nameIn;
-            this.diffuseMix = 1.0;
-            //only valid if we successfully loaded the texture of the corresponding name
-            var thisP = this;
-            graphics.GetTexture(this.diffuseTextureName, this.sceneName,
-                        function(diffuseTexture){
-                                 this.isValid = diffuseTexture.isValid &&
-                                                diffuseTexture.texName == this.diffuseTextureName;
-                            shaderReadyCallback( thisP, readyCallbackParams );
-                        }
-            );
-        }else{
-
-            //read in the file contents
-            var shaderFileLines = shaderFile.split('\n');
-            for( var i = 0; i < shaderFileLines.length; ++i )
-            {
-                var temp = shaderFileLines[i].split(' ');
-                if(temp[0] == 'd') //read in diffuse color
-                {
-                    this.diffuseCol = [ parseFloat( temp[1] ),
-                                        parseFloat( temp[2] ),
-                                        parseFloat( temp[3] ) ];
-                    this.diffuseMix =   parseFloat( temp[4] );
-                }
-                if(temp[0] == 's' && temp[1] != 'h') //read in specular color
-                {
-                    this.specularCol      = [ temp[1], temp[2], temp[3] ];
-                    this.specularMix      =   parseFloat( temp[4] );
-                    this.specularHardness =   parseFloat( temp[5] );
-                }
-                if(temp[0] == 's' && temp[1] == 'h') //read in specular color
-                {
-                    this.isShadeless = temp[3] == 'true' ? true : false;
-                }
-                if(temp[0] == 'a') // read in alpha amount
-                {
-                    this.alpha = parseFloat( temp[1] );
-                }
-                if(temp[0] == 'l') // read in emit amount
-                {
-                    this.emitAmount = parseFloat( temp[1] );
-                }
-
-                if(temp[0] == 't') //read in texture information
-                {
-                    //keep track of the type of texture this one is
-                    var isDiffuse = false;
-                    var isNormal = false;
-                    var isEmit = false;
-                    while(++i < shaderFileLines.length)
-                    {
-                        temp = shaderFileLines[i].split(' ');
-                        if(temp[0] == 'd' && temp[1] == 'a')
-                            this.diffuseTextureAlpha = true;
-                        else if(temp[0] == 'd') // the texture is diffuse type
-                        {
-                            this.diffuseMix = parseFloat( temp[1] );
-                            isDiffuse = true;
-                        }
-                        if(temp[0] == 'n') // the texture is normal type
-                        {
-                            this.normalMix = parseFloat( temp[1] );
-                            isNormal = true;
-                        }
-                        if(temp[0] == 'l') // the texture is emit type
-                        {
-                            this.emitMix = parseFloat( temp[1] );
-                            isEmit = true;
-                        }
-                        if(temp[0] == 'f') //read in the texture file name
-                        {
-                            var textureName = temp[1];
-                            //ask the graphics instance to load the corresponding texture file
-                            //graphics.GetTexture(textureName, this.sceneName);
-                            if(isDiffuse)
-                                this.diffuseTextureName = textureName;
-                            if(isNormal)
-                                this.normalTextureName = textureName;
-                            if(isEmit)
-                                this.emitTextureName = textureName;
-                        }
-                        if(temp[0] == 'e') // sort of unnesscary, as soon as the file
-                            break;         //name is read reading this texture is done
-                    }
-                }
-            }
-
-            //loosely check that some of the values were read in correctly
-            if( this.diffuseMix == -1.0 &&
-                this.specularMix == -1.0 &&
-                this.emitMix == -1.0 )
-                 return;
-
-            if(this.diffuseMix == -1.0)
-                this.diffuseMix = 0.0;
-            if(this.specularMix == -1.0)
-                this.specularMix = 0.0;
-            if(this.emitMix == -1.0)
-                this.emitMix = 0.0;
-            //only set the valid flag if everything loaded correctly
-            this.isValid = true;
-        }
-        shaderReadyCallback( this, readyCallbackParams );
+        loadTextFile(filename, this.shaderTextLoaded, this);
     }
         
 
@@ -178,7 +189,7 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
             gl.uniform4f(gl.getUniformLocation(this.glRefId, 'diffuseColor'),  0.0, 0.0, 0.0, 1.0 );
             gl.uniform1f(gl.getUniformLocation(this.glRefId, 'texturingEnabled'), 0 );
             gl.uniform1f(gl.getUniformLocation(this.glRefId, 'lightingEnabled'), 0 );
-            graphics.CheckGLError("Shader: bind");
+            CheckGLError("Shader: bind");
             bindFinishedCallback(callbackParams);
         }
         else { // is a standard shader
@@ -206,7 +217,8 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback){
 
     }
 
-    this.shaderTextureBindFinishedCallback = function(previousShader){
+    this.shaderTextureBindFinishedCallback = function(previousShader)
+    {
 
         if(!this.isShadeless){
             var colAlph = new Float32Array([0,0,0,this.alpha]);

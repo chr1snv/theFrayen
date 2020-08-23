@@ -2,7 +2,8 @@
 //loads all of the haven tech scripts into the dom
 
 
-var incFiles = ['Matrix.js',
+var incFiles = ['Iohelpers.js',
+				'Matrix.js',
                 'Curve.js',
                 'IPOAnimation.js',
                 'Vect3.js',

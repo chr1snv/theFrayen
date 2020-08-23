@@ -1,45 +1,56 @@
 //Model.js
 
-function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback){
-
-    this.generateModelMatrix = function( cbObjs, completeCallback ){
+function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback)
+{
+    this.generateModelMatrix = function( cbObjs, completeCallback )
+    {
         var thisP = cbObjs[1];
         //get the quadMesh transformationMatrix
         var quadMeshMatrix = new Float32Array(4*4);
-        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbObjs, 2:completeCallback}, function(quadMesh, cbObj2){
-            var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
-            var rot      = new Float32Array(3); quadMesh.GetRotation(rot);
-            var scale    = new Float32Array(3); quadMesh.GetScale(scale);
-            Matrix(quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos);
+        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbObjs, 2:completeCallback}, 
+        	function(quadMesh, cbObj2)
+        	{
+		        var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
+		        var rot      = new Float32Array(3); quadMesh.GetRotation(rot);
+		        var scale    = new Float32Array(3); quadMesh.GetScale(scale);
+		        Matrix(quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos);
 
-            //calculate the set transformation matrix
-            var offsetMatrix = new Float32Array(4*4);
-            Matrix(offsetMatrix,
-                   MatrixType.euler_transformation,
-                   thisP.scaleOff, thisP.rotationOff, new Float32Array([0,0,0]));
-            var transformation = new Float32Array(4*4);
-            Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
-            transformation[0*4+3] += thisP.positionOff[0];
-            transformation[1*4+3] += thisP.positionOff[1];
-            transformation[2*4+3] += thisP.positionOff[2];
+		        //calculate the set transformation matrix
+		        var offsetMatrix = new Float32Array(4*4);
+		        Matrix(offsetMatrix,
+		               MatrixType.euler_transformation,
+		               thisP.scaleOff, thisP.rotationOff, new Float32Array([0,0,0]));
+		        var transformation = new Float32Array(4*4);
+		        Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
+		        transformation[0*4+3] += thisP.positionOff[0];
+		        transformation[1*4+3] += thisP.positionOff[1];
+		        transformation[2*4+3] += thisP.positionOff[2];
 
-            cbObj2[2]( transformation, cbObj2[1] );
-        });
+		        cbObj2[2]( transformation, cbObj2[1] );
+        	}
+        );
     }
 
-//public methods
+	//public methods
     //Identification / registration functions
-    this.AddToSceneGraph = function(sgIn, addCompletedCallback){
+    this.AddToSceneGraph = function(sgIn, addCompletedCallback)
+    {
         if( sgIn == null)
             return;
         this.RemoveFromSceneGraph();
         this.sceneGraph = sgIn;
         this.sceneGraph.Add(this, addCompletedCallback);
     }
-    this.RemoveFromSceneGraph = function(){
-        if(this.sceneGraph != null){
-            this.sceneGraph.Remove(this);
-            this.sceneGraph = null;
+    this.RemoveFromSceneGraph = function(removeCompletedCallback)
+    {
+        if(this.sceneGraph != null)
+        {
+        	var sceneGraphRemoveCompleted = function(thisP)
+        	{
+	        	thisP.sceneGraph = null;
+	        	removeCompletedCallback(thisP);
+        	}
+            this.sceneGraph.Remove(sceneGraphRemoveCompleted, this);
         }
     }
 
@@ -47,7 +58,8 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.Update = function(time, updateCompleteParams, updateCompleteCallback)
     {
         graphics.GetQuadMesh(this.meshName, this.sceneName, {1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
-            function(quadMesh, cbObj){
+            function(quadMesh, cbObj)
+            {
                 quadMesh.Update(time);
                 cbObj[1].timeUpdate = true;
                 cbObj[3](cbObj[2]);
@@ -68,12 +80,14 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.SetRotation = function(rotNew) { Vect3_Copy(rotationOff, rotNew); rotationSet = true; optTransformUpdated = true; }
 
     //shader binding functions
-    this.GetOriginalShaderName = function(shaderNameOut, sceneNameOut) {
+    this.GetOriginalShaderName = function(shaderNameOut, sceneNameOut)
+    {
         var sNameArr  = graphics.GetQuadMesh( meshName, sceneName).GetShaderName();
         shaderNameOut = sNameArr[0];
         sceneNameOut  = sNameArr[1];
     }
-    this.SetShader = function(shaderNameIn, sceneNameIn) {
+    this.SetShader = function(shaderNameIn, sceneNameIn)
+    {
         //this function may not be used
         var currentSceneGraph = this.sceneGraph;
         this.RemoveFromSceneGraph();
@@ -83,28 +97,37 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     }
 
     //draw functions
-    this.GetNumVerts = function(cbParams, cb){ 
+    this.GetNumVerts = function(cbParams, cb)
+    { 
         graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
-            function(quadMesh, cbObj){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }) }
+            function(quadMesh, cbObj){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
+        ); 
+    }
     this.Draw = function( frustum, verts, normals, uvs, modelTransform, mustDraw, completeCallback )
     {
         if(this.timeUpdate || mustDraw)
         {
             this.generateModelMatrix(
                 {1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback},
-                function( transformation, cmpCb ){
-                Matrix_Copy( cmpCb[6], transformation );
-                graphics.GetQuadMesh( cmpCb[1].meshName, cmpCb[1].sceneName, cmpCb, function(quadMesh, cmpCb){
-                    quadMesh.Draw(cmpCb[3], cmpCb[4], cmpCb[5]);
-                    cmpCb[1].timeUpdate = false; //clear the time update flag
-                    cmpCb[8]( true );
-                });
-            });
+                function( transformation, cmpCb )
+                {
+                	Matrix_Copy( cmpCb[6], transformation );
+                	graphics.GetQuadMesh( cmpCb[1].meshName, cmpCb[1].sceneName, cmpCb, 
+                		function(quadMesh, cmpCb)
+                		{
+                	    	quadMesh.Draw(cmpCb[3], cmpCb[4], cmpCb[5]);
+                	    	cmpCb[1].timeUpdate = false; //clear the time update flag
+	                	    cmpCb[8]( true );
+                		}
+            		);
+            	}
+            );
         }else{
             completeCallback( false );
         }
     }
-    this.GetOptTransform = function(retMat)  {
+    this.GetOptTransform = function(retMat)
+    {
         if( optTransformUpdated )
             this.generateModelMatrix(this, retMat);
         return scaleSet || rotationSet || positionSet;
@@ -112,10 +135,13 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.DrawSkeleton = function(){ graphics.GetQuadMesh(this.meshName, this.sceneName).DrawSkeleton(); }
     
     //type query functions
-    this.IsTransparent = function(isTransparentCallback) {
-        graphics.GetShader(this.shaderName, this.shaderScene, isTransparentCallback,
-            function( shader, cb ){ cb(shader.IsTransparent());
-            });
+    this.IsTransparent = function(isTransparentCallback, thisP) {
+        graphics.GetShader( this.shaderName, this.shaderScene, isTransparentCallback,
+            function( shader, cb )
+            {
+            	cb( shader.IsTransparent(), thisP );
+            }
+        );
     }
     this.IsHit = function(cbParams, callback) {
         graphics.GetQuadMesh( this.meshName, this.sceneName,

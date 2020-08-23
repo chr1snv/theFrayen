@@ -1,6 +1,7 @@
 //HavenScene.js
 
-function HavenScene(sceneNameIn, sceneLoadedCallback){
+function HavenScene(sceneNameIn, sceneLoadedCallback)
+{
     this.sceneName = sceneNameIn;
     this.isValid = false;
 
@@ -62,7 +63,8 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
         this.sceneGraph.Draw(this.cameras[this.activeCameraIdx]);
     }
 
-    this.HitModel = function(screenCoords){
+    this.HitModel = function(screenCoords)
+    {
         var rayOrig;
         var rayDir;
         if(this.activeCameraIdx == -1)
@@ -80,15 +82,77 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
         if( this.isValid && this.pendingModelsAdded <= 0 )
             sceneLoadedCallback(this);
     }
-
-    //constructor functionality
-    this.pendingModelsAdded = 0;
-    var txtFile = loadTextFileSynchronous("scenes/"+this.sceneName+".hvtScene");
-    var textFileLines = txtFile.split("\n");
-    var i = 0;
-    this.loadScene = function(newMdl, thisSceneP){
-
-        if( newMdl != undefined ){
+    
+    this.loadScene2 = function( newMdl, thisSceneP )
+    {
+    	var lastModelName = undefined;
+    	var i = 0;
+        while( i<thisSceneP.textFileLines.length )
+        {
+            var temp = thisSceneP.textFileLines[i++];
+            //this is a model to be read in
+            if(temp[0] == 'm')
+            {
+                var words = temp.split(' ');
+                var modelName = words[1];
+                if( thisSceneP.models[modelName] != undefined )
+                {
+                	lastModelName = modelName;
+                }else{
+                	var newMdl    = new Model(modelName, modelName, thisSceneP.sceneName, thisSceneP,
+                                          thisSceneP.loadScene );
+                	//wait for the model to load before continuing
+                	return;
+                }
+            }
+            //this is a light to be read in
+            if(temp[0] == "l")
+            {
+                var words = temp.split(' ');
+                
+                var lampName  = words[1];
+                var lightType = parseInt(words[2]);
+                var pos       = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
+                var rot       = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
+                var col       = [ parseFloat(words[9]),  parseFloat(words[10]), parseFloat(words[11]) ];
+                var intensity = parseFloat(words[12]);
+                var coneAngle = parseFloat(words[13]);
+                thisSceneP.lights.push( new Light(lampName, thisSceneP.sceneName, col, intensity, lightType, pos, rot, coneAngle) );
+            }
+            //this is a camera to be read in
+            if(temp[0] == 'c')
+            {
+                var words      = temp.split(' ');
+                var cameraName = words[1];
+                var pos        = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
+                var rot        = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
+                var angle      =   parseFloat(words[8]);
+                var clipStart  =   parseFloat(words[9]);
+                var clipEnd    =   parseFloat(words[10]);
+                thisSceneP.cameras.push(new Camera(cameraName, thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
+            }
+            //this is the name of the active camera to be read in
+            if(temp[0] == 'a' && temp[1] == 'c')
+            {
+                var words = temp.split(' ');
+                thisSceneP.activeCamera = words[1];
+                //look up and set its index
+                for(var j=0; j<thisSceneP.cameras.length; ++j)
+                {
+                    if(thisSceneP.cameras[j].cameraName == thisSceneP.activeCamera)
+                        thisSceneP.activeCameraIdx = j;
+                }
+            }
+        }
+        thisSceneP.Update(0.0); //init animated objs
+        thisSceneP.isValid = true;
+        thisSceneP.checkIfIsLoaded();
+    }
+    
+    this.loadScene = function(newMdl, thisSceneP)
+    {
+        if( newMdl != undefined )
+        {
             thisSceneP.models[newMdl.modelName] = newMdl;
             //register the model with the proper SceneGraph
             thisSceneP.pendingModelsAdded++;
@@ -103,69 +167,23 @@ function HavenScene(sceneNameIn, sceneLoadedCallback){
     
                 thisSceneP.loadScene2( cbObj[1], cbObj[2]);
             });
-
         }else{
-            thisSceneP.loadScene2( newMdl, thisSceneP);
+            thisSceneP.loadScene2( newMdl, thisSceneP); //newMdl = undefined in this case
         }
     }
 
-    this.loadScene2 = function( newMdl, thisSceneP ){
-        while( i<textFileLines.length )
-        {
-            var temp = textFileLines[i++];
-            //this is a model to be read in
-            if(temp[0] == 'm'){
-                var words = temp.split(' ');
-                var modelName = words[1];
-                var newMdl    = new Model(modelName, modelName, thisSceneP.sceneName, thisSceneP,
-                                          thisSceneP.loadScene );
-                //wait for the model to load before continuing
-                return;
-            }
-            //this is a light to be read in
-            if(temp[0] == "l"){
-                var words = temp.split(' ');
-                
-                var lampName  = words[1];
-                var lightType = parseInt(words[2]);
-                var pos       = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
-                var rot       = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
-                var col       = [ parseFloat(words[9]),  parseFloat(words[10]), parseFloat(words[11]) ];
-                var intensity = parseFloat(words[12]);
-                var coneAngle = parseFloat(words[13]);
-                thisSceneP.lights.push(new Light(lampName, thisSceneP.sceneName, col, intensity, lightType, pos, rot, coneAngle));
-            }
-            //this is a camera to be read in
-            if(temp[0] == 'c'){
-                var words      = temp.split(' ');
-                var cameraName = words[1];
-                var pos        = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
-                var rot        = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
-                var angle      =   parseFloat(words[8]);
-                var clipStart  =   parseFloat(words[9]);
-                var clipEnd    =   parseFloat(words[10]);
-                thisSceneP.cameras.push(new Camera(cameraName, thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
-            }
-            //this is the name of the active camera to be read in
-            if(temp[0] == 'a' && temp[1] == 'c'){
-                var words = temp.split(' ');
-                thisSceneP.activeCamera = words[1];
-                //look up and set its index
-                for(var j=0; j<thisSceneP.cameras.length; ++j){
-                    if(thisSceneP.cameras[j].cameraName == thisSceneP.activeCamera)
-                        thisSceneP.activeCameraIdx = j;
-                }
-            }
-        }
-        thisSceneP.Update(0.0); //init animated objs
-        thisSceneP.isValid = true;
-        thisSceneP.checkIfIsLoaded();
+	this.textFileLoadedCallback = function(txtFile, thisP)
+    {
+    	thisP.textFileLines = txtFile.split("\n");
+    	var i = 0;
+    	//begin loading the scene
+    	thisP.loadScene(undefined, thisP);
     }
 
-    //begin loading the scene
-    this.loadScene(undefined, this);
-
-
+    //constructor functionality
+    this.pendingModelsAdded = 0;
+    loadTextFile("scenes/"+this.sceneName+".hvtScene", this.textFileLoadedCallback, this);
+    
 }
 
 

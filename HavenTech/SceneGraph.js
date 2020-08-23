@@ -61,8 +61,9 @@ function SceneGraph(sceneNameIn)
             drawablePair.numVerts = numVerts;
 
             var thisP = cbObj[1];
-            newDrawable.IsTransparent(
-                function( transparent ){
+            var isTransparentCallback = 
+            	function( transparent, thisP )
+                {
                     if( transparent ){
                         if( thisP.collections.transparent[shaderName] === undefined )
                             thisP.collections.transparent[shaderName] = {};
@@ -72,22 +73,29 @@ function SceneGraph(sceneNameIn)
                         if( thisP.collections.opaque[shaderName] === undefined )
                             thisP.collections.opaque[shaderName] = {};
                         thisP.collections.opaque[shaderName][newDrawable.modelName] = drawablePair;
+
                     }
                     thisP.alterAllocationSize( numVerts );
                     cbObj[3]();
-                }
-            );
+                };
+            newDrawable.IsTransparent(isTransparentCallback, thisP);
 
         });
     }
     
     //removes the drawable with the given name from the scene
-    this.Remove = function(givenDrawable){
-        if(givenDrawable.IsTransparent())
-            this.collections.transparent[givenDrawable.shaderName][givenDrawable.GetName()] = undefined;
-        else
-            this.collections.opaque[givenDrawable.shaderName][givenDrawable.GetName()] = undefined;
-        this.alterAllocationSize(-givenDrawable.GetNumVerts());
+    this.Remove = function(givenDrawable, removedCallback)
+    {
+    	var isTransparentCallback = function(transparent, thisP)
+	    {
+	    	if(transparent)
+	    		thisP.collections.transparent[givenDrawable.shaderName][givenDrawable.GetName()] = undefined;
+	    	else
+	    		thisP.collections.opaque[givenDrawable.shaderName][givenDrawable.GetName()] = undefined;
+	    	thisP.alterAllocationSize(-givenDrawable.GetNumVerts());
+	    	removedCallback(thisP);
+	    }
+        givenDrawable.IsTransparent( isTransparentCallback, this );
     }
     
     //draws the drawables that are within the frustrum
@@ -126,9 +134,9 @@ function SceneGraph(sceneNameIn)
                                 attributeSetFloats( graphics.currentProgram,
                                                     "position", graphics.vertCard,
                                                     verts );
-                                attributeSetFloats( graphics.currentProgram,
-                                                    "normal", graphics.normCard,
-                                                    verts );
+                                //attributeSetFloats( graphics.currentProgram,
+                                //                    "normal", graphics.normCard,
+                                //                    verts );
                                 attributeSetFloats( graphics.currentProgram,
                                                     "texCoord", graphics.uvCard,
                                                     uvs );

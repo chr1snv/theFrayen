@@ -91,49 +91,55 @@ function IPOAnimation(nameIn, sceneNameIn){
 
     this.GetDuration = function(){ return duration; }
 
-    //constructor functionality
-    var txtFile = loadTextFileSynchronous( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO' );
-    if(txtFile === undefined)
-        return;
-    var textFileLines = txtFile.split('\n');
-    for(var lineNum = 0; lineNum < textFileLines.length; ++lineNum )
+    
+    this.textFileLoaded = function(txtFile, thisP)
     {
-        var temp = textFileLines[ lineNum ];
-        if(temp[0] == 'c') //this is the start of a curve
-        {
-            var words = temp.split(' ');
-            var curveName = words[1];
-            this.curves[curveName] = new Curve();
-            while( ++lineNum < textFileLines.length )
-            {
-                temp = textFileLines[lineNum];
-                if(temp[0] == 'i') //this is the curve interpolation type
-                {
-                    var words = temp.split(' ');
-                    this.curves[curveName].interpolationType = parseInt(words[1]);
-                }
-                //read in the bezier points
-                if(temp[0] == 'b')
-                {
-                    while( ++lineNum < textFileLines.length )
-                    {
-                        temp = textFileLines[lineNum];
-                        words = textFileLines[lineNum];
-                        //read in a point
-                        if(temp[0] == 'p')
-                            this.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
-                        if(temp[0] == 'e'){
-                            var tempDuration = this.curves[curveName].GetLength();
-                            if(tempDuration > this.duration) //set the duration
-                                this.duration = tempDuration;
-                            break; // finish reading in bezier points
-                        }
-                    }
-                }
-                if(temp[0] == 'e')
-                    break; //done reading in this curves data
-            }
-        }
+		if(txtFile === undefined)
+		    return;
+		var textFileLines = txtFile.split('\n');
+		for(var lineNum = 0; lineNum < textFileLines.length; ++lineNum )
+		{
+		    var temp = textFileLines[ lineNum ];
+		    if(temp[0] == 'c') //this is the start of a curve
+		    {
+		        var words = temp.split(' ');
+		        var curveName = words[1];
+		        this.curves[curveName] = new Curve();
+		        while( ++lineNum < textFileLines.length )
+		        {
+		            temp = textFileLines[lineNum];
+		            if(temp[0] == 'i') //this is the curve interpolation type
+		            {
+		                var words = temp.split(' ');
+		                this.curves[curveName].interpolationType = parseInt(words[1]);
+		            }
+		            //read in the bezier points
+		            if(temp[0] == 'b')
+		            {
+		                while( ++lineNum < textFileLines.length )
+		                {
+		                    temp = textFileLines[lineNum];
+		                    words = textFileLines[lineNum];
+		                    //read in a point
+		                    if(temp[0] == 'p')
+		                        this.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
+		                    if(temp[0] == 'e'){
+		                        var tempDuration = this.curves[curveName].GetLength();
+		                        if(tempDuration > this.duration) //set the duration
+		                            this.duration = tempDuration;
+		                        break; // finish reading in bezier points
+		                    }
+		                }
+		            }
+		            if(temp[0] == 'e')
+		                break; //done reading in this curves data
+		        }
+		    }
+		}
+		this.isValid = true;
     }
-    this.isValid = true;
+    
+    //constructor functionality
+    loadTextFile( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', this.textFileLoaded, this );
+    
 };

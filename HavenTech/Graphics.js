@@ -1,10 +1,12 @@
 //Graphics.js
 
 //helper function for printing gl errors
-function CheckGLError(where){
+function CheckGLError(where)
+{
     var error = gl.getError();
     var iter = 0;
-    while(error != gl.NO_ERROR && iter < 100){
+    while(error != gl.NO_ERROR && iter < 100)
+    {
         alert(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16));
         error = gl.getError();
         ++iter;
@@ -14,20 +16,26 @@ function CheckGLError(where){
     return false;
 }
 
-function drawSquare(graphics) { // Draw the picture
+function drawSquare(graphics) // Draw the picture
+{
     var vertices = [  0.0,  0.5, 0.0,
                      -0.5, -0.5, 0.0,
                       0.5, -0.5, 0.0 ]; 
     var verts = new Float32Array(vertices);
 
     attributeSetFloats( graphics.currentProgram, "position",  3, verts );
-    attributeSetFloats( graphics.currentProgram, "normal",    3, verts );
+    CheckGLError("draw square, after position attributeSetFloats");
+    //attributeSetFloats( graphics.currentProgram, "normal",    3, verts );
+    //CheckGLError("draw square, after normal attributeSetFloats");
     attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
+    CheckGLError("draw square, after texCoord attributeSetFloats");
     gl.drawArrays(gl.TRIANGLES, 0, 3); 
+    CheckGLError("draw square, after drawArrays");
     gl.flush();
 }
 
-function attributeSetFloats( prog, attr_name, rsize, arr) {
+function attributeSetFloats( prog, attr_name, rsize, arr)
+{
     var attr = gl.getAttribLocation( prog, attr_name);
     gl.enableVertexAttribArray(attr);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -35,7 +43,8 @@ function attributeSetFloats( prog, attr_name, rsize, arr) {
     gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
-function Graphics(canvasIn, bpp, depthIn){
+function Graphics(canvasIn, bpp, depthIn)
+{
 
     //maps used to keep track of primative graphics objects
     this.textures = {};
@@ -72,16 +81,19 @@ function Graphics(canvasIn, bpp, depthIn){
     this.matrixCard = 4*4;
 
     //for clearing the color buffer
-    this.Clear = function(){ 
+    this.Clear = function()
+    {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
     //for clearing depth between scene renderings
-    this.ClearDepth = function(){
+    this.ClearDepth = function()
+    {
         gl.clear(gl.DEPTH_BUFFER_BIT);
     }   
 
     //functions for fog
-    this.EnableFog = function(clipNear, clipFar) {
+    this.EnableFog = function(clipNear, clipFar)
+    {
         gl.Enable(gl.FOG);
         gl.Fogx(gl.FOG_MODE, gl.LINEAR);
         var params = [];
@@ -90,75 +102,94 @@ function Graphics(canvasIn, bpp, depthIn){
         gl.Fogf(gl.FOG_START, clipNear);
         gl.Fogf(gl.FOG_END, clipFar);
     }
-    this.DisableFog = function() {glDisable(gl.FOG);}
+    this.DisableFog = function() { glDisable(gl.FOG); }
 
     this.GetScreenAspect = function(){ return this.screenWidth/this.screenHeight; }
         
     //functions for altering the rendering state
-    this.enableLighting = function(val){
-        if(this.lightingEnb != val){
+    this.enableLighting = function(val)
+    {
+        if(this.lightingEnb != val)
+        {
             this.lightingEnb = val;
             gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightingEnb'), this.lightingEnb);
         }
     }
-    this.enableDepthMask = function(val){
-        if(this.depthMaskEnb != val){
+    this.enableDepthMask = function(val)
+    {
+        if(this.depthMaskEnb != val)
+        {
             this.depthMaskEnb = val;
             val ? gl.depthMask(gl.TRUE) : gl.depthMask(gl.FALSE);
         }
     }
-    this.enableDepthTest = function(val){
-        if(this.depthTestEnb != val){
+    this.enableDepthTest = function(val)
+    {
+        if(this.depthTestEnb != val)
+        {
             this.depthTestEnb = val;
             val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
-
         }
     }
-    this.setTexture = function(texId){
-        if(this.currentTexId != texId){
+    this.setTexture = function(texId)
+    {
+        if(this.currentTexId != texId)
+        {
             this.currentTexId = texId;
             gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);
         }
     }
-    this.setColor = function(col){
-        if( !Vect3_Cmp(this.currentColor, col) ){
+    this.setColor = function(col)
+    {
+        if( !Vect3_Cmp(this.currentColor, col) )
+        {
             Vect3_Copy(this.currentColor, col);
             gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), this.currentColor);
         }
     }
-    this.setAmbientAndDiffuse = function(col){
-        if(!Vect3_Cmp(this.ambAndDiffuse, col)){
+    this.setAmbientAndDiffuse = function(col)
+    {
+        if(!Vect3_Cmp(this.ambAndDiffuse, col))
+        {
             Vect3_Copy(this.ambAndDiffuse, col);
             gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), this.ambAndDiffuse);
         }
     }
-    this.setEmission = function(col){
-        if(!Vect3_Cmp(this.emission, col)){
+    this.setEmission = function(col)
+    {
+        if(!Vect3_Cmp(this.emission, col))
+        {
             Vect3_Copy(this.emission, col);
             gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), this.emission);
         }
     }
-    this.setSpecular = function(col){
-        if(!Vect3_Cmp(this.specular, col)){
+    this.setSpecular = function(col)
+    {
+        if(!Vect3_Cmp(this.specular, col))
+        {
             Vect3_Copy(this.specular, col);
             gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), this.specular);
         }
     }
-    this.setShinyness = function(expV){
-        if(this.shinyness != expV){
+    this.setShinyness = function(expV)
+    {
+        if(this.shinyness != expV)
+        {
             this.shinyness = expV;
             gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), this.shinyness);
         }
     }
 
-    this.ClearLights = function(){
+    this.ClearLights = function()
+    {
         for(var i=0; i<this.maxLights; ++i)
             gl.uniform4f(gl.getUniformLocation(this.currentProgram, 'lightColor['+i+']'), 0,0,0,0);
         this.numLightsBounded = 0;
     }
     this.BindLight = function(light)
     {
-        if(this.numLightsBounded >= this.maxLights){
+        if(this.numLightsBounded >= this.maxLights)
+        {
             alert("Graphics: error Max number of lights already bound.\n");
             return;
         }
@@ -169,50 +200,65 @@ function Graphics(canvasIn, bpp, depthIn){
 
     //content access functions
     this.CopyShader = function( newName, newSceneName, oldShader ) {}
-    this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback ){
+    this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback )
+    {
         var concatName = filename + sceneName;
         var shader = this.shaders[ concatName ];
-        if( shader === undefined ) {
+        if( shader === undefined )
+        {
+        	if(filename === undefined)
+        	{
+        		filename = "Material";
+        		concatName = filename + sceneName;
+        	}
             //shader is not loaded, load the new shader and return it
-            new Shader( filename, sceneName, readyCallbackParams, function( newShader, readyCallbackParams1 ){
-                if( newShader.isValid ){
-                    graphics.shaders[concatName] = newShader;
-                }
-                shaderReadyCallback(newShader, readyCallbackParams1);
-            });
-        }else{
+            new Shader( filename, sceneName, readyCallbackParams, 
+            	function( newShader, readyCallbackParams1 )
+		        {
+		            //if( newShader.isValid )
+		            graphics.shaders[concatName] = newShader;
+		            shaderReadyCallback(newShader, readyCallbackParams1);
+		        });
+        }else
+        {
            shaderReadyCallback(shader, readyCallbackParams);
         }
     }
     this.UnrefShader = function(filename, sceneName) {}
-    this.AppendTexture = function(textureName, sceneName, newValidTexture){
+    this.AppendTexture = function(textureName, sceneName, newValidTexture)
+    {
         var concatName = textureName + sceneName;        
         this.textures[concatName] = newValidTexture;
     }
-    this.GetTexture = function(filename, sceneName, textureReadyCallback) {
+    this.GetTexture = function(filename, sceneName, textureReadyCallback)
+    {
         var concatName = filename + sceneName;
         var texture = this.textures[concatName];
-        if(texture === undefined) {
+        if(texture === undefined)
+        {
             //texture is not loaded, load the new texture and have it return when it's ready (async load)
             Texture(filename, sceneName, textureReadyCallback, function(newTexture, textureReadyCallback){
                 graphics.textures[concatName] = newTexture;
                 textureReadyCallback(newTexture);
             });
-        }else{
+        }else
+        {
             //the texture is ready, have it return through the callback
             textureReadyCallback(texture);
         }
     }
     this.UnrefTexture = function(filename, sceneName) {}
-    this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback) {
+    this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback)
+    {
         var concatName = filename + sceneName;
         var quadMesh = this.quadMeshes[concatName];
-        if(quadMesh === undefined){
-            //mesh is not loaded, load the new mesh and return it (synchronous load)
-            var newMesh = new QuadMesh(filename, sceneName);
+        if(quadMesh === undefined)
+        {
+            //mesh is not loaded, load the new mesh and return it (asynchronous load)
+            var newMesh = new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
             this.quadMeshes[concatName] = newMesh;
-            quadMeshReadyCallback( newMesh, readyCallbackParameters );
-        }else{
+        }else
+        {
           quadMeshReadyCallback( quadMesh, readyCallbackParameters );
         }
     }
@@ -240,42 +286,62 @@ function Graphics(canvasIn, bpp, depthIn){
     //load and compile the program
     this.currentProgram = gl.createProgram();
 
-    var textFile = loadTextFileSynchronous('shaders/frayenVertShader.vsh');
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, textFile);
-    gl.compileShader(vertexShader);
-    if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
-        alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
-    gl.attachShader(this.currentProgram, vertexShader);
+    this.fragShaderLoaded = function(textFile, thisP)
+    {
+	    CheckGLError("Graphics::begin frag shader loaded ");
+		var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fragmentShader, textFile);
+		gl.compileShader(fragmentShader);
+		if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
+		    alert('fragment shader log: ' + gl.getShaderInfoLog(fragmentShader));
+		gl.attachShader(thisP.currentProgram, fragmentShader);
+		CheckGLError("Graphics::end frag shader attached ");
 
-    textFile = loadTextFileSynchronous('shaders/frayenFragShader.fsh');
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, textFile);
-    gl.compileShader(fragmentShader);
-    if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
-        alert('fragment shader log: ' + gl.getShaderInfoLog(fragmentShader));
-    gl.attachShader(this.currentProgram, fragmentShader);
+		gl.validateProgram(thisP.currentProgram);
+		gl.linkProgram(thisP.currentProgram);
+		if(!gl.getProgramParameter(thisP.currentProgram, gl.LINK_STATUS) && gl.getProgramInfoLog(thisP.currentProgram))
+		    alert('gl currentProgram status: ' + gl.getProgramInfoLog(thisP.currentProgram));
+		gl.useProgram(thisP.currentProgram);
+		CheckGLError("Graphics::end frag shader validated ");
 
-    gl.validateProgram(this.currentProgram);
-    gl.linkProgram(this.currentProgram);
-    if(!gl.getProgramParameter(this.currentProgram, gl.LINK_STATUS) && gl.getProgramInfoLog(this.currentProgram))
-        alert('gl currentProgram status: ' + gl.getProgramInfoLog(this.currentProgram));
-    gl.useProgram(this.currentProgram);
+		//clear the render buffer
+		thisP.Clear();
+		
+		CheckGLError("Graphics::after clear ");
 
-    //clear the render buffer
-    this.Clear();
+		drawSquare(thisP);
+		
+		CheckGLError("Graphics::after draw square ");
+		    
+		//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
+		var temp = [1.0,1.0,1.0,1.0];
+		thisP.setColor(temp);
+		thisP.setAmbientAndDiffuse(temp);
+		thisP.setEmission(temp);
+		thisP.setSpecular(temp);
+		thisP.setShinyness(1.0);
+		CheckGLError("Graphics::before lighting enabled ");
 
-    drawSquare(this);
-        
-    //set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
-    var temp = [1.0,1.0,1.0,1.0];
-    this.setColor(temp);
-    this.setAmbientAndDiffuse(temp);
-    this.setEmission(temp);
-    this.setSpecular(temp);
-    this.setShinyness(1.0);
+		//lighting setup
+		thisP.enableLighting(true);
+		CheckGLError("Graphics::end frag shader loaded ");
+    }
 
-    //lighting setup
-    this.enableLighting(true);
-    CheckGLError("Graphics::end constructor ");
+    
+    this.vertShaderLoaded = function(textFile, thisP)
+    {
+		var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vertexShader, textFile);
+		gl.compileShader(vertexShader);
+		if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
+		    alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
+		gl.attachShader(thisP.currentProgram, vertexShader);
+
+		loadTextFile('shaders/frayenFragShader.fsh', thisP.fragShaderLoaded, thisP);
+    }
+    
+    loadTextFile('shaders/frayenVertShader.vsh', this.vertShaderLoaded, this);
+    
 }
+    
+    

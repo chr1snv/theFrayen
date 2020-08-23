@@ -312,71 +312,75 @@ function SkeletalAnimation( nameIn, sceneNameIn)
     //open the file for reading
     var fileName = "scenes/"+this.sceneName+"/skelAnimations/"+this.skelAnimName+".hvtAnim";
     
-    var skelAnimFile = loadTextFileSynchronous(fileName);
-    if( skelAnimFile === undefined ) return;
-    var skelAnimFileLines = skelAnimFile.split('\n');
-
-    //read in the file line by line
-    sLIdx = 0
-    while(++sLIdx < skelAnimFileLines.length )
+    this.skelAnimFileLoaded = function(skelAnimFile, thisP)
     {
-        var temp = skelAnimFileLines[sLIdx];
-        var words = temp.split(' ');
+		if( skelAnimFile === undefined ) return;
+		var skelAnimFileLines = skelAnimFile.split('\n');
 
-        if(temp[0] == 's') //read in the armature's scale
-        {
-            this.scale = new Float32Array([parseFloat(words[1]),
-                                           parseFloat(words[2]),
-                                           parseFloat(words[3])]);
-        }
-        if(temp[0] == 'r') //read in the armature's rotation
-        {
-            this.rotation = new Float32Array([parseFloat(words[1]),
-                                              parseFloat(words[2]),
-                                              parseFloat(words[3])]);
-        }
-        if(temp[0] == 'x') //read in the armature's translation
-        {
-            this.origin = new Float32Array([parseFloat(words[1]),
-                                            parseFloat(words[2]),
-                                            parseFloat(words[3])]);
-        }
+		//read in the file line by line
+		sLIdx = 0
+		while(++sLIdx < skelAnimFileLines.length )
+		{
+		    var temp = skelAnimFileLines[sLIdx];
+		    var words = temp.split(' ');
 
-        if(temp[0] == 'b')
-        {
-            //read in a bone, find the longest bone animation, and find the
-            //parent bone index
-            this.bones.push(new Bone(skelAnimFileLines, sLIdx)); //bone constructor handles reading bone
-            var tempDuration = this.bones[this.bones.length-1].animationLength;
-            if(tempDuration > this.duration) //set the duration
-                this.duration = tempDuration;
-            if(this.bones[this.bones.length-1].parentName == "None") //set the parent bone idx
-                this.headBoneIdx = this.bones.length-1;
-        }
+		    if(temp[0] == 's') //read in the armature's scale
+		    {
+		        this.scale = new Float32Array([parseFloat(words[1]),
+		                                       parseFloat(words[2]),
+		                                       parseFloat(words[3])]);
+		    }
+		    if(temp[0] == 'r') //read in the armature's rotation
+		    {
+		        this.rotation = new Float32Array([parseFloat(words[1]),
+		                                          parseFloat(words[2]),
+		                                          parseFloat(words[3])]);
+		    }
+		    if(temp[0] == 'x') //read in the armature's translation
+		    {
+		        this.origin = new Float32Array([parseFloat(words[1]),
+		                                        parseFloat(words[2]),
+		                                        parseFloat(words[3])]);
+		    }
+
+		    if(temp[0] == 'b')
+		    {
+		        //read in a bone, find the longest bone animation, and find the
+		        //parent bone index
+		        this.bones.push(new Bone(skelAnimFileLines, sLIdx)); //bone constructor handles reading bone
+		        var tempDuration = this.bones[this.bones.length-1].animationLength;
+		        if(tempDuration > this.duration) //set the duration
+		            this.duration = tempDuration;
+		        if(this.bones[this.bones.length-1].parentName == "None") //set the parent bone idx
+		            this.headBoneIdx = this.bones.length-1;
+		    }
+		}
+		
+		//calculate the orientation matrix of the Animation and its inverse
+		var blenderToHaven = new Float32Array(4*4);
+		Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
+		var tempMat = new Float32Array(4*4);
+		Matrix(tempMat, MatrixType.euler_transformation, this.scale, this.rotation, this.origin);
+		Matrix_Multiply(this.orientation, blenderToHaven, tempMat);
+		var orientationCpy = new Float32Array(4*4);
+		Matrix_Copy(orientationCpy, this.orientation);
+		Matrix_Inverse(this.inverseMatrix, orientationCpy); //destructive operation on source matrix
+
+		//calculate bone lookup indices for faster bone lookup
+		this.GenerateBoneTree();
+		//pre calculate these (will be used each frame)
+		this.GenerateInverseBindPoseTransformations();
+
+		IPrintf("SkeletalAnimation: read in " + this.bones.length +
+		        " bones, duration is: " + this.duration );
+
+		//allocate the transformation matricies
+		for(var i=0; i<this.bones.length; ++i)
+		    this.transformationMatricies.push( new Float32Array(graphics.matrixCard) );
+
+		isValid = true;
     }
     
-    //calculate the orientation matrix of the Animation and its inverse
-    var blenderToHaven = new Float32Array(4*4);
-    Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
-    var tempMat = new Float32Array(4*4);
-    Matrix(tempMat, MatrixType.euler_transformation, this.scale, this.rotation, this.origin);
-    Matrix_Multiply(this.orientation, blenderToHaven, tempMat);
-    var orientationCpy = new Float32Array(4*4);
-    Matrix_Copy(orientationCpy, this.orientation);
-    Matrix_Inverse(this.inverseMatrix, orientationCpy); //destructive operation on source matrix
-
-    //calculate bone lookup indices for faster bone lookup
-    this.GenerateBoneTree();
-    //pre calculate these (will be used each frame)
-    this.GenerateInverseBindPoseTransformations();
-
-    IPrintf("SkeletalAnimation: read in " + this.bones.length +
-            " bones, duration is: " + this.duration );
-
-    //allocate the transformation matricies
-    for(var i=0; i<this.bones.length; ++i)
-        this.transformationMatricies.push( new Float32Array(graphics.matrixCard) );
-
-    isValid = true;
+    loadTextFile(fileName, this.skelAnimFileLoaded, this );
 }
 

@@ -1,7 +1,11 @@
 //QuadMesh.js - implementation of QuadMesh
+//a polygonal mesh with faces of 3 or 4 (quad) verticies
 
-function QuadMesh(nameIn, sceneNameIn)
+function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
 {
+	this.quadMeshReadyCallback = quadMeshReadyCallback;
+	this.readyCallbackParameters = readyCallbackParameters;
+
     function Face()
     {
         this.materialID = 0;
@@ -247,7 +251,8 @@ function QuadMesh(nameIn, sceneNameIn)
         //use the face vertex indices to tesselate the entire mesh into
         //tris, calculate face normals, and upload to gl and draw
 
-        if(!this.isValid) {
+        if(!this.isValid)
+        {
             alert("QuadMesh::Draw: failed to draw.\n");
             return;
         }
@@ -286,10 +291,12 @@ function QuadMesh(nameIn, sceneNameIn)
 
     //type query functions
     this.IsHit = function() {}
-    this.IsTransparent = function(callback) {
+    this.IsTransparent = function(callback, thisP) //thisP is from the caller of this function, so the callback can return to the same context
+    {
         graphics.GetShader( this.shaderNames[0], this.sceneName, callback,
-            function( shader, cb ){
-                cb( shader.IsTransparent() );
+            function( shader, cb )
+            {
+                cb( shader.IsTransparent(), thisP );
             });
     }
 
@@ -298,220 +305,230 @@ function QuadMesh(nameIn, sceneNameIn)
 
     //constructor functionality
     ///////////////////////////
+    
+    this.meshFileLoaded = function(meshFile, thisP)
+	{	
+		var meshFileLines = meshFile.split('\n');
+
+		var numVerts = 0; //value to check for errors
+		var faceCt = 0;
+		for( var mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
+		{
+		    var temp = meshFileLines[mLIdx];
+		    var words = temp.split(' ');
+
+		    //read in the mesh transformation matrix (translate, scale, rotate)
+		    if( temp[0] == 'm' )
+		    {
+		        while( ++mLIdx < meshFileLines.length )
+		        {
+		            temp = meshFileLines[mLIdx];
+		            var words = temp.split(' ');
+		            //read in the origin rotation and size of the mesh
+		            if( temp[0] == 'x' )
+		            {
+		                thisP.origin =   [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		            }
+		            else if( temp[0] == 'r' )
+		            {
+		                thisP.rotation = [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		            }
+		            else if( temp[0] == 's' )
+		            {
+		                thisP.scale =    [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		            }
+		            else if( temp[0] == 'e' )
+		            {
+		                break;
+		            }
+		        }
+		    }
+
+		    //read in the number of vertices
+		    else if( temp[0] == 'c' && temp[1] == 'v' )
+		    {
+		        numVerts = words[1];
+		    }
+
+		    //read in a vertex
+		    else if( temp[0] == 'v' )
+		    {
+		        //read in the position
+		        thisP.vertPositions.push(parseFloat(words[1]));
+		        thisP.vertPositions.push(parseFloat(words[2]));
+		        thisP.vertPositions.push(parseFloat(words[3]));
+
+		        //read in the normal
+		        temp = meshFileLines[++mLIdx];
+		        words = temp.split(' ');
+		        if( temp[0] != 'n' )
+		        {
+		            DPrintf('QuadMesh: ' + thisP.meshName +
+		                    ', error expected vertex normal when reading mesh file');
+		            return;
+		        }
+		        thisP.vertNormals.push(parseFloat(words[1]));
+		        thisP.vertNormals.push(parseFloat(words[2]));
+		        thisP.vertNormals.push(parseFloat(words[3]));
+
+		        //read in the bone weights until the end of the vertex
+		        var boneWeights = {};
+		        while( ++mLIdx < meshFileLines.length )
+		        {
+		            temp = meshFileLines[mLIdx];
+		            words = temp.split(' ');
+		            if( temp[0] == 'w' )
+		            {
+		                var boneName = words[1];
+		                var boneWeight = parseFloat(words[2]);
+		                boneWeights[boneName] = boneWeight;
+		            }
+		            else if( temp[0] == 'e')
+		                break; //done reading the vertex
+		        }
+		        thisP.vertBoneWeights.push(boneWeights);
+		    }
+
+		    //read in the number of faces
+		    else if( temp[0] == 'c' && temp[1] == 'f' )
+		    {
+		        faceCt = words[1];
+		    }
+
+		    //read in a face
+		    else if( temp[0] == 'f' )
+		    {
+		        var newFace = new Face();
+		        while( ++mLIdx < meshFileLines.length )
+		        {
+		            temp = meshFileLines[mLIdx];
+		            words = temp.split(' ');
+
+		            //read in the material id of the face
+		            if( temp[0] == 'm' )
+		                newFace.materialID = words[1];
+
+		            //read in the vertex idx's of the face
+		            if( temp[0] == 'v' )
+		            {
+		                var numFaceVerts = 0;
+		                for( var vertNumIdx = 1; vertNumIdx < words.length; ++vertNumIdx )
+		                {
+		                    var vertIdx = parseFloat(words[vertNumIdx]);
+		                    if( vertIdx < 0 || vertIdx > numVerts )
+		                    {
+		                        DPrintf( 'QuadMesh: ' + thisP.meshName + ', face: ' +
+		                               (thisP.faces.length-1).toString()  + ', vertIdx: ' + vertIdx +
+		                               ' is out of range.' );
+		                        return;
+		                    }
+		                    newFace.vertIdxs.push(vertIdx);
+		                    ++numFaceVerts;
+		                }
+		                if(numFaceVerts == 3)
+		                    thisP.faceVertsCt += 3;
+		                else if(numFaceVerts == 4)
+		                    thisP.faceVertsCt += 6; //since will have to tesselate
+		                else{
+		                    DPrintf('QuadMesh: ' + thisP.meshName + 'reading face: ' +
+		                          (thisP.faces.length-1).toString()  +
+		                          ', expected 3 or 4 vertices, instead got: ' + numFaceVerts);
+		                    return;
+		                }
+		            }
+
+		            //read in the face texture coords
+		            if( temp[0] == 'u' )
+		            {
+		                for( var uvIdx = 1; uvIdx < words.length; uvIdx += 2 )
+		                {
+		                    var u = parseFloat(words[uvIdx]);
+		                    var v = parseFloat(words[uvIdx+1]);
+		                    //v = 1.0 - v; // flip the texture vertically if necessay
+		                    newFace.uvs.push(u);
+		                    newFace.uvs.push(v);
+		                }
+		            }
+
+		            //end of face data
+		            if( temp[0] == 'e' )
+		            {
+		                if( !(newFace.uvs.length/2 >= newFace.vertIdxs.length) )
+		                {
+		                    DPrintf( 'QuadMesh: ' + thisP.meshName + 'reading face: ' +
+		                            thisP.faces.length  + ', expected: ' +
+		                            newFace.vertIdxs.length + ' uv\'s, but got: ' +
+		                            newFace.uvs.length/2 );
+		                    //return;
+		                }
+		                thisP.faces.push(newFace);
+		                break;
+		            }
+		        }
+		    }
+		}
+
+		if( !(Math.abs(thisP.vertPositions.length - numVerts*3) < 0.01) )
+		    DPrintf("Quadmesh: verts read mismatch\n");
+		else if ( !(Math.abs(thisP.vertNormals.length - numVerts*3) < 0.01) )
+		    DPrintf("Quadmesh: normals read mismatch\n");
+		else
+		    thisP.isValid = true;
+
+		//copy the normals and verticies into a float32 array for compatibility with gl
+		thisP.vertPostions = new Float32Array(thisP.vertPositions);
+		thisP.vertNormals  = new Float32Array(thisP.vertNormals);
+
+		//initialize the animation
+		if( thisP.ipoAnimation.isValid || thisP.keyAnimation.isValid || thisP.skelAnimation.isValid )
+		{
+		    thisP.isAnimated = true;
+		    thisP.Update(0.0);
+		}
+
+		DPrintf('Quadmesh: ' + thisP.meshName +
+		        ', successfully read in faces: ' + thisP.faces.length + 
+		        ', verts: ' + thisP.vertPositions.length/3 );
+
+		//finalize the binding between the quadMesh and the skelAnimation
+		//by setting the boneID's in the bone weights based on the bone positions
+		//in the animation bone list
+		for( var i in thisP.vertBoneWeights )
+		    for( var boneName in thisP.vertBoneWeights[i] )
+		        for( var k in thisP.skelAnimation.bones )
+		            if(thisP.skelAnimation.bones[k].boneName == boneName)
+		                thisP.vertBoneWeights[i][boneName].boneID = k;
+		thisP.quadMeshReadyCallback(thisP, thisP.readyCallbackParameters);
+    }
 
     //read in the materials file
     var matFileName = "scenes/"+this.sceneName+"/meshMaterials/"+this.meshName+".hvtMeshMat";
-    var matFile = loadTextFileSynchronous(matFileName);
-    var matFileLines = matFile.split('\n');
 
-    for( var matIdx in matFileLines )
+    this.matFileLoaded = function(matFile, thisP)
     {
-        var temp = matFileLines[matIdx];
-        if( temp[0] == 's' ) //name of a shader
-        {
-            var words = temp.split(' ');
-            this.shaderNames.push(words[1]);
-        }
-    }
-    if( this.shaderNames.length < 1 ){
-        alert('QuadMesh: ' + this.meshName + ', failed to read any materials, loading default material');
-        this.shaderNames.push("default");
-    }
+		var matFileLines = matFile.split('\n');
 
-    //read in the mesh file
-    var meshFileName = "scenes/"+this.sceneName+"/meshes/"+this.meshName+".hvtMesh";
-    var meshFile = loadTextFileSynchronous(meshFileName);
-    var meshFileLines = meshFile.split('\n');
+		for( var matIdx in matFileLines )
+		{
+		    var temp = matFileLines[matIdx];
+		    if( temp[0] == 's' ) //name of a shader
+		    {
+		        var words = temp.split(' ');
+		        thisP.shaderNames.push(words[1]);
+		    }
+		}
+		if( thisP.shaderNames.length < 1 )
+		{
+		    alert('QuadMesh: ' + thisP.meshName + ', failed to read any materials, loading default material');
+		    thisP.shaderNames.push("default");
+		}
 
-    var numVerts = 0; //value to check for errors
-    var faceCt = 0;
-    for( var mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
-    {
-        var temp = meshFileLines[mLIdx];
-        var words = temp.split(' ');
+		//read in the mesh file
+		var meshFileName = "scenes/"+thisP.sceneName+"/meshes/"+thisP.meshName+".hvtMesh";
+		loadTextFile(meshFileName, thisP.meshFileLoaded, thisP);
+	}
+	loadTextFile(matFileName, this.matFileLoaded, this);
 
-        //read in the mesh transformation matrix (translate, scale, rotate)
-        if( temp[0] == 'm' )
-        {
-            while( ++mLIdx < meshFileLines.length )
-            {
-                temp = meshFileLines[mLIdx];
-                var words = temp.split(' ');
-                //read in the origin rotation and size of the mesh
-                if( temp[0] == 'x' )
-                {
-                    this.origin =   [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
-                }
-                else if( temp[0] == 'r' )
-                {
-                    this.rotation = [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
-                }
-                else if( temp[0] == 's' )
-                {
-                    this.scale =    [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
-                }
-                else if( temp[0] == 'e' )
-                {
-                    break;
-                }
-            }
-        }
-
-        //read in the number of vertices
-        else if( temp[0] == 'c' && temp[1] == 'v' )
-        {
-            numVerts = words[1];
-        }
-
-        //read in a vertex
-        else if( temp[0] == 'v' )
-        {
-            //read in the position
-            this.vertPositions.push(parseFloat(words[1]));
-            this.vertPositions.push(parseFloat(words[2]));
-            this.vertPositions.push(parseFloat(words[3]));
-
-            //read in the normal
-            temp = meshFileLines[++mLIdx];
-            words = temp.split(' ');
-            if( temp[0] != 'n' ){
-                DPrintf('QuadMesh: ' + this.meshName +
-                        ', error expected vertex normal when reading mesh file');
-                return;
-            }
-            this.vertNormals.push(parseFloat(words[1]));
-            this.vertNormals.push(parseFloat(words[2]));
-            this.vertNormals.push(parseFloat(words[3]));
-
-            //read in the bone weights until the end of the vertex
-            var boneWeights = {};
-            while( ++mLIdx < meshFileLines.length )
-            {
-                temp = meshFileLines[mLIdx];
-                words = temp.split(' ');
-                if( temp[0] == 'w' )
-                {
-                    var boneName = words[1];
-                    var boneWeight = parseFloat(words[2]);
-                    boneWeights[boneName] = boneWeight;
-                }
-                else if( temp[0] == 'e')
-                    break; //done reading the vertex
-            }
-            this.vertBoneWeights.push(boneWeights);
-        }
-
-        //read in the number of faces
-        else if( temp[0] == 'c' && temp[1] == 'f' )
-        {
-            faceCt = words[1];
-        }
-
-        //read in a face
-        else if( temp[0] == 'f' )
-        {
-            var newFace = new Face();
-            while( ++mLIdx < meshFileLines.length )
-            {
-                temp = meshFileLines[mLIdx];
-                words = temp.split(' ');
-
-                //read in the material id of the face
-                if( temp[0] == 'm' )
-                {
-                    newFace.materialID = words[1];
-                }
-
-                //read in the vertex idx's of the face
-                if( temp[0] == 'v' )
-                {
-                    var numFaceVerts = 0;
-                    for( var vertNumIdx = 1; vertNumIdx < words.length; ++vertNumIdx )
-                    {
-                        var vertIdx = parseFloat(words[vertNumIdx]);
-                        if( vertIdx < 0 || vertIdx > numVerts ){
-                            DPrintf( 'QuadMesh: ' + this.meshName + ', face: ' +
-                                   (this.faces.length-1).toString()  + ', vertIdx: ' + vertIdx +
-                                   ' is out of range.' );
-                            return;
-                        }
-                        newFace.vertIdxs.push(vertIdx);
-                        ++numFaceVerts;
-                    }
-                    if(numFaceVerts == 3)
-                        this.faceVertsCt += 3;
-                    else if(numFaceVerts == 4)
-                        this.faceVertsCt += 6; //since will have to tesselate
-                    else{
-                        DPrintf('QuadMesh: ' + this.meshName + 'reading face: ' +
-                              (this.faces.length-1).toString()  +
-                              ', expected 3 or 4 vertices, instead got: ' + numFaceVerts);
-                        return;
-                    }
-                }
-
-                //read in the face texture coords
-                if( temp[0] == 'u' )
-                {
-                    for( var uvIdx = 1; uvIdx < words.length; uvIdx += 2 )
-                    {
-                        var u = parseFloat(words[uvIdx]);
-                        var v = parseFloat(words[uvIdx+1]);
-                        //v = 1.0 - v; // flip the texture vertically if necessay
-                        newFace.uvs.push(u);
-                        newFace.uvs.push(v);
-                    }
-                }
-
-                //end of face data
-                if( temp[0] == 'e' )
-                {
-                    if( !(Math.abs(newFace.uvs.length/2 - newFace.vertIdxs.length) < 0.01) )
-                    {
-                        DPrintf( 'QuadMesh: ' + this.meshName + 'reading face: ' +
-                                this.faces.length  + ', expected: ' +
-                                newFace.vertIdxs.length + ' uv\'s, but got: ' +
-                                newFace.uvs.length/2 );
-                        return;
-                    }
-                    this.faces.push(newFace);
-                    break;
-                }
-            }
-        }
-    }
-
-    if( !(Math.abs(this.vertPositions.length - numVerts*3) < 0.01) )
-        DPrintf("Quadmesh: verts read mismatch\n");
-    else if ( !(Math.abs(this.vertNormals.length - numVerts*3) < 0.01) )
-        DPrintf("Quadmesh: normals read mismatch\n");
-    else
-        this.isValid = true;
-
-    //copy the normals and verticies into a float32 array for compatibility with gl
-    this.vertPostions = new Float32Array(this.vertPositions);
-    this.vertNormals  = new Float32Array(this.vertNormals);
-
-    //initialize the animation
-    if( this.ipoAnimation.isValid || this.keyAnimation.isValid || this.skelAnimation.isValid ){
-        this.isAnimated = true;
-        this.Update(0.0);
-    }
-
-    DPrintf('Quadmesh: ' + this.meshName +
-            ', successfully read in faces: ' + this.faces.length + 
-            ', verts: ' + this.vertPositions.length/3 );
-
-    //finalize the binding between the quadMesh and the skelAnimation
-    //by setting the boneID's in the bone weights based on the bone positions
-    //in the animation bone list
-    for( var i in this.vertBoneWeights ){
-        for( var boneName in this.vertBoneWeights[i] ){
-            for( var k in this.skelAnimation.bones ){
-                if(this.skelAnimation.bones[k].boneName == boneName){
-                    this.vertBoneWeights[i][boneName].boneID = k;
-                }
-            }
-        }
-    }
+	
+    
 }

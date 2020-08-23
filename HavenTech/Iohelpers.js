@@ -1,24 +1,40 @@
 //iohelpers.js - Christopher Hoffman Feb 26th, 2013
 
-function loadTextFile(filename, callback, thisP){
+function loadTextFile(filename, callback, thisP)
+{
+	if(callback === undefined)
+		DPrintf("callback undefined");
     try{
         var txtFile = new XMLHttpRequest();
-        txtFile.onreadystatechange = function(){
-            if(txtFile.readyState == 4){
-                if(txtFile.status == 200 || txtFile.status == 0){
+        txtFile.onreadystatechange = function()
+        {
+            if(txtFile.readyState == 4)
+            {
+                if(txtFile.status == 200 || txtFile.status == 0)
+                {
                     callback(txtFile.responseText, thisP); //callback
                 }
                 else
-                    alert( "Unable to open text file: " +  filename);
+                {
+	                var fileSuffix = filename.split('.')[1];
+                	if(!( fileSuffix == "hvtIPO" ||
+                		  fileSuffix == "hvtKeys" ||
+                		  fileSuffix == "hvtAnim") )
+                	{
+                    	alert( "Unable to open text file: " +  filename);
+                    }
+                }
             }
         }
         txtFile.open("GET", filename, true);
         txtFile.overrideMimeType("text/plain;");
         txtFile.send();
-    }catch(err){
+    }catch(err)
+    {
         return undefined;
     }
 }
+/*
 function loadTextFileSynchronous(filename){
     try{
         var txtFile = new XMLHttpRequest();
@@ -31,3 +47,4 @@ function loadTextFileSynchronous(filename){
     }catch(err){
     }
 }
+*/

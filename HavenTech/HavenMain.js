@@ -1,6 +1,8 @@
 //HavenMain.js
 
+/*
 function loadTextFile(filename, callback, thisP){
+	console.log("loading text file " + filename);
     var txtFile = new XMLHttpRequest();
     txtFile.onreadystatechange = function(){
         if(txtFile.readyState == 4){
@@ -15,6 +17,8 @@ function loadTextFile(filename, callback, thisP){
 }
 
 function loadTextFileSynchronous(filename){
+	console.log("loadTextFileSynchronous" + filename);
+	console.trace();
     var txtFile = new XMLHttpRequest();
     txtFile.open("GET", filename, false);
     txtFile.overrideMimeType("text/plain;");
@@ -22,6 +26,7 @@ function loadTextFileSynchronous(filename){
     if(txtFile.status == 200 || txtFile.status == 0)
         return txtFile.responseText;
 }
+*/
 
 function havenMain(){
     //cameraStream = new CameraStream();
@@ -29,15 +34,19 @@ function havenMain(){
     registerInputHandlers();
 
     graphics = new Graphics(document.getElementById('frayenCanvas'));
-    mainScene = new HavenScene("cubeTest", sceneLoaded);
+    console.log("graphics loaded");
+    mainScene = new HavenScene("penisModel", sceneLoaded);
 }
 
-function sceneLoaded(havenScene){
+function sceneLoaded(havenScene)
+{
+    mainScene = havenScene;
     havenScene.Draw();
     window.setTimeout(MainLoop, 300);
 }
 
-function MainLoop(){
+function MainLoop()
+{
     graphics.Clear();
     UpdateCamera();
     mainScene.Draw();
@@ -45,28 +54,26 @@ function MainLoop(){
     window.requestAnimFrame(MainLoop);
 }
 
-function UpdateCamera(){
+function UpdateCamera()
+{
 
     //generate the position update
     var moveAmt = 0.2;
     var camPositionUpdate = new Float32Array( [ 0, 0, 0 ] );
-    if( keys[keyCodes.KEY_W] == true ){
+    if( keys[keyCodes.KEY_W] == true )
         camPositionUpdate[2] -= moveAmt;
-    }
-    if( keys[keyCodes.KEY_S] == true ){
+    if( keys[keyCodes.KEY_S] == true )
         camPositionUpdate[2] += moveAmt;
-    }
-    if( keys[keyCodes.KEY_A] == true ){
+    if( keys[keyCodes.KEY_A] == true )
         camPositionUpdate[0] -= moveAmt;
-    }
-    if( keys[keyCodes.KEY_D] == true ){
+    if( keys[keyCodes.KEY_D] == true )
         camPositionUpdate[0] += moveAmt;
-    }
 
     //generate the rotation update
     var mY = 0;
     var mX = 0;
-    if( mDown ){
+    if( mDown )
+    {
         var relMx = mCoords.x - mDownCoords.x;
         var relMy = mCoords.y - mDownCoords.y;
         var mX = relMx/graphics.screenWidth;// - 0.5;

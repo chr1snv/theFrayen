@@ -37,8 +37,9 @@ function Matrix_Copy( m, m2 ){
 }
 
 //high level euler rotation angle Transformation matrix constructor
-function Matrix( m, type, scale, rot, translation )
+function Matrix()// m, type, scale, rot, translation )
 {
+	var m = arguments[0];
     var type = arguments[1];
     if(type == MatrixType.identity)
     {
