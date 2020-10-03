@@ -89,31 +89,26 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
                             isDiffuse = true;
                         }
                         if(temp[0] == 'n') // the texture is normal type
-
                         {
                             thisP.normalMix = parseFloat( temp[1] );
                             isNormal = true;
                         }
                         if(temp[0] == 'l') // the texture is emit type
-
                         {
                             thisP.emitMix = parseFloat( temp[1] );
                             isEmit = true;
                         }
                         if(temp[0] == 'f') //read in the texture file name
-
                         {
                             var textureName = temp[1];
                             //ask the graphics instance to load the corresponding texture file
                             //graphics.GetTexture(textureName, this.sceneName);
                             if(isDiffuse)
-
                                 thisP.diffuseTextureName = textureName;
                             if(isNormal)
-                                thisP.normalTextureName = textureName;
+                                thisP.normalTextureName  = textureName;
                             if(isEmit)
-                                thisP.emitTextureName = textureName;
-
+                                thisP.emitTextureName    = textureName;
                         }
                         if(temp[0] == 'e') // sort of unnesscary, as soon as the file
                             break;         //name is read reading this texture is done
@@ -129,7 +124,6 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
 
             if(thisP.diffuseMix == -1.0)
                 thisP.diffuseMix = 0.0;
-
             if(thisP.specularMix == -1.0)
                 thisP.specularMix = 0.0;
             if(thisP.emitMix == -1.0)
@@ -179,7 +173,6 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
 
     this.Bind = function(previousShader, callbackParams, bindFinishedCallback)
     {
-
         if(this.isHit){
             //make it black so that when its color is combined with
             //the depth fog it will be black when near the camera and

@@ -130,19 +130,19 @@ function SceneGraph(sceneNameIn)
                                 var mvpMatHandle = gl.getUniformLocation( graphics.currentProgram, 'mvpMatrix' );
                                 gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
 
-
+                                var vertBuffer = 0;
                                 attributeSetFloats( graphics.currentProgram,
                                                     "position", graphics.vertCard,
-                                                    verts );
+                                                    verts, vertBuffer );
                                 //attributeSetFloats( graphics.currentProgram,
                                 //                    "normal", graphics.normCard,
                                 //                    verts );
+                                var uvBuffer = 0;
                                 attributeSetFloats( graphics.currentProgram,
                                                     "texCoord", graphics.uvCard,
-                                                    uvs );
+                                                    uvs, uvBuffer );
 
                                 gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts );
-
 
                                 UpdateCamera();
                             });

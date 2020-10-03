@@ -8,10 +8,14 @@
     <script src="HavenTech/HavenInclude.js"></script>
 </head>
 
-<body style="background-color:#664466; text-align:center;">
+<body style="background-color:#664466; text-align:center; font-family:arial; color:white;">
     <h1>The Frayen</h2>
+    <form>
+    <select id="sceneSelection" name="scene" onchange=""><option selected=true>penisModel</option><option>cubeTest</option></select>
+    </form>
     <div class="footerContainer" style="width:50em;">
-        <canvas id="frayenCanvas" width="500" height="500" style="border:1px solid black;"/>
+        <canvas id="frayenCanvas" width="500" height="500" style="border:1px solid black;"></canvas>
+        <h3>Use WASD keys and left click + mouse drag to move</h3>
     </div>
     <h4 id ="status"></h4>
 

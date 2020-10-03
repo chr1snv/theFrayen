@@ -34,7 +34,7 @@ function drawSquare(graphics) // Draw the picture
     gl.flush();
 }
 
-function attributeSetFloats( prog, attr_name, rsize, arr)
+function attributeSetFloats( prog, attr_name, rsize, arr, buffer)
 {
     var attr = gl.getAttribLocation( prog, attr_name);
     gl.enableVertexAttribArray(attr);
@@ -90,6 +90,10 @@ function Graphics(canvasIn, bpp, depthIn)
     {
         gl.clear(gl.DEPTH_BUFFER_BIT);
     }   
+    this.Flush = function()
+    {
+        gl.flush();
+    }
 
     //functions for fog
     this.EnableFog = function(clipNear, clipFar)
@@ -203,14 +207,14 @@ function Graphics(canvasIn, bpp, depthIn)
     this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback )
     {
         var concatName = filename + sceneName;
+        if(filename === undefined)
+    	{
+    		filename = "Material";
+    		concatName = filename + sceneName;
+    	}
         var shader = this.shaders[ concatName ];
         if( shader === undefined )
-        {
-        	if(filename === undefined)
-        	{
-        		filename = "Material";
-        		concatName = filename + sceneName;
-        	}
+        {	
             //shader is not loaded, load the new shader and return it
             new Shader( filename, sceneName, readyCallbackParams, 
             	function( newShader, readyCallbackParams1 )

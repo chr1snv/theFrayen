@@ -26,14 +26,14 @@ void main() {
                                ( diffuseColor * ( 1.0-texturingEnabled ) );
 
     //calculate the light color
-    //float lightDotProd     = dot( normalVarying, normalVarying );
-    //float diffuseLightAmt  = max( lightDotProd,  1.0-lightingEnabled );
-    //float specularLightAmt = pow( lightDotProd,  specularExponent );
+    float lightDotProd     = dot( normalVarying, normalVarying );
+    float diffuseLightAmt  = max( lightDotProd,  1.0-lightingEnabled );
+    float specularLightAmt = pow( lightDotProd,  specularExponent );
     
     //sum the diffuse specular and emissive components
-    //gl_FragColor           = diffuseColor * diffuseLightAmt +
-    //                         specularLightAmt * specularColor +
-    //                         emissionColor;
+    gl_FragColor           = diffuseColor * diffuseLightAmt +
+                             specularLightAmt * specularColor +
+                             emissionColor;
 
     gl_FragColor = diffuseCol;//vec4(1,0.5,1,0.5);
 }

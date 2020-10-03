@@ -61,6 +61,7 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         for(var i=0; i<this.lights.length; ++i)
             graphics.BindLight(this.lights[i]);
         this.sceneGraph.Draw(this.cameras[this.activeCameraIdx]);
+        graphics.Flush();
     }
 
     this.HitModel = function(screenCoords)
