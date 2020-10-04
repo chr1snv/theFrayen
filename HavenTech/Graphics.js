@@ -29,12 +29,12 @@ function drawSquare(graphics) // Draw the picture
     //CheckGLError("draw square, after normal attributeSetFloats");
     attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
     CheckGLError("draw square, after texCoord attributeSetFloats");
-    gl.drawArrays(gl.TRIANGLES, 0, 3); 
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
     CheckGLError("draw square, after drawArrays");
     gl.flush();
 }
 
-function attributeSetFloats( prog, attr_name, rsize, arr, buffer)
+function attributeSetFloats( prog, attr_name, rsize, arr)
 {
     var attr = gl.getAttribLocation( prog, attr_name);
     gl.enableVertexAttribArray(attr);

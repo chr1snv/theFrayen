@@ -131,16 +131,16 @@ function SceneGraph(sceneNameIn)
                                 gl.uniformMatrix4fv( mvpMatHandle, false, uploadMatrix );
 
                                 var vertBuffer = 0;
-                                attributeSetFloats( graphics.currentProgram,
-                                                    "position", graphics.vertCard,
-                                                    verts, vertBuffer );
+                                //attributeSetFloats( graphics.currentProgram,
+                                //                    "position", graphics.vertCard,
+                                //                    verts, vertBuffer );
                                 //attributeSetFloats( graphics.currentProgram,
                                 //                    "normal", graphics.normCard,
                                 //                    verts );
                                 var uvBuffer = 0;
-                                attributeSetFloats( graphics.currentProgram,
-                                                    "texCoord", graphics.uvCard,
-                                                    uvs, uvBuffer );
+                                //attributeSetFloats( graphics.currentProgram,
+                                //                    "texCoord", graphics.uvCard,
+                                //                    uvs, uvBuffer );
 
                                 gl.drawArrays( gl.TRIANGLES, 0, drawablePair.numVerts );
 

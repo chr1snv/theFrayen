@@ -26,6 +26,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     this.shaderNames     = [];
 
+    //the calculated mesh data
+    
+    //the gl buffers
+    var vertsBuffer   = gl.createBuffer()
+    var normalsBuffer = gl.createBuffer()
+    var uvsBuffer     = gl.createBuffer()
+
     //the raw mesh data
     this.faces           = [];
     this.faceVertsCt     = 0;
@@ -269,6 +276,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
         //tesselate the mesh
         this.tesselateCoords( verts, this.faces, transformedPositions );
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
+        var attr = gl.getAttribLocation( graphics.currentProgram, "position");
+        gl.enableVertexAttribArray(attr);
+        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(attr, graphics.vertCard, gl.FLOAT, false, 0, 0);
 
         ////
         //Generate the vertex normal coordinates
@@ -277,15 +290,29 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         var normCard = 3;
 
         //generate & tesselate the normal coords from the batch of verts currently being used
+        /*
         var normalCoords = new Float32Array(transformedPositions.length);
         this.GenerateNormalCoords(normalCoords, this.faces, transformedPositions);
         this.tesselateCoords(normals, this.faces, normalCoords);
         
+        gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
+        var attr = gl.getAttribLocation( graphics.currentProgram, "normal");
+        gl.enableVertexAttribArray(attr);
+        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
+        */
+        
         ////
-        //Generate the vertex texture coordinates
+        //Generate the texture coordinates (per vertex)
         /////////////////////////////////////////////////////////////
 
         this.tesselateUVCoords(uvs, this.faces);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, uvsBuffer);
+        var attr = gl.getAttribLocation( graphics.currentProgram, "texCoord");
+        gl.enableVertexAttribArray(attr);
+        gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
     }
     this.DrawSkeleton = function() { skelAnimation.Draw(); }
 
