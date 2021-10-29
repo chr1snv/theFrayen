@@ -74,9 +74,9 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
         if(lightType == this.Type.Directional){ //directional light
             lightNormal[3] = 0.0;
             Vect3_Negative(lightNormal);
-            gl.uniform3fv(
+            gl.uniform3f(
                 gl.getUniformLocation(graphics.currentProgram, 'lightVector[' + lightNumber + ']'),
-                lightNormal );
+                lightNormal[0], lightNormal[1], lightNormal[2], lightNormal[3] );
             gl.uniform1f(
                 gl.getUniformLocation(graphics.currentProgram, 'lightSpotConeAngle[' + lightNumber + ']'),
                 180     );
@@ -84,17 +84,17 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
         else{ //either a point light or a spot light
             var lightPos = new Array(4);
             Vect3_Copy(lightPos, position);
-            lightPos[3] = 1.0;
-            gl.uniform4fv(
+            //lightPos[3] = 1.0;
+            gl.uniform3f(
                 gl.getUniformLocation(graphics.currentProgram, 'lightVector[' + lightNumber + ']'),
-                lightPos );
+                lightPos[0], lightPos[1], lightPos[2] );
             
             //pass the direction and angle data (if spot)
             if(lightType == this.Type.Spot){
                 lightNormal[3] = 1.0; //positional light
-                gl.uniform4fv(
+                gl.uniform4f(
                     gl.getUniformLocation(graphics.currentProgram, 'lightDirection[' + lightNumber + ']'), 
-                    lightNormal );
+                    lightNormal[0], lightNormal[1], lightNormal[2], lightNormal[3] );
                 gl.uniform1f(
                     gl.getUniformLocation(graphics.currentProgram, 'lightSpotConeAngle[' + lightNumber + ']'), 
                     coneAngle );

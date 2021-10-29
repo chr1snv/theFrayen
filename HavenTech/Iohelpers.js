@@ -16,12 +16,13 @@ function loadTextFile(filename, callback, thisP)
                 }
                 else
                 {
-	                var fileSuffix = filename.split('.')[1];
+                    var fileParts = filename.split('.');
+	                var fileSuffix = fileParts[fileParts.length-1];
                 	if(!( fileSuffix == "hvtIPO" ||
                 		  fileSuffix == "hvtKeys" ||
                 		  fileSuffix == "hvtAnim") )
                 	{
-                    	alert( "Unable to open text file: " +  filename);
+                    	alert( "Unable to open file of unknown type: " +  filename);
                     }
                 }
             }

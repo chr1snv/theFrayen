@@ -7,7 +7,7 @@ function CheckGLError(where)
     var iter = 0;
     while(error != gl.NO_ERROR && iter < 100)
     {
-        alert(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16));
+        DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16));
         error = gl.getError();
         ++iter;
     }
@@ -25,8 +25,8 @@ function drawSquare(graphics) // Draw the picture
 
     attributeSetFloats( graphics.currentProgram, "position",  3, verts );
     CheckGLError("draw square, after position attributeSetFloats");
-    //attributeSetFloats( graphics.currentProgram, "normal",    3, verts );
-    //CheckGLError("draw square, after normal attributeSetFloats");
+    attributeSetFloats( graphics.currentProgram, "norm",    3, verts );
+    CheckGLError("draw square, after normal attributeSetFloats");
     attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
     CheckGLError("draw square, after texCoord attributeSetFloats");
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -129,11 +129,11 @@ function Graphics(canvasIn, bpp, depthIn)
     }
     this.enableDepthTest = function(val)
     {
-        if(this.depthTestEnb != val)
-        {
+        //if(this.depthTestEnb != val)
+        //{
             this.depthTestEnb = val;
             val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
-        }
+        //}
     }
     this.setTexture = function(texId)
     {
@@ -280,8 +280,8 @@ function Graphics(canvasIn, bpp, depthIn)
     gl.cullFace(gl.BACK);
 
     //enable depth testing
-    //gl.depthFunc(gl.LESS);
-    //this.enableDepthMask(true);
+    gl.depthFunc(gl.LESS);
+    this.enableDepthMask(true);
 
     //enable blending
     //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -313,7 +313,7 @@ function Graphics(canvasIn, bpp, depthIn)
 		
 		CheckGLError("Graphics::after clear ");
 
-		drawSquare(thisP);
+		//drawSquare(thisP);
 		
 		CheckGLError("Graphics::after draw square ");
 		    

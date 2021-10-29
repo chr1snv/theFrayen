@@ -5,3 +5,7 @@ August 10th
 
 August 11th -
 - fixed free camera movement
+
+Oct 3rd 2020
+
+change draw attributeSetFloats to use buffer handles stored and allocated by drawables instead of calling gl.createBuffer() each time (memory leak in firefox)

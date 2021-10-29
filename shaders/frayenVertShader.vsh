@@ -3,7 +3,7 @@
 uniform mat4 mvpMatrix;
 
 attribute vec3 position;
-attribute vec3 normal;
+attribute vec3 norm;
 attribute vec2 texCoord;
 
 //variables passed to the fragment shader
@@ -12,6 +12,6 @@ varying vec2 texCoordVarying;
 
 void main() {
     gl_Position = mvpMatrix * vec4(position,1);
-    normalVarying = (mvpMatrix * vec4(normal, 1)).xyz;
+    normalVarying = (mvpMatrix * vec4(norm, 1)).xyz;
     texCoordVarying = texCoord;
 }

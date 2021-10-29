@@ -28,6 +28,62 @@ function loadTextFileSynchronous(filename){
 }
 */
 
+function EnterFullscreen(){
+    var canvas = document.getElementById('frayenCanvas');
+    
+    //enter fullscreen
+    if(canvas.webkitRequestFullscreen)
+    {
+        canvas.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+    }else{
+        canvas.requestFullscrn = 
+        canvas.msRequestFullscreen ||
+        canvas.requestFullscreen;
+        
+        promise = canvas.requestFullscreen();
+        //alert("promise " + promise );
+    }
+    
+}
+
+var ptrLck = null;
+function requestPointerLock(){
+    
+    var canvas = document.getElementById('frayenCanvas');
+    
+    //request mouse pointer lock
+    canvas.rqstPtrLck = 
+    canvas.requestPointerLock ||
+    canvas.mozRequestPointerLock;
+    
+    ptrLck = canvas.rqstPtrLck();
+}
+
+function releasePointerLock(){
+    canvas.relPtrLck =
+    canvas.releasePointerCapture;
+
+    canvas.relPtrLck();
+}
+
+function ExitFullscreen(){
+
+    var extFullScrn = 
+    document.webkitExitFullscreen ||
+    document.mozCancelFullScreen ||
+    document.msExitFullscreen ||
+    document.exitFullscreen;
+    
+    var extPtrLck =
+    document.exitPointerLock    ||
+    document.mozExitPointerLock;
+
+    // Attempt to unlock
+    extFullScrn();
+    extPtrLck();
+    
+}
+
 function havenMain(){
     //cameraStream = new CameraStream();
 
@@ -35,7 +91,18 @@ function havenMain(){
 
     graphics = new Graphics(document.getElementById('frayenCanvas'));
     console.log("graphics loaded");
-    mainScene = new HavenScene("penisModel", sceneLoaded);
+    mainScene = new HavenScene("cubeTest", sceneLoaded);
+}
+
+function sceneChanged()
+{
+    var sel = document.getElementById("sceneSelection");
+    var idx = sel.selectedIndex;
+    var newSceneName = sel.children[idx].text;
+    
+    window.cancelAnimFrame(MainLoop);
+    
+    mainScene = new HavenScene(newSceneName, sceneLoaded);
 }
 
 function sceneLoaded(havenScene)
@@ -74,11 +141,14 @@ function UpdateCamera()
     var mX = 0;
     if( mDown )
     {
-        var relMx = mCoords.x - mDownCoords.x;
-        var relMy = mCoords.y - mDownCoords.y;
-        var mX = relMx/graphics.screenWidth;// - 0.5;
-        var mY = relMy/graphics.screenHeight;// - 0.5;
+        if(ptrLck == null)
+            requestPointerLock();
     }
+    var relMx = mCoords.x - mDownCoords.x;
+    var relMy = mCoords.y - mDownCoords.y;
+    var mX = relMx/graphics.screenWidth;// - 0.5;
+    var mY = relMy/graphics.screenHeight;// - 0.5;
+    
     var camRotUpdate     = new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
 
     //send the updates to the camera

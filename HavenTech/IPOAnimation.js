@@ -104,14 +104,14 @@ function IPOAnimation(nameIn, sceneNameIn){
 		    {
 		        var words = temp.split(' ');
 		        var curveName = words[1];
-		        this.curves[curveName] = new Curve();
+		        thisP.curves[curveName] = new Curve();
 		        while( ++lineNum < textFileLines.length )
 		        {
 		            temp = textFileLines[lineNum];
 		            if(temp[0] == 'i') //this is the curve interpolation type
 		            {
 		                var words = temp.split(' ');
-		                this.curves[curveName].interpolationType = parseInt(words[1]);
+		                thisP.curves[curveName].interpolationType = parseInt(words[1]);
 		            }
 		            //read in the bezier points
 		            if(temp[0] == 'b')
@@ -122,11 +122,11 @@ function IPOAnimation(nameIn, sceneNameIn){
 		                    words = textFileLines[lineNum];
 		                    //read in a point
 		                    if(temp[0] == 'p')
-		                        this.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
+		                        thisP.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
 		                    if(temp[0] == 'e'){
-		                        var tempDuration = this.curves[curveName].GetLength();
-		                        if(tempDuration > this.duration) //set the duration
-		                            this.duration = tempDuration;
+		                        var tempDuration = thisP.curves[curveName].GetLength();
+		                        if(tempDuration > thisP.duration) //set the duration
+		                            thisP.duration = tempDuration;
 		                        break; // finish reading in bezier points
 		                    }
 		                }

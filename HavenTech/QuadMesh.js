@@ -62,7 +62,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         {
             var numVertIdxs = faces[i].vertIdxs.length;
             if(numVertIdxs < 3)
-                alert("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
+                DPrintf("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
             //newell's method
             var normal = [0,0,0];
             for(var j=0; j<numVertIdxs; ++j)
@@ -260,7 +260,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
         if(!this.isValid)
         {
-            alert("QuadMesh::Draw: failed to draw.\n");
+            DPrintf("QuadMesh::Draw: failed to draw.\n");
             return;
         }
 
@@ -290,17 +290,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         var normCard = 3;
 
         //generate & tesselate the normal coords from the batch of verts currently being used
-        /*
+        
         var normalCoords = new Float32Array(transformedPositions.length);
         this.GenerateNormalCoords(normalCoords, this.faces, transformedPositions);
         this.tesselateCoords(normals, this.faces, normalCoords);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
-        var attr = gl.getAttribLocation( graphics.currentProgram, "normal");
+        var attr = gl.getAttribLocation( graphics.currentProgram, "norm");
         gl.enableVertexAttribArray(attr);
         gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
         gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
-        */
+        
         
         ////
         //Generate the texture coordinates (per vertex)
@@ -546,7 +546,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 		if( thisP.shaderNames.length < 1 )
 		{
-		    alert('QuadMesh: ' + thisP.meshName + ', failed to read any materials, loading default material');
+		    DPrintf('QuadMesh: ' + thisP.meshName + ', failed to read any materials, loading default material');
 		    thisP.shaderNames.push("default");
 		}
 

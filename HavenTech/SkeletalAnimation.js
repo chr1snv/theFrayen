@@ -95,7 +95,7 @@ function SkeletalAnimation( nameIn, sceneNameIn)
     }
     */
 
-    this.GenerateInverseBindPoseTransformations = function()
+    this.GenerateInverseBindPoseTransformations = function(thisP)
     {
         //breadth first traverse the bone hierarchy and
         //generate the inverse bind pose transformation for each bone
@@ -108,7 +108,7 @@ function SkeletalAnimation( nameIn, sceneNameIn)
 
         var hierarchyNode = new HierarchyNode();
         Matrix(hierarchyNode.parent_mat, MatrixType.identity);
-        hierarchyNode.idx = this.headBoneIdx;
+        hierarchyNode.idx = thisP.headBoneIdx;
 
         boneQueue.push(hierarchyNode);
 
@@ -122,9 +122,9 @@ function SkeletalAnimation( nameIn, sceneNameIn)
             var parent_arm_mat    = currentBoneNode.parent_mat;
 
             //get the relevant data from the current bone
-            var bone_mat          = this.bones[currentIdx].bone_Mat;
-            var bone_mat_head     = this.bones[currentIdx].head_Mat;
-            var bone_mat_loc_tail = this.bones[currentIdx].loc_tail_Mat;
+            var bone_mat          = thisP.bones[currentIdx].bone_Mat;
+            var bone_mat_head     = thisP.bones[currentIdx].head_Mat;
+            var bone_mat_loc_tail = thisP.bones[currentIdx].loc_tail_Mat;
 
             //temporaries used for matrix multiplications        
             var tempMat1 = new Float32Array(4*4);
@@ -137,19 +137,19 @@ function SkeletalAnimation( nameIn, sceneNameIn)
             //invert the bones arm_mat and apply it to the inverse orientation matrix of the armature and store it
             Matrix_Copy(tempMat2, arm_mat);
             Matrix_Inverse(tempMat1, tempMat2);
-            Matrix_Multiply(this.bones[currentIdx].inverseBindPose,
-                            tempMat1, this.inverseMatrix);
+            Matrix_Multiply(thisP.bones[currentIdx].inverseBindPose,
+                            tempMat1, thisP.inverseMatrix);
 
             //calculate the matrix to pass to this bones children
             var mat_to_pass_on = new Float32Array(4*4);
             Matrix_Multiply(mat_to_pass_on, arm_mat, bone_mat_loc_tail);
 
             //append this bones children to the traversal queue
-            for(var i=0; i<this.bones[currentIdx].childrenIdxs.length; ++i)
+            for(var i=0; i<thisP.bones[currentIdx].childrenIdxs.length; ++i)
             {
                 var newNode = new HierarchyNode();
                 Matrix_Copy(newNode.parent_mat, mat_to_pass_on);
-                newNode.idx = this.bones[currentIdx].childrenIdxs[i];
+                newNode.idx = thisP.bones[currentIdx].childrenIdxs[i];
                 boneQueue.push(newNode);
             }
         }
@@ -326,19 +326,19 @@ function SkeletalAnimation( nameIn, sceneNameIn)
 
 		    if(temp[0] == 's') //read in the armature's scale
 		    {
-		        this.scale = new Float32Array([parseFloat(words[1]),
+		        thisP.scale = new Float32Array([parseFloat(words[1]),
 		                                       parseFloat(words[2]),
 		                                       parseFloat(words[3])]);
 		    }
 		    if(temp[0] == 'r') //read in the armature's rotation
 		    {
-		        this.rotation = new Float32Array([parseFloat(words[1]),
+		        thisP.rotation = new Float32Array([parseFloat(words[1]),
 		                                          parseFloat(words[2]),
 		                                          parseFloat(words[3])]);
 		    }
 		    if(temp[0] == 'x') //read in the armature's translation
 		    {
-		        this.origin = new Float32Array([parseFloat(words[1]),
+		        thisP.origin = new Float32Array([parseFloat(words[1]),
 		                                        parseFloat(words[2]),
 		                                        parseFloat(words[3])]);
 		    }
@@ -347,12 +347,12 @@ function SkeletalAnimation( nameIn, sceneNameIn)
 		    {
 		        //read in a bone, find the longest bone animation, and find the
 		        //parent bone index
-		        this.bones.push(new Bone(skelAnimFileLines, sLIdx)); //bone constructor handles reading bone
-		        var tempDuration = this.bones[this.bones.length-1].animationLength;
-		        if(tempDuration > this.duration) //set the duration
-		            this.duration = tempDuration;
-		        if(this.bones[this.bones.length-1].parentName == "None") //set the parent bone idx
-		            this.headBoneIdx = this.bones.length-1;
+		        thisP.bones.push(new Bone(skelAnimFileLines, sLIdx)); //bone constructor handles reading bone
+		        var tempDuration = thisP.bones[thisP.bones.length-1].animationLength;
+		        if(tempDuration > thisP.duration) //set the duration
+		            thisP.duration = tempDuration;
+		        if(thisP.bones[thisP.bones.length-1].parentName == "None") //set the parent bone idx
+		            thisP.headBoneIdx = thisP.bones.length-1;
 		    }
 		}
 		
@@ -360,23 +360,23 @@ function SkeletalAnimation( nameIn, sceneNameIn)
 		var blenderToHaven = new Float32Array(4*4);
 		Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
 		var tempMat = new Float32Array(4*4);
-		Matrix(tempMat, MatrixType.euler_transformation, this.scale, this.rotation, this.origin);
-		Matrix_Multiply(this.orientation, blenderToHaven, tempMat);
+		Matrix(tempMat, MatrixType.euler_transformation, thisP.scale, thisP.rotation, thisP.origin);
+		Matrix_Multiply(thisP.orientation, blenderToHaven, tempMat);
 		var orientationCpy = new Float32Array(4*4);
-		Matrix_Copy(orientationCpy, this.orientation);
-		Matrix_Inverse(this.inverseMatrix, orientationCpy); //destructive operation on source matrix
+		Matrix_Copy(orientationCpy, thisP.orientation);
+		Matrix_Inverse(thisP.inverseMatrix, orientationCpy); //destructive operation on source matrix
 
 		//calculate bone lookup indices for faster bone lookup
-		this.GenerateBoneTree();
+		thisP.GenerateBoneTree();
 		//pre calculate these (will be used each frame)
-		this.GenerateInverseBindPoseTransformations();
+		thisP.GenerateInverseBindPoseTransformations(thisP);
 
-		IPrintf("SkeletalAnimation: read in " + this.bones.length +
-		        " bones, duration is: " + this.duration );
+		IPrintf("SkeletalAnimation: read in " + thisP.bones.length +
+		        " bones, duration is: " + thisP.duration );
 
 		//allocate the transformation matricies
-		for(var i=0; i<this.bones.length; ++i)
-		    this.transformationMatricies.push( new Float32Array(graphics.matrixCard) );
+		for(var i=0; i<thisP.bones.length; ++i)
+		    thisP.transformationMatricies.push( new Float32Array(graphics.matrixCard) );
 
 		isValid = true;
     }

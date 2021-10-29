@@ -362,6 +362,7 @@ function Matrix_Multiply_Vect3( ret, m, vect)
 {
     //turn the vect3 into a 4d vector (set w=1) and preform the matrix
     //multiplication on it
+    
     var vX = vect[0];
     var vY = vect[1];
     var vZ = vect[2];
@@ -396,6 +397,8 @@ function Matrix_Multiply_Vect3( ret, m, vect)
 
 function Matrix_Multiply_Array3( arrayOut, m, arrayIn )
 {
+    //multiply an array of vec3's by the matrix m
+    
     for(var i = 0; i < arrayIn.length; i+=3){
         var result = new Float32Array(3);
         Matrix_Multiply_Vect3( result,
@@ -414,14 +417,11 @@ function Matrix_Multiply( ret, a, b )
     //multiply the two 4x4 matricies together
 
     //this loop pattern was found by writing out the multiplication term by term
-    for(var i=0; i<4; ++i)
-    {
-        for(var j=0; j<4; ++j)
-        {
+    for(var i=0; i<4; ++i){          //   row of matrix a, and ret matrix
+        for(var j=0; j<4; ++j){      //column of matrix b, and ret matrix
             var accum = 0;
-            for(var k=0; k<4; ++k)
-            {
-                    accum += a[i*4+k]*b[k*4+j];
+            for(var k=0; k<4; ++k){  //   row of matrix b, and column of matrix a
+                accum += a[i*4+k]*b[k*4+j];
             }
             ret[i*4+j] = accum;
         }
@@ -430,11 +430,10 @@ function Matrix_Multiply( ret, a, b )
 
 function Matrix_Transpose( ret, m )
 {
-    //read each input colum and write it out as a row
+    //read each input column and write it out as a row
     for(var i=0; i<4; ++i)
-        for(var j=0; j<4; ++j)
-        {
-            ret[i*4+j] = m[j*4+i];
+        for(var j=0; j<4; ++j){
+            ret[i*4+j] = m[j*4+i]; //swap i and j indicies
         }
 }
 

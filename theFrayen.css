@@ -33,3 +33,30 @@ h4 {margin:0px;}
     text-align: center;
 }
 
+canvas:-webkit-full-screen {
+  width: 100% !important;
+}
+canvas:-moz-full-screen {
+  width: 100% !important;
+}
+canvas:-ms-fullscreen {
+  width: 100% !important;
+}
+canvas:fullscreen {
+  width: 100% !important;
+}
+
+/* While in fullscreen, hide any children with class 'tohide' */
+:-webkit-full-screen .tohide {
+  display: none;
+}
+:-moz-full-screen .tohide {
+  display: none;
+}
+:-ms-fullscreen .tohide {
+  display: none;
+}
+:fullscreen .tohide {
+  display: none;
+}
+

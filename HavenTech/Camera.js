@@ -2,6 +2,9 @@
 
 function glOrtho(left, right, bottom, top, nearVal, farVal)
 {
+    //generates an orthographic (rectangular non perspective)
+    //projection matrix for the camera
+
     var tx = -(right+left)/(right-left);
     var ty = -(top+bottom)/(top-bottom);
     var tz = -(farVal+nearVal)/(farVal-nearVal);
@@ -15,15 +18,73 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
 }
 function gluPerspective(fovy, aspect, zNear, zFar)
 {
-    var f = 1/Math.tan(fovy/2);
-    var xs = f/aspect;
-    var ys = f;
-    var zs = (zFar+zNear)/(zNear-zFar);
+    //generates the perspective projection matrix
+    //to convert verticies from positions in the camera frustrum
+    //to render/fragment shader coordinates (a rectangular volume x,y with depth)
+    
+    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / 1 (frustrum depth)
+    var f = 1/Math.tan(fovy/2); //f = inverse vertical far frustum half height / frustrum depth ( goes to inf as fovy -> pi (180 deg)
+    //if aspect is 1 (square rendered image) xs and ys will be equal
+    var xs = f/aspect;                     //x scale factor
+    var ys = f;                            //y scale factor
+    var zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
     var tz = (2*zFar*zNear)/(zNear-zFar);
-    return new Float32Array([ xs,  0,  0,  0,
+    return new Float32Array([ xs,  0,  0,  0,    
                                0, ys,  0,  0,
-                               0,  0, zs, tz,
+                               0,  0, zs, tz,    
                                0,  0, -1,  0 ]);
+    
+    var frustrumDepth = (zFar-zNear);
+    //depth_pct = (z-zNear)/frustrumDepth
+    //x_projected = x / ( depth_pct * farFrustrumWidth  + (1-depth_pct) * nearFrustrumWidth  )
+    //y_projected = y / ( depth_pct * farFrustrumHeight + (1-depth_pct) * nearFrustrumHeight )
+    //z_projected = depth_pct
+    //need to put equations in the form
+    //x_proj =  a*x / w  +  b*y / w  +  c*z / w  +  d*1 / w
+    //     w =  a*x      +  b*y      +  c*z      +  d*1
+    
+}
+
+function perspectiveMatrix(fovy, aspect, zNear, zFar)
+{
+    var lrHalfDist = 1*zFar;
+    var btHalfDist = 1*zFar;
+    return glFrustum(-lrHalfDist, lrHalfDist, -btHalfDist, btHalfDist, zNear, zFar);
+}
+
+function glFrustum(l, r, b, t, n, f)
+{
+    //l and r are the coordinates for the left and right vertical clipping planes.
+    //b and t are the coordinates for the bottom and top horizontal clipping planes.
+    //n and f are the distances to the near and far depth clipping planes. Both distances must be positive.
+    //the ratio between near val and far val determines the depth buffer bits per z
+    //dont set n to 0 because the ratio will go to infinity
+
+    //from the opengl redbook appendix f http://glprogramming.com/red/appendixf.html
+    var x0 =   2*n   / ( r - l );
+    var x1 =                   0;
+    var x2 = ( r+l ) / ( r - l );
+    var x3 =                   0;
+    
+    var y0 =                   0;
+    var y1 =   2*n   / ( t - b );
+    var y2 = ( t+b ) / ( t - b );
+    var y3 =                   0;
+    
+    var z0 =                   0;
+    var z1 =                   0;
+    var z2 =-( f+n ) / ( f - n );
+    var z3 = -2*f*n  / ( f - n );
+    
+    var w0 =                   0;
+    var w1 =                   0;
+    var w2 =                  -1;
+    var w3 =                   0;
+    
+    return new Float32Array([ x0,  x1,  x2,  x3,    
+                              y0,  y1,  y2,  y3,
+                              z0,  z1,  z2,  z3,    
+                              w0,  w1,  w2,  w3 ]);
 }
 
 function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn)
@@ -70,7 +131,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     {
         if(this.fov == 0.0)
         {
-            var cameraProjectionMatrix = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
+            var projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
                                          -graphics.screenHeight, graphics.screenHeight,
                                          -1, 1);
         }
@@ -81,19 +142,24 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                                                this.nearClip,              //near clip plane distance
                                                this.farClip                //far clip plane distance
                                               );
-
-            //calculate the inverse position transformation matrix for the camera
-            //(the transformation matrix for the camera would be the matrix required
-            //to transform the camera to its position in the world, but we want the
-            //model view matrix to be the inverse of that, the matrix required to
-            //bring the world into the view of the camera)
-            var invTransformMat = new Float32Array(4*4);
-            var transformMat = this.getCameraToWorldMatrix();
-            Matrix_Inverse( invTransformMat, transformMat );
-
-            //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
-            Matrix_Multiply( cameraProjectionMatrix, projectionMat, invTransformMat );
+           var projectionMat2 = perspectiveMatrix(this.fov,                   //field of view
+                                               graphics.GetScreenAspect(), //aspect ratio
+                                               this.nearClip,              //near clip plane distance
+                                               this.farClip                //far clip plane distance
+                                              );
         }
+
+        //calculate the inverse position transformation matrix for the camera
+        //(the transformation matrix for the camera would be the matrix required
+        //to transform the camera to its position in the world, but we want the
+        //model view matrix to be the inverse of that, the matrix required to
+        //bring the world into the view of the camera)
+        var invTransformMat = new Float32Array(4*4);
+        var transformMat = this.getCameraToWorldMatrix();
+        Matrix_Inverse( invTransformMat, transformMat );
+
+        //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
+        Matrix_Multiply( cameraProjectionMatrix, projectionMat, invTransformMat );
     }
 
     this.getCameraToWorldMatrix = function(){
