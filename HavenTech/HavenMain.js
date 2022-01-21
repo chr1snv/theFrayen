@@ -57,6 +57,8 @@ function requestPointerLock(){
     canvas.mozRequestPointerLock;
     
     ptrLck = canvas.rqstPtrLck();
+    
+    //document.addEventListener("mousemove", updatePosition, false);
 }
 
 function releasePointerLock(){
@@ -144,12 +146,13 @@ function UpdateCamera()
         if(ptrLck == null)
             requestPointerLock();
     }
-    var relMx = mCoords.x - mDownCoords.x;
-    var relMy = mCoords.y - mDownCoords.y;
-    var mX = relMx/graphics.screenWidth;// - 0.5;
-    var mY = relMy/graphics.screenHeight;// - 0.5;
+    var relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
+    var relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
+    var mX = relMx/graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
+    var mY = relMy/graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
     
     var camRotUpdate     = new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
+    mCoordDelta.x = mCoordDelta.y = 0;
 
     //send the updates to the camera
     mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation(camPositionUpdate, camRotUpdate);

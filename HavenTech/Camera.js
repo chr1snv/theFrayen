@@ -111,12 +111,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
     this.updateFrustum = function() {}
         
-    this.getRotation = function(rotOut)
+    //gets the xyz euler radian camera in world space rotation
+    //from either the ipo animation or assigned 
+    this.getRotation = function(rotOut) 
     {
         if(!this.ipoAnimation.GetRotation(rotOut, this.time))
-            Vect3_Copy(rotOut, this.rotation);
-        //urotate the camera by 90 degrees (blender camera starts off looking straight down)
-        rotOut[0] -= 90.0*(Math.PI/180.0);
+            Vect3_Copy(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
+        else
+            rotOut[0] -= 90.0*(Math.PI/180.0); //urotate the ipo animation by 90 degrees (blender camera starts off looking straight down)
         Vect3_Add(rotOut, this.setRotationDelta);
     }
     this.getLocation = function(locOut)
@@ -182,13 +184,16 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
     //update the Cameras position
     this.Update = function(timeIn) { time = timeIn; }
-    this.UpdateOrientation = function(positionDelta, rotationDelta)
+    this.UpdateOrientation = function(positionDelta, rotationDelta, rotation)
     {
         //Update the cameras transformation given a change in position and rotation.
 
         //apply the change in rotation
         this.setRotationDelta[0] += rotationDelta[0];
         this.setRotationDelta[1] += rotationDelta[1];
+        
+        if(rotation != undefined)
+            Vect3_Copy(this.rotation, rotation);
 
         //get the new rotation
         var rot = new Float32Array(3);
@@ -229,7 +234,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                    [xmax, ymax, -zFar] ]; //top right
     }
 
-    //generate a ray from the camera origin in the direction of the screen
+    //generate a ray from the camera origin in the direction of the screen into the world
+    //used for ray intersection / hit tests, interactions and clicking on objects in the rendered scene
     this.GenerateWorldCoordRay = function(rayOrig, rayDir, screenCoords)
     {
         var vertCard = 3;

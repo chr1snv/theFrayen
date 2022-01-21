@@ -12,12 +12,13 @@
     <h1>The Frayen</h2>
     <form>
         <select id="sceneSelection" name="scene" onchange="sceneChanged()"><option>cubeTest</option><option>penisModel</option><option>bldgCourtyard</option></select>
-        <button onclick="EnterFullscreen()">Enter Fullscreen</button>
-        <button onclick="requestPointerLock()">Request Pointer Lock</button>
+        <button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button>
+        <input type="number" id="mouseXSen" value="10" increment=0.1; style="width:4em;">Mouse X Sensitivity</input>
+        <input type="number" id="mouseYSen" value="10" increment=0.1; style="width:4em;">Mouse Y Sensitivity</input>
     </form>
     <div class="footerContainer" style="width:100%; height:100%;">
+            <h3>Use WASD keys for front back / strafe movement and click on canvas to lock mouse for camera rotation (ESC to exit)</h3>
         <canvas id="frayenCanvas" style="width:100%; height:100%;"></canvas>
-        <h3>Use WASD keys and left click + mouse drag to move</h3>
     </div>
     <h4 id ="status"></h4>
 
