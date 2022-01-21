@@ -12,6 +12,6 @@ varying vec2 texCoordVarying;
 
 void main() {
     gl_Position = mvpMatrix * vec4(position,1);
-    normalVarying = (mvpMatrix * vec4(norm, 1)).xyz;
+    normalVarying = norm;//(mvpMatrix * vec4(norm, 1)).xyz;
     texCoordVarying = texCoord;
 }

@@ -1,5 +1,11 @@
 //Vect3.js
 
+//compute in place functions to avoid allocting more memory to keep
+//vector operations fast
+//when transforming the scene geometry, these fuctions end up as the inner loop
+//of the render function making any performance gains / losses heavily affect the
+//performance, frame times and latency
+
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
 
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
@@ -36,16 +42,17 @@ function Vect3_Distance(dist, v1, v2) {
 
 function Vect3_Negative(v1) { v1[0] = -v1[0]; v1[1] = -v1[1]; v1[2] = -v1[2]; }
 
-function Vect3_Length( len, v1) {
-    Vect3_LengthSquared(len, v1);
-    len = Math.sqrt(len);
+function Vect3_Length(v1) {
+    var len = Vect3_LengthSquared(v1);
+    return Math.sqrt(len);
 }
 
-function Vect3_LengthSquared(len, v1){ len = v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]; }
+function Vect3_LengthSquared(v1){ 
+    return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]; 
+}
 
 function Vect3_Unit(v1){
-    var len;
-    Vect3_Length(len, v1);
+    var len = Vect3_Length(v1);
     Vect3_DivideScalar(v1, len);
 }
 

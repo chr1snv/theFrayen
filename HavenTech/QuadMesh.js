@@ -49,7 +49,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.keyAnimation    = new MeshKeyAnimation( this.meshName, this.sceneName);
     this.skelAnimation   = new SkeletalAnimation(this.meshName, this.sceneName);
 
-    //calculate vertex normals from face and vertex coordinate data
+    //calculate per vertex normals from face averaged normals
+    //calculated from vertex position coordinates
     this.GenerateNormalCoords = function( vertNormals, faces, positionCoords )
     {
 
@@ -57,7 +58,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         for( var i in vertNormals )
             vertNormals[i] = 0;
 
-        //for each vertex occurrence in a face generate an accumulated normal vector
+        //for each face generate an accumulated normal vector
         for(var i=0; i<faces.length; ++i)
         {
             var numVertIdxs = faces[i].vertIdxs.length;
@@ -65,12 +66,14 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 DPrintf("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
             //newell's method
             var normal = [0,0,0];
+            //go through all of the verticies in the face
             for(var j=0; j<numVertIdxs; ++j)
             {
-                //fetch the vert data
+                //fetch 3 verticies from the face (to get two edges to compute a normal from)
                 var vIdx0 = faces[i].vertIdxs[(0+j)%numVertIdxs];
                 var vIdx1 = faces[i].vertIdxs[(1+j)%numVertIdxs];
                 var vIdx2 = faces[i].vertIdxs[(2+j)%numVertIdxs];
+                //graphics.vertCard is the cardinality of a vertex (3 x y z)
                 var v0 = [positionCoords[vIdx0*graphics.vertCard+0],
                           positionCoords[vIdx0*graphics.vertCard+1],
                           positionCoords[vIdx0*graphics.vertCard+2]];
@@ -82,18 +85,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                           positionCoords[vIdx2*graphics.vertCard+2]];
 
                 //calculate the relative vectors (relative to the current middle vert)
+                //(vectors in the direction of the edges of the face from v1->v0 and v1->v2)
                 Vect3_Subtract(v0, v1);
                 Vect3_Subtract(v2, v1);
-                //calculate the normal
+                //calculate the normal (orthogonal vector to the edge vectors)
                 var crossProd = [];
                 Vect3_Cross(crossProd, v2, v0); //normal is the cross product of the relative vectors
-                Vect3_Add(normal, crossProd); //average the contribution of the sub triangles of this face
+                Vect3_Add(normal, crossProd); //average the contribution of the sub edges of the face
             }
-            //make each face contribute an equal amount to the vertex normal
-            //regardless of face size
-            Vect3_Unit(normal);
+            //normalize the accumulation of normals from the edge pairs of the face 
+            Vect3_Unit(normal); //possibly optional or to be changed so that faces with more / less vertices
+            //contribute more to the per vertex normal
 
-            //write normal data
+            //accumulate the face normal back to each vertex
             for(var j=0; j<numVertIdxs; ++j)
             {
                 //add the new normal to it
@@ -103,20 +107,28 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                                         vertNormals[vertIdx+1],
                                         vertNormals[vertIdx+2] ]);
                 Vect3_Add(tempAccum, normal);
-                Vect3_Copy(vertNormals[vertIdx], tempAccum);
+                vertNormals[vertIdx+0] = tempAccum[0];
+                vertNormals[vertIdx+1] = tempAccum[1];
+                vertNormals[vertIdx+2] = tempAccum[2];
+                
             } //end write normal data
-        } //end for each vertex occurrence in a face
+        } //end for each face
 
-        //make the normals unit length (average output)
+        //normalize the accumulated face normals vectors for each  make the normals unit length (average output)
         for(var i=0; i<positionCoords.length; ++i){
             var idx = i*graphics.normCard;
-            Vect3_Unit( [ vertNormals[idx+0],
-                          vertNormals[idx+1],
-                          vertNormals[idx+2] ] );
+            var len = Vect3_Length( [ vertNormals[idx+0],
+                                      vertNormals[idx+1],
+                                      vertNormals[idx+2] ] );
+            vertNormals[idx+0] /= len;
+            vertNormals[idx+1] /= len;
+            vertNormals[idx+2] /= len;
         }
     }
     
-    //used to tesselate normal and position coordinates
+    //used to tesselate position coordinates
+    //(convert from quad and triangle faces to only triangles
+    //3 verticies per face) for rendering with webgl 
     this.tesselateCoords = function( coords,
                                      faces,
                                      inputCoords )
