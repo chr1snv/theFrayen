@@ -45,6 +45,7 @@ function attributeSetFloats( prog, attr_name, rsize, arr)
 
 function Graphics(canvasIn, bpp, depthIn)
 {
+    this.canvas = canvasIn;
 
     //maps used to keep track of primative graphics objects
     this.textures = {};
@@ -107,6 +108,18 @@ function Graphics(canvasIn, bpp, depthIn)
         gl.Fogf(gl.FOG_END, clipFar);
     }
     this.DisableFog = function() { glDisable(gl.FOG); }
+    
+    this.SetCanvasSize = function( width, height ){
+        this.canvas.style.width = width + "px";
+        this.canvas.style.height = height + "px";
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.screenWidth = this.canvas.width;
+        this.screenHeight = this.canvas.height;
+        gl.width = width;
+        gl.height = height;
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    }
 
     this.GetScreenAspect = function(){ return this.screenWidth/this.screenHeight; }
         
@@ -270,6 +283,9 @@ function Graphics(canvasIn, bpp, depthIn)
 
     //initialization code
     gl = WebGLUtils.setupWebGL(canvasIn);
+    
+    //gl.width = 2000;
+    //gl.height = 1000;
 
     //setup the gl state
     gl.clearColor(0.6, 0.7, 1.0, 1.0);

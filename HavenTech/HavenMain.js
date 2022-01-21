@@ -31,6 +31,27 @@ function loadTextFileSynchronous(filename){
 function EnterFullscreen(){
     var canvas = document.getElementById('frayenCanvas');
     
+    //change the canvas resolution if in fullscreen or browser window mode
+    document.addEventListener('fullscreenchange', (event) => {
+  // document.fullscreenElement will point to the element that
+  // is in fullscreen mode if there is one. If there isn't one,
+  // the value of the property is null.
+  if (document.fullscreenElement) {
+    //console.log(`Element: ${document.fullscreenElement.id} entered full-screen mode.`);
+    
+    //set the canvas to the fullscreen resolution
+    graphics.SetCanvasSize(document.getElementById('fullScrCanvWidth').value,
+                       document.getElementById('fullScrCanvHeight').value);
+                       
+  } else {
+    console.log('Leaving full-screen mode.');
+    
+    //set the canvas to the non fullscreen resolution
+    graphics.SetCanvasSize(document.getElementById('canvWidth').value,
+                       document.getElementById('canvHeight').value);
+  }
+});
+    
     //enter fullscreen
     if(canvas.webkitRequestFullscreen)
     {
@@ -43,6 +64,9 @@ function EnterFullscreen(){
         promise = canvas.requestFullscreen();
         //alert("promise " + promise );
     }
+    
+    
+                       
     
 }
 
@@ -96,6 +120,11 @@ function havenMain(){
     mainScene = new HavenScene("cubeTest", sceneLoaded);
 }
 
+function SetCanvasSize(){
+    graphics.SetCanvasSize(document.getElementById('canvWidth').value,
+                       document.getElementById('canvHeight').value);
+}
+
 function sceneChanged()
 {
     var sel = document.getElementById("sceneSelection");
@@ -116,6 +145,7 @@ function sceneLoaded(havenScene)
 
 function MainLoop()
 {
+
     graphics.Clear();
     UpdateCamera();
     mainScene.Draw();
@@ -148,8 +178,8 @@ function UpdateCamera()
     }
     var relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
     var relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
-    var mX = relMx/graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
-    var mY = relMy/graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
+    var mX = relMx*document.getElementById("mouseXSen").value; ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
+    var mY = relMy*document.getElementById("mouseYSen").value; ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
     
     var camRotUpdate     = new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
     mCoordDelta.x = mCoordDelta.y = 0;

@@ -9,16 +9,47 @@
 </head>
 
 <body style="background-color:#664466; text-align:center; font-family:arial; color:white;">
-    <h1>The Frayen</h2>
-    <form>
-        <select id="sceneSelection" name="scene" onchange="sceneChanged()"><option>cubeTest</option><option>penisModel</option><option>bldgCourtyard</option></select>
-        <button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button>
-        <input type="number" id="mouseXSen" value="10" increment=0.1; style="width:4em;">Mouse X Sensitivity</input>
-        <input type="number" id="mouseYSen" value="10" increment=0.1; style="width:4em;">Mouse Y Sensitivity</input>
-    </form>
-    <div class="footerContainer" style="width:100%; height:100%;">
+    <h1>The Frayen</h1>
+    <p style="width:30em; margin:auto;">An expierence created using the haven tech game engine first used in SortForce ported to javascript webgl, 
+    now with shaders depicting various (frayed) depictions of reality hence named The Frayen</p>
+    <div style="margin:auto; width:300px;">
+    <table>
+        <tr><td>Scene Select</td><td></td><td></td></tr>
+        <tr>
+        <td><select id="sceneSelection" name="scene" onchange="sceneChanged()"><option>cubeTest</option><option>penisModel</option><option>bldgCourtyard</option></select></td>
+        <td></td>
+        <td><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+        </tr>
+
+        <tr style="height:1em;"></tr>
+
+        <tr><td>Mouse X Sensitivity</td><td></td><td>Mouse Y Sensitivity</td></tr>
+        <tr>
+            <td><input type="number" id="mouseXSen" value="10" increment=0.1; style="width:4em;"></input></td>
+            <td></td>
+            <td><input type="number" id="mouseYSen" value="10" increment=0.1; style="width:4em;"></input></td>
+        </tr>
+        
+        <tr><td>Canvas Width</td><td></td><td>Canvas Height</td></tr>
+        <tr>
+            <td><input type="number" id="canvWidth" value="640" increment=0.1; style="width:4em;"></input></td>
+            <td></td>
+            <td><input type="number" id="canvHeight" value="480" increment=0.1; style="width:4em;"></input></td>
+            <td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
+        </tr>
+        
+        <tr><td>Fullscreen Canvas Width</td><td></td><td>Canvas Height</td></tr>
+        <tr>
+            <td><input type="number" id="fullScrCanvWidth" value="1920" increment=0.1; style="width:4em;"></input></td>
+            <td></td>
+            <td><input type="number" id="fullScrCanvHeight" value="1080" increment=0.1; style="width:4em;"></input></td>
+        </tr>
+        
+    </table>
+    </div>
+    <div class="footerContainer" style="width:80%; height:80%;">
             <h3>Use WASD keys for front back / strafe movement and click on canvas to lock mouse for camera rotation (ESC to exit)</h3>
-        <canvas id="frayenCanvas" style="width:100%; height:100%;"></canvas>
+        <canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
     </div>
     <h4 id ="status"></h4>
 
