@@ -36,6 +36,6 @@ void main() {
                              emissionColor;
     gl_FragColor.a = 1.0;
 
-    //float z = gl_FragCoord.z/1.5;
+    float z = gl_FragCoord.z;
     //gl_FragColor = vec4(z,0,0,1.0);//vec4(1,0.5,1,0.5);
 }

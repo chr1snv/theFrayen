@@ -34,6 +34,7 @@ function drawSquare(graphics) // Draw the picture
     gl.flush();
 }
 
+//used to pass perameters to a shader
 function attributeSetFloats( prog, attr_name, rsize, arr)
 {
     var attr = gl.getAttribLocation( prog, attr_name);
@@ -142,11 +143,11 @@ function Graphics(canvasIn, bpp, depthIn)
     }
     this.enableDepthTest = function(val)
     {
-        //if(this.depthTestEnb != val)
-        //{
+        if(this.depthTestEnb != val)
+        {
             this.depthTestEnb = val;
             val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
-        //}
+        }
     }
     this.setTexture = function(texId)
     {
@@ -293,11 +294,11 @@ function Graphics(canvasIn, bpp, depthIn)
     //gl.viewport(0, 0, screenWidth, screenHeight);
 
     gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
+    gl.cullFace(gl.FRONT);
 
     //enable depth testing
     gl.depthFunc(gl.LESS);
-    this.enableDepthMask(true);
+    //this.enableDepthMask(true);
 
     //enable blending
     //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

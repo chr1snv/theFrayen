@@ -1,10 +1,13 @@
 //Vect3.js
 
 //compute in place functions to avoid allocting more memory to keep
-//vector operations fast
+//vector operations fast (that's the idea anyway)
 //when transforming the scene geometry, these fuctions end up as the inner loop
 //of the render function making any performance gains / losses heavily affect the
 //performance, frame times and latency
+
+//optimizing the data movement for these vector operations and the matrix operations is important
+//to having interactive framerates
 
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
 

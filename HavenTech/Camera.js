@@ -47,9 +47,9 @@ function gluPerspective(fovy, aspect, zNear, zFar)
 
 function perspectiveMatrix(fovy, aspect, zNear, zFar)
 {
-    var lrHalfDist = 1*zFar;
-    var btHalfDist = 1*zFar;
-    return glFrustum(-lrHalfDist, lrHalfDist, -btHalfDist, btHalfDist, zNear, zFar);
+    var lrHalfDist = 0.5;//*zFar;
+    var btHalfDist = 0.5;//*zFar;
+    return glFrustum(-lrHalfDist, lrHalfDist, -btHalfDist, btHalfDist, zNear, 10);
 }
 
 function glFrustum(l, r, b, t, n, f)

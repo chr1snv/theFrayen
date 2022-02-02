@@ -98,6 +98,11 @@ function SceneGraph(sceneNameIn)
         givenDrawable.IsTransparent( isTransparentCallback, this );
     }
     
+    //traces rays from the camera and returns a SpectralImage (for conversion and display as bitmap)
+    this.RayTraceDraw = function(camera)
+    {
+    }
+    
     //draws the drawables that are within the frustrum
     this.Draw = function(camera)
     {
