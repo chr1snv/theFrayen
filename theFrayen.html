@@ -25,9 +25,9 @@
 
         <tr><td>Mouse X Sensitivity</td><td></td><td>Mouse Y Sensitivity</td></tr>
         <tr>
-            <td><input type="number" id="mouseXSen" value="10" increment=0.1; style="width:4em;"></input></td>
+            <td><input type="number" id="mouseXSen" value="0.1" increment=0.1; style="width:4em;"></input></td>
             <td></td>
-            <td><input type="number" id="mouseYSen" value="10" increment=0.1; style="width:4em;"></input></td>
+            <td><input type="number" id="mouseYSen" value="0.1" increment=0.1; style="width:4em;"></input></td>
         </tr>
         
         <tr><td>Canvas Width</td><td></td><td>Canvas Height</td></tr>
@@ -49,6 +49,7 @@
     </div>
     <div class="footerContainer" style="width:80%; height:80%;">
             <h3>Use WASD keys for front back / strafe movement and click on canvas to lock mouse for camera rotation (ESC to exit)</h3>
+            <h4 id="cameraDebugText"></h4>
         <canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
     </div>
     <h4 id ="status"></h4>

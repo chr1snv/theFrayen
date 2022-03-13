@@ -73,3 +73,14 @@ function Vect3_LERP(v, v1, v2, v2Weight){
     v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
     v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
+
+//for debug printing
+function ToFixedPrecisionString( v, numDecimalPlaces ){
+    var retString = 0;
+    for( var i = 0; i < v.length; ++i ){
+        retString += v[i].toFixed(numDecimalPlaces);
+        if( i != v.length - 1 )
+            retString += " ";
+    }
+    return retString;   
+}

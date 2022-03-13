@@ -117,7 +117,7 @@ function havenMain(){
 
     graphics = new Graphics(document.getElementById('frayenCanvas'));
     console.log("graphics loaded");
-    mainScene = new HavenScene("cubeTest", sceneLoaded);
+    sceneChanged(); //get the selected scene from the dropdown and load it
 }
 
 function SetCanvasSize(){
@@ -148,6 +148,7 @@ function MainLoop()
 
     graphics.Clear();
     UpdateCamera();
+    //drawSquare(graphics);
     mainScene.Draw();
 
     window.requestAnimFrame(MainLoop);

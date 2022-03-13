@@ -13,6 +13,7 @@ function CameraStream(){
     this.video.setAttribute( "autoplay", true );
     document.body.appendChild( this.video );
     
+    //call getMedia with callback
     navigator.getMedia(
         //constraints
         { video: true },

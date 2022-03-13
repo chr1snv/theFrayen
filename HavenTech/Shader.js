@@ -245,13 +245,13 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
         if(previousShader === undefined || this.IsTransparent() != previousShader.IsTransparent()){
             if( this.IsTransparent() )
             {
-                graphics.enableDepthMask(false);
-                graphics.enableDepthTest(false);
+                //graphics.enableDepthMask(false);
+                //graphics.enableDepthTest(false);
             }   
             else
             {
-                graphics.enableDepthMask(true);
-                graphics.enableDepthTest(true);
+                //graphics.enableDepthMask(true);
+                //graphics.enableDepthTest(true);
             }
         }
 

@@ -8,8 +8,8 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
     var tx = -(right+left)/(right-left);
     var ty = -(top+bottom)/(top-bottom);
     var tz = -(farVal+nearVal)/(farVal-nearVal);
-    var xs = 2/(right-left);
-    var ys = 2/(top-bottom);
+    var xs =  2/(right-left);
+    var ys =  2/(top-bottom);
     var zs = -2/(farVal-nearVal);
     return Float32Array([ xs,  0,  0, tx,
                            0, ys,  0, ty,
@@ -29,9 +29,9 @@ function gluPerspective(fovy, aspect, zNear, zFar)
     var ys = f;                            //y scale factor
     var zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
     var tz = (2*zFar*zNear)/(zNear-zFar);
-    return new Float32Array([ xs,  0,  0,  0,    
+    return new Float32Array([ xs,  0,  0,  0,
                                0, ys,  0,  0,
-                               0,  0, zs, tz,    
+                               0,  0, zs, tz,
                                0,  0, -1,  0 ]);
     
     var frustrumDepth = (zFar-zNear);
@@ -49,7 +49,7 @@ function perspectiveMatrix(fovy, aspect, zNear, zFar)
 {
     var lrHalfDist = 0.5;//*zFar;
     var btHalfDist = 0.5;//*zFar;
-    return glFrustum(-lrHalfDist, lrHalfDist, -btHalfDist, btHalfDist, zNear, 10);
+    return glFrustum(-lrHalfDist, lrHalfDist, -btHalfDist, btHalfDist, zNear, zFar);
 }
 
 function glFrustum(l, r, b, t, n, f)
@@ -81,23 +81,30 @@ function glFrustum(l, r, b, t, n, f)
     var w2 =                  -1;
     var w3 =                   0;
     
-    return new Float32Array([ x0,  x1,  x2,  x3,    
+    return new Float32Array([ x0,  x1,  x2,  x3,
                               y0,  y1,  y2,  y3,
-                              z0,  z1,  z2,  z3,    
+                              z0,  z1,  z2,  z3,
                               w0,  w1,  w2,  w3 ]);
 }
+
+//derivation of perspective transform matrix
+//truncated pyramid [frustrum] (near clip plane removes the pointy part of the 4 sided pyramid)
+//everything is linear (this is linear algebra) so the matrix is really a coordinate transformation
+//of the space inside the frustrum to opengl ndc space ( x,y,z [-1,1] )
+//at the near clip plane r-l gives the clip plane width, 
+
 
 function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn)
 {
     this.cameraName = nameIn;
     this.sceneName = sceneNameIn;
 
-    this.position = positionIn;
+    this.position = positionIn; //animated / set position in the map
     this.rotation = rotationIn;
     this.fov = fovIn;
 
-    this.setPositionDelta = new Float32Array([0,0,0]);
-    this.setRotationDelta = new Float32Array([0,0,0]);
+    this.userPosition = new Float32Array([0,0,0]); //user input position
+    this.userRotation = new Float32Array([0,0,0]); //user input rotation
 
     this.nearClip = nearClipIn;
     this.farClip = farClipIn;
@@ -110,28 +117,28 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     this.PerspectiveMatrix = new Float32Array(4*4);
 
     this.updateFrustum = function() {}
-        
+
     //gets the xyz euler radian camera in world space rotation
-    //from either the ipo animation or assigned 
+    //from either the ipo animation or assigned
     this.getRotation = function(rotOut) 
     {
         if(!this.ipoAnimation.GetRotation(rotOut, this.time))
             Vect3_Copy(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
         else
             rotOut[0] -= 90.0*(Math.PI/180.0); //urotate the ipo animation by 90 degrees (blender camera starts off looking straight down)
-        Vect3_Add(rotOut, this.setRotationDelta);
+        Vect3_Add(rotOut, this.userRotation);
     }
     this.getLocation = function(locOut)
     {
         if(!this.ipoAnimation.GetLocation(locOut, this.time))
             Vect3_Copy(locOut, this.position);
-        Vect3_Add(locOut, this.setPositionDelta);
+        Vect3_Add(locOut, this.userPosition);
     }
 
     //apply the Cameras transformation
     this.calculateTransform = function(cameraProjectionMatrix)
     {
-        if(this.fov == 0.0)
+        if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
         {
             var projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
                                          -graphics.screenHeight, graphics.screenHeight,
@@ -139,12 +146,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         }
         else
         {
-            var projectionMat = gluPerspective(this.fov,                   //field of view
+            var gluPersepctiveProjectionMat = gluPerspective(
+                                               this.fov,                   //field of view
                                                graphics.GetScreenAspect(), //aspect ratio
                                                this.nearClip,              //near clip plane distance
                                                this.farClip                //far clip plane distance
                                               );
-           var projectionMat2 = perspectiveMatrix(this.fov,                   //field of view
+           var glFrustumProjectionMat       = perspectiveMatrix(
+                                               this.fov,                   //field of view
                                                graphics.GetScreenAspect(), //aspect ratio
                                                this.nearClip,              //near clip plane distance
                                                this.farClip                //far clip plane distance
@@ -161,7 +170,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         Matrix_Inverse( invTransformMat, transformMat );
 
         //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
-        Matrix_Multiply( cameraProjectionMatrix, projectionMat, invTransformMat );
+        Matrix_Multiply( cameraProjectionMatrix, glFrustumProjectionMat, invTransformMat );
     }
 
     this.getCameraToWorldMatrix = function(){
@@ -189,20 +198,20 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //Update the cameras transformation given a change in position and rotation.
 
         //apply the change in rotation
-        this.setRotationDelta[0] += rotationDelta[0];
-        this.setRotationDelta[1] += rotationDelta[1];
+        this.userRotation[0] += rotationDelta[0];
+        this.userRotation[1] += rotationDelta[1];
         
-        if(rotation != undefined)
-            Vect3_Copy(this.rotation, rotation);
+        if( rotation != undefined )
+            Vect3_Copy( this.rotation, rotation );
 
         //get the new rotation
-        var rot = new Float32Array(3);
+        var rot = new Float32Array( 3 );
         this.getRotation(rot);
 
-        var rotMat = new Float32Array(4*4);
+        var rotMat = new Float32Array( 4 * 4 );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
 
-        var transformedRot = new Float32Array(4*4);
+        var transformedRot = new Float32Array( 4 * 4 );
         Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
 
         //    //prevent up down rotation past vertical
@@ -212,11 +221,18 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //        rotation[0] = -90.0;
 
         //forwards backwards
-        this.setPositionDelta[0] += transformedRot[0];
-        this.setPositionDelta[1] += transformedRot[1];
-        this.setPositionDelta[2] += transformedRot[2];
+        this.userPosition[0] += transformedRot[0];
+        this.userPosition[1] += transformedRot[1];
+        this.userPosition[2] += transformedRot[2];
+        
+        var infoString  = "position "        + ToFixedPrecisionString( this.userPosition, 2 ) + "\n";
+            infoString += "rotation "        + ToFixedPrecisionString( this.userRotation, 2 ) + "\n";
+            infoString += "defaultPosition " + ToFixedPrecisionString( this.position, 2 ) + "\n";
+            infoString += "defaultRotation " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
+        document.getElementById( "cameraDebugText" ).innerHTML = infoString;
+        
     }
-    this.SetPosDelta = function(posIn) { Vect3_Copy(setPositionDelta, posIn); }
+    this.SetPosDelta = function(posIn) { Vect3_Copy(userPosition, posIn); }
 
     //return a Frustum representing the volume to be rendered by the Camera
     this.GetFrustum = function() {}
