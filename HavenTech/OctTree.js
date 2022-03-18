@@ -16,6 +16,7 @@
 //so this is an orthogonal binary space partition tree, each level splits only one axis
 //and each subsequent level splits the next axis in the order (x, y , z , x , y ... etc)
 
+var MaxTreeNodeObjects = 5;
 
 function TreeNode(axis, minCoord, maxCoord, parent){
 
@@ -30,6 +31,55 @@ function TreeNode(axis, minCoord, maxCoord, parent){
   this.minNode = none; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
   this.maxNode = none; //
   
+  //add an object to the node, if it is full subdivide it and place objects in the sub nodes
+  this.AddObject = function(object, addDepth=0){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
+    if(this.objects.length < MaxTreeNodeObjects){
+        this.objects.push(object);
+        return true;
+    }
+    
+    //else, split the node until there are only MaxTreeNodeObjects per node
+    //to keep object intersection / overlap test performace gains given by the binary oct tree
+    var nextAxis = this.generateMinAndMaxNodes();
+    
+    //distribute the objects between the two new nodes
+    //because each layer of the tree only splits one axis, and the nodes are orthogonal
+    //checking which sub node the object goes in requires only one comparison
+    // axis split by min and max node  -------minNode-------|minNodeMaxCoord maxNodeMinCoord | -------maxNode-------
+    //the minNodeMin and maxNodeMax were already checked by this node (the parent of the min and max nodes)
+    //so only need to check the extents of the object vs where the min and max nodes are split
+    var numObjectsAddedToMinNode = 0;
+    for(var i = 0; i < this.objects.length; ++i){
+        
+        var objectBounds = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
+                                                      //( min and max points defining a box with faces (planes) aligned with the x y z axies
+        if( objectBounds.minCoord[nextAxis] < this.minNode.maxCoord[nextAxis] &&
+                                              this.minNode.maxCoord[nextAxis] < objectBounds.maxCoord[nextAxis] ){
+            //the object straddles the center and isn't fully in the min or max nodes
+            //leave it in this node
+        }else if( objectBounds.maxCoord[nextAxis] < this.minNode.maxCoord[nextAxis] ){
+            if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2)
+                return false; //the objects were not successfuly seperated by the nextAxis splitting 
+                              //(addDepth causes wait until all 3 (x y z) axis have been tried 
+                              //before considering the objects non seperable
+            this.minNode.AddObject(this.objects[i], addDepth += 1);
+            this.objects.splice(i,1);
+            numObjectsAddedToMinNode += 1;
+        }else{
+            if( numObjectsAddedToMinNode < 1 && i >= MaxTreeNodeObjects - 1 && addDepth >= 2)
+                return false; //objects were not successfuly seperated
+                              //(break before adding to sub node or the subnode will again try to split)
+            this.maxNode.AddObject(this.objects[i], addDepth += 1);
+            this.objects.splice(i,1);
+        }
+        
+    }
+    
+    if(this.objects.length < MaxTreeNodeObjects)
+        return true; //the node was successfuly subdivided and objects distributed to sub nodes such that
+                    //all nodes have less than MaxTreeNodeObjects
+  }
+  
   //to be called when the node is filled with the max number of objects
   //(decided on for performance of number of object tests vs overhead of the depth of the tree)
   this.generateMinAndMaxNodes = function(){
@@ -40,10 +90,10 @@ function TreeNode(axis, minCoord, maxCoord, parent){
     var MaxminCoord = [];
     var MaxMaxCoord = [];
     
-    for(var i = 0; i < 3; ++i){ //for loop to avoid seperate if statement for x y and z axies
+    for(var i = 0; i < 3; ++i){ //(x y z) for loop to avoid seperate if statement for x y and z axies
     
       minminCoord.push( this.minCoord[i] );
-      if( nextAxis == i){ //if this is axis that the minAndMax nodes split then use the mid point
+      if( nextAxis == i){ //if this is axis (x y or z) that the minAndMax nodes split then use the mid point
         var midPt = (this.minCoord[i] + this.maxCoord[i]) / 2;
         minMaxCoord.push( midPt );
         MaxminCoord.push( midPt );
@@ -56,7 +106,7 @@ function TreeNode(axis, minCoord, maxCoord, parent){
     //now that the extents of the nodes have been found create them
     this.minNode = new TreeNode(nextAxis, minminCoord, minMaxCoord, this);   
     this.maxNode = new TreeNode(nextAxis, MaxminCoord, MaxMaxCoord, this);
-    
+    return nextAxis;
   }
   
 }

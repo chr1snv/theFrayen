@@ -1,6 +1,22 @@
 //SceneGraph.js - implementation of a scene drawable by haven tech
 
-//manages a collection of drawables 
+//manages a collection of drawables
+//(provides 
+//add
+//remove and
+//draw functions)
+
+//contained by HavenScene which updates and manages the objects
+//the idea with the scene graph was to make 
+//per scene, per shader, vertex,uv,and normal buffers
+//that can be stored in the gpu
+//and then only update the buffers when mustDraw flags are set
+//indicating a model has changed
+
+//with more objects and geometry, draw culling (only drawing things in view)
+//is something that will need to be added to keep good performance
+//this is planned to be implemented with OctTree
+//(which also may be used for physics and raytracing performance)
 
 function SceneGraph(sceneNameIn)
 {
@@ -107,8 +123,7 @@ function SceneGraph(sceneNameIn)
     this.Draw = function(camera)
     {
         var frustum = camera.GetFrustum();
-        var cameraProjectionMatrix = new Float32Array(4*4);
-        camera.calculateTransform(cameraProjectionMatrix);
+        var cameraProjectionMatrix = camera.GetProjectionMatrix();
         var uploadMatrixTemp = new Float32Array(4*4);
         var uploadMatrix = new Float32Array(4*4);
 

@@ -1,6 +1,9 @@
 //HavenInputHandlers.js
 
 
+//setup input handlers and read / make avaliable user inputs to the
+//mainloop
+
 mCoordDelta = {x:0, y:0};
 mCoords     = {x:0, y:0};
 mDown       = false;

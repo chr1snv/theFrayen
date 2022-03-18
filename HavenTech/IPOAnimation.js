@@ -1,5 +1,7 @@
 //IPOAnimation.js
 
+//implementation of an animation curve from blender
+
 function IPOAnimation(nameIn, sceneNameIn){
     this.ipoName = nameIn;
     this.sceneName = sceneNameIn;

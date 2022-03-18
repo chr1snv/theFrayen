@@ -1,5 +1,14 @@
 //HavenScene.js
 
+//haven scenes are collections of models, lights, cameras, etc
+//that make up an enviroment (area) in a haven tech game
+//they may be layered as with a menu or ui placed on top of a scene
+
+//haven scene handles loading (saving to be added) from a text file
+//and updating per frame the objects in it
+
+//drawing is handled by scene graphs 
+
 function HavenScene(sceneNameIn, sceneLoadedCallback)
 {
     this.sceneName = sceneNameIn;
@@ -64,6 +73,8 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         graphics.Flush();
     }
 
+    //trace a ray from a screen point with the active camera into the scene to find
+    //the closest model that was hit (if one was)
     this.HitModel = function(screenCoords)
     {
         var rayOrig;
@@ -79,12 +90,14 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         return this.hitSceneGraph.ClosestRayIntersection(rayOrig, rayDir);
     }
 
+    //check if finished asynchronously loading the scene
     this.checkIfIsLoaded = function(){
         if( this.isValid && this.pendingModelsAdded <= 0 )
             sceneLoadedCallback(this);
     }
     
-    this.loadScene2 = function( newMdl, thisSceneP )
+    //called to read from text file models, lights, and cameras in the scene
+    this.parseSceneTextFile = function( thisSceneP )
     {
     	var lastModelName = undefined;
     	var i = 0;
@@ -96,16 +109,19 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
             {
                 var words = temp.split(' ');
                 var modelName = words[1];
-                if( thisSceneP.models[modelName] != undefined )
+                var modelMeshName = modelName;
+                if( thisSceneP.models[modelName] != undefined ) //if the model is already loaded don't re instantiate / load it
                 {
                 	lastModelName = modelName;
                 }else{
-                	var newMdl    = new Model(modelName, modelName, thisSceneP.sceneName, thisSceneP,
+                	var newMdl    = new Model(modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
                                           thisSceneP.loadScene );
                 	//wait for the model to load before continuing
                 	return;
                 }
             }
+            //lights and cameras are simple to load can be loaded synchronously as they don't require loading additional files
+            //(info is one line in the text file)
             //this is a light to be read in
             if(temp[0] == "l")
             {
@@ -150,6 +166,11 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         thisSceneP.checkIfIsLoaded();
     }
     
+    //called when the text file is finished loading and after a model has finished loading
+    //this is a mess because the stack gets deeper each time a model is loaded, and the text file starts loading from
+    //the beginning again
+    //need to switch it to a non recursive
+    //polling main loop load where the model loads are put in seperate threads and rendering and gameplay 
     this.loadScene = function(newMdl, thisSceneP)
     {
         if( newMdl != undefined )
@@ -162,7 +183,7 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
                 if( isHit )
                     newMdl.AddToSceneGraph(thisSceneP.hitSceneGraph,
                         function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
-                else
+                else //regular model
                      newMdl.AddToSceneGraph(thisSceneP.sceneGraph,
                         function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
     
@@ -173,15 +194,15 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         }
     }
 
-	this.textFileLoadedCallback = function(txtFile, thisP)
+	this.textFileLoadedCallback = function(txtFile, thisP) //called after scene description text file has been fetched
     {
     	thisP.textFileLines = txtFile.split("\n");
     	var i = 0;
-    	//begin loading the scene
+    	//begin loading the scene from text file
     	thisP.loadScene(undefined, thisP);
     }
 
-    //constructor functionality
+    //constructor functionality begin asynchronous fetch of scene description
     this.pendingModelsAdded = 0;
     loadTextFile("scenes/"+this.sceneName+".hvtScene", this.textFileLoadedCallback, this);
     

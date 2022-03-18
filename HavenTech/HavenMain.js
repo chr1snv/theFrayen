@@ -1,33 +1,29 @@
 //HavenMain.js
 
-/*
-function loadTextFile(filename, callback, thisP){
-	console.log("loading text file " + filename);
-    var txtFile = new XMLHttpRequest();
-    txtFile.onreadystatechange = function(){
-        if(txtFile.readyState == 4){
-            if(txtFile.status == 200 || txtFile.status == 0){
-                callback(txtFile.responseText, thisP); //callback
-            }
-        }
-    }
-    txtFile.open("GET", filename, true);
-    txtFile.overrideMimeType("text/plain;");
-    txtFile.send();
-}
+//HavenMain has the loop entry / initalization function
+//the mainloop and transitions between fullscreen and windowed
 
-function loadTextFileSynchronous(filename){
-	console.log("loadTextFileSynchronous" + filename);
-	console.trace();
-    var txtFile = new XMLHttpRequest();
-    txtFile.open("GET", filename, false);
-    txtFile.overrideMimeType("text/plain;");
-    txtFile.send();
-    if(txtFile.status == 200 || txtFile.status == 0)
-        return txtFile.responseText;
-}
-*/
+//load text file functions has been moved to Iohelpers
 
+
+//the overall goal / vision for HavenTech is to provide a framework
+//for loading / running / editing / saving interactive games, content, apps
+//that can run and be published in as many enviroments and on as many devices as possible
+//(the content comes first)
+//idealy it will have an 3d scene editor, mesh editor, texture atlas creator, and animation / sound sequencer
+//with save / load functionality and graphics / sound rendering that scales to the resources of
+//the instance at runtime (from multi processor / gpu realtime raytraced, 
+//to offline mobile fixed function gpu with baked lighting)
+//to do this it is being written in javascript using webgl, because browsers are avaliable on
+//desktops (pc, mac, linux), mobile devices (ios, android), consoles (), and vr ()
+//and also javascript is pretty performant and without pointers and manual memory managment
+//easier to write code with less bugs in than low level compiled languages like c - c++
+//HavenTech was first written in c++ for ios, but the difficulty of getting apps published
+//and the desire for better tools, tool integration and process of reviewing and approving apps,
+//and intrest in game engines, lead to making this
+
+
+//transitions the rendering to fullscreen
 function EnterFullscreen(){
     var canvas = document.getElementById('frayenCanvas');
     
@@ -70,6 +66,8 @@ function EnterFullscreen(){
     
 }
 
+//attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
+//(first person like mouse input)
 var ptrLck = null;
 function requestPointerLock(){
     
@@ -84,7 +82,7 @@ function requestPointerLock(){
     
     //document.addEventListener("mousemove", updatePosition, false);
 }
-
+//release the mouse
 function releasePointerLock(){
     canvas.relPtrLck =
     canvas.releasePointerCapture;
@@ -110,6 +108,8 @@ function ExitFullscreen(){
     
 }
 
+//entrance point, starts graphics, starts loading the scene
+//(which then starts the main update and rendering loop)
 function havenMain(){
     //cameraStream = new CameraStream();
 
@@ -143,6 +143,7 @@ function sceneLoaded(havenScene)
     window.setTimeout(MainLoop, 300);
 }
 
+//the main rendering and update function called each frame
 function MainLoop()
 {
 
@@ -154,6 +155,7 @@ function MainLoop()
     window.requestAnimFrame(MainLoop);
 }
 
+//called from the mainloop, gets user input and updates the freelook camera
 function UpdateCamera()
 {
 

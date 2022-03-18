@@ -91,32 +91,33 @@ function glFrustum(l, r, b, t, n, f)
 //truncated pyramid [frustrum] (near clip plane removes the pointy part of the 4 sided pyramid)
 //everything is linear (this is linear algebra) so the matrix is really a coordinate transformation
 //of the space inside the frustrum to opengl ndc space ( x,y,z [-1,1] )
-//at the near clip plane r-l gives the clip plane width, 
+//at the near clip plane r-l gives the clip plane width,
+//turns out the problem was set depth mask being passed gl.TRUE instead of true
 
 
-function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn)
+function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn, stereoIn=false, ipdCMIn=3.9)
 {
     this.cameraName = nameIn;
-    this.sceneName = sceneNameIn;
+    this.sceneName  = sceneNameIn;
 
-    this.position = positionIn; //animated / set position in the map
-    this.rotation = rotationIn;
-    this.fov = fovIn;
+    this.position   = positionIn; //animated / set position in the map
+    this.rotation   = rotationIn;
+    this.fov        = fovIn;
+    
+    this.nearClip   = nearClipIn;
+    this.farClip    = farClipIn;
+    
+    this.stereo     = stereoIn;
+    this.stereoIPD  = ipdCMIn; //the ipd in centimeters
 
     this.userPosition = new Float32Array([0,0,0]); //user input position
     this.userRotation = new Float32Array([0,0,0]); //user input rotation
-
-    this.nearClip = nearClipIn;
-    this.farClip = farClipIn;
-        
-    this.frustum;
         
     this.ipoAnimation = new IPOAnimation(nameIn, sceneNameIn);
     this.time = 0;
 
-    this.PerspectiveMatrix = new Float32Array(4*4);
-
-    this.updateFrustum = function() {}
+    this.ProjectionMatrix = new Float32Array(4*4);
+    this.frustum;
 
     //gets the xyz euler radian camera in world space rotation
     //from either the ipo animation or assigned
@@ -136,7 +137,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     }
 
     //apply the Cameras transformation
-    this.calculateTransform = function(cameraProjectionMatrix)
+    this.GetProjectionMatrix = function()
     {
         if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
         {
@@ -166,17 +167,19 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //model view matrix to be the inverse of that, the matrix required to
         //bring the world into the view of the camera)
         var invTransformMat = new Float32Array(4*4);
-        var transformMat = this.getCameraToWorldMatrix();
+        var transformMat    = this.getCameraToWorldMatrix();
         Matrix_Inverse( invTransformMat, transformMat );
 
         //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
-        Matrix_Multiply( cameraProjectionMatrix, glFrustumProjectionMat, invTransformMat );
+        Matrix_Multiply( this.ProjectionMatrix, glFrustumProjectionMat, invTransformMat );
+        return this.ProjectionMatrix;
     }
 
-    this.getCameraToWorldMatrix = function(){
+    this.getCameraToWorldMatrix = function()
+    {
         //get the camera rotation and translation from the ipo
-        var translation = new Float32Array(3);
-        var rot = new Float32Array(3);
+        var translation     = new Float32Array(3);
+        var rot             = new Float32Array(3);
         this.getRotation(rot);
         this.getLocation(translation);
 
@@ -191,8 +194,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         return transformMat;
     }
 
-    //update the Cameras position
-    this.Update = function(timeIn) { time = timeIn; }
+    //update the Cameras position based on it's animation
+    this.Update = function(timeIn)
+    {
+        var time = timeIn;
+    }
+    
     this.UpdateOrientation = function(positionDelta, rotationDelta, rotation)
     {
         //Update the cameras transformation given a change in position and rotation.
@@ -205,10 +212,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             Vect3_Copy( this.rotation, rotation );
 
         //get the new rotation
-        var rot = new Float32Array( 3 );
+        var rot            = new Float32Array( 3 );
         this.getRotation(rot);
 
-        var rotMat = new Float32Array( 4 * 4 );
+        var rotMat         = new Float32Array( 4 * 4 );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
 
         var transformedRot = new Float32Array( 4 * 4 );
@@ -232,10 +239,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         document.getElementById( "cameraDebugText" ).innerHTML = infoString;
         
     }
-    this.SetPosDelta = function(posIn) { Vect3_Copy(userPosition, posIn); }
 
     //return a Frustum representing the volume to be rendered by the Camera
-    this.GetFrustum = function() {}
+    //recalculate if not updated
+    this.GetFrustum = function()
+    {
+        return this.frustrum;
+    }
 
     function GetFarClipBounds( bounds, fovy, aspect, zFar )
     {
@@ -264,20 +274,20 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         /////////
         
         //get the camera rotation matrix
-        var rot = new Float32Array(3);
+        var rot        = new Float32Array(3);
         this.getRotation(rot);
-        var rotMat = new Float32Array(4*4);
+        var rotMat     = new Float32Array(4*4);
         Matrix(rotMat, MatrixType.euler_rotate, rot);
         //get the far clip plane bounds and rotate them by the camera rotation matrix
         var boundsTemp = new Array(4);
-        var bounds =     new Array(4);
+        var bounds     = new Array(4);
         GetFarClipBounds(boundsTemp, fov, 1.0, farClip);
 
         Matrix_Multiply_Array3(bounds, rotMat, boundsTemp);
         
         //interpolate between the points to get the end point of the ray
-        var leftTemp =     new Array(vertCard);
-        var rightTemp =    new Array(vertCard);
+        var leftTemp     = new Array(vertCard);
+        var rightTemp    = new Array(vertCard);
         var frustumPoint = new Array(vertCard);
         Vect3_LERP(leftTemp,  bounds[0], bounds[1], screenCoords[1]*0.5+0.5);   //bottom left, top left lerp
         Vect3_LERP(rightTemp, bounds[2], bounds[3], screenCoords[1]*0.5+0.5);   //bottom right, top right lerp

@@ -1,5 +1,8 @@
 //iohelpers.js - Christopher Hoffman Feb 26th, 2013
 
+//requests loading text file of name filename and when ready
+//calls the callback to read in the flat file data
+
 function loadTextFile(filename, callback, thisP)
 {
 	if(callback === undefined)
@@ -18,6 +21,7 @@ function loadTextFile(filename, callback, thisP)
                 {
                     var fileParts = filename.split('.');
 	                var fileSuffix = fileParts[fileParts.length-1];
+	                //
                 	if(!( fileSuffix == "hvtIPO" ||
                 		  fileSuffix == "hvtKeys" ||
                 		  fileSuffix == "hvtAnim") )
@@ -35,6 +39,12 @@ function loadTextFile(filename, callback, thisP)
         return undefined;
     }
 }
+//synchronous loading gives a simpler loop,
+//but when there are many assets to load the browser ui hangs
+//(becomes non responsive to input)
+//so it's best to use asynchronous loading 
+//(callbacks allowing the main loop to resume while waiting for something to load
+//and the callback to be called continuing / finishing loading when the content is ready)
 /*
 function loadTextFileSynchronous(filename){
     try{
