@@ -14,20 +14,24 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
     this.sceneName = sceneNameIn;
     this.isValid = false;
 
-    this.models = {};
-    this.lights = [];
+    this.models  = {};
+    this.lights  = [];
     this.cameras = [];
 
     this.activeCamera = "";
     this.activeCameraIdx = -1;
 
+    this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
+    //this.hitSceneGraph = new SceneGraph();
+
+    this.framesSec = 25.0;
+    
     this.sceneGraph = new SceneGraph(this.sceneName);
     this.hitSceneGraph = new SceneGraph();
 
-    this.framesSec = 25.0;
-
     //function members
     this.GetName = function(){ return this.sceneName; }
+    
     this.Update = function(time, updateCompleteCb)
     {
         var m = 0;
@@ -65,10 +69,27 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         }
 
         //draw the scene
+        
+        //clear the render buffer and reset rendering state
         graphics.ClearDepth();
         graphics.ClearLights();
+        
+        //with an oct tree, should it draw each node in the camera frustrum
+        //update objects / lights / cameras to oct tree nodes (parallelizable)
+        //update global illumination bounce lighting (trace rays and update textures)
+        
+        
+        //find the oct tree nodes in the camera frustrum (paralleizable)
+        var frustum = this.cameras[this.activeCameraIdx].GetFrustum();
+        var nodesToDraw = OctTree_GetNodesInFrustum(this.octTree, frustum);
+        
+        //for nodes that have changed / are new / have been removed since last frame
+        //update them in the render buffer manager (scene graph)
         for(var i=0; i<this.lights.length; ++i)
             graphics.BindLight(this.lights[i]);
+            
+        //    (using links between model instances and buffer indicies, update the models in parallel)
+        //render a frame (gpu does in parallel if using the same shader program)
         this.sceneGraph.Draw(this.cameras[this.activeCameraIdx]);
         graphics.Flush();
     }
@@ -99,26 +120,28 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
     //called to read from text file models, lights, and cameras in the scene
     this.parseSceneTextFile = function( thisSceneP )
     {
-    	var lastModelName = undefined;
-    	var i = 0;
-        while( i<thisSceneP.textFileLines.length )
+    	
+        for( var i = 0; i<thisSceneP.textFileLines.length; ++i )
         {
-            var temp = thisSceneP.textFileLines[i++];
+            var temp = thisSceneP.textFileLines[i];
             //this is a model to be read in
             if(temp[0] == 'm')
             {
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
-                if( thisSceneP.models[modelName] != undefined ) //if the model is already loaded don't re instantiate / load it
-                {
-                	lastModelName = modelName;
-                }else{
-                	var newMdl    = new Model(modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
-                                          thisSceneP.loadScene );
-                	//wait for the model to load before continuing
-                	return;
+                thisSceneP.pendingModelsAdded++;
+                newMdl    = new Model(modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
+                function(model, havenScenePointer){
+                   model.AddToSceneGraph( havenScenePointer.sceneGraph, 
+                    function(){
+                      thisSceneP.pendingModelsAdded-=1;
+                      thisSceneP.checkIfIsLoaded();
+                    } 
+                   );
                 }
+                 );
+                
             }
             //lights and cameras are simple to load can be loaded synchronously as they don't require loading additional files
             //(info is one line in the text file)
@@ -165,41 +188,13 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         thisSceneP.isValid = true;
         thisSceneP.checkIfIsLoaded();
     }
-    
-    //called when the text file is finished loading and after a model has finished loading
-    //this is a mess because the stack gets deeper each time a model is loaded, and the text file starts loading from
-    //the beginning again
-    //need to switch it to a non recursive
-    //polling main loop load where the model loads are put in seperate threads and rendering and gameplay 
-    this.loadScene = function(newMdl, thisSceneP)
-    {
-        if( newMdl != undefined )
-        {
-            thisSceneP.models[newMdl.modelName] = newMdl;
-            //register the model with the proper SceneGraph
-            thisSceneP.pendingModelsAdded++;
-
-            newMdl.IsHit({1:newMdl, 2:thisSceneP}, function(isHit, cbObj){
-                if( isHit )
-                    newMdl.AddToSceneGraph(thisSceneP.hitSceneGraph,
-                        function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
-                else //regular model
-                     newMdl.AddToSceneGraph(thisSceneP.sceneGraph,
-                        function(){thisSceneP.pendingModelsAdded-=1; thisSceneP.checkIfIsLoaded();});
-    
-                thisSceneP.loadScene2( cbObj[1], cbObj[2]);
-            });
-        }else{
-            thisSceneP.loadScene2( newMdl, thisSceneP); //newMdl = undefined in this case
-        }
-    }
 
 	this.textFileLoadedCallback = function(txtFile, thisP) //called after scene description text file has been fetched
     {
     	thisP.textFileLines = txtFile.split("\n");
-    	var i = 0;
+    	
     	//begin loading the scene from text file
-    	thisP.loadScene(undefined, thisP);
+    	thisP.parseSceneTextFile( thisP );
     }
 
     //constructor functionality begin asynchronous fetch of scene description

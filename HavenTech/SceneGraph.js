@@ -1,4 +1,4 @@
-//SceneGraph.js - implementation of a scene drawable by haven tech
+//SceneGraph.js - implementation of render buffer managment by haven tech
 
 //manages a collection of drawables
 //(provides 
@@ -6,15 +6,24 @@
 //remove and
 //draw functions)
 
+//scene graph -> render buffer manager
+//maintains vertex, normal, uv, gl buffer handles
+//grouped by vertex / fragment shader programs
+//tries to minimally update objects and then if there are changes from
+//last frame, pass them to the gpu and rasterize
+
 //contained by HavenScene which updates and manages the objects
-//the idea with the scene graph was to make 
+//the idea with the scene graph is to manage the gl buffers 
 //per scene, per shader, vertex,uv,and normal buffers
-//that can be stored in the gpu
-//and then only update the buffers when mustDraw flags are set
+//that are stored in the gpu
+//and only update them when mustDraw flags are set
 //indicating a model has changed
 
+//data movement is the bottleneck between the main program and gpu
+//so avoiding data movement when not necessary is key to good performance
+
 //with more objects and geometry, draw culling (only drawing things in view)
-//is something that will need to be added to keep good performance
+//will need to be added to keep frame rates up
 //this is planned to be implemented with OctTree
 //(which also may be used for physics and raytracing performance)
 
@@ -22,6 +31,7 @@ function SceneGraph(sceneNameIn)
 {
     this.sceneName = sceneNameIn;
 
+    //links a drawable to a index and length in the buffer
     function ShaderDrawablePair(){
         this.startIndex = 0;       //scenegraph buffer index
         this.numVerts   = 0;
@@ -140,7 +150,7 @@ function SceneGraph(sceneNameIn)
                             var drawablePair = drawables[k];
                             var verts        = new Float32Array( drawablePair.numVerts*graphics.vertCard );
                             var normals      = new Float32Array( drawablePair.numVerts*graphics.vertCard );
-                            var uvs          = new Float32Array( drawablePair.numVerts*graphics.uvCard );
+                            var uvs          = new Float32Array( drawablePair.numVerts*graphics.uvCard   );
                             var modelMatrix  = new Float32Array( 4*4 );
                             drawablePair.drawable.Draw( frustum, verts, normals, uvs, modelMatrix,
                                                         true, function(){

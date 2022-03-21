@@ -125,6 +125,7 @@ function SetCanvasSize(){
                        document.getElementById('canvHeight').value);
 }
 
+//called when the scene selection dropdown changes
 function sceneChanged()
 {
     var sel = document.getElementById("sceneSelection");
@@ -136,6 +137,7 @@ function sceneChanged()
     mainScene = new HavenScene(newSceneName, sceneLoaded);
 }
 
+//callback once a scene has finished loading
 function sceneLoaded(havenScene)
 {
     mainScene = havenScene;

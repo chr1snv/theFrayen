@@ -4,7 +4,7 @@
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
-function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback)
+function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback=null)
 {
     this.generateModelMatrix = function( cbObjs, completeCallback )
     {
@@ -75,13 +75,13 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 
     //draw transformation manipulation functions
     //getters
-    this.GetPosition = function(pos) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetPosition(pos); }
-    this.GetScale = function(scaleOut) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetScale(scaleOut); }
-    this.GetRotation = function(rotOut) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetRotation(rotOut); }
+    this.GetPosition = function(pos)      { graphics.GetQuadMesh(this.meshName, this.sceneName).GetPosition(pos);      }
+    this.GetScale    = function(scaleOut) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetScale   (scaleOut); }
+    this.GetRotation = function(rotOut)   { graphics.GetQuadMesh(this.meshName, this.sceneName).GetRotation(rotOut);   }
     //setters
-    this.SetPosition = function(newPos) { Vect3_Copy(positionOff, newPos); positionSet = true; optTransformUpdated = true; }
-    this.SetScale = function(scaleIn){ Vect3_Copy(scaleOff, scaleIn); scaleSet = true; optTransformUpdated = true; }
-    this.SetRotation = function(rotNew) { Vect3_Copy(rotationOff, rotNew); rotationSet = true; optTransformUpdated = true; }
+    this.SetPosition = function(newPos) { Vect3_Copy(positionOff, newPos ); positionSet = true; optTransformUpdated = true; }
+    this.SetScale    = function(scaleIn){ Vect3_Copy(scaleOff   , scaleIn); scaleSet    = true; optTransformUpdated = true; }
+    this.SetRotation = function(rotNew) { Vect3_Copy(rotationOff, rotNew ); rotationSet = true; optTransformUpdated = true; }
 
     //shader binding functions
     this.GetOriginalShaderName = function(shaderNameOut, sceneNameOut)
@@ -203,12 +203,17 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.shaderName  = this.shaderScene = "";
 
     var thisP = this;
+    //request the quadmesh from the graphics class to get it to load it
     graphics.GetQuadMesh(meshNameIn, sceneNameIn,
-        {1:this, 2:modelLoadedParameters, 3:modelLoadedCallback}, function(quadMesh, cbObj){
-        var sNameArr = quadMesh.GetShaderName();
-        thisP.shaderName  = sNameArr[0];
-        thisP.shaderScene = sNameArr[1];
-        cbObj[3](cbObj[1], cbObj[2]);
-    } );
+        {1:this, 2:modelLoadedParameters, 3:modelLoadedCallback}, //pack parameters into object to pass to callback below
+        function(quadMesh, cbObj) //inline callback to get loaded parameters and call 
+        {
+            var sNameArr = quadMesh.GetShaderName();
+            thisP.shaderName  = sNameArr[0];
+            thisP.shaderScene = sNameArr[1];
+            if( cbObj[3] != null ) //if there isn't a modelLoadedCallback callback don't try to call it
+                cbObj[3](cbObj[1], cbObj[2]);
+        } 
+    );
 
 };

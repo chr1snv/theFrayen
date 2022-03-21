@@ -122,8 +122,12 @@ function Graphics(canvasIn, bpp, depthIn)
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 
-	this.GetScreenAspect = function(){ return this.screenWidth/this.screenHeight; }
-		
+    //returns width / height ( multiply fovy by this to get fovh )
+	this.GetScreenAspect = function()
+	{
+	    return this.screenWidth/this.screenHeight;
+	}
+	
 	//functions for altering the rendering state
 	this.enableLighting = function(val)
 	{

@@ -1,5 +1,52 @@
 //Camera.js
 
+function Plane()
+{
+    this.center = [0,0,0];
+    this.normal = [0,0,0];
+    
+    this.PointOnNormalSideOfPlane = function(point){
+        Vec3_Subtract( point, center );
+        var dotResult = [0,0,0];
+        Vect3_Dot(dotResult, point, this.normal);
+        if( Vect3_Length(dotResult) > 0) //on the positive normal side of the plane
+          return true;
+        return false; //on the negative normal side of the plane
+    }
+}
+
+function Frustum()
+{
+    this.origin;
+    this.rotMat;
+
+    this.nearClip;
+    this.farClip;
+    
+    this.horizFov;
+    this.vertFov;
+    
+    //check if point falls on the inside of the four planes of the frustum
+    this.PointInFrustum = function(point)
+    {
+        //generate the frustum planes
+    
+        //obtain the offset from the camera origin to the near clip plane by scaling the normal by the nearClipDistance
+        var vectToNearPlane = Vect3_Copy( this.normal );
+        Vect3_MultiplyScalar( vectToNearPlane, this.nearClip );
+        var nearPlaneCenter = Vect3_Copy( this.origin );
+        //get the near plane center
+        Vect3_Add( nearPlaneCenter, vectToNearPlane );
+        
+        
+        //get the far plane center
+        var vectToFarPlane = Vect3_Copy( this.normal );
+        Vect3_MultiplyScalar( vectToFarPlane, this.farClip );
+        var farPlaneCenter = Vect3_Copy( this.origin );
+         
+    }
+}
+
 function glOrtho(left, right, bottom, top, nearVal, farVal)
 {
     //generates an orthographic (rectangular non perspective)
@@ -19,11 +66,11 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
 function gluPerspective(fovy, aspect, zNear, zFar)
 {
     //generates the perspective projection matrix
-    //to convert verticies from positions in the camera frustrum
+    //to convert verticies from positions in the camera frustum
     //to render/fragment shader coordinates (a rectangular volume x,y with depth)
     
-    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / 1 (frustrum depth)
-    var f = 1/Math.tan(fovy/2); //f = inverse vertical far frustum half height / frustrum depth ( goes to inf as fovy -> pi (180 deg)
+    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / 1 (frustum depth)
+    var f = 1/Math.tan(fovy/2); //f = inverse vertical far frustum half height / frustum depth ( goes to inf as fovy -> pi (180 deg)
     //if aspect is 1 (square rendered image) xs and ys will be equal
     var xs = f/aspect;                     //x scale factor
     var ys = f;                            //y scale factor
@@ -34,10 +81,10 @@ function gluPerspective(fovy, aspect, zNear, zFar)
                                0,  0, zs, tz,
                                0,  0, -1,  0 ]);
     
-    var frustrumDepth = (zFar-zNear);
-    //depth_pct = (z-zNear)/frustrumDepth
-    //x_projected = x / ( depth_pct * farFrustrumWidth  + (1-depth_pct) * nearFrustrumWidth  )
-    //y_projected = y / ( depth_pct * farFrustrumHeight + (1-depth_pct) * nearFrustrumHeight )
+    var frustumDepth = (zFar-zNear);
+    //depth_pct = (z-zNear)/frustumDepth
+    //x_projected = x / ( depth_pct * farfrustumWidth  + (1-depth_pct) * nearfrustumWidth  )
+    //y_projected = y / ( depth_pct * farfrustumHeight + (1-depth_pct) * nearfrustumHeight )
     //z_projected = depth_pct
     //need to put equations in the form
     //x_proj =  a*x / w  +  b*y / w  +  c*z / w  +  d*1 / w
@@ -88,9 +135,9 @@ function glFrustum(l, r, b, t, n, f)
 }
 
 //derivation of perspective transform matrix
-//truncated pyramid [frustrum] (near clip plane removes the pointy part of the 4 sided pyramid)
+//truncated pyramid [frustum] (near clip plane removes the pointy part of the 4 sided pyramid)
 //everything is linear (this is linear algebra) so the matrix is really a coordinate transformation
-//of the space inside the frustrum to opengl ndc space ( x,y,z [-1,1] )
+//of the space inside the frustum to opengl ndc space ( x,y,z [-1,1] )
 //at the near clip plane r-l gives the clip plane width,
 //turns out the problem was set depth mask being passed gl.TRUE instead of true
 
@@ -134,6 +181,17 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         if(!this.ipoAnimation.GetLocation(locOut, this.time))
             Vect3_Copy(locOut, this.position);
         Vect3_Add(locOut, this.userPosition);
+    }
+    
+    this.getRotationMatrix = function()
+    {
+        //get the new rotation
+        var rot            = new Float32Array( 3 );
+        this.getRotation(rot);
+
+        var rotMat         = new Float32Array( 4 * 4 );
+        Matrix( rotMat, MatrixType.euler_rotate, rot );
+        return rotMat;
     }
 
     //apply the Cameras transformation
@@ -194,7 +252,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         return transformMat;
     }
 
-    //update the Cameras position based on it's animation
+    //update the Cameras position based on its animation
     this.Update = function(timeIn)
     {
         var time = timeIn;
@@ -218,7 +276,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         var rotMat         = new Float32Array( 4 * 4 );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
 
-        var transformedRot = new Float32Array( 4 * 4 );
+        //apply the camera rotation to the positionDeta to get a new position offset (vector the direction of the camera correspondi
+        var transformedRot = new Float32Array( 3 );
         Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
 
         //    //prevent up down rotation past vertical
@@ -240,11 +299,40 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
     }
 
-    //return a Frustum representing the volume to be rendered by the Camera
+    //return a Frustum (a 4 sided pyramid with a the top (the near clip plane) parallel to the base)
+    //representing the volume to be rendered by the Camera
     //recalculate if not updated
     this.GetFrustum = function()
     {
-        return this.frustrum;
+        this.frustum          = new Frustum();
+        this.frustum.origin = new Float32Array( 3 ); this.getLocation( this.frustum.origin );
+        this.frustum.nearClip = this.nearClip;
+        this.frustum.farClip  = this.farClip;
+        
+        this.frustum.rotMat   = this.getRotationMatrix();
+    
+        this.frustum.vertFov = this.fovy;
+        this.aspect          = graphics.GetScreenAspect();
+        
+        //calculate the frustum planes from its parameters
+        var cameraForwardNormal = [ 0, 0, 1 ];
+        var cameraForward = new Float32Array( 3 );
+        Matrix_Multiply_Vect3( cameraForward, this.frustum.rotMat, cameraForwardNormal );
+        //obtain the offset from the camera origin to the near clip plane by scaling the cameraForward vector by the nearClipDistance
+        var vectToNearPlane = Vect3_CopyNew( cameraForward );
+        Vect3_MultiplyScalar( vectToNearPlane, this.nearClip );
+        var nearPlaneCenter = Vect3_CopyNew( this.frustum.origin );
+        //get the near plane center
+        Vect3_Add( nearPlaneCenter, vectToNearPlane );
+        
+        
+        
+        //get the far plane center
+        var vectToFarPlane = Vect3_CopyNew( cameraForwardNormal );
+        Vect3_MultiplyScalar( vectToFarPlane, this.farClip );
+        var farPlaneCenter = Vect3_CopyNew( this.frustum.origin );
+        
+        return this.frustum;
     }
 
     function GetFarClipBounds( bounds, fovy, aspect, zFar )

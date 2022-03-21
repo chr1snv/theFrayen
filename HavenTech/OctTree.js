@@ -18,18 +18,18 @@
 
 var MaxTreeNodeObjects = 5;
 
-function TreeNode(axis, minCoord, maxCoord, parent){
+function TreeNode(axis, minCoord, MaxCoord, parent){
 
   this.axis = axis; //the axis that the node splits ( (0)x , (1)y , or (2)z )
   this.minCoord = minCoord; //the minimum corner that the node covers
-  this.maxCoord = maxCoord; //the maximum corner that the node covers
+  this.MaxCoord = MaxCoord; //the Maximum corner that the node covers
   
   this.parent = parent; //link to the parent ( to allow traversing back up the tree )
   
   this.objects = []; //the objects local to the node
   
-  this.minNode = none; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
-  this.maxNode = none; //
+  this.minNode = null; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
+  this.MaxNode = null; //
   
   //add an object to the node, if it is full subdivide it and place objects in the sub nodes
   this.AddObject = function(object, addDepth=0){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
@@ -53,11 +53,11 @@ function TreeNode(axis, minCoord, maxCoord, parent){
         
         var objectBounds = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
                                                       //( min and max points defining a box with faces (planes) aligned with the x y z axies
-        if( objectBounds.minCoord[nextAxis] < this.minNode.maxCoord[nextAxis] &&
-                                              this.minNode.maxCoord[nextAxis] < objectBounds.maxCoord[nextAxis] ){
+        if( objectBounds.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
+                                              this.minNode.MaxCoord[nextAxis] < objectBounds.MaxCoord[nextAxis] ){
             //the object straddles the center and isn't fully in the min or max nodes
             //leave it in this node
-        }else if( objectBounds.maxCoord[nextAxis] < this.minNode.maxCoord[nextAxis] ){
+        }else if( objectBounds.MaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
             if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2)
                 return false; //the objects were not successfuly seperated by the nextAxis splitting 
                               //(addDepth causes wait until all 3 (x y z) axis have been tried 
@@ -69,7 +69,7 @@ function TreeNode(axis, minCoord, maxCoord, parent){
             if( numObjectsAddedToMinNode < 1 && i >= MaxTreeNodeObjects - 1 && addDepth >= 2)
                 return false; //objects were not successfuly seperated
                               //(break before adding to sub node or the subnode will again try to split)
-            this.maxNode.AddObject(this.objects[i], addDepth += 1);
+            this.MaxNode.AddObject(this.objects[i], addDepth += 1);
             this.objects.splice(i,1);
         }
         
@@ -94,23 +94,88 @@ function TreeNode(axis, minCoord, maxCoord, parent){
     
       minminCoord.push( this.minCoord[i] );
       if( nextAxis == i){ //if this is axis (x y or z) that the minAndMax nodes split then use the mid point
-        var midPt = (this.minCoord[i] + this.maxCoord[i]) / 2;
+        var midPt = (this.minCoord[i] + this.MaxCoord[i]) / 2;
         minMaxCoord.push( midPt );
         MaxminCoord.push( midPt );
       }else{ //else since only one axis is being split
-        minMaxCoord.push( this.maxCoord[i] );
+        minMaxCoord.push( this.MaxCoord[i] );
         MaxminCoord.push( this.minCoord[i] );
       }
-      MaxMaxCoord.push( this.maxCoord[i] );
+      MaxMaxCoord.push( this.MaxCoord[i] );
     }
     //now that the extents of the nodes have been found create them
     this.minNode = new TreeNode(nextAxis, minminCoord, minMaxCoord, this);   
-    this.maxNode = new TreeNode(nextAxis, MaxminCoord, MaxMaxCoord, this);
+    this.MaxNode = new TreeNode(nextAxis, MaxminCoord, MaxMaxCoord, this);
     return nextAxis;
   }
   
 }
 
+function GenerateNodeCorners(node)
+{
+    //the 8 corners of the node cube, 4 bottom corners and 4 top corners
+   return [
+     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],
+     [ node.MaxCoord[0], node.minCoord[1], node.minCoord[2] ],
+     [ node.minCoord[0], node.MaxCoord[1], node.minCoord[2] ],
+     [ node.MaxCoord[0], node.MaxCoord[1], node.minCoord[2] ],
+   
+     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],
+     [ node.MaxCoord[0], node.minCoord[1], node.minCoord[2] ],
+     [ node.minCoord[0], node.MaxCoord[1], node.minCoord[2] ],
+     [ node.MaxCoord[0], node.MaxCoord[1], node.minCoord[2] ]  ];
+}
+
+
+//returns true if the 8 corners of the node are within the frustum
+function OctTree_NumNodeCornersInFrustum(nodeCorners, frustum)
+{
+   
+   var numPointsInFrustum = 0;
+   
+   for( var i = 0; i < nodeCorners.length; ++i )
+    if( frustum.PointInFrustum( cubeCorners[i] ) )
+      numPointsInFrustum += 1;
+   
+   //a corner of the cube is in the frustum return it
+   return numPointsInFrustum;
+   
+}
+
+//either one of the point corners of the cube will be inside the frustum
+//or one of the frustum corners will be inside of the cube
+//if there is an overlap between the two
+
+//tries to efficently return a minimal set of nodes the (camera) frustum overlaps to
+//get only the objects that need to be drawn
+function OctTree_GetNodesInFrustum(rootNode, frustum){
+   //the root node obviously would overlap the camera frustum
+   //but want to get the minimal set of nodes ( so if there are subnodes and one of them doesn't overlap ignore it
+   
+   var nodeCorners = GenerateNodeCorners(rootNode);
+   
+   var numCornersInFrustum = OctTree_NumNodeCornersInFrustum(rootNode, frustum);
+   
+   //if the node is completely within the frustum return it
+   if( numCornersInFrustum >= 8 )
+     return rootNode;
+   
+   //else
+   if( rootNode.minNode == null && rootNode.maxNode == null ){
+     //there are no subnodes, so return the root node even though it may be larger than the frustum 
+     return rootNode;
+   }
+   
+   //else there are subnodes, if one of them is fully outside of the frustum don't return it
+   var minNodeOverlaps = OctTree_NodeAndFrustumOverlap( rootNode.minNode, frustum );
+   var maxNodeOverlaps = OctTree_NodeAndFrustumOverlap( rootNode.maxNode, frustum );
+   if( minNodeOverlaps && maxNodeOverlaps )
+     return rootNode;
+   if( minNodeOverlaps )
+     return this.minNode;
+   if( maxNodeOverlaps )
+     return this.maxNode;
+}
 
 //a sparse oct tree (3d xyz subdivided cubes) representing the world
 //to accelerate physics and raycasting / tracing in the scene
@@ -123,14 +188,14 @@ function TreeNode(axis, minCoord, maxCoord, parent){
 //an object occupies
 function OctTree(){
 
-    this.subCubes = [None, None,  //(0)0,0,0   (1)0,0,1
-                     None, None,  //(2)0,1,0   (3)0,1,1
+    this.subCubes = [null, null,  //(0)0,0,0   (1)0,0,1
+                     null, null,  //(2)0,1,0   (3)0,1,1
                      
-                     None, None,  //(4)1,0,0   (5)1,0,1
-                     None, None]; //(6)1,1,0   (7)1,1,1
+                     null, null,  //(4)1,0,0   (5)1,0,1
+                     null, null]; //(6)1,1,0   (7)1,1,1
                      //index is = x * 4 + y * 2 + z
                      
-    this.rootNode =  new TreeNode('x', none); //the root of the tree
+    this.rootNode =  new TreeNode('x', null); //the root of the tree
                      
     this.addObject =
     function( xMin, xMax, yMin, yMax, zMin, zMax, obj ){
