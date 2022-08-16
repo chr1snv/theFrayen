@@ -6,10 +6,10 @@
 //     dynamic model (player mesh, npc, etc)
 function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback=null)
 {
+    //get the quadMesh transformationMatrix
     this.generateModelMatrix = function( cbObjs, completeCallback )
     {
         var thisP = cbObjs[1];
-        //get the quadMesh transformationMatrix
         var quadMeshMatrix = new Float32Array(4*4);
         graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbObjs, 2:completeCallback}, 
         	function(quadMesh, cbObj2)
@@ -30,7 +30,7 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 		        transformation[1*4+3] += thisP.positionOff[1];
 		        transformation[2*4+3] += thisP.positionOff[2];
 
-		        cbObj2[2]( transformation, cbObj2[1] );
+		        cbObj2[2]( transformation, cbObj2[1] ); //completeCallback( transform, cbObjs ); //return the transforma
         	}
         );
     }
@@ -39,22 +39,22 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     //Identification / registration functions
     this.AddToSceneGraph = function(sgIn, addCompletedCallback)
     {
-        if( sgIn == null)
+        if( sgIn == null )
             return;
         this.RemoveFromSceneGraph();
         this.sceneGraph = sgIn;
         this.sceneGraph.Add(this, addCompletedCallback);
     }
-    this.RemoveFromSceneGraph = function(removeCompletedCallback)
+    this.RemoveFromSceneGraph = function( removeCompletedCallback )
     {
-        if(this.sceneGraph != null)
+        if( this.sceneGraph != null )
         {
-        	var sceneGraphRemoveCompleted = function(thisP)
+        	var sceneGraphRemoveCompleted = function( thisP )
         	{
 	        	thisP.sceneGraph = null;
-	        	removeCompletedCallback(thisP);
+	        	removeCompletedCallback( thisP );
         	}
-            this.sceneGraph.Remove(sceneGraphRemoveCompleted, this);
+            this.sceneGraph.Remove( sceneGraphRemoveCompleted, this );
         }
     }
 
@@ -65,8 +65,8 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
             function(quadMesh, cbObj)
             {
                 quadMesh.Update(time);
-                cbObj[1].timeUpdate = true;
-                cbObj[3](cbObj[2]);
+                cbObj[1].timeUpdate = true; //set this model's flag that the animation of the mesh has been updated so it should regenerate it's gl buffer
+                cbObj[3](cbObj[2]); //updateCompleteCallback(updateCompleteParams);
             }
         );
 
@@ -102,26 +102,29 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 
     //draw functions
     this.GetNumVerts = function(cbParams, cb)
-    { 
+    {
         graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
             function(quadMesh, cbObj){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
-        ); 
+        );
     }
+    //must draw forces the quadmesh to regenerate it's mesh passed to gl
     this.Draw = function( frustum, verts, normals, uvs, modelTransform, mustDraw, completeCallback )
     {
-        if(this.timeUpdate || mustDraw)
+        if(this.timeUpdate || mustDraw) //check if the model should 
         {
+            //generateModelMatrix( cbObjs, completeCallback )
             this.generateModelMatrix(
-                {1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback},
-                function( transformation, cmpCb )
+                {1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback}, //cbObjs
+                function( transformation, cbObjs ) //completeCallback( transform, cbObjs )
                 {
-                	Matrix_Copy( cmpCb[6], transformation );
-                	graphics.GetQuadMesh( cmpCb[1].meshName, cmpCb[1].sceneName, cmpCb, 
-                		function(quadMesh, cmpCb)
+                	Matrix_Copy( cbObjs[6], transformation ); //copy( modelTransform, transformation );
+                	//getQuadMesh( this.filename, this.sceneName, readyCallbackParameters, quadMeshReadyCallback )
+                	graphics.GetQuadMesh( cbObjs[1].meshName, cbObjs[1].sceneName, cbObjs, 
+                		function(quadMesh, cbObjs) //quadMeshReadyCallback( quadMesh, cbObjs )
                 		{
-                	    	quadMesh.Draw(cmpCb[3], cmpCb[4], cmpCb[5]);
-                	    	cmpCb[1].timeUpdate = false; //clear the time update flag
-	                	    cmpCb[8]( true );
+                	    	quadMesh.Draw(cbObjs[3], cbObjs[4], cbObjs[5]); //draw( verts, normals, uvs );
+                	    	cbObjs[1].timeUpdate = false; //clear the time update flag
+	                	    cbObjs[8]( true ); //completeCallback( true )
                 		}
             		);
             	}
@@ -182,6 +185,11 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     this.GetBoundingPlanes = function( finishedCallback ) {
         graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetBoundingPlanes() );
+        });
+    }
+    this.GetAABB = function( finishedCallback ){
+        graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
+            callback( quadMesh.GetAABB() );
         });
     }
 

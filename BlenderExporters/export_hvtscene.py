@@ -86,7 +86,7 @@ def writeScene(path):
             out.write( '%f %f %f ' % (obj.location[0], obj.location[1], -obj.location[2]))
             out.write( '%f %f %f ' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
             out.write( '%f %f %f ' % (lampD.color[0], lampD.color[1], lampD.color[2]))
-            out.write( '%f ' % (lampD.energy))
+            out.write( '%f\n' % (lampD.energy))
             try:
                 out.write( '%f\n' % (lampD.spot_size)) #radians angle
             except:

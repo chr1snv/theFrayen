@@ -17,11 +17,11 @@ def writeModel(assetDirectory, ob):
 
     #check the user has selected an object
     if not ob:
-        popupMenu('Error%t| write model called with null ob')
+        print('Error%t| write model called with null ob')
         return
     #check that the selected object is a Mesh
     if not ob.type == 'MESH':
-        popupMenu('Error%t| Active object is not a Mesh')
+        print('Error%t| Active object is not a Mesh')
         return
 
     #----write the mesh file----
@@ -55,7 +55,7 @@ def writeMeshMaterials(assetDirectory, ob):
     mesh = ob.data
     #check that geting the mesh data worked
     if not mesh:
-        popupMenu('Error%t| writeMeshMaterials Can\'t get mesh data for obj: ' + ob.name)
+        print('Error%t| writeMeshMaterials Can\'t get mesh data for obj: ' + ob.name)
         return
 
     matFileName = assetDirectory + "/meshMaterials/" + ob.name + ".hvtMeshMat"
@@ -76,17 +76,24 @@ def writeShader(assetDirectory, mat):
 
     shdFileName = assetDirectory + "/shaders/" + mat.name + ".hvtShd"
     
-
+    #example of walking material node graph and getting  
+    #bpy.context.scene.objects[17].data.materials[0].node_tree.nodes[0].inputs['Surface'].node
+    #>bpy.data.materials['metal'].node_tree.nodes["Material Output"]
 
     #check that the shader is of type Principled BSDF
-    if mat.node_tree.nodes.keys().count('Principled BSDF') < 1:
-        popupMenu("Principled BSDF node not found for ")
+    #to keep the haven exporter from blender simple it only supports this shader type because it can do plastic, metal, and transparent materials
+    #https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html
+    #"The base layer is a user controlled mix between diffuse, metal, subsurface scattering and transmission. On top of that there is a specular layer, sheen layer and clearcoat layer."
+    if mat.node_tree.nodes.keys().count('Principled BSDF') > 1:
+        print("Haven Exporter unspported material - Principled BSDF node not found for material: %s" % (mat.name) )
         return
         
     p = bpy_extras.node_shader_utils.PrincipledBSDFWrapper(mat)
 
     #open the output file
     out = open(shdFileName, "w")
+    
+    #print( "writeShader: %s" % (mat.name) ) 
     
 
     #output the textures the shader uses
@@ -95,12 +102,14 @@ def writeShader(assetDirectory, mat):
     for node in mat.node_tree.nodes:
         #skip non supported configurations
         if node.name != 'Image Texture':
+            #print( "node.name != 'Image Texture': %s" % (node.name) )
             continue
         if node.image != None:
             tex = node.image
+            #print("found image shader node")
 
             if node.inputs[0].links[0].from_socket.name != 'UV':
-                popupMenu("Texture doesn't use UV coordinates")
+                print("Texture doesn't use UV coordinates: node.inputs[0].links[0].from_socket.name: %s" % (node.inputs[0].links[0].from_socket.name) )
                 continue
             else:
                 #write the texture type and filename
@@ -109,7 +118,7 @@ def writeShader(assetDirectory, mat):
                 #get the texture filename
                 path = tex.filepath
                 directory, filename = os.path.split(path)
-                filename = os.path.splitext(filename)[0] #strip the file type
+                #filename = os.path.splitext(filename)[0] #strip the file type
 
                 #write the texture type
                 out.write('t\n')
@@ -128,7 +137,7 @@ def writeShader(assetDirectory, mat):
                         out.write('da\n')                 #write out a flag if the alpha channel of the diffuse texture is used
                     else:
                         #don't support seperate alpha/diffuse textures
-                        popupMenu("Alpha texture is not diffuse Texture ")
+                        print("Alpha texture is not diffuse Texture ")
                         out.write('e\n')
                         continue
                 #
@@ -138,14 +147,16 @@ def writeShader(assetDirectory, mat):
                 #
                 #check that the texture exists
                 #absPath = Blender.sys.expandpath(path)
-                absPath = os.path.join( os.getcwd(), mat.node_tree.nodes["Image Texture"].image.filepath[2:])
+                full_path = bpy.path.abspath(tex.filepath, library=tex.library)
+                absPath = os.path.normpath(full_path)
+                #absPath = bpy.path.abspath( mat.node_tree.nodes["Image Texture"].image.filepath[2:])
                 if( not os.path.isfile(absPath) ):
-                    popupMenu("Cannot find texture file " + absPath + " of  mat: " + mat.name),
+                    print("Cannot find texture file " + absPath + " of  mat: " + mat.name)
                     out.close()
                     return
 
                 #copy the texture file into the proper folder
-                shutil.copyfile(absPath, assetDirectory+"/textures/"+filename+".png")
+                shutil.copyfile(absPath, assetDirectory+"/textures/"+filename)
     out.write('\n')
 
     #write out the shader settings
@@ -169,15 +180,17 @@ def writeMesh(assetDirectory, ob):
 
     #get the mesh data
     mesh = ob.data #getData()
+    
+    #print( "writeMesh: %s" %(ob.name) ) 
 
     #check that geting the raw mesh data worked
     if not mesh:
-        popupMenu("Can\'t get Mesh data for obj: " + ob.name )
+        print("Can\'t get Mesh data for obj: " + ob.name )
         return
 
     #check the mesh has UV's
     if not mesh.uv_layers: #.hasFaceUV():
-        popupMenu( text="Mesh: " + mesh.name + " does not have uv coordinates" )
+        print( text="Mesh: " + mesh.name + " does not have uv coordinates" )
         return
 
     meshFileName = assetDirectory + "/meshes/" + ob.name + ".hvtMesh"
@@ -213,7 +226,7 @@ def writeMesh(assetDirectory, ob):
         for influencingGroup in vert.groups:
             boneWeight = (influencingGroup.group, influencingGroup.weight)
             if boneWeight[1] < 0.0:
-                popupMenu('Error%t|Negative Bone Weight')
+                print('Error%t|Negative Bone Weight')
                 out.close()
                 return
             boneWeightTotal += boneWeight[1]
@@ -229,7 +242,7 @@ def writeMesh(assetDirectory, ob):
     out.write('cf %i\n' % (len(mesh.polygons)))
     for face in mesh.polygons:
         if not (len(face.vertices) == 4 or len(face.vertices)==3):
-            popupMenu('Error%t|Mesh: ' + mesh.name + ' not entirely quads and tris')
+            print('Error%t|Mesh: ' + mesh.name + ' not entirely quads and tris')
             out.close()
             return
         out.write('f\n')
@@ -241,7 +254,7 @@ def writeMesh(assetDirectory, ob):
         out.write('u')
         for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
             uv_coords = ob.data.uv_layers.active.data[loop_idx].uv
-            print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
+            #print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
             out.write( ' %f %f' % (uv_coords[0], uv_coords[1]) )
         out.write('\ne\n')
 
@@ -251,7 +264,7 @@ def writeMesh(assetDirectory, ob):
     
 def writeObjectAnimationData(assetDirectory, obj):
         
-    print( "writing animation curve data for " + obj.name + "\n" )
+    #print( "writing animation curve data for " + obj.name + "\n" )
     
     #check that the data we need exists (if there isn't animation for the object it won't have animData.action)
     animData = obj.animation_data
@@ -306,7 +319,7 @@ def writeKeyframeMeshData(assetDirectory, ob):
     #check the data we need exists
     mesh = ob.data
     if mesh == None:
-        popupMenu("writeKeyFrames for a non mesh object: " + ob.name)
+        print("writeKeyFrames for a non mesh object: " + ob.name)
         return
     keyObject = mesh.shape_keys
     if keyObject == None:
@@ -315,7 +328,7 @@ def writeKeyframeMeshData(assetDirectory, ob):
         return
         
     if keyObject.animation_data == None:
-        popupMenu("writeKeyFrameShapes for a keyObject without animation data: " + ob.name)
+        print("writeKeyFrameShapes for a keyObject without animation data: " + ob.name)
         return
         
     curves = keyObject.animation_data.nla_tracks.data.action.fcurves.items()
@@ -352,7 +365,7 @@ def writeKeyframeMeshData(assetDirectory, ob):
         out.write('k %s\n' % (block.name.replace (" ", "_")))
         blockData = block.data
         if blockData == None:
-            popupMenu("writeKeyFrames no block data for block: " +block.name + 'object: ' + ob.name)
+            print("writeKeyFrames no block data for block: " +block.name + 'object: ' + ob.name)
             out.close()
             return
         out.write('c %i\n' % len(blockData)) #count of verticies
@@ -375,11 +388,11 @@ def writeAnim(assetDirectory, ob):
             armatureObj = modifier.object
             #check the armature modifier does not use envelopes
             if modifier.use_bone_envelopes:
-                popupMenu('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
+                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
                 return
             #check the armature modifer uses vertex groups
             if not modifier.use_vertex_groups:
-                popupMenu('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
+                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
                 return
 
     if armatureObj == None:
@@ -392,7 +405,7 @@ def writeAnim(assetDirectory, ob):
 
     #check there is an armature        
     if armature == None:
-        popupMenu('Error%t|Failed to get Armature data')
+        print('Error%t|Failed to get Armature data')
         return
 
     #check the user is ok with saving over an old file (if it exists)

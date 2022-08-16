@@ -34,10 +34,13 @@ void main() {
     float specularLightAmt = pow( lightDotProd,  0.001);//specularExponent );
     
     //sum the diffuse specular and emissive components
+    
     FragColor           = diffuseCol * diffuseLightAmt +
                              specularLightAmt * specularColor +
                              emissionColor;
-    FragColor.a = 1.0;
+    //FragColor.a = 1.0;
+
+    //FragColor = texColor;
 
     /*
     float z = gl_FragCoord.z;

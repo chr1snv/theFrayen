@@ -7,7 +7,7 @@ function CheckGLError(where)
 	var iter = 0;
 	while(error != gl.NO_ERROR && iter < 100)
 	{
-		DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16));
+		DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16) + ' ' + WebGLDebugUtils.glEnumToString(error) );
 		error = gl.getError();
 		++iter;
 	}
@@ -47,6 +47,8 @@ function attributeSetFloats( prog, attr_name, rsize, arr)
 function Graphics(canvasIn, bpp, depthIn)
 {
 	this.canvas = canvasIn;
+	
+	WebGLDebugUtils.init(this.canvas);
 
 	//maps used to keep track of primative graphics objects
 	this.textures = {};
@@ -212,7 +214,7 @@ function Graphics(canvasIn, bpp, depthIn)
 	{
 		if(this.numLightsBounded >= this.maxLights)
 		{
-		    DPrintf("Graphics: error Max number of lights already bound.\n");
+		    //DPrintf("Graphics: error Max number of lights already bound.\n");
 		    return;
 		}
 		this.enableLighting(true);
@@ -247,11 +249,13 @@ function Graphics(canvasIn, bpp, depthIn)
 		}
 	}
 	this.UnrefShader = function(filename, sceneName) {}
+	//cache the texture for later use (called from Texture when it's image file successfully loads)
 	this.AppendTexture = function(textureName, sceneName, newValidTexture)
 	{
-		var concatName = textureName + sceneName;        
+		var concatName = textureName + sceneName;
 		this.textures[concatName] = newValidTexture;
 	}
+	//get a texture that has been previously requested or attempt to load it from the servertextureReadyCallback(newTexture);
 	this.GetTexture = function(filename, sceneName, textureReadyCallback)
 	{
 		var concatName = filename + sceneName;
@@ -259,13 +263,10 @@ function Graphics(canvasIn, bpp, depthIn)
 		if(texture === undefined)
 		{
 		    //texture is not loaded, load the new texture and have it return when it's ready (async load)
-		    Texture(filename, sceneName, textureReadyCallback, function(newTexture, textureReadyCallback){
-				graphics.textures[concatName] = newTexture;
-				textureReadyCallback(newTexture);
-			});
+		    new Texture(filename, sceneName, textureReadyCallback );
 		}else
 		{
-		    //the texture is ready, have it return through the callback
+		    //the cached texture is ready, have it return through the callback
 		    textureReadyCallback(texture);
 		}
 	}

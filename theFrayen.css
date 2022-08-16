@@ -23,9 +23,9 @@ h4 {margin:0px;}
 /*rounded container for page footer elements*/
 .footerContainer {
     background-color: #5AA0D8;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#5AA0D8', endColorstr='#345D7E');
-    background: -webkit-gradient(linear, left top, left bottom, from(#5AA0D8), to(#345D7E));
-    background: -moz-linear-gradient(top,  #5AA0D8,  #345D7E); 
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#5AA0D838', endColorstr='#345D7E5E');
+    background: -webkit-gradient(linear, left top, left bottom, from(#5AA0D838), to(#345D7E5E));
+    background: -moz-linear-gradient(top, #5AA0D838, #345D7E5E); 
     border-radius: 30px;
     margin:auto;
     padding: 10px;

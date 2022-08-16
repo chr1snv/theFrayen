@@ -1,8 +1,11 @@
 .DS_Store
 scenes/*
 HavenTech/*~
+gravity/*
+obfsucatedFrayen/*
+
 *~
 *.png
 *.pdf
-
-
+*.jpg
+*.ico

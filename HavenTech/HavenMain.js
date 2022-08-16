@@ -160,17 +160,19 @@ function MainLoop()
 //called from the mainloop, gets user input and updates the freelook camera
 function UpdateCamera()
 {
-
+    if( mainScene.cameras.length < 1 )
+       return;
+       
     //generate the position update
     var moveAmt = 0.2;
     var camPositionUpdate = new Float32Array( [ 0, 0, 0 ] );
-    if( keys[keyCodes.KEY_W] == true )
+    if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
         camPositionUpdate[2] -= moveAmt;
-    if( keys[keyCodes.KEY_S] == true )
+    if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
         camPositionUpdate[2] += moveAmt;
-    if( keys[keyCodes.KEY_A] == true )
+    if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
         camPositionUpdate[0] -= moveAmt;
-    if( keys[keyCodes.KEY_D] == true )
+    if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
         camPositionUpdate[0] += moveAmt;
 
     //generate the rotation update

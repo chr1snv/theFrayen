@@ -24,12 +24,12 @@ function registerInputHandlers(){
 
 function pageKeyDownHandler(e){
     var keyCode = e.keyCode;
-    DPrintf( 'keyPressed: ' + keyCode );
+    //DPrintf( 'keyPressed: ' + keyCode );
     keys[keyCode] = true;
 }
 function pageKeyUpHandler(e){
     var keyCode = e.keyCode;
-    DPrintf( 'keyUp: ' + keyCode );
+    //DPrintf( 'keyUp: ' + keyCode );
     keys[keyCode] = false;
 }
 

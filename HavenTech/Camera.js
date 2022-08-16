@@ -229,7 +229,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         Matrix_Inverse( invTransformMat, transformMat );
 
         //multiply the inverseTransformationMatrix by the perspective matrix to get the camera projection matrix
-        Matrix_Multiply( this.ProjectionMatrix, glFrustumProjectionMat, invTransformMat );
+        Matrix_Multiply( this.ProjectionMatrix, gluPersepctiveProjectionMat, invTransformMat );
         return this.ProjectionMatrix;
     }
 

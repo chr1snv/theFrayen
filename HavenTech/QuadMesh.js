@@ -18,6 +18,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     this.isValid         = false;
     this.isAnimated      = false;
+    
 
     //the orientation matrix
     this.scale           = new Float32Array([1,1,1]);
@@ -29,9 +30,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //the calculated mesh data
     
     //the gl buffers
-    var vertsBuffer   = gl.createBuffer()
-    var normalsBuffer = gl.createBuffer()
-    var uvsBuffer     = gl.createBuffer()
+    var vertsBuffer   = gl.createBuffer();
+    var normalsBuffer = gl.createBuffer();
+    var uvsBuffer     = gl.createBuffer();
 
     //the raw mesh data
     this.faces           = [];
@@ -45,9 +46,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.skelPositions   = [];
 
     //animation classes
-    this.ipoAnimation    = new IPOAnimation(     this.meshName, this.sceneName);
-    this.keyAnimation    = new MeshKeyAnimation( this.meshName, this.sceneName);
-    this.skelAnimation   = new SkeletalAnimation(this.meshName, this.sceneName);
+    this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
+    this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
+    this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
 
     //calculate per vertex normals from face averaged normals
     //calculated from vertex position coordinates
@@ -187,6 +188,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
     }
     
+    //baised on faces (that may be a mixture of triangles and quads) generate only triangle uv coordinates
+    //for buffering and rendering with gl
     this.tesselateUVCoords = function( uvCoords, faces )
     {
         var cI = 0;
@@ -243,25 +246,27 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     //using the MeshKeyAnimation
     //update the current mesh (used by skeletal animation if present) to the current animationFrame
-    this.Update = function(animationTime) {}
+    this.Update = function(animationTime) { 
+        this.lastMeshUpdateTime = 0; 
+    }
     this.GetAnimationLength = function() {}
 
     //used by skeletal animation classes
     this.GetVertsCt = function() { return vertsCt; }
-    this.GetVertPosition = function(posRet, idx) {}
+    this.GetVertPosition = function( posRet, idx ) {}
 
     //used by Model to cache data for later fast lookup
-    this.GetVertBoneWeightsSize = function(){ return vertBoneWeights.size(); }
-    this.GetVertBoneWeights = function(i) { return vertBoneWeights[i]; }
-    this.SetVertBoneWeights = function(i) { return vertBoneWeights[i]; }
+    this.GetVertBoneWeightsSize = function()  { return vertBoneWeights.size(); }
+    this.GetVertBoneWeights     = function(i) { return vertBoneWeights[i];     }
+    this.SetVertBoneWeights     = function(i) { return vertBoneWeights[i];     }
 
     //transformation query functions
-    this.GetPosition = function(pos) { Vect3_Copy(pos, this.origin); }
-    this.GetScale = function(scaleOut) { Vect3_Copy(scaleOut, this.scale); }
-    this.GetRotation = function(rotOut) { Vect3_Copy(rotOut, this.rotation); }
+    this.GetPosition = function(pos)      { Vect3_Copy(pos, this.origin);      }
+    this.GetScale    = function(scaleOut) { Vect3_Copy(scaleOut, this.scale);  }
+    this.GetRotation = function(rotOut)   { Vect3_Copy(rotOut, this.rotation); }
 
     //color manipulation functions
-    this.GetShaderName = function(){ return [this.shaderNames[0], this.sceneName]; }
+    this.GetShaderName = function() { return [this.shaderNames[0], this.sceneName]; }
 
     //draw interface
     this.Draw = function(verts, normals, uvs)
@@ -330,7 +335,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     //type query functions
     this.IsHit = function() {}
-    this.IsTransparent = function(callback, thisP) //thisP is from the caller of this function, so the callback can return to the same context
+    //thisP is from the caller of this function, so the callback can return to the same context
+    this.IsTransparent = function(callback, thisP) 
     {
         graphics.GetShader( this.shaderNames[0], this.sceneName, callback,
             function( shader, cb )
@@ -341,6 +347,45 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     //geometry query function
     this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
+    
+    this.lastAABBUpdateTime = -1;
+    this.lastAABB = [];
+    //get the axis aligned bounding box of the mesh
+    this.GetAABB = function() {
+        if( this.lastAABBUpdateTime < this.lastMeshUpdateTime )
+        {
+            var minX = 0;
+            var minY = 0;
+            var minZ = 0;
+            var transformedPositions = this.getTransformedVerts();
+            for ( var i = 0; i < transformedPositions.length; ++i ){
+            
+                if( transformedPositions[ i ][0] < minX ){
+                    minX = transformedPositions[ i ][0];
+                }
+                if( transformedPositions[ i ][1] < minY ){
+                    minY = transformedPositions[ i ][1];
+                }
+                if( transformedPositions[ i ][2] < minZ ){
+                    minZ = transformedPositions[ i ][2];
+                }
+                if( transformedPositions[ i ][0] > maxX ){
+                    maxX = transformedPositions[ i ][0];
+                }
+                if( transformedPositions[ i ][1] > maxY ){
+                    maxY = transformedPositions[ i ][1];
+                }
+                if( transformedPositions[ i ][2] > maxZ ){
+                    maxZ = transformedPositions[ i ][2];
+                }
+                
+            }
+            this.lastAABBUpdateTime = this.lastMeshUpdateTime;
+            this.lastAABB = [ minX, minY, minZ,   maxX, maxY, maxZ ];
+            
+        }
+        return this.lastAABB;
+    }
 
     //constructor functionality
     ///////////////////////////

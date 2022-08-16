@@ -26,7 +26,7 @@ function loadTextFile(filename, callback, thisP)
                 		  fileSuffix == "hvtKeys" ||
                 		  fileSuffix == "hvtAnim") )
                 	{
-                    	alert( "Unable to open file of unknown type: " +  filename);
+                    	console.log( "Unable to open file of unknown type: " +  filename);
                     }
                 }
             }

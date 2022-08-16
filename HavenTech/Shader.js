@@ -5,7 +5,7 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
 {
     this.shaderName = nameIn;
     this.sceneName = sceneNameIn;
-    this.glRefId = graphics.currentProgram;
+    this.glShaderProgramRefId = graphics.currentProgram;
 
     this.emitAmount = 0.0;
 
@@ -179,22 +179,22 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
             //white when far from the camera
             //(depth render pickling)
             IPrintf("drawing a hit object\n");
-            gl.uniform4f(gl.getUniformLocation(this.glRefId, 'diffuseColor'),  0.0, 0.0, 0.0, 1.0 );
-            gl.uniform1f(gl.getUniformLocation(this.glRefId, 'texturingEnabled'), 0 );
-            gl.uniform1f(gl.getUniformLocation(this.glRefId, 'lightingEnabled'), 0 );
+            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),  0.0, 0.0, 0.0, 1.0 );
+            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'texturingEnabled'), 0 );
+            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 0 );
             CheckGLError("Shader: bind");
             bindFinishedCallback(callbackParams);
         }
         else { // is a standard shader
             if(previousShader === undefined || previousShader.isHit || previousShader.isShadeless ){
-                gl.uniform1f(gl.getUniformLocation(this.glRefId, 'lightingEnabled'), 1);
+                gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 1);
             }
 
             if(this.diffuseTextureName !== undefined){
                 var thisP = this;
                 //var finishedCallback = bindFinshedCallback;
                 graphics.GetTexture(this.diffuseTextureName, this.sceneName, function(texture){
-                    gl.uniform1f(gl.getUniformLocation(thisP.glRefId, 'texturingEnabled'), 1 );
+                    gl.uniform1f(gl.getUniformLocation(thisP.glShaderProgramRefId, 'texturingEnabled'), 1 );
                     texture.Bind(0);
                     thisP.shaderTextureBindFinishedCallback(previousShader);
                     CheckGLError("Shader: bind");
@@ -219,26 +219,26 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
             Vect3_Copy(colAlph, this.diffuseCol);
             Vect3_MultiplyScalar(colAlph, this.diffuseMix);
 
-            gl.uniform4f(gl.getUniformLocation(this.glRefId, 'diffuseColor'),
+            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),
                 colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
 
             Vect3_Copy(colAlph, this.specularCol);
             Vect3_MultiplyScalar(colAlph, this.specularMix);
-            gl.uniform4f(gl.getUniformLocation(this.glRefId, 'specularColor'),
+            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'specularColor'),
                 colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
 
             var specularExponent = this.specularHardness*128.0;
             if(specularExponent > 128.0)
                 specularExponent = 128;
-            gl.uniform1f(gl.getUniformLocation(this.glRefId, 'specularExponent'), specularExponent);
+            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'specularExponent'), specularExponent);
 
             Vect3_Copy(colAlph, this.diffuseCol);
             Vect3_MultiplyScalar(colAlph, this.emitAmount);
-            gl.uniform4fv(gl.getUniformLocation(this.glRefId, 'emissionColor'), colAlph);
+            gl.uniform4fv(gl.getUniformLocation(this.glShaderProgramRefId, 'emissionColor'), colAlph);
         }
         else{
-            gl.uniform1i(gl.getUniformLocation(this.glRefId, 'lightingEnabled'), 0 );
-            gl.uniform4f(gl.getUniformLocation(this.glRefId, 'diffuseColor'),
+            gl.uniform1i(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 0 );
+            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),
                 this.diffuseCol[0], this.diffuseCol[1], this.diffuseCol[2], this.alpha);
         }
 

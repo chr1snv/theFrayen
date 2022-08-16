@@ -29,7 +29,9 @@ var incFiles = ['Iohelpers.js',
                 //'CameraStream.js',
                 'Quaternion.js',
                 'Ray.js',
-                'webgl-utils.js'];
+                'Sound.js',
+                'webgl-utils.js',
+                'webgl-debug.js'];
 var incFileIdx = 0;
 
 function havenIncMain(){
