@@ -31,6 +31,8 @@ function TreeNode(axis, minCoord, MaxCoord, parent){
   this.minNode = null; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
   this.MaxNode = null; //
   
+  this.nodeQueue = "";
+  
   //add an object to the node, if it is full subdivide it and place objects in the sub nodes
   this.AddObject = function(object, addDepth=0){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
     if(this.objects.length < MaxTreeNodeObjects){
@@ -51,7 +53,9 @@ function TreeNode(axis, minCoord, MaxCoord, parent){
     var numObjectsAddedToMinNode = 0;
     for(var i = 0; i < this.objects.length; ++i){
         
-        var objectBounds = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
+        var objectBounds = this.objects[i].GetAABB( function( minMaxAABBPoints ){
+        
+        } ); //get the axis aligned bounding box for the object 
                                                       //( min and max points defining a box with faces (planes) aligned with the x y z axies
         if( objectBounds.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
                                               this.minNode.MaxCoord[nextAxis] < objectBounds.MaxCoord[nextAxis] ){

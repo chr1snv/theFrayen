@@ -22,12 +22,10 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
     this.activeCameraIdx = -1;
 
     this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
-    //this.hitSceneGraph = new SceneGraph();
 
     this.framesSec = 25.0;
     
-    this.sceneGraph = new SceneGraph(this.sceneName);
-    this.hitSceneGraph = new SceneGraph();
+    this.renderBufferManager = new RenderBufferManager(this.sceneName);
 
     //function members
     this.GetName = function(){ return this.sceneName; }
@@ -90,7 +88,7 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
             
         //    (using links between model instances and buffer indicies, update the models in parallel)
         //render a frame (gpu does in parallel if using the same shader program)
-        this.sceneGraph.Draw(this.cameras[this.activeCameraIdx]);
+        this.renderBufferManager.Draw(this.cameras[this.activeCameraIdx]);
         graphics.Flush();
     }
 
@@ -108,7 +106,7 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         Vect3_Copy(temp, rayDir);
         Vect3_Add(temp, rayOrig);
 
-        return this.hitSceneGraph.ClosestRayIntersection(rayOrig, rayDir);
+        return this.octTree.ClosestRayIntersection(rayOrig, rayDir);
     }
 
     //check if finished asynchronously loading the scene
@@ -131,9 +129,9 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
                 var modelName = words[1];
                 var modelMeshName = modelName;
                 thisSceneP.pendingModelsAdded++;
-                newMdl    = new Model(modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
-                function(model, havenScenePointer){
-                   model.AddToSceneGraph( havenScenePointer.sceneGraph, 
+                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
+                function( model, havenScenePointer ){
+                   model.AddToOctTree( havenScenePointer.octTree,
                     function(){
                       thisSceneP.pendingModelsAdded-=1;
                       thisSceneP.checkIfIsLoaded();

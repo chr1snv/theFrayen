@@ -6,8 +6,8 @@
 //remove and
 //draw functions)
 
-//scene graph -> render buffer manager
-//maintains vertex, normal, uv, gl buffer handles
+//the render buffer manager
+//maintains vertex, normal, uv, gl buffer handles for gl rasterization
 //grouped by vertex / fragment shader programs
 //tries to minimally update objects and then if there are changes from
 //last frame, pass them to the gpu and rasterize
@@ -27,13 +27,13 @@
 //this is planned to be implemented with OctTree
 //(which also may be used for physics and raytracing performance)
 
-function SceneGraph(sceneNameIn)
+function RenderBufferManager(sceneNameIn)
 {
     this.sceneName = sceneNameIn;
 
     //links a drawable to a index and length in the buffer
     function ShaderDrawablePair(){
-        this.startIndex = 0;       //scenegraph buffer index
+        this.startIndex = 0;       //RenderBufferManager buffer index
         this.numVerts   = 0;
         this.drawable;
         this.mustDraw;

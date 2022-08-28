@@ -49,6 +49,27 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
     this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
     this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
+    
+    this.GetLocalToWorldMatrix = function()
+	{
+        var pos      = new Float32Array(3); this.GetPosition(pos);
+        var rot      = new Float32Array(3); this.GetRotation(rot);
+        var scale    = new Float32Array(3); this.GetScale(scale);
+        Matrix( quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos );
+
+        //calculate the set transformation matrix
+        var offsetMatrix = new Float32Array(4*4);
+        Matrix( offsetMatrix,
+                MatrixType.euler_transformation,
+                thisP.scaleOff, thisP.rotationOff, new Float32Array([0,0,0]) );
+        var transformation = new Float32Array(4*4);
+        Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
+        transformation[0*4+3] += thisP.positionOff[0];
+        transformation[1*4+3] += thisP.positionOff[1];
+        transformation[2*4+3] += thisP.positionOff[2];
+
+        return transformation; //return the local totransformation
+	}
 
     //calculate per vertex normals from face averaged normals
     //calculated from vertex position coordinates
@@ -125,6 +146,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             vertNormals[idx+1] /= len;
             vertNormals[idx+2] /= len;
         }
+        
     }
     
     //used to tesselate position coordinates
@@ -346,11 +368,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
 
     //geometry query function
-    this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
+    //this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
     
     this.lastAABBUpdateTime = -1;
     this.lastAABB = [];
-    //get the axis aligned bounding box of the mesh
+    //get the axis aligned bounding box of the mesh (minimum and maximum corner)
     this.GetAABB = function() {
         if( this.lastAABBUpdateTime < this.lastMeshUpdateTime )
         {

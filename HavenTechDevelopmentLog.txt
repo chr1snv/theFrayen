@@ -80,3 +80,9 @@ shrink wrap convex hull surface meshing
 to find the surfaces of point mass objects a plane is swept along an axis sorting the points by their value on the axis,
 the next point closest to it is picked with the
 
+magnetics and magnetic simulation - mri (spin waves) is the best way to image soft objects, data and inspiration from it in simulation may give new expirences
+magnetisim is circular electric motion. every electric motion causes dopplar shift, displacement of other objects of similar frequency
+
+in order to simulate these phenomina - a unified model is desired. best current idea is spectral electro magnetic wave frequency simulation. with asynchronous /offline calculation and caching and error bound generalization to use a combination of precomputed directional sperical harmonic lighting and geometry, raytracing, rasterization, and low level simulation of individual interactions instanced to reduce duplicate computation
+
+effictively pipelining and caching - having the most probable scenarios precomputed and preform the minimal computations to generate dynamic content

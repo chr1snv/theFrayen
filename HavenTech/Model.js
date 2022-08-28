@@ -30,31 +30,35 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 		        transformation[1*4+3] += thisP.positionOff[1];
 		        transformation[2*4+3] += thisP.positionOff[2];
 
-		        cbObj2[2]( transformation, cbObj2[1] ); //completeCallback( transform, cbObjs ); //return the transforma
+		        cbObj2[2]( transformation, cbObj2[1] ); //completeCallback( transform, cbObjs ); //return the model to world transformation
         	}
         );
     }
 
 	//public methods
-    //Identification / registration functions
-    this.AddToSceneGraph = function(sgIn, addCompletedCallback)
+	
+    //Identification / registration functions so that 
+    //the model can be drawn, interact with other objects, and be updated when in view
+    this.AddToOctTree = function(octTreeIn, addCompletedCallback)
     {
-        if( sgIn == null )
+        if( octTreeIn == null )
             return;
-        this.RemoveFromSceneGraph();
-        this.sceneGraph = sgIn;
-        this.sceneGraph.Add(this, addCompletedCallback);
+        this.RemoveFromOctTree();
+        this.octTree = octTreeIn;
+        this.octTree.AddObject(this, addCompletedCallback);
     }
-    this.RemoveFromSceneGraph = function( removeCompletedCallback )
+    
+    this.RemoveFromOctTree = function( removeCompletedCallback )
     {
-        if( this.sceneGraph != null )
-        {
-        	var sceneGraphRemoveCompleted = function( thisP )
-        	{
-	        	thisP.sceneGraph = null;
-	        	removeCompletedCallback( thisP );
+        if( this.octTree != null ){
+        
+        	var OctTreeRemoveCompleted = function( thisP ){
+        	
+	        	thisP.octTree = null;
+	        	
         	}
-            this.sceneGraph.Remove( sceneGraphRemoveCompleted, this );
+        	
+            this.octTree.Remove( removeCompleted, this );
         }
     }
 
@@ -92,7 +96,7 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     }
     this.SetShader = function(shaderNameIn, sceneNameIn)
     {
-        //this function may not be used
+        //this function may not be used, used to change the shader on the model after it's been loaded
         var currentSceneGraph = this.sceneGraph;
         this.RemoveFromSceneGraph();
         this.shaderName = shaderNameIn;
@@ -182,13 +186,15 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
         return false;
 
     }
+    /*
     this.GetBoundingPlanes = function( finishedCallback ) {
-        graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
+        graphics.GetQuadMesh( this.meshName, this.sceneName, finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetBoundingPlanes() );
         });
     }
+    */
     this.GetAABB = function( finishedCallback ){
-        graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
+        graphics.GetQuadMesh( this.meshName, this.sceneName, finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetAABB() );
         });
     }
