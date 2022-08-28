@@ -18,25 +18,23 @@
 
 var MaxTreeNodeObjects = 5;
 
-function TreeNode(axis, minCoord, MaxCoord, parent){
+function TreeNode( axis, minCoord, MaxCoord, parent ){
 
   this.axis = axis; //the axis that the node splits ( (0)x , (1)y , or (2)z )
   this.minCoord = minCoord; //the minimum corner that the node covers
   this.MaxCoord = MaxCoord; //the Maximum corner that the node covers
   
-  this.parent = parent; //link to the parent ( to allow traversing back up the tree )
+  this.parent  = parent; //link to the parent ( to allow traversing back up the tree )
   
   this.objects = []; //the objects local to the node
   
   this.minNode = null; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
   this.MaxNode = null; //
   
-  this.nodeQueue = "";
-  
   //add an object to the node, if it is full subdivide it and place objects in the sub nodes
-  this.AddObject = function(object, addDepth=0){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
-    if(this.objects.length < MaxTreeNodeObjects){
-        this.objects.push(object);
+  this.AddObject = function( object, addDepth=0 ){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
+    if( this.objects.length < MaxTreeNodeObjects ){
+        this.objects.push( object );
         return true;
     }
     
@@ -51,35 +49,33 @@ function TreeNode(axis, minCoord, MaxCoord, parent){
     //the minNodeMin and maxNodeMax were already checked by this node (the parent of the min and max nodes)
     //so only need to check the extents of the object vs where the min and max nodes are split
     var numObjectsAddedToMinNode = 0;
-    for(var i = 0; i < this.objects.length; ++i){
+    for( var i = 0; i < this.objects.length; ++i ){
         
-        var objectBounds = this.objects[i].GetAABB( function( minMaxAABBPoints ){
-        
-        } ); //get the axis aligned bounding box for the object 
-                                                      //( min and max points defining a box with faces (planes) aligned with the x y z axies
-        if( objectBounds.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
-                                              this.minNode.MaxCoord[nextAxis] < objectBounds.MaxCoord[nextAxis] ){
+        var objectAABB = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
+                                                    //( min and max points defining a box with faces (planes) aligned with the x y z axies
+        if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
+                                            this.minNode.MaxCoord[nextAxis] < objectAABB.MaxCoord[nextAxis] ){
             //the object straddles the center and isn't fully in the min or max nodes
             //leave it in this node
-        }else if( objectBounds.MaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
-            if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2)
+        }else if( objectAABB.MaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
+            if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; //the objects were not successfuly seperated by the nextAxis splitting 
                               //(addDepth causes wait until all 3 (x y z) axis have been tried 
                               //before considering the objects non seperable
-            this.minNode.AddObject(this.objects[i], addDepth += 1);
-            this.objects.splice(i,1);
+            this.minNode.AddObject( this.objects[i], addDepth += 1 );
+            this.objects.splice( i,1 );
             numObjectsAddedToMinNode += 1;
         }else{
-            if( numObjectsAddedToMinNode < 1 && i >= MaxTreeNodeObjects - 1 && addDepth >= 2)
+            if( numObjectsAddedToMinNode < 1 && i >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; //objects were not successfuly seperated
                               //(break before adding to sub node or the subnode will again try to split)
-            this.MaxNode.AddObject(this.objects[i], addDepth += 1);
-            this.objects.splice(i,1);
+            this.MaxNode.AddObject( this.objects[i], addDepth += 1 );
+            this.objects.splice( i,1 );
         }
         
     }
     
-    if(this.objects.length < MaxTreeNodeObjects)
+    if( this.objects.length < MaxTreeNodeObjects )
         return true; //the node was successfuly subdivided and objects distributed to sub nodes such that
                     //all nodes have less than MaxTreeNodeObjects
   }
@@ -158,7 +154,7 @@ function OctTree_GetNodesInFrustum(rootNode, frustum){
    
    var nodeCorners = GenerateNodeCorners(rootNode);
    
-   var numCornersInFrustum = OctTree_NumNodeCornersInFrustum(rootNode, frustum);
+   var numCornersInFrustum = OctTree_NumNodeCornersInFrustum( rootNode, frustum );
    
    //if the node is completely within the frustum return it
    if( numCornersInFrustum >= 8 )
@@ -181,6 +177,7 @@ function OctTree_GetNodesInFrustum(rootNode, frustum){
      return this.maxNode;
 }
 
+/*
 //a sparse oct tree (3d xyz subdivided cubes) representing the world
 //to accelerate physics and raycasting / tracing in the scene
 //possibly also for signed distance voxels and other space filling objects
@@ -327,3 +324,6 @@ function OctTree(){
     }
 
 }
+*/
+
+

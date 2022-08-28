@@ -4,20 +4,20 @@
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
-function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoadedCallback=null)
+function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, modelLoadedCallback=null )
 {
     //get the quadMesh transformationMatrix
     this.generateModelMatrix = function( cbObjs, completeCallback )
     {
         var thisP = cbObjs[1];
         var quadMeshMatrix = new Float32Array(4*4);
-        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbObjs, 2:completeCallback}, 
-        	function(quadMesh, cbObj2)
+        graphics.GetQuadMesh( this.meshName, this.sceneName, { 1:cbObjs, 2:completeCallback }, 
+        	function( quadMesh, cbObj2 )
         	{
 		        var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
 		        var rot      = new Float32Array(3); quadMesh.GetRotation(rot);
 		        var scale    = new Float32Array(3); quadMesh.GetScale(scale);
-		        Matrix(quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos);
+		        Matrix( quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos );
 
 		        //calculate the set transformation matrix
 		        var offsetMatrix = new Float32Array(4*4);
@@ -39,13 +39,14 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 	
     //Identification / registration functions so that 
     //the model can be drawn, interact with other objects, and be updated when in view
-    this.AddToOctTree = function(octTreeIn, addCompletedCallback)
+    this.AddToOctTree = function( octTreeIn, addCompletedCallback )
     {
         if( octTreeIn == null )
             return;
         this.RemoveFromOctTree();
         this.octTree = octTreeIn;
-        this.octTree.AddObject(this, addCompletedCallback);
+        this.octTree.AddObject(this);
+        addCompletedCallback();
     }
     
     this.RemoveFromOctTree = function( removeCompletedCallback )
@@ -63,14 +64,14 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
     }
 
     //animation functions
-    this.Update = function(time, updateCompleteParams, updateCompleteCallback)
+    this.Update = function( time, updateCompleteParams, updateCompleteCallback )
     {
-        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
-            function(quadMesh, cbObj)
+        graphics.GetQuadMesh( this.meshName, this.sceneName, {1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
+            function( quadMesh, cbObj )
             {
                 quadMesh.Update(time);
                 cbObj[1].timeUpdate = true; //set this model's flag that the animation of the mesh has been updated so it should regenerate it's gl buffer
-                cbObj[3](cbObj[2]); //updateCompleteCallback(updateCompleteParams);
+                cbObj[3]( cbObj[2] ); //updateCompleteCallback(updateCompleteParams);
             }
         );
 
@@ -79,54 +80,54 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 
     //draw transformation manipulation functions
     //getters
-    this.GetPosition = function(pos)      { graphics.GetQuadMesh(this.meshName, this.sceneName).GetPosition(pos);      }
-    this.GetScale    = function(scaleOut) { graphics.GetQuadMesh(this.meshName, this.sceneName).GetScale   (scaleOut); }
-    this.GetRotation = function(rotOut)   { graphics.GetQuadMesh(this.meshName, this.sceneName).GetRotation(rotOut);   }
+    this.GetPosition = function( pos )      { graphics.GetQuadMesh( this.meshName, this.sceneName ).GetPosition(pos);      }
+    this.GetScale    = function( scaleOut ) { graphics.GetQuadMesh( this.meshName, this.sceneName ).GetScale   (scaleOut); }
+    this.GetRotation = function( rotOut )   { graphics.GetQuadMesh( this.meshName, this.sceneName ).GetRotation(rotOut);   }
     //setters
-    this.SetPosition = function(newPos) { Vect3_Copy(positionOff, newPos ); positionSet = true; optTransformUpdated = true; }
-    this.SetScale    = function(scaleIn){ Vect3_Copy(scaleOff   , scaleIn); scaleSet    = true; optTransformUpdated = true; }
-    this.SetRotation = function(rotNew) { Vect3_Copy(rotationOff, rotNew ); rotationSet = true; optTransformUpdated = true; }
+    this.SetPosition = function( newPos ) { Vect3_Copy( positionOff, newPos  ); positionSet = true; optTransformUpdated = true; }
+    this.SetScale    = function( scaleIn ){ Vect3_Copy( scaleOff   , scaleIn ); scaleSet    = true; optTransformUpdated = true; }
+    this.SetRotation = function( rotNew ) { Vect3_Copy( rotationOff, rotNew  ); rotationSet = true; optTransformUpdated = true; }
 
     //shader binding functions
-    this.GetOriginalShaderName = function(shaderNameOut, sceneNameOut)
+    this.GetOriginalShaderName = function( shaderNameOut, sceneNameOut )
     {
-        var sNameArr  = graphics.GetQuadMesh( meshName, sceneName).GetShaderName();
+        var sNameArr  = graphics.GetQuadMesh( meshName, sceneName ).GetShaderName();
         shaderNameOut = sNameArr[0];
         sceneNameOut  = sNameArr[1];
     }
-    this.SetShader = function(shaderNameIn, sceneNameIn)
+    this.SetShader = function( shaderNameIn, sceneNameIn )
     {
         //this function may not be used, used to change the shader on the model after it's been loaded
         var currentSceneGraph = this.sceneGraph;
         this.RemoveFromSceneGraph();
         this.shaderName = shaderNameIn;
         this.shaderScene = sceneNameIn;
-        this.AddToSceneGraph(currentSceneGraph);
+        this.AddToSceneGraph( currentSceneGraph );
     }
 
     //draw functions
-    this.GetNumVerts = function(cbParams, cb)
+    this.GetNumVerts = function( cbParams, cb )
     {
-        graphics.GetQuadMesh(this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
-            function(quadMesh, cbObj){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
+        graphics.GetQuadMesh( this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
+            function( quadMesh, cbObj ){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
         );
     }
     //must draw forces the quadmesh to regenerate it's mesh passed to gl
     this.Draw = function( frustum, verts, normals, uvs, modelTransform, mustDraw, completeCallback )
     {
-        if(this.timeUpdate || mustDraw) //check if the model should 
+        if( this.timeUpdate || mustDraw ) //check if the model should 
         {
             //generateModelMatrix( cbObjs, completeCallback )
             this.generateModelMatrix(
-                {1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback}, //cbObjs
+                { 1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 6:modelTransform, 7:mustDraw, 8:completeCallback }, //cbObjs
                 function( transformation, cbObjs ) //completeCallback( transform, cbObjs )
                 {
                 	Matrix_Copy( cbObjs[6], transformation ); //copy( modelTransform, transformation );
                 	//getQuadMesh( this.filename, this.sceneName, readyCallbackParameters, quadMeshReadyCallback )
                 	graphics.GetQuadMesh( cbObjs[1].meshName, cbObjs[1].sceneName, cbObjs, 
-                		function(quadMesh, cbObjs) //quadMeshReadyCallback( quadMesh, cbObjs )
+                		function( quadMesh, cbObjs ) //quadMeshReadyCallback( quadMesh, cbObjs )
                 		{
-                	    	quadMesh.Draw(cbObjs[3], cbObjs[4], cbObjs[5]); //draw( verts, normals, uvs );
+                	    	quadMesh.Draw( cbObjs[3], cbObjs[4], cbObjs[5] ); //draw( verts, normals, uvs );
                 	    	cbObjs[1].timeUpdate = false; //clear the time update flag
 	                	    cbObjs[8]( true ); //completeCallback( true )
                 		}
@@ -137,16 +138,16 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
             completeCallback( false );
         }
     }
-    this.GetOptTransform = function(retMat)
+    this.GetOptTransform = function( retMat )
     {
         if( optTransformUpdated )
-            this.generateModelMatrix(this, retMat);
+            this.generateModelMatrix( this, retMat );
         return scaleSet || rotationSet || positionSet;
     }
-    this.DrawSkeleton = function(){ graphics.GetQuadMesh(this.meshName, this.sceneName).DrawSkeleton(); }
+    this.DrawSkeleton = function(){ graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); }
     
     //type query functions
-    this.IsTransparent = function(isTransparentCallback, thisP) {
+    this.IsTransparent = function( isTransparentCallback, thisP ) {
         graphics.GetShader( this.shaderName, this.shaderScene, isTransparentCallback,
             function( shader, cb )
             {
@@ -154,30 +155,30 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
             }
         );
     }
-    this.IsHit = function(cbParams, callback) {
+    this.IsHit = function( cbParams, callback ) {
         graphics.GetQuadMesh( this.meshName, this.sceneName,
             {1:cbParams, 2:callback}, function(quadmesh, cbObj){ cbObj[2](quadmesh.IsHit(), cbObj[1]); });
     }
 
     //geometry query functions
-    this.RayIntersects = function(t, rayOrig, rayDir) {
+    this.RayIntersects = function( t, rayOrig, rayDir ) {
         if(!IsHit())
             return false;
 
-        var meshVertsCt = graphics.GetQuadMesh(meshName, sceneName).faceVertsCt;
+        var meshVertsCt = graphics.GetQuadMesh( meshName, sceneName ).faceVertsCt;
         var meshVerts = new Float32Array[meshVertsCt*graphics.vertCard];
-        graphicsGetQuadMesh(meshName, sceneName).GetWorldSpaceMesh(meshVerts, meshVertsCt);
+        graphicsGetQuadMesh( meshName, sceneName ).GetWorldSpaceMesh( meshVerts, meshVertsCt );
         
         //apply the model orientation matrix
         var transformation = new Float32Array(4*4);
         var temp = new Float32Array(4*4);
-        this.generateModelMatrix(transformation);
+        this.generateModelMatrix( transformation );
 
         var transformedPositions = new GLfloat[meshVertsCt*vertCard];
-        Matrix_Multiply_Array3(transformedPositions, meshVertsCt*vertCard, transformation, meshVerts);
+        Matrix_Multiply_Array3( transformedPositions, meshVertsCt*vertCard, transformation, meshVerts );
         
         var numTris = meshVertsCt/3;
-        var didHit = Drawable.RayIntersectsHull(t, transformedPositions, numTris,  rayOrig, rayDir);
+        var didHit = Drawable.RayIntersectsHull( t, transformedPositions, numTris,  rayOrig, rayDir );
         meshVerts = null;
         transformedPositions = null;
         
@@ -186,17 +187,13 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
         return false;
 
     }
-    /*
     this.GetBoundingPlanes = function( finishedCallback ) {
-        graphics.GetQuadMesh( this.meshName, this.sceneName, finishedCallback, function( quadMesh, callback ){
+        graphics.GetQuadMesh( meshName, sceneName, finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetBoundingPlanes() );
         });
     }
-    */
     this.GetAABB = function( finishedCallback ){
-        graphics.GetQuadMesh( this.meshName, this.sceneName, finishedCallback, function( quadMesh, callback ){
-            callback( quadMesh.GetAABB() );
-        });
+        return this.AABB; //return the cached AABB in the model ( the when the quadmesh is updated it should be updated )
     }
 
     this.modelName = nameIn;
@@ -205,6 +202,8 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 
     this.modelDrawable = null;
     this.sceneGraph = null;
+    
+    this.AABB = AABB;
 
     this.timeUpdate;
     this.optTransformUpdated;
@@ -218,15 +217,15 @@ function Model(nameIn, meshNameIn, sceneNameIn, modelLoadedParameters, modelLoad
 
     var thisP = this;
     //request the quadmesh from the graphics class to get it to load it
-    graphics.GetQuadMesh(meshNameIn, sceneNameIn,
-        {1:this, 2:modelLoadedParameters, 3:modelLoadedCallback}, //pack parameters into object to pass to callback below
-        function(quadMesh, cbObj) //inline callback to get loaded parameters and call 
+    graphics.GetQuadMesh( meshNameIn, sceneNameIn,
+        { 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }, //pack parameters into object to pass to callback below
+        function( quadMesh, cbObj ) //inline callback to get loaded parameters and call 
         {
             var sNameArr = quadMesh.GetShaderName();
             thisP.shaderName  = sNameArr[0];
             thisP.shaderScene = sNameArr[1];
             if( cbObj[3] != null ) //if there isn't a modelLoadedCallback callback don't try to call it
-                cbObj[3](cbObj[1], cbObj[2]);
+                cbObj[3]( cbObj[1], cbObj[2] );
         } 
     );
 

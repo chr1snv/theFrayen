@@ -20,7 +20,7 @@ function drawSquare(graphics) // Draw the picture
 {
 	var vertices = [  0.0,  0.5, 0.0,
 					 -0.5, -0.5, 0.0,
-					  0.5, -0.5, 0.0 ]; 
+					  0.5, -0.5, 0.0   ]; 
 	var verts = new Float32Array(vertices);
 
 	attributeSetFloats( graphics.currentProgram, "position",  3, verts );
@@ -44,26 +44,26 @@ function attributeSetFloats( prog, attr_name, rsize, arr)
     gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
-function Graphics(canvasIn, bpp, depthIn)
+function Graphics( canvasIn, bpp, depthIn )
 {
 	this.canvas = canvasIn;
 	
 	WebGLDebugUtils.init(this.canvas);
 
 	//maps used to keep track of primative graphics objects
-	this.textures = {};
-	this.shaders = {};
-	this.quadMeshes = {};
-	this.textureRefCts = {};
-	this.shaderRefCts = {};
-	this.quadMeshRefCts = {};
+	this.textures        = {};
+	this.shaders         = {};
+	this.quadMeshes      = {};
+	this.textureRefCts   = {};
+	this.shaderRefCts    = {};
+	this.quadMeshRefCts  = {};
 
-	this.maxLights = 8;
+	this.maxLights        = 8;
 	this.numLightsBounded = 0;
 
-	this.screenWidth = canvasIn.width;
-	this.screenHeight = canvasIn.height;
-	this.bpp = 0;
+	this.screenWidth      = canvasIn.width;
+	this.screenHeight     = canvasIn.height;
+	this.bpp              = 0;
 
 	//information about the rendering state (used to minimize the number of calls to gl)
 	this.tex2Denb         = false;
@@ -79,10 +79,10 @@ function Graphics(canvasIn, bpp, depthIn)
 	this.shinyness        = 0;
 
 	//globally used constants
-	this.vertCard = 3;
-	this.normCard = 3;
-	this.uvCard   = 2;
-	this.matrixCard = 4*4;
+	this.vertCard     = 3;
+	this.normCard     = 3;
+	this.uvCard       = 2;
+	this.matrixCard   = 4*4;
 
 	//for clearing the color buffer
 	this.Clear = function()
@@ -104,7 +104,7 @@ function Graphics(canvasIn, bpp, depthIn)
 	{
 		gl.Enable(gl.FOG);
 		gl.Fogx(gl.FOG_MODE, gl.LINEAR);
-		var params = [];
+		var params  = [];
 		params[0]= 1.0; params[1]= 1.0; params[2]= 1.0; params[3]= 1.0;
 		gl.Fogfv(gl.FOG_COLOR, params);
 		gl.Fogf(gl.FOG_START, clipNear);
@@ -113,14 +113,14 @@ function Graphics(canvasIn, bpp, depthIn)
 	this.DisableFog = function() { glDisable(gl.FOG); }
 
 	this.SetCanvasSize = function( width, height ){
-		this.canvas.style.width = width + "px";
-		this.canvas.style.height = height + "px";
-		this.canvas.width = width;
-		this.canvas.height = height;
-		this.screenWidth = this.canvas.width;
-		this.screenHeight = this.canvas.height;
-		gl.width = width;
-		gl.height = height;
+		this.canvas.style.width        = width + "px";
+		this.canvas.style.height       = height + "px";
+		this.canvas.width              = width;
+		this.canvas.height             = height;
+		this.screenWidth               = this.canvas.width;
+		this.screenHeight              = this.canvas.height;
+		gl.width                       = width;
+		gl.height                      = height;
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 
