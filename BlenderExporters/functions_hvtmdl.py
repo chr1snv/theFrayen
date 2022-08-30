@@ -4,7 +4,7 @@ import bpy, bpy_extras.node_shader_utils
 #import Blender
 #import BPyMessages
 #from Blender import Modifier
-import os, math, shutil
+import os, math, shutil, sys
 
 def popupMenu(message):
     bpy.context.window_manager.popup_menu(lambda self, \
@@ -13,7 +13,8 @@ def popupMenu(message):
 #asset directory is the dir that contains the folders meshes, animations, ..etc.
 def writeModel(assetDirectory, ob):
     """Write a HavenTech mesh and animation file from the current blender
-    scene"""
+    scene, returns the Axis aligned bounding box min and max vect3's for
+    inital adding to the haven scene oct tree"""
 
     #check the user has selected an object
     if not ob:
@@ -26,7 +27,7 @@ def writeModel(assetDirectory, ob):
 
     #----write the mesh file----
     #---------------------------
-    writeMesh(assetDirectory, ob)
+    AABB = writeMesh(assetDirectory, ob)
 
     #----write the mesh materials file----
     #-------------------------------------
@@ -39,6 +40,8 @@ def writeModel(assetDirectory, ob):
     #----write the anim file----
     #---------------------------
     writeAnim(assetDirectory, ob)
+    
+    return AABB
 
 def writeMeshMaterials(assetDirectory, ob):
     """Write a materials file, and a haven tech shader file for each of the
@@ -65,6 +68,7 @@ def writeMeshMaterials(assetDirectory, ob):
 
     for mat in mesh.materials:
         #write a line in the hvtmeshmat file
+        print( 'shader %s' % (mat.name) )
         out.write( 's %s\n' % (mat.name))
         #write a hvtshd file for the material
         writeShader(assetDirectory, mat)
@@ -84,7 +88,9 @@ def writeShader(assetDirectory, mat):
     #to keep the haven exporter from blender simple it only supports this shader type because it can do plastic, metal, and transparent materials
     #https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html
     #"The base layer is a user controlled mix between diffuse, metal, subsurface scattering and transmission. On top of that there is a specular layer, sheen layer and clearcoat layer."
-    if mat.node_tree.nodes.keys().count('Principled BSDF') > 1:
+    principledBsdfCount = mat.node_tree.nodes.keys().count('Principled BSDF')
+    print( 'Principled BSDF count %i' % (principledBsdfCount) )
+    if principledBsdfCount < 1:
         print("Haven Exporter unspported material - Principled BSDF node not found for material: %s" % (mat.name) )
         return
         
@@ -163,6 +169,7 @@ def writeShader(assetDirectory, mat):
     ##############################
 
     #output the shader diffuse color and amount
+    print( 'base color: %s' % str(p.base_color) )
     [r, g, b] = p.base_color
     out.write('d %f %f %f\n' % (r, g, b))
     #output the shader specular color amount and hardness
@@ -212,12 +219,33 @@ def writeMesh(assetDirectory, ob):
     out.write( 'e\n' )
     out.write( '\n' )
 
+    #keep track of the min and max corners of the AABB
+    minX = sys.float_info.max
+    minY = sys.float_info.max
+    minZ = sys.float_info.max
+     
+    maxX = sys.float_info.min
+    maxY = sys.float_info.min
+    maxZ = sys.float_info.min
+
     #write the verticies (position, normal, texture coordinate, and bone weight)
     numVerts = len(mesh.vertices)
     out.write( 'cv %i\n' % (numVerts) )
     out.write( '\n' )
     for i in range(numVerts):
         vert = mesh.vertices[i]  #verts[i]
+        if vert.co.x > maxX :
+            maxX = vert.co.x
+        if vert.co.y > maxY :
+            maxY = vert.co.y
+        if vert.co.z > maxZ :
+            maxZ = vert.co.z
+        if vert.co.x < minX :
+            minX = vert.co.x
+        if vert.co.y < minY :
+            minY = vert.co.y
+        if vert.co.z < minZ :
+            minZ = vert.co.z
         out.write( 'v %f %f %f\n' % (vert.co.x, vert.co.z, -vert.co.y) )
         out.write( 'n %f %f %f\n' % (vert.normal.x, vert.normal.z, -vert.normal.y) )
         #normalize the bone weights
@@ -261,6 +289,8 @@ def writeMesh(assetDirectory, ob):
     #end of mesh data
     out.write('\n')
     out.close()
+    
+    return [ minX, minY, minZ, maxX, maxY, maxZ ]
     
 def writeObjectAnimationData(assetDirectory, obj):
         

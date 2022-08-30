@@ -9,7 +9,7 @@
 
 //drawing is handled by scene graphs 
 
-function HavenScene(sceneNameIn, sceneLoadedCallback)
+function HavenScene( sceneNameIn, sceneLoadedCallback )
 {
     this.sceneName = sceneNameIn;
     this.isValid = false;
@@ -21,16 +21,19 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
     this.activeCamera = "";
     this.activeCameraIdx = -1;
 
+    //the main structure for holding scene elements
     this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
+    //using the camera frustum only objects within view can be drawn / simulated in high fidelity
 
     this.framesSec = 25.0;
     
-    this.renderBufferManager = new RenderBufferManager(this.sceneName);
+    //gl graphics card memory managment for rasterizing scene objects
+    this.renderBufferManager = new RenderBufferManager( this.sceneName );
 
     //function members
     this.GetName = function(){ return this.sceneName; }
     
-    this.Update = function(time, updateCompleteCb)
+    this.Update = function( time, updateCompleteCb )
     {
         var m = 0;
         var l = 0;
@@ -122,20 +125,23 @@ function HavenScene(sceneNameIn, sceneLoadedCallback)
         for( var i = 0; i<thisSceneP.textFileLines.length; ++i )
         {
             var temp = thisSceneP.textFileLines[i];
-            //this is a model to be read in
-            if(temp[0] == 'm')
+            
+            if(temp[0] == 'm') //this is a model to be read in (load the model and then append it to the scenegraph)
             {
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
+                var AABB = [ parseFloat(words[2]), parseFloat(words[3]), parseFloat(words[4]),   //min coord
+                             parseFloat(words[5]), parseFloat(words[6]), parseFloat(words[7]) ]; //max coord
                 thisSceneP.pendingModelsAdded++;
-                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, thisSceneP,
-                function( model, havenScenePointer ){
+                //          new Model(    nameIn,    meshNameIn,          sceneNameIn, AABB, modelLoadedParameters,   modelLoadedCallback )
+                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, AABB,            thisSceneP,
+                function( model, havenScenePointer ){ //modelLoadedCallback
                    model.AddToOctTree( havenScenePointer.octTree,
                     function(){
                       thisSceneP.pendingModelsAdded-=1;
                       thisSceneP.checkIfIsLoaded();
-                    } 
+                    }
                    );
                 }
                  );

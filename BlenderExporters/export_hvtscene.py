@@ -73,12 +73,19 @@ def writeScene(path):
     sce = bpy.data.scenes[0]#.active
     
     #loop through each of the objects in the scene
-    for obj in sce.objects:
+    for i in range(len(sce.objects)):
+        obj = sce.objects[i]
         #add the information for placing the object in the scene file
         #and call the corresponding exporter for each object
         if obj.type == 'MESH':
-            out.write( 'm %s\n' % (obj.name))
-            writeModel(sceneDirectory, obj)
+            out.write( 'm %s' % (obj.name) )
+            print( 'idx %i mesh %s' % (i, obj.name) )
+            AABB = writeModel(sceneDirectory, obj)
+            if AABB == None:
+                print( 'Mesh object %s not exportable (AABB not returned)' % obj.name )
+            else:
+                out.write( '  %f %f %f  %f %f %f\n' % (AABB[0], AABB[1], AABB[2],  AABB[3], AABB[4], AABB[5]) )
+            print( 'AABB %s' % AABB ) 
         if obj.type == 'LIGHT':
             lampD = obj.data;
             out.write( 'l %s ' % (obj.name))
