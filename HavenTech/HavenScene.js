@@ -82,7 +82,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         
         //find the oct tree nodes in the camera frustrum (paralleizable)
         var frustum = this.cameras[this.activeCameraIdx].GetFrustum();
-        var nodesToDraw = OctTree_GetNodesInFrustum(this.octTree, frustum);
+        var nodesToDraw = OctTree_GetNodesThatOverlapWithFrustum(this.octTree, frustum);
         
         //for nodes that have changed / are new / have been removed since last frame
         //update them in the render buffer manager (scene graph)
@@ -114,6 +114,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
 
     //check if finished asynchronously loading the scene
     this.checkIfIsLoaded = function(){
+        if( this.pendingModelsAdded <= 5 )
+            DPrintf("models left to load " + this.pendingModelsAdded );
         if( this.isValid && this.pendingModelsAdded <= 0 )
             sceneLoadedCallback(this);
     }
@@ -131,8 +133,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
-                var AABB = [ parseFloat(words[2]), parseFloat(words[3]), parseFloat(words[4]),   //min coord
-                             parseFloat(words[5]), parseFloat(words[6]), parseFloat(words[7]) ]; //max coord
+                var AABB = [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]),   //min coord
+                             parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ]; //max coord
                 thisSceneP.pendingModelsAdded++;
                 //          new Model(    nameIn,    meshNameIn,          sceneNameIn, AABB, modelLoadedParameters,   modelLoadedCallback )
                 newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, AABB,            thisSceneP,

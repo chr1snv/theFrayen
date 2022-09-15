@@ -23,6 +23,9 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.axis = axis; //the axis that the node splits ( (0)x , (1)y , or (2)z )
   this.minCoord = minCoord; //the minimum corner that the node covers
   this.MaxCoord = MaxCoord; //the Maximum corner that the node covers
+  this.midCoord = Vect3_CopyNew( this.minCoord );
+  Vect3_Add( this.midCoord, this.MaxCoord );
+  Vect3_MultiplyScalar( this.midCoord, 0.5 );
   
   this.parent  = parent; //link to the parent ( to allow traversing back up the tree )
   
@@ -32,7 +35,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.MaxNode = null; //
   
   //add an object to the node, if it is full subdivide it and place objects in the sub nodes
-  this.AddObject = function( object, addDepth=0 ){ //addDepth is to keep track of if all axis have been checked for seperating the objects 
+  this.AddObject = function( object, addDepth=0 ) //addDepth is to keep track of if all axis have been checked for seperating the objects
+  {
     if( this.objects.length < MaxTreeNodeObjects ){
         this.objects.push( object );
         return true;
@@ -53,11 +57,13 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         
         var objectAABB = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
                                                     //( min and max points defining a box with faces (planes) aligned with the x y z axies
-        if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
-                                            this.minNode.MaxCoord[nextAxis] < objectAABB.MaxCoord[nextAxis] ){
+        objectAABBMinCoord = [ objectAABB[0], objectAABB[1], objectAABB[2] ]
+        objectAABBMaxCoord = [ objectAABB[3], objectAABB[4], objectAABB[5] ]
+        if( objectAABBMinCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
+                                            this.minNode.MaxCoord[nextAxis] < objectAABBMaxCoord[nextAxis] ){
             //the object straddles the center and isn't fully in the min or max nodes
             //leave it in this node
-        }else if( objectAABB.MaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
+        }else if( objectAABBMaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
             if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; //the objects were not successfuly seperated by the nextAxis splitting 
                               //(addDepth causes wait until all 3 (x y z) axis have been tried 
@@ -94,7 +100,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     
       minminCoord.push( this.minCoord[i] );
       if( nextAxis == i){ //if this is axis (x y or z) that the minAndMax nodes split then use the mid point
-        var midPt = (this.minCoord[i] + this.MaxCoord[i]) / 2;
+        var midPt = this.midCoord[i];
         minMaxCoord.push( midPt );
         MaxminCoord.push( midPt );
       }else{ //else since only one axis is being split
@@ -115,15 +121,15 @@ function GenerateNodeCorners(node)
 {
     //the 8 corners of the node cube, 4 bottom corners and 4 top corners
    return [
-     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],
+     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],  //left back bottom
      [ node.MaxCoord[0], node.minCoord[1], node.minCoord[2] ],
      [ node.minCoord[0], node.MaxCoord[1], node.minCoord[2] ],
      [ node.MaxCoord[0], node.MaxCoord[1], node.minCoord[2] ],
    
-     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],
-     [ node.MaxCoord[0], node.minCoord[1], node.minCoord[2] ],
-     [ node.minCoord[0], node.MaxCoord[1], node.minCoord[2] ],
-     [ node.MaxCoord[0], node.MaxCoord[1], node.minCoord[2] ]  ];
+     [ node.minCoord[0], node.minCoord[1], node.MaxCoord[2] ],  //top
+     [ node.MaxCoord[0], node.minCoord[1], node.MaxCoord[2] ],
+     [ node.minCoord[0], node.MaxCoord[1], node.MaxCoord[2] ],
+     [ node.MaxCoord[0], node.MaxCoord[1], node.MaxCoord[2] ]  ];
 }
 
 
@@ -134,196 +140,151 @@ function OctTree_NumNodeCornersInFrustum(nodeCorners, frustum)
    var numPointsInFrustum = 0;
    
    for( var i = 0; i < nodeCorners.length; ++i )
-    if( frustum.PointInFrustum( cubeCorners[i] ) )
-      numPointsInFrustum += 1;
-   
+   {
+      if( frustum.PointInFrustum( nodeCorners[i] ) )
+         numPointsInFrustum += 1;
+   }
    //a corner of the cube is in the frustum return it
    return numPointsInFrustum;
    
 }
 
-//either one of the point corners of the cube will be inside the frustum
+
+function pointIsInsideAABB( aabb, point ){
+
+    if( aabb.minCoord[0] < point[0] && point[0] < aabb.MaxCoord[0] &&
+        aabb.minCoord[1] < point[1] && point[1] < aabb.MaxCoord[1] &&
+        aabb.minCoord[2] < point[2] && point[2] < aabb.MaxCoord[2] )
+        return true;
+    return false;
+    
+}
+
+//check all 3 axies xyz if the two bounding boxes overlap
+//checking one axis is not enough because if tbey only overlap in one axis that could mean they are infront or in back, side by side or on top of eachother
+//but only if they are infront / inback, side by side and on top of eachother then they are intersecting/overlapping
+function OctTree_AABBoverlapOrInside( aabb1, aabb2 ) //frustum is aabb2
+{
+    //the goal is, given a binary oct tree node aabb, and a frustum (or active region) determine if the oct tree aabb is:
+    
+    //partially /fully inside the frustum (in which case the aabb node should be drawn / updated )
+    //if the frustum is completely inside of it (then parts of the binary oct tree node should try to be excluded to improve update / drawing performance)
+    
+    var numOverlappingAxies = 0;
+    
+    var numCoordsAABB1InsideAABB2 = 0;
+    
+    //x y z axie checks
+    for( var i = 0; i < 3; ++i ){
+        var minOrMaxCoordInside = false;
+        if(  aabb2.minCoord[i] < aabb1.minCoord[i] && aabb1.minCoord[i] < aabb2.MaxCoord[i] ){ //xaxis aabb1 inside aabb2 (aabb inside frustum)
+            numCoordsAABB1InsideAABB2 += 1;
+            minOrMaxCoordInside = true;
+        }
+        if( aabb2.minCoord[i] < aabb1.MaxCoord[i] && aabb1.MaxCoord[i] < aabb2.MaxCoord[i] ){
+            numCoordsAABB1InsideAABB2 += 1;
+            minOrMaxCoordInside = true;
+        }
+        
+        if( minOrMaxCoordInside )
+            numOverlappingAxies += 1;
+        
+    }
+      
+    if( numOverlappingAxies >= 3 )
+        return true;
+        
+    return [ numCoordsAABB1InsideAABB2 >= 6, numOverlappingAxies >= 3 ];
+}
+
+//find the minimal set of oct tree leaf nodes that are inside, or more than half inside the frustum (or frustum AABB)
+//starting with the root, check if the volume of the node is inside the frustum AABB
+//  if it is inside return the entire node
+//if it is outside don't return it
+//if it partially overlaps, ignore the parts that are entirely outside
+//recursevely check the parts that partially overlap are there parts entirely inside? return those
+//if there are no sub parts and it partially overlaps, return it, otherwise if there are sub parts that are entirely outside, don't return them
+
+
+//if there is an overlap between the frustum and AABB
+
+//either one of the point corners of the AABB frustum node will be inside the frustum
 //or one of the frustum corners will be inside of the cube
-//if there is an overlap between the two
+// (
+//  not entirely correct, the volumes of the two could overlap but the points of the AABB and frustum could be outside of eachother,
+//  in that case though the edge lines of the frustum or AABB will intersect the bounding planes of the other
+//  (intersect (6 planes with 12 lines) x 2 = (6 x 12 x 2 = 144 ray plane intersections)
+//  or intersect (6 planes with 6 planes) =  36 intersection line
+// )
+
+//AABB overlap with another AABB is simple (not requiring many operations 8 per axis x 3 = 24), so first find if an AABB representing the frustum overlaps with the AABB, then find if the frustum overlaps
+//in the x y z axies check if
+// (minA < minF && minF < maxA) || (minA < maxF && maxF < maxA) ||
+// (minF < minA && minA < maxF) || (minF < maxA && maxA < maxF)
+// 8 float comparisons
 
 //tries to efficently return a minimal set of nodes the (camera) frustum overlaps to
 //get only the objects that need to be drawn
-function OctTree_GetNodesInFrustum(rootNode, frustum){
-   //the root node obviously would overlap the camera frustum
-   //but want to get the minimal set of nodes ( so if there are subnodes and one of them doesn't overlap ignore it
+//get the objects tha
+function OctTree_GetNodesThatOverlapOrAreInsideFrustum(node, frustum)
+{
+   //assume the root node overlaps the camera frustum ( the camera shouldn't be allowed to exit the world volume ) 
+   //want to get the minimal set of nodes ( so if there are subnodes and one of them doesn't overlap ignore it ) that overlap with the camera
+   //to only draw those values
    
-   var nodeCorners = GenerateNodeCorners(rootNode);
+   //check if the frustum is completely inside the node aabb (in which case subdivide until finding a binary oct tree node that can be excluded)
    
-   var numCornersInFrustum = OctTree_NumNodeCornersInFrustum( rootNode, frustum );
+   //otherwise if a oct tree node is completely inside the frustum, update / draw it
    
-   //if the node is completely within the frustum return it
-   if( numCornersInFrustum >= 8 )
-     return rootNode;
+   var nodeCorners = GenerateNodeCorners( node );
+   var aabbInsideFrustumAndAABBOverlaps = OctTree_AABBoverlap( node, frustum );
    
-   //else
-   if( rootNode.minNode == null && rootNode.maxNode == null ){
-     //there are no subnodes, so return the root node even though it may be larger than the frustum 
-     return rootNode;
+   //the node is completely inside the frustum, return it's entirety
+   if( aabbInsideFrustumAndAABBOverlaps[0] ){ 
+    // should check if is actually within the frustum and not only it's aabb, but this is better than nothing for now
+    return node;
    }
    
-   //else there are subnodes, if one of them is fully outside of the frustum don't return it
-   var minNodeOverlaps = OctTree_NodeAndFrustumOverlap( rootNode.minNode, frustum );
-   var maxNodeOverlaps = OctTree_NodeAndFrustumOverlap( rootNode.maxNode, frustum );
-   if( minNodeOverlaps && maxNodeOverlaps )
-     return rootNode;
-   if( minNodeOverlaps )
-     return this.minNode;
-   if( maxNodeOverlaps )
-     return this.maxNode;
+   //check if the node center is within the frustum aabb
+   var nodeCenterInFrustumAABB = pointIsInsideAABB( aabb, node.midCoord );
+   
+   if( aabbInsideFrustumAndAABBOverlaps[1] ){
+       //the aabb overlaps (intersects with) but is not completely inside the frustrum aabb (otherwise aabbInsideFrustum would be true because numCoordsAABB1InsideAABB2 would be all 6 of it's planes)
+       //(partially but not completely within the frustum)
+       
+       
+       if(nodeCenterInFrustumAABB){
+        //then the frustum aabb is crossing the edge of the node and covering the center
+        //(more than half of the node is in the frustum, so include the entire node (and it's sub nodes) in the draw / update)
+        return node;
+       }
+       
+       //the center is not covered
+       //so less than half of the node is in the frustum, check if there are sub nodes and one can be excluded
+       if( node.minNode == null && node.maxNode == null )
+       {
+         //there are no subnodes, so this is a leaf node of the binary oct tree (reached the bottom of the spatial division recursion)
+         //return this node even though its area outside the frustum may be more than twice as larger than the area the frustum overlaps it 
+         return node;
+       }
+   
+       //the node isn't completely overlapping the frustum if one of it
+       //check if any of it's sub nodes ( or sub sub nodes etc ) can be excluded from the
+       //draw / update to improve performance
+       
+       var minNodeAabbInsideFrustumAndAABBOverlaps = OctTree_AABBoverlap( node.minNode, frustum );
+       if( minNodeAabbInsideFrustumAndAABBOverlaps[0] 
+       
+  }
+  
+  //otherwise the frustum is either completely inside or outside the node
+  
+  //check if the center of the frustum is inside the node (if it is then the frustum aabb is probably in the middle of larger node than it
+  var nodeCenterInFrustumAABB = pointIsInsideAABB( aabb, node.midCoord );
+  
+  return None;
 }
 
-/*
-//a sparse oct tree (3d xyz subdivided cubes) representing the world
-//to accelerate physics and raycasting / tracing in the scene
-//possibly also for signed distance voxels and other space filling objects
-//i.e. spheres (elipsoids), cylinders, cones, nbody, mass springs,
-// fluid elements, emitters, attractors, lights, rays, cameras, lenses, etc
-//so that the number of intersection tests between objects can be minimized
-//(avoiding testing every object against every other object)
-//by only considering the portion of the tree (and theirfore world space) that
-//an object occupies
-function OctTree(){
 
-    this.subCubes = [null, null,  //(0)0,0,0   (1)0,0,1
-                     null, null,  //(2)0,1,0   (3)0,1,1
-                     
-                     null, null,  //(4)1,0,0   (5)1,0,1
-                     null, null]; //(6)1,1,0   (7)1,1,1
-                     //index is = x * 4 + y * 2 + z
-                     
-    this.rootNode =  new TreeNode('x', null); //the root of the tree
-                     
-    this.addObject =
-    function( xMin, xMax, yMin, yMax, zMin, zMax, obj ){
-      //find the subCubes that the object occupies
-      var occupiedSubCubes = [];
-      if( xMin > 0 ){ // x greater than zero (4,5,6,7)
-         if( yMin > 0 ){ //y greater than zero (6,7)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[7] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[6] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[6] );
-           }
-         }else if( yMax < 0 ){ // y less than zero (4,5)
-            if( zMin > 0){
-             occupiedSubCubes.push( this.subCubes[5] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[4] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[4] );
-           }
-         }else{ //y spans 0 (4,5,6,7)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[5] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[4] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[4] );
-           }
-         }
-         
-      }else if( xMax < 0 ){ // x greater than zero (0,1,2,3)
-        if( yMin > 0 ){ //y greater than zero (2,3)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[3] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[2] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[2] );
-           }
-         }else if( yMax < 0 ){ // y less than zero (0,1)
-            if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[1] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[0] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[1] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }
-         }else{ //y spans 0 (0,1,2,3)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[1] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[2] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[1] );
-             occupiedSubCubes.push( this.subCubes[2] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }
-         }
-         
-      }else{ //x spans 0 (0,1,2,3,4,5,6,7)
-        if( yMin > 0 ){ //y greater than zero (2,3,6,7)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[3] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[2] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[2] );
-           }
-         }else if( yMax < 0 ){ // y less than zero (0,1,4,5)
-            if( zMin > 0){
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[1] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[4] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }else{
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[1] );
-             occupiedSubCubes.push( this.subCubes[4] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }
-         }else{ //y spans 0 (0,1,2,3,4,5,6,7)
-           if( zMin > 0 ){
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[1] );
-           }else if( zMax < 0 ){
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[4] );
-             occupiedSubCubes.push( this.subCubes[2] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }else{ //x spans, y spans, and z spans
-             //need to either split the object or have it as a object local to the cube
-             occupiedSubCubes.push( this.subCubes[7] );
-             occupiedSubCubes.push( this.subCubes[6] );
-             occupiedSubCubes.push( this.subCubes[5] );
-             occupiedSubCubes.push( this.subCubes[4] );
-             occupiedSubCubes.push( this.subCubes[3] );
-             occupiedSubCubes.push( this.subCubes[2] );
-             occupiedSubCubes.push( this.subCubes[1] );
-             occupiedSubCubes.push( this.subCubes[0] );
-           }
-         }
-      }
-    }
-
-}
-*/
 
 

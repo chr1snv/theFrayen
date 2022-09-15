@@ -76,10 +76,14 @@ function Vect3_Length(v1) {
 
 //a less computationally expensive version of length (avoid preforming square root)
 function Vect3_LengthSquared(v1){ 
-    return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]; 
+    return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2];
 }
 
 //normalizes a vector
+function Vect3_Normal(v1){
+    var len = Vect3_Length(v1);
+    Vect3_DivideScalar(v1, len);
+}
 function Vect3_Unit(v1){
     var len = Vect3_Length(v1);
     Vect3_DivideScalar(v1, len);

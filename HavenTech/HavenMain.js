@@ -155,10 +155,11 @@ function MainLoop()
     mainScene.Draw();
 
     window.requestAnimFrame(MainLoop);
+    
 }
 
 //called from the mainloop, gets user input and updates the freelook camera
-function UpdateCamera()
+function UpdateCamera( updateTime )
 {
     if( mainScene.cameras.length < 1 )
        return;
@@ -192,5 +193,5 @@ function UpdateCamera()
     mCoordDelta.x = mCoordDelta.y = 0;
 
     //send the updates to the camera
-    mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation(camPositionUpdate, camRotUpdate);
+    mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
 }
