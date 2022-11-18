@@ -34,3 +34,21 @@ function RayRayIntersection( o1, d1, o2, d2 ){
 }
 
 
+
+function Ray(origin, direction)
+{
+    this.origin    = origin;
+    this.norm      = direction;
+    
+    //uses binary subdivision to interatively estimate the closest point along the ray to a given point
+    var closestPoint = function(point){
+    }
+    
+    //returns the point along the ray at the given multiple of the ray direction (normal)
+    var pointAtTime = function( t ){
+        var retPoint = Vect3_Copy( this.norm );
+        Vect3_Multiply( retPoint, t );
+        Vect3_Add( retPoint, this.origin );
+        return retPoint;
+    }
+}

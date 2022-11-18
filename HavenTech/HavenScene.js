@@ -27,14 +27,22 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
 
     this.framesSec = 25.0;
     
-    //gl graphics card memory managment for rasterizing scene objects
-    this.renderBufferManager = new RenderBufferManager( this.sceneName );
+    //gl graphics card memory managment (geometry array generation and reuse) for rasterizing scene objects
+    //this.renderBufferManager = new RenderBufferManager( this.sceneName );
+    //now unused because drawing is raytraced (maybe will come back / be replaced by spectral image for denoising)
 
     //function members
     this.GetName = function(){ return this.sceneName; }
     
+    //currently updates the entire scene, but using the oct tree only parts that are active
+    //(animated objects within the field of view, or area's with dynamic events occuring) should be updated to minimize compute requirements
     this.Update = function( time, updateCompleteCb )
     {
+    
+        //    for( var i=0; i<nodesToDraw; ++i ){
+        //            nodesToDraw[i].Update(time, undefined, updateLoop);
+        //        }
+    
         var m = 0;
         var l = 0;
         var c = 0;
@@ -75,23 +83,45 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         graphics.ClearDepth();
         graphics.ClearLights();
         
-        //with an oct tree, should it draw each node in the camera frustrum
+        //after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U (the state of the art polygon rasterizer in 2022)
+        //I think that because rasterization cost increases with overdraw and as the number of polygons increases
+        //longterm a render engine based on ray tracing rays from the camera is going to have better performance and realisim
+        //than rasterization
+        //the goal of this game / simulation engine is to mimic reality as much as possible with the best performance
+        //so I think it makes sense (and the code is going to be simpler) with an architecture of tracing rays from the camera
+        //and simulating dynamics / moving objects with cpu/general purpose compute and memory per world area
+        //the compute may / may not be syncronized between world regions, and as objects move from one region to another they are passed
+        //(via network / intraprocessor connections) to the memory and simulation in the new region
+        
+        
+        //raytracing draw call
+        this.cameras[ this.activeCameraIdx ].RayTraceDraw( this.octTree, graphics.screenWidth, graphics.screenHeight, graphics.GetScreenAspect() );
+        
+        /*  //old rasterization code here
+        
+        
+        //with an oct tree, nodes in the camera frustrum should be drawn
         //update objects / lights / cameras to oct tree nodes (parallelizable)
         //update global illumination bounce lighting (trace rays and update textures)
         
-        
-        //find the oct tree nodes in the camera frustrum (paralleizable)
+        //find the oct tree nodes within in the camera frustrum (paralleizable)
         var frustum = this.cameras[this.activeCameraIdx].GetFrustum();
-        var nodesToDraw = OctTree_GetNodesThatOverlapWithFrustum(this.octTree, frustum);
+        var nodesToDraw = OctTree_GetNodesThatOverlapOrAreInsideFrustum(this.octTree, frustum);
+        
         
         //for nodes that have changed / are new / have been removed since last frame
         //update them in the render buffer manager (scene graph)
-        for(var i=0; i<this.lights.length; ++i)
-            graphics.BindLight(this.lights[i]);
+        
+        //lights are objects in scene nodes, let them update / affect lighting themselves during updates
+        //for(var i=0; i<this.lights.length; ++i)
+        //    graphics.BindLight(this.lights[i]);
             
         //    (using links between model instances and buffer indicies, update the models in parallel)
         //render a frame (gpu does in parallel if using the same shader program)
-        this.renderBufferManager.Draw(this.cameras[this.activeCameraIdx]);
+        this.renderBufferManager.Draw( this.cameras[this.activeCameraIdx], nodesToDraw );
+        
+        */
+        
         graphics.Flush();
     }
 

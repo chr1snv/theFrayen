@@ -502,6 +502,50 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
         Vect3_Copy(rayDir, frustumPoint);
     }
+    
+    
+    //traces rays from the camera and returns a SpectralImage (frequency domain) (for conversion and display as bitmap)
+    
+    this.RayTraceDraw = function( octTreeRoot, width, height, aspect )
+    {
+        var rayOrigin = [0, 0, 0];
+        this.getLocation( rayOrigin );
+    
+        var horizFov = this.fov;
+        var vertFov  = this.fov * aspect;
+    
+        var normal = new Float32Array( 3 );
+        var camRotMat = this.getRotationMatrix();
+        Matrix_Multiply_Vect3( normal,  this.getRotationMatrix(), [ 0, 0, 1 ] );
+    
+        for( var h = 0; h < height; ++h ){
+            
+            var vertAngle = -(vertFov/2.0) + ( (vertFov/height) * h );
+            
+            for( var w = 0; w < width; ++w ){
+            
+                var horizAngle = -(horizFov/2.0) + ( (horizFov/height) * h );
+            
+                var rayNormal = Vect3_CopyNew( normal );
+                
+                var rayHorizRotMat = new Float32Array(4*4);
+                Matrix(rayHorizRotMat, MatrixType.xRot, horizAngle);
+                
+                var rayVertRotMat = new Float32Array(4*4);
+                Matrix(rayVertRotMat, MatrixType.yRot, vertAngle);
 
+                Matrix_Multiply_Vect3( rayNormal, rayHorizRotMat, [0,0,1] );
+                
+                Matrix_Multiply_Vect3( rayNormal, rayVertRotMat,  rayNormal );
+                
+                Matrix_Multiply_Vect3( rayNormal, camRotMat, rayNormal );
+                
+                var ray = new Ray( rayOrigin, rayNormal );
+                
+                octTreeRoot.GetClosestIntersectingSurface( ray );
+            }
+        }
+        
+    }
 
 }

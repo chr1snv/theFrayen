@@ -32,9 +32,9 @@ function Vect3_DivideScalar(v1, scalar) { v1[0] /= scalar; v1[1] /= scalar; v1[2
 //gives a vector orthogonal to the two passed in
 //to know the direction of the result use the right hand index middle and thumb rule
 //right hand rule where if making an x y z axis (fingers orthogonal to eachother) with
-//index  finger as the x axis
-//middle finger as the y axis
-//thumb         as the z axis
+//index  finger as the x axis (v1)
+//middle finger as the y axis (v2)
+//thumb         as the z axis (ret - result)
 //if v1 is the x axis and v2 is the y axis
 //the cross product result will be in the z direction
 function Vect3_Cross(ret, v1, v2) {

@@ -386,6 +386,30 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         }
         return this.lastAABB;
     }
+    
+    
+    this.getRayIntersection = function(ray){
+    
+        //check all faces of the mesh if the ray intersects, if it does, return the
+        //intersection point, ray distance, face index, model and object that the ray hit
+        
+        //to avoid checking all faces for each ray, use an oct tree on the model
+        
+        for( var f = 0; f < mesh.faces.length; ++f ){
+            //each face should have 3 or 4 verticies
+            var faceVerts = mesh.faces[f].vertIdxs.length;
+            
+            for( var v = 0; v < mesh.faces[f].vertIdxs.length; ++v ){
+            
+                //get a point and the face normal and check where the ray intersects the plane
+                //rayTriangleIntersection
+                rayPlaneIntersection( ray, mesh.faces[f].vertIdxs[0] );
+            
+            }
+            
+        }
+        
+    }
 
     //constructor functionality
     ///////////////////////////

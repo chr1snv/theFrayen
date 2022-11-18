@@ -224,6 +224,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
             var sNameArr = quadMesh.GetShaderName();
             thisP.shaderName  = sNameArr[0];
             thisP.shaderScene = sNameArr[1];
+            thisP.quadmesh = quadMesh;
             if( cbObj[3] != null ) //if there isn't a modelLoadedCallback callback don't try to call it
                 cbObj[3]( cbObj[1], cbObj[2] );
         } 
