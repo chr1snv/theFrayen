@@ -23,8 +23,8 @@
 
 function AABB( minCorner, maxCorner ){
 
-    this.minCoord = minCorner;
-    this.maxCoord = maxCorner;
+    this.minCoord = Vect3_CopyNew( minCorner );
+    this.maxCoord = Vect3_CopyNew( maxCorner );
     
     //generate the center coordinate
     this.center = Vect3_CopyNew( this.minCoord );
@@ -32,16 +32,18 @@ function AABB( minCorner, maxCorner ){
     Vect3_DivideScalar( this.center, 2 );
 
     //return a point and time along the ray that is inside the AABB or null
-    this.RayIntersects = function( ray ){
+    this.RayIntersects = function( rayStepPoint, rayStep, ray ){
     
         //first check if the ray intersects the model's aabb
         
-        //if the ray intersects there will be a point where x,y,or z will be equal to the aabb center
+        //if the ray intersects there will be a point where x,y,or z will be equal to the aabb bounds (walls)
+        //and the other axies will be within the bounds ( min and max extents )
         // y = m x + b - using the versatile 2d equation of line, substituting values and solving for the time/multiple of the ray direction
-        //let                  aabbcenter = ray normal * x + ray origin
-        //solving for x gives (aabbcenter - ray origin) / normal = x
-        //since the AABB and ray are 3 dimensional, find the three x's (one for each x,y andz)and points
+        //let                  aabbBound = ray normal * x + ray origin
+        //solving for x gives (aabbBound - ray origin) / normal = x
+        //since the AABB and ray are 3 dimensional, find the three x's (one for each x,y and z)and points
         //if any of those points are > aabb min coord and < max coord then there is a point on the ray in the aabb, so the ray intersects the AABB
+        //
         
         /*
         var vectToAABBCenter = Vect3_CopyNew( objectAABBCenter );
@@ -54,32 +56,43 @@ function AABB( minCorner, maxCorner ){
         //outside of the aabb, because closest point will give a point tangent to the smallest sphere surrounding the objectAABBCenter the ray touches
         */
         
+        //for each of the three axies find the possible intersection time
         for( var axis = 0; axis < 3; ++axis ){
             
-            var rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.normal[axis], (this.maxCoord[axis] - ray.origin[axis]) / ray.normal[axis] ];
+            //find the possible times (min and max aabb faces)
+            rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
+                        (this.maxCoord[axis] - ray.origin[axis]) / ray.norm[axis] ];
             
+            //for each axis check the min and max side
             for( var side = 0; side < 2; ++side )
             {
-                var rayStepPoint = ray.pointAtTime( rayStep[side] );
+                //advance the ray to the intersection point
+                rayStepPoint = ray.PointAtTime( rayStep[side] );
                 
+                //check the orthogonal axies of the point are within the aabb bounds
                 var numOtherAxiesWithinBounds = 0;
                 for( var otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
                 {
                     var otherAxis = (axis+otherAxiesIndice) % 3;
-                    if( rayStepPoint[axis] >= this.minCoord[otherAxis] && rayStepPoint[axis] <= this.maxCoord[otherAxis] )
+                    if( rayStepPoint[axis] >= this.minCoord[otherAxis] && 
+                        rayStepPoint[axis] <= this.maxCoord[otherAxis] )
                         numOtherAxiesWithinBounds += 1;
                 }
                 
-                if( numOtherAxiesWithinBounds > 1 ){
+                //if the two other axies are within the bounds the point 
+                //intersects a face of the aabb
+                if( numOtherAxiesWithinBounds > 1 ){ 
                     //the point is inside the aabb
-                      
-                    return [rayStepPoint, rayStep ];  
+                    
+                    //return the point and ray time
+                    rayStep = rayStep[side];
+                    return; //[ rayStepPoint, rayStep ];  
                 }
                 
            }
         }
         
-        return null;
+        //return null; //no intersection point found don't change return variables
         
     }
     

@@ -13,16 +13,20 @@ function Triangle( p1, p2, p3 ){
 
     //returns the intersection point of a ray and plane ( triangle )
     //used for finding if / where a ray intersects a triangle
-    this.rayTriangleIntersection = function( ray )
+    this.RayTriangleIntersection = function( ray )
     {
        //Definition of a plane - ( 2d flat surface in 3 dimensional space ) 
-       //all points on a plane have (point - planeCenter) dot planeNormal = 0 (the vector from the point to the plane center is orthogonal ( at a 90 deg right angle ) to the planeNormal )
+       //all points on a plane have (point - planeCenter) dot planeNormal = 0 
+       //(the vector from the point to the plane center is orthogonal ( at a 90 deg right angle ) to the planeNormal )
        
-       //the equation of a line is start + direction * time, need to find the time (multiple of ray direction) that causes the plane normal dot product with the (point - plane center) to be zero
+       //the equation of a line is start + direction * time
+       //need to find the time (multiple of ray direction) that causes the 
+       //plane normal dot product with the (point - plane center) to be zero
        
        //the basis/intuition of how this solver works is by coordinate space transformation
        //the problem is complicated/un clearly solved in world space because it depends on where the ray is and it's direction, and the triangle 
-       //I solved it once algebraically using the system of equations for the ray and plane, and simplifying the equations, but it takes a few pages and it's easy to make mistakes
+       //I solved it once algebraically using the system of equations for the ray and plane (in Drawable's RayIntersectsHull)
+       //and simplifying the equations, but it took a few pages of algebra and it's easy to make mistakes
        //so this time using change of coordinate spaces is the intuition to simplifying / solving for the intersection point
        //changing the problem point of view / persepective to 
        //the coordinate space of the plane/triangle 

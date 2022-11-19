@@ -5,6 +5,9 @@
 
 function Drawable(){
     //Vertices is an array of verts that compose the triangles of the hull
+    //this is depreciated by Triangle.js's RayTriangleIntersection function
+    //and should be acclerated with an OctTree in QuadMesh to minimize the
+    //number of triangles that need to be checked
     this.RayIntersectsHull = function( t, verticies, numTris,
                                        rayOrigin, rayDir )
     {

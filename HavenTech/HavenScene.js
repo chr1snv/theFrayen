@@ -92,10 +92,16 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         //and simulating dynamics / moving objects with cpu/general purpose compute and memory per world area
         //the compute may / may not be syncronized between world regions, and as objects move from one region to another they are passed
         //(via network / intraprocessor connections) to the memory and simulation in the new region
+        //there are optimizations, reStir, metropolus light transport for decreasing the number of rays that need
+        //to be cast, and also denoising can be applied after ( idea of the spectral image structure )
+        //by caching world space lighting rays, rays from previous frames, using importance sampling,
+        //distributed computing/streaming from a compute farm, and possibly gpu compute shader implementations
+        //of some of the tracing hopefully interactive framerates with photorealisim and minimal noise and can be achieved
         
         
         //raytracing draw call
-        this.cameras[ this.activeCameraIdx ].RayTraceDraw( this.octTree, graphics.screenWidth, graphics.screenHeight, graphics.GetScreenAspect() );
+        this.cameras[ this.activeCameraIdx ].RayTraceDraw( 
+            this.octTree, graphics.screenWidth, graphics.screenHeight, graphics.GetScreenAspect() );
         
         /*  //old rasterization code here
         
@@ -163,11 +169,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
-                var AABB = [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]),   //min coord
-                             parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ]; //max coord
+                var mAABB = new AABB( [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]) ],   //min coord
+                                     [ parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ] ); //max coord
                 thisSceneP.pendingModelsAdded++;
                 //          new Model(    nameIn,    meshNameIn,          sceneNameIn, AABB, modelLoadedParameters,   modelLoadedCallback )
-                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, AABB,            thisSceneP,
+                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, mAABB,            thisSceneP,
                 function( model, havenScenePointer ){ //modelLoadedCallback
                    model.AddToOctTree( havenScenePointer.octTree,
                     function(){

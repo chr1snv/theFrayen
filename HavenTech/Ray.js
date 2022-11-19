@@ -34,6 +34,7 @@ function RayRayIntersection( o1, d1, o2, d2 ){
 }
 
 
+rayStepEpsilon = 0.0001;
 
 function Ray(origin, direction)
 {
@@ -45,7 +46,7 @@ function Ray(origin, direction)
     }
     
     //returns the point along the ray at the given multiple of the ray direction (normal)
-    var pointAtTime = function( t ){
+    var PointAtTime = function( t ){
         var retPoint = Vect3_Copy( this.norm );
         Vect3_Multiply( retPoint, t );
         Vect3_Add( retPoint, this.origin );

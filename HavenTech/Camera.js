@@ -149,7 +149,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     }
 
     //apply the Cameras transformation
-    this.GetProjectionMatrix = function() //world space to camera space matrix ( invert the projection matrix (camera space to screen space) * camera to world space matrix )
+    this.GetProjectionMatrix = function() 
+    //world space to camera space matrix 
+    //( invert the projection matrix (camera space to screen space) * camera to world space matrix )
     {
         if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
         {
@@ -270,13 +272,16 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             
             //three principle axies in world space based on the camera orientation 
             this.frustum.normal = new Float32Array( 3 );
-            Matrix_Multiply_Vect3( this.frustum.normal,  this.frustum.rotMat, [ 0, 0, 1 ] ); //forward along the camera axis in world space
+            Matrix_Multiply_Vect3( this.frustum.normal,  this.frustum.rotMat, [ 0, 0, 1 ] );
+            //forward along the camera axis in world space
             this.frustum.up = new Float32Array( 3 );
-            Matrix_Multiply_Vect3( this.frustum.up,      this.frustum.rotMat, [ 0, 1, 0 ] ); //upward from the camera view in world space
+            Matrix_Multiply_Vect3( this.frustum.up,      this.frustum.rotMat, [ 0, 1, 0 ] );
+            //upward from the camera view in world space
             this.frustum.down = Vect3_CopyNew( this.frustum.up );
             Vect3_MultiplyScalar( this.frustum.down, -1 );
             this.frustum.right = new Float32Array( 3 );
-            Matrix_Multiply_Vect3( this.frustum.right,   this.frustum.rotMat, [ 1, 0, 0 ] ); //rightwards from the camera view in world space
+            Matrix_Multiply_Vect3( this.frustum.right,   this.frustum.rotMat, [ 1, 0, 0 ] );
+            //rightwards from the camera view in world space
             this.frustum.left = Vect3_CopyNew( this.frustum.right );
             Vect3_MultiplyScalar( this.frustum.left, -1 );
     
@@ -292,18 +297,22 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             //get the near plane center
             //obtain the offset from the camera origin to the near clip plane by scaling the cameraForward vector by the nearClipDistance
             this.frustum.vectToNearPlane = Vect3_CopyNew( this.frustum.normal );
-            Vect3_MultiplyScalar( this.frustum.vectToNearPlane, this.nearClip );     //world space vector from the camera origin to the near clip plane
+            Vect3_MultiplyScalar( this.frustum.vectToNearPlane, this.nearClip );
+            //world space vector from the camera origin to the near clip plane
             this.frustum.nearPlaneCenter = Vect3_CopyNew( this.frustum.origin );
-            Vect3_Add( this.frustum.nearPlaneCenter, this.frustum.vectToNearPlane ); //world space location of the near plane center
+            Vect3_Add( this.frustum.nearPlaneCenter, this.frustum.vectToNearPlane );
+            //world space location of the near plane center
             //get the near plane normal
             this.frustum.nearPlaneNormal = Vect3_CopyNew( this.frustum.normal );
             
             
             //get the far plane center
             this.frustum.vectToFarPlane = Vect3_CopyNew( this.frustum.normal );
-            Vect3_MultiplyScalar( this.frustum.vectToFarPlane, this.farClip );     //world space vector from the camera origin to the far clip plane
+            Vect3_MultiplyScalar( this.frustum.vectToFarPlane, this.farClip );
+            //world space vector from the camera origin to the far clip plane
             this.frustum.farPlaneCenter = Vect3_CopyNew( this.frustum.origin );
-            Vect3_Add( this.frustum.farPlaneCenter, this.frustum.vectToFarPlane ); //world space location of the near plane center
+            Vect3_Add( this.frustum.farPlaneCenter, this.frustum.vectToFarPlane );
+            //world space location of the far plane center
             //get the far plane normal
             this.frustum.farPlaneNormal = Vect3_CopyNew( this.frustum.normal );
             Vect3_MultiplyScalar( this.frustum.farPlaneNormal, -1 );
@@ -318,16 +327,20 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             
             
             //get the right plane center
-            //the distance to the right plane center from the nearFarPlaneMidpoint is given by tan (because) tan = opposite / adjacent * distToNearFarPlaneMidpoint (
+            //the distance to the right plane center from the nearFarPlaneMidpoint is given by 
+            //tan (because) tan = opposite / adjacent * distToNearFarPlaneMidpoint (
             var distToLeftRightPlaneCenters = Math.tan( this.frustum.horizFov / 2 ) * this.frustum.distToNearFarPlaneMidpoint;
             this.frustum.rightPlaneCenter = Vect3_CopyNew( this.frustum.right );
             Vect3_MultiplyScalar( this.frustum.rightPlaneCenter, distToLeftRightPlaneCenters );
             Vect3_Add( this.frustum.rightPlaneCenter, this.frustum.nearFarPlaneMidpoint );            
             //get the right plane normal
             var tempVectToRightPlaneCenterFromOrigin = Vect3_CopyNew( this.frustum.rightPlaneCenter );
-            Vect3_Subtract( tempVectToRightPlaneCenterFromOrigin, this.frustum.origin ); //vector from camera origin to center of right plane
+            Vect3_Subtract( tempVectToRightPlaneCenterFromOrigin, this.frustum.origin );
+            //vector from camera origin to center of right plane
             this.frustum.rightPlaneNormal = new Float32Array( 3 );
-            Vect3_Cross( this.frustum.rightPlaneNormal, this.frustum.up, tempVectToRightPlaneCenterFromOrigin ); //right hand rule (index finger = camera up, mid finger = origin to plane center (plane tangent), thumb = resultant normal to the plane )
+            Vect3_Cross( this.frustum.rightPlaneNormal, this.frustum.up, tempVectToRightPlaneCenterFromOrigin ); 
+            //right hand rule (index finger = camera up, mid finger = origin to plane center (plane tangent), 
+            //thumb = resultant normal to the plane )
             
             //get the left plane center
             this.frustum.leftPlaneCenter = Vect3_CopyNew( this.frustum.left );
@@ -337,7 +350,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             var tempVectToLeftPlaneCenter = Vect3_CopyNew( this.frustum.leftPlaneCenter );
             Vect3_Subtract( tempVectToLeftPlaneCenter, this.frustum.origin );
             this.frustum.leftPlaneNormal = new Float32Array( 3 );
-            Vect3_Cross( this.frustum.leftPlaneNormal, this.frustum.up, tempVectToLeftPlaneCenter ); //right hand rule (index finger = camera up, mid finger = origin to plane center (plane tangent), thumb = resultant normal to the plane )
+            Vect3_Cross( this.frustum.leftPlaneNormal, this.frustum.up, tempVectToLeftPlaneCenter ); 
+            //right hand rule (index finger = camera up, mid finger = origin to plane center (plane tangent), 
+            //thumb = resultant normal to the plane )
             
             
             //get the top plane center
@@ -349,7 +364,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             var tempVectToTopPlaneCenter = Vect3_CopyNew( this.frustum.topPlaneCenter );
             Vect3_Subtract( tempVectToTopPlaneCenter, this.frustum.origin );
             this.frustum.topPlaneNormal = new Float32Array( 3 );
-            Vect3_Cross( this.frustum.topPlaneNormal, tempVectToTopPlaneCenter, this.frustum.right ); //right hand rule (index finger = top plane tangent (from camera origin towards camera forward), mid finger = camera right, thumb = resultant normal to the plane )
+            Vect3_Cross( this.frustum.topPlaneNormal, tempVectToTopPlaneCenter, this.frustum.right ); 
+            //right hand rule (index finger = top plane tangent (from camera origin towards camera forward), 
+            //mid finger = camera right, thumb = resultant normal to the plane )
             
             
             //get the bottom plane center
@@ -360,7 +377,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             var tempVectToBottomPlaneCenter = Vect3_CopyNew( this.frustum.bottomPlaneCenter );
             Vect3_Subtract( tempVectToBottomPlaneCenter, this.frustum.origin );
             this.frustum.bottomPlaneNormal = new Float32Array( 3 );
-            Vect3_Cross( this.frustum.bottomPlaneNormal, tempVectToBottomPlaneCenter, this.frustum.left ); //right hand rule (index finger = bottom plane tangent (from camera origin towards camera forward), mid finger = camera left, thumb = resultant normal to the plane )
+            Vect3_Cross( this.frustum.bottomPlaneNormal, tempVectToBottomPlaneCenter, this.frustum.left ); 
+            //right hand rule (index finger = bottom plane tangent (from camera origin towards camera forward), 
+            //mid finger = camera left, thumb = resultant normal to the plane )
             
             //get the width and height of the near plane
             this.frustum.nearPlaneWidth  = Math.tan( this.frustum.horizFov / 2 ) * this.nearClip;
@@ -424,8 +443,11 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             var minZ =  Number.MAX_VALUE;
             var maxZ = -Number.MAX_VALUE;
             var cornerPoints = [ 
-                this.frustum.nearUpperLeft, this.frustum.nearUpperRight, this.frustum.nearBottomLeft, this.frustum.nearBottomRight,
-                this.frustum.farUpperLeft, this.frustum.farUpperRight, this.frustum.farBottomLeft, this.frustum.farBottomRight
+                this.frustum.nearUpperLeft,  this.frustum.nearUpperRight, 
+                this.frustum.nearBottomLeft, this.frustum.nearBottomRight,
+                
+                this.frustum.farUpperLeft,   this.frustum.farUpperRight, 
+                this.frustum.farBottomLeft,  this.frustum.farBottomRight
             ];
             for( var i = 0; i < cornerPoints.length; i++ )
             {
@@ -454,7 +476,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         return this.frustum;
     }
 
-    function GetFarClipBounds( bounds, fovy, aspect, zFar )  //used to generate world coordinate rays from 2d viewport (camera space) points
+    function GetFarClipBounds( bounds, fovy, aspect, zFar )  
+    //used to generate world coordinate rays from 2d viewport (camera space) points
     {
         var ymax = zFar * Math.tan(fovy * Math.PI / 360.0);
         var ymin = -ymax;
@@ -542,7 +565,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                 
                 var ray = new Ray( rayOrigin, rayNormal );
                 
-                octTreeRoot.GetClosestIntersectingSurface( ray );
+                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
             }
         }
         

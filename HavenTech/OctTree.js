@@ -28,7 +28,9 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.MaxCoord = MaxCoord; //the Maximum corner that the node covers
   this.midCoord = Vect3_CopyNew( this.minCoord );
   Vect3_Add( this.midCoord, this.MaxCoord );
-  Vect3_MultiplyScalar( this.midCoord, 0.5 );
+  Vect3_MultiplyScalar( this.midCoord, 0.5 ); //the center coordinate
+  
+  this.AABB = new AABB( this.minCoord, this.MaxCoord );
   
   this.parent  = parent; //link to the parent ( to allow traversing back up the tree )
   
@@ -109,20 +111,28 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   
   this.FindTreeNodeForPoint = function( point )
   {
-    //find which node the ray origin is in, to start tracing though node walls and objects from the ray's starting point
+    //find which node the ray origin is in
+    //to start tracing though node walls and objects from the ray's starting point
     
-    if( point[0] > this.minCoord[0] && point[1] > this.minCoord[1] && point[2] > this.minCoord[2] &&
-        point[0] < this.maxCoord[0] && point[1] < this.maxCoord[1] && point[2] < this.maxCoord[2] ){
+    if( point[0] > this.minCoord[0] && 
+        point[1] > this.minCoord[1] && 
+        point[2] > this.minCoord[2] &&
+        
+        point[0] < this.MaxCoord[0] && 
+        point[1] < this.MaxCoord[1] && 
+        point[2] < this.MaxCoord[2] ){
         
         //the ray origin is in this node
         
-        if( this.minNode != null ){ //check the min node if it is in the min node or one of the min node's subnodes
-            var node = this.minNode.FindRayOriginNode( point );
+        if( this.minNode != null ){ 
+            //check if it is in the min node or one of the min node's subnodes
+            var node = this.minNode.FindTreeNodeForPoint( point );
             if( node != null )
                 return node;
         }
-        if( this.maxNode != null ){ //check the min node if it is in the min node or one of the max node's subnodes
-            var node = this.maxNode.FindRayOriginNode( point );
+        if( this.MaxNode != null ){ 
+            //check if it is in the max node or one of the max node's subnodes
+            var node = this.MaxNode.FindTreeNodeForPoint( point );
             if( node != null )
                 return node;
         }
@@ -159,7 +169,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             //first check if the ray intersects the model's aabb
             var aabbRayPointRet = null;
             var rayTimeRet      = null;
-            this.objects[i].AABB.rayIntersects( aabbRayPointRet, rayTimeRet, ray );
+            this.objects[i].AABB.RayIntersects( aabbRayPointRet, rayTimeRet, ray );
             if( aabbRayPointRet != null ){
             
                 //since the ray intersects the aabb, check all faces of the mesh if the ray intersects, if it does, return the
@@ -169,7 +179,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
                 var rayDistanceRet       = null;
                 var faceIndexRet         = null;
                 if( this.objects[i].quadMesh != null ){
-                    this.objects[i].quadMesh.getRayIntersection( intersectionPointRet, rayDistanceRet, faceIndexRet, ray );
+                    this.objects[i].quadMesh.getRayIntersection( 
+                        intersectionPointRet, rayDistanceRet, faceIndexRet, ray );
                     if( intersectionPointRet != null ){
                         return [ intersectionPointRet, rayDistanceRet, faceIndexRet, i ];
                     }
@@ -180,12 +191,30 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         }
         
         //this was a leaf node and the ray didn't hit anything in it, find which wall it exits and node it enters
-        
+        var intersectionPointAndRayTime = this.AABB.RayIntersects( ray );
+        //increase the wall intersection ray time by epsilon and generate new ray point
+        //it should be inside the adjacent node
+        var nextNodeRayPoint = ray.pointAtTime( intersectionPointAndRayTime[1] + rayStepEpsilon );
+        var parentNode = this.parent;
+        var nextTraceNode = this;
+        var numTries = 3; //if the node is at the edge of the wo
+        while( nextTraceNode == this ){
+            nextTraceNode = this.FindRayOriginNode( ray, nextNodeRayPoint );
+        }
+        if( nextTraceNode != null )
+            return nextTraceNode.GetClosestIntersectingSurface( 
+                ray, intersectionPointAndRayTime[1], intersectionPointAndRayTime[0] );
+        //otherwise the ray may have left the world parent node, fall through to
+        //return null below
     }else{ 
         //this node has subnodes, decide which should be checked
-        var rayLastPoint
-        var node = this.FindRayOriginNode( ray, rayLastPoint );
+        var node = this.FindTreeNodeForPoint( rayLastPoint );
+        if( node != null && node != this )
+            return node.GetClosestIntersectingSurface( ray, rayLastTime, rayLastPoint );
     }
+    
+    return null; //all nodes along the ray path have been checked and didn't
+    //have an intersection with the ray
     
   }
   
@@ -307,7 +336,8 @@ function OctTree_GetNodesThatOverlapOrAreInsideFrustum(node, frustum)
        //check if there are sub nodes and one can be excluded
        if( node.minNode == null && node.MaxNode == null )
        {
-         //there are no subnodes, so this is a leaf node of the binary oct tree (reached the bottom of the spatial division recursion)
+         //there are no subnodes, so this is a leaf node of the binary oct tree 
+         //(reached the bottom of the spatial division recursion)
          //return this node even though its area outside the frustum may be larger than the frustum
          return [node];
        }
