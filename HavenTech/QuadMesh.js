@@ -16,9 +16,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.meshName        = nameIn;
     this.sceneName       = sceneNameIn;
 
-    this.isValid         = false;
+    this.isValid         = false; //true once loading is complete
     this.isAnimated      = false;
-    
 
     //the orientation matrix
     this.scale           = new Float32Array([1,1,1]);
@@ -46,9 +45,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.skelPositions   = [];
 
     //animation classes
+    //ipo animation affects the root transformation of the quadmesh
     this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
+    //keyframe animation has basis meshes and an ipo curve for each giving weight at time
     this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
+    //skeletal animation has bones (heirarchical transformations), ipo curves for
+    //properties of each transformation at time and weights for how each vertex
+    //is affected by a transformation
     this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
+    
+    this.lastMeshUpdateTime = -0.5;
 
     //calculate per vertex normals from face averaged normals
     //calculated from vertex position coordinates
@@ -237,17 +243,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         if(this.skelPositions.length != 0)
             positionCoords = this.skelPositions;
         else if(this.keyedPositions.length != 0)
-            positionCoords = this.keyedPositions;
+            positionCoords = this.keyedPositions; //keyframe animated positions
         else
-            positionCoords = this.vertPositions;
+            positionCoords = this.vertPositions;  //static vert positions
 
         return positionCoords;
     }
 
     //using the MeshKeyAnimation
     //update the current mesh (used by skeletal animation if present) to the current animationFrame
-    this.Update = function(animationTime) { 
-        this.lastMeshUpdateTime = 0; 
+    this.Update = function(animationTime) {
+        if( animationTime > this.lastMeshUpdateTime ){
+            this.lastMeshUpdateTime = animationTime;
+            this.transformedPositions = this.getTransformedVerts();
+        }
     }
     this.GetAnimationLength = function() {}
 
@@ -282,7 +291,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         }
 
         //
-        ///Select the source of mesh vertex data
+        ///get the animation transformed mesh vertex data
         ////////////////////////////////////////////////////////////
 
         var transformedPositions = this.getTransformedVerts();
@@ -331,7 +340,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
         gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
     }
-    this.DrawSkeleton = function() { skelAnimation.Draw(); }
+    this.DrawSkeleton = function() { this.skelAnimation.Draw(); }
 
     //type query functions
     this.IsHit = function() {}
@@ -349,63 +358,73 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
     
     this.lastAABBUpdateTime = -1;
-    this.lastAABB = [];
+    this.lastAABB = null;
     //get the axis aligned bounding box of the mesh
     this.GetAABB = function() {
         if( this.lastAABBUpdateTime < this.lastMeshUpdateTime )
         {
-            var minX = 0;
-            var minY = 0;
-            var minZ = 0;
+            var minX =  Number.MAX_VALUE;
+            var minY =  Number.MAX_VALUE;
+            var minZ =  Number.MAX_VALUE;
+            var maxX = -Number.MAX_VALUE;
+            var maxY = -Number.MAX_VALUE;
+            var maxZ = -Number.MAX_VALUE;
             var transformedPositions = this.getTransformedVerts();
-            for ( var i = 0; i < transformedPositions.length; ++i ){
+            for ( var i = 0; i < transformedPositions.length; i+=graphics.vertCard ){
             
-                if( transformedPositions[ i ][0] < minX ){
-                    minX = transformedPositions[ i ][0];
+                if( transformedPositions[ i + 0] < minX ){
+                    minX = transformedPositions[ i + 0];
                 }
-                if( transformedPositions[ i ][1] < minY ){
-                    minY = transformedPositions[ i ][1];
+                if( transformedPositions[ i + 1] < minY ){
+                    minY = transformedPositions[ i + 1];
                 }
-                if( transformedPositions[ i ][2] < minZ ){
-                    minZ = transformedPositions[ i ][2];
+                if( transformedPositions[ i + 2] < minZ ){
+                    minZ = transformedPositions[ i + 2];
                 }
-                if( transformedPositions[ i ][0] > maxX ){
-                    maxX = transformedPositions[ i ][0];
+                if( transformedPositions[ i + 0] > maxX ){
+                    maxX = transformedPositions[ i + 0];
                 }
-                if( transformedPositions[ i ][1] > maxY ){
-                    maxY = transformedPositions[ i ][1];
+                if( transformedPositions[ i + 1] > maxY ){
+                    maxY = transformedPositions[ i + 1];
                 }
-                if( transformedPositions[ i ][2] > maxZ ){
-                    maxZ = transformedPositions[ i ][2];
+                if( transformedPositions[ i + 2] > maxZ ){
+                    maxZ = transformedPositions[ i + 2];
                 }
                 
             }
             this.lastAABBUpdateTime = this.lastMeshUpdateTime;
-            this.lastAABB = [ minX, minY, minZ,   maxX, maxY, maxZ ];
+            this.lastAABB = new AABB( [ minX, minY, minZ], [maxX, maxY, maxZ] );
             
         }
         return this.lastAABB;
     }
     
     
-    this.getRayIntersection = function(ray){
+    this.GetRayIntersection = function(ray){
     
         //check all faces of the mesh if the ray intersects, if it does, return the
         //intersection point, ray distance, face index, model and object that the ray hit
         
         //to avoid checking all faces for each ray, use an oct tree on the model
-        
-        for( var f = 0; f < mesh.faces.length; ++f ){
+        for( var f = 0; f < this.faces.length; ++f ){
             //each face should have 3 or 4 verticies
-            var faceVerts = mesh.faces[f].vertIdxs.length;
+            var numFaceVerts = this.faces[f].vertIdxs.length;
             
-            for( var v = 0; v < mesh.faces[f].vertIdxs.length; ++v ){
-            
-                //get a point and the face normal and check where the ray intersects the plane
-                //rayTriangleIntersection
-                rayPlaneIntersection( ray, mesh.faces[f].vertIdxs[0] );
-            
+            var vertVect3s = [];
+            for( var v = 0; v < numFaceVerts; ++v ){
+                vertVect3s[v] = [ 
+                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
+                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
+                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
             }
+            
+            var triangle = new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] );
+            
+            //get a point and the face normal and check where the ray intersects the plane
+            //rayTriangleIntersection
+            var intersectionPointTime = triangle.RayTriangleIntersection( ray );
+            if( intersectionPointTime != null )
+                return intersectionPointTime;
             
         }
         

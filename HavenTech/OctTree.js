@@ -167,22 +167,17 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         {
         
             //first check if the ray intersects the model's aabb
-            var aabbRayPointRet = null;
-            var rayTimeRet      = null;
-            this.objects[i].AABB.RayIntersects( aabbRayPointRet, rayTimeRet, ray );
-            if( aabbRayPointRet != null ){
+            var aabbPointAndTime = this.objects[i].GetAABB().RayIntersects( ray );
+            if( aabbPointAndTime[0] != null ){
             
                 //since the ray intersects the aabb, check all faces of the mesh if the ray intersects, if it does, return the
                 //intersection point, ray distance, face index, model and object that the ray hit
                     
-                var intersectionPointRet = null;
-                var rayDistanceRet       = null;
-                var faceIndexRet         = null;
-                if( this.objects[i].quadMesh != null ){
-                    this.objects[i].quadMesh.getRayIntersection( 
-                        intersectionPointRet, rayDistanceRet, faceIndexRet, ray );
-                    if( intersectionPointRet != null ){
-                        return [ intersectionPointRet, rayDistanceRet, faceIndexRet, i ];
+                if( this.objects[i].quadmesh != null ){
+                    var intptDistFaceidx = 
+                        this.objects[i].quadmesh.GetRayIntersection( ray );
+                    if( intptDistFaceidx[0] != null ){
+                        return [ intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], i ];
                     }
                 }
             

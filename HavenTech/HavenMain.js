@@ -138,18 +138,23 @@ function sceneChanged()
 }
 
 //callback once a scene has finished loading
+var sceneTime = 0;
+var sceneLoadedTime = 0;
 function sceneLoaded(havenScene)
 {
+    sceneLoadedTime = (new Date()).getTime();
     mainScene = havenScene;
-    havenScene.Draw();
+    mainScene.Update(sceneTime);
+    mainScene.Draw();
     window.setTimeout(MainLoop, 300);
 }
 
 //the main rendering and update function called each frame
 function MainLoop()
 {
-
+    sceneTime = ( (new Date()).getTime() - sceneLoadedTime ) /1000;
     graphics.Clear();
+    mainScene.Update( sceneTime );
     UpdateCamera();
     //drawSquare(graphics);
     mainScene.Draw();

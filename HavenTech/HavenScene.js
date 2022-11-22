@@ -169,8 +169,21 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
-                var mAABB = new AABB( [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]) ],   //min coord
-                                     [ parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ] ); //max coord
+                var AABBVecs = [ [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]) ],  //min
+                                 [ parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ] ] //max;
+                var nanValue = false;
+                for( var vecIdx = 0; vecIdx < 2; ++vecIdx ){
+                    var aabbVec = AABBVecs[vecIdx];
+                    for( var a = 0; a < aabbVec.length; ++a ){
+                        if( aabbVec[a] != aabbVec[a] ){
+                            nanValue = true;
+                            break;
+                        }
+                    }
+                }
+                var mAABB = null;
+                if( nanValue == false )
+                    mAABB = new AABB( AABBMin, AABBMax );
                 thisSceneP.pendingModelsAdded++;
                 //          new Model(    nameIn,    meshNameIn,          sceneNameIn, AABB, modelLoadedParameters,   modelLoadedCallback )
                 newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, mAABB,            thisSceneP,

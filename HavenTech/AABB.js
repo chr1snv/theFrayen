@@ -32,7 +32,7 @@ function AABB( minCorner, maxCorner ){
     Vect3_DivideScalar( this.center, 2 );
 
     //return a point and time along the ray that is inside the AABB or null
-    this.RayIntersects = function( rayStepPoint, rayStep, ray ){
+    this.RayIntersects = function( ray ){
     
         //first check if the ray intersects the model's aabb
         
@@ -66,6 +66,8 @@ function AABB( minCorner, maxCorner ){
             //for each axis check the min and max side
             for( var side = 0; side < 2; ++side )
             {
+                if( rayStep[side] < 0 ) //ignore AABB sides behind the ray origin
+                    continue;
                 //advance the ray to the intersection point
                 rayStepPoint = ray.PointAtTime( rayStep[side] );
                 
@@ -86,13 +88,13 @@ function AABB( minCorner, maxCorner ){
                     
                     //return the point and ray time
                     rayStep = rayStep[side];
-                    return; //[ rayStepPoint, rayStep ];  
+                    return [ rayStepPoint, rayStep ];  
                 }
                 
            }
         }
         
-        //return null; //no intersection point found don't change return variables
+        return null; //no intersection point found don't return anything
         
     }
     

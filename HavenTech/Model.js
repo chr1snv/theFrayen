@@ -66,14 +66,19 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
     //animation functions
     this.Update = function( time, updateCompleteParams, updateCompleteCallback )
     {
-        graphics.GetQuadMesh( this.meshName, this.sceneName, {1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
-            function( quadMesh, cbObj )
-            {
-                quadMesh.Update(time);
-                cbObj[1].timeUpdate = true; //set this model's flag that the animation of the mesh has been updated so it should regenerate it's gl buffer
-                cbObj[3]( cbObj[2] ); //updateCompleteCallback(updateCompleteParams);
-            }
-        );
+        if( this.quadmesh == null ){
+            graphics.GetQuadMesh( this.meshName, this.sceneName, this, //{1:this, 2:updateCompleteParams, 3:updateCompleteCallback},
+                function( quadMesh, cbObj )
+                {
+                    quadMesh.Update(time);
+                    cbObj.lastUpdateTime = time; //cbObj[1].timeUpdate = true; //set this model's flag that the animation of the mesh has been updated so it should regenerate it's gl buffer
+                    //cbObj[3]( cbObj[2] ); //updateCompleteCallback(updateCompleteParams);
+                }
+            );
+        }else{
+            this.quadmesh.Update( time );
+            this.lastUpdateTime = time;
+        }
 
     }
     this.GetAnimationLength = function() { return graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
@@ -112,7 +117,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
             function( quadMesh, cbObj ){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
         );
     }
-    //must draw forces the quadmesh to regenerate it's mesh passed to gl
+    //must draw forces the quadmesh to regenerate it's mesh passed to gl (depreciated rasterization draw function)
     this.Draw = function( frustum, verts, normals, uvs, modelTransform, mustDraw, completeCallback )
     {
         if( this.timeUpdate || mustDraw ) //check if the model should 
@@ -193,7 +198,10 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
         });
     }
     this.GetAABB = function( finishedCallback ){
-        return this.AABB; //return the cached AABB in the model ( the when the quadmesh is updated it should be updated )
+        if( this.AABB == null ){
+            this.AABB = this.quadmesh.GetAABB();
+        }
+        return this.AABB; //return the cached AABB in the model ( when the quadmesh is updated it should be updated )
     }
 
     this.modelName = nameIn;
