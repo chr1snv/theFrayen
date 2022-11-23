@@ -565,7 +565,17 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                 
                 var ray = new Ray( rayOrigin, rayNormal );
                 
+                //get the closest
+                //intersection point, ray distance, face index, and object
+                //that the ray hit
+                //intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], this.objects[i]
+                var intptDistFaceObj = 
                 octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
+                
+                if( intptDistFaceObj != null ){
+                    graphics.drawPixel( w / width, h / height );
+                }
+                
             }
         }
         

@@ -286,6 +286,15 @@ function Graphics( canvasIn, bpp, depthIn )
 		}
 	}
 	this.UnrefQuadMesh = function(filename, sceneName) {}
+	
+	this.drawPixel = function( x, y ){
+	    // Fills the buffer with a single point?
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
+          x+0.5,     y+0.5]), gl.STATIC_DRAW );
+
+        // Draw one point.
+       gl.drawArrays( gl.POINTS, 0, 1 );
+	}
 
 	//initialization code
 	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true});

@@ -171,6 +171,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var modelMeshName = modelName;
                 var AABBVecs = [ [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]) ],  //min
                                  [ parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ] ] //max;
+                //try to read in an AABB from the model description line
+                //if there aren't values set the not a number flag
                 var nanValue = false;
                 for( var vecIdx = 0; vecIdx < 2; ++vecIdx ){
                     var aabbVec = AABBVecs[vecIdx];
@@ -184,9 +186,10 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var mAABB = null;
                 if( nanValue == false )
                     mAABB = new AABB( AABBMin, AABBMax );
-                thisSceneP.pendingModelsAdded++;
-                //          new Model(    nameIn,    meshNameIn,          sceneNameIn, AABB, modelLoadedParameters,   modelLoadedCallback )
-                newMdl    = new Model( modelName, modelMeshName, thisSceneP.sceneName, mAABB,            thisSceneP,
+                thisSceneP.pendingModelsAdded++; //compared in check if is loaded
+                //to check if all models have finished loading
+                newMdl    = new Model( modelName, modelMeshName, 
+                                thisSceneP.sceneName, mAABB, thisSceneP,
                 function( model, havenScenePointer ){ //modelLoadedCallback
                    model.AddToOctTree( havenScenePointer.octTree,
                     function(){

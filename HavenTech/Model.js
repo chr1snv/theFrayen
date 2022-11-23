@@ -110,6 +110,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
         this.AddToSceneGraph( currentSceneGraph );
     }
 
+    /*
     //draw functions
     this.GetNumVerts = function( cbParams, cb )
     {
@@ -143,6 +144,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
             completeCallback( false );
         }
     }
+    */
     this.GetOptTransform = function( retMat )
     {
         if( optTransformUpdated )
@@ -197,9 +199,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
             callback( quadMesh.GetBoundingPlanes() );
         });
     }
-    this.GetAABB = function( finishedCallback ){
+    this.GetAABB = function( time ){
+        if( this.lastUpdateTime != time )
+            this.Update( time );
         if( this.AABB == null ){
-            this.AABB = this.quadmesh.GetAABB();
+            this.AABB = this.quadmesh.GetAABB(time);
         }
         return this.AABB; //return the cached AABB in the model ( when the quadmesh is updated it should be updated )
     }
@@ -213,7 +217,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB, modelLoadedParameters, mo
     
     this.AABB = AABB;
 
-    this.timeUpdate;
+    this.lastUpdateTime = -0.5;
+    //this.timeUpdate;
     this.optTransformUpdated;
 
     //modifiers for manipulating the mesh from its default position

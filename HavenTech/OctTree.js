@@ -60,15 +60,16 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     var numObjectsAddedToMinNode = 0;
     for( var i = 0; i < this.objects.length; ++i ){
         
-        var objectAABB = this.objects[i].GetAABB(); //get the axis aligned bounding box for the object 
-                                                    //( min and max points defining a box with faces (planes) aligned with the x y z axies
-        objectAABBMinCoord = [ objectAABB[0], objectAABB[1], objectAABB[2] ]
-        objectAABBMaxCoord = [ objectAABB[3], objectAABB[4], objectAABB[5] ]
-        if( objectAABBMinCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
-                                            this.minNode.MaxCoord[nextAxis] < objectAABBMaxCoord[nextAxis] ){
+        var objectAABB = this.objects[i].GetAABB(0); 
+        //get the axis aligned bounding box for the object 
+        //( min and max points defining a box with faces (planes) aligned with the x y z axies
+        
+        //this.minNode.MaxCoord[nextAxis] is the center between of the node
+        if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
+            this.minNode.MaxCoord[nextAxis] < objectAABB.maxCoord[nextAxis] ){
             //the object straddles the center and isn't fully in the min or max nodes
             //leave it in this node
-        }else if( objectAABBMaxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
+        }else if( objectAABB.maxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
             if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; //the objects were not successfuly seperated by the nextAxis splitting 
                               //(addDepth causes wait until all 3 (x y z) axis have been tried 
@@ -177,7 +178,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
                     var intptDistFaceidx = 
                         this.objects[i].quadmesh.GetRayIntersection( ray );
                     if( intptDistFaceidx[0] != null ){
-                        return [ intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], i ];
+                        return [ intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], this.objects[i] ];
                     }
                 }
             
@@ -189,12 +190,12 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         var intersectionPointAndRayTime = this.AABB.RayIntersects( ray );
         //increase the wall intersection ray time by epsilon and generate new ray point
         //it should be inside the adjacent node
-        var nextNodeRayPoint = ray.pointAtTime( intersectionPointAndRayTime[1] + rayStepEpsilon );
+        var nextNodeRayPoint = ray.PointAtTime( intersectionPointAndRayTime[1] + rayStepEpsilon );
         var parentNode = this.parent;
         var nextTraceNode = this;
         var numTries = 3; //if the node is at the edge of the wo
         while( nextTraceNode == this ){
-            nextTraceNode = this.FindRayOriginNode( ray, nextNodeRayPoint );
+            nextTraceNode = this.FindTreeNodeForPoint( nextNodeRayPoint );
         }
         if( nextTraceNode != null )
             return nextTraceNode.GetClosestIntersectingSurface( 

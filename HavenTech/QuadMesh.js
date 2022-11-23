@@ -55,6 +55,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
     
     this.lastMeshUpdateTime = -0.5;
+    
+    /*
 
     //calculate per vertex normals from face averaged normals
     //calculated from vertex position coordinates
@@ -235,27 +237,35 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             }
         }
     }
+    */
+    
     
     //returns the non tessilated verts. returns new memory
-    this.getTransformedVerts = function()
+    this.UpdateTransformedVerts = function(time)
     {
         var positionCoords;
-        if(this.skelPositions.length != 0)
-            positionCoords = this.skelPositions;
-        else if(this.keyedPositions.length != 0)
+        
+        if(this.keyedPositions.length != 0)
             positionCoords = this.keyedPositions; //keyframe animated positions
+        else if(this.skelPositions.length != 0)
+            positionCoords = this.skelPositions;
         else
             positionCoords = this.vertPositions;  //static vert positions
-
-        return positionCoords;
+            
+        if( this.skelAnimation.isValid )
+            this.skelAnimation.GenerateMesh( this.transformedVerts, numVerts, mesh, time );
+        else
+            this.transformedVerts = positionCoords;
+        
+        //return positionCoords;
     }
 
     //using the MeshKeyAnimation
     //update the current mesh (used by skeletal animation if present) to the current animationFrame
     this.Update = function(animationTime) {
         if( animationTime > this.lastMeshUpdateTime ){
-            this.lastMeshUpdateTime = animationTime;
-            this.transformedPositions = this.getTransformedVerts();
+            this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
+            this.UpdateTransformedVerts(this.lastMeshUpdateTime);
         }
     }
     this.GetAnimationLength = function() {}
@@ -277,6 +287,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //color manipulation functions
     this.GetShaderName = function() { return [this.shaderNames[0], this.sceneName]; }
 
+    
     //draw interface
     this.Draw = function(verts, normals, uvs)
     {
@@ -290,18 +301,21 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             return;
         }
 
+        /* //assumed Update( time ) has updated the transformedPositions
+           //before this Draw function is called
         //
         ///get the animation transformed mesh vertex data
         ////////////////////////////////////////////////////////////
 
         var transformedPositions = this.getTransformedVerts();
+        */
 
         //
         ///Generate the vertex position coordinates
         ////////////////////////////////////////////////////////////
 
         //tesselate the mesh
-        this.tesselateCoords( verts, this.faces, transformedPositions );
+        this.tesselateCoords( verts, this.faces, this.transformedPositions );
         
         gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
         var attr = gl.getAttribLocation( graphics.currentProgram, "position");
@@ -317,8 +331,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
         //generate & tesselate the normal coords from the batch of verts currently being used
         
-        var normalCoords = new Float32Array(transformedPositions.length);
-        this.GenerateNormalCoords(normalCoords, this.faces, transformedPositions);
+        var normalCoords = new Float32Array(this.transformedPositions.length);
+        this.GenerateNormalCoords(normalCoords, this.faces, this.transformedPositions);
         this.tesselateCoords(normals, this.faces, normalCoords);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
@@ -340,6 +354,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
         gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
     }
+    
     this.DrawSkeleton = function() { this.skelAnimation.Draw(); }
 
     //type query functions
@@ -353,6 +368,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 cb( shader.IsTransparent(), thisP );
             });
     }
+    
 
     //geometry query function
     this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
@@ -360,8 +376,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.lastAABBUpdateTime = -1;
     this.lastAABB = null;
     //get the axis aligned bounding box of the mesh
-    this.GetAABB = function() {
-        if( this.lastAABBUpdateTime < this.lastMeshUpdateTime )
+    this.GetAABB = function(time) {
+        if( this.lastAABBUpdateTime < time )
         {
             var minX =  Number.MAX_VALUE;
             var minY =  Number.MAX_VALUE;
@@ -369,26 +385,30 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             var maxX = -Number.MAX_VALUE;
             var maxY = -Number.MAX_VALUE;
             var maxZ = -Number.MAX_VALUE;
-            var transformedPositions = this.getTransformedVerts();
-            for ( var i = 0; i < transformedPositions.length; i+=graphics.vertCard ){
+            //assumed that Update( time ) has been called to update the 
+            //transformedPositions before this
+            if( this.transformedVerts == null || this.lastMeshUpdateTime < time)
+                this.Update( time );
+            for ( var i = 0; i < this.transformedVerts.length; 
+                  i+=graphics.vertCard ){
             
-                if( transformedPositions[ i + 0] < minX ){
-                    minX = transformedPositions[ i + 0];
+                if( this.transformedVerts[ i + 0] < minX ){
+                    minX = this.transformedVerts[ i + 0];
                 }
-                if( transformedPositions[ i + 1] < minY ){
-                    minY = transformedPositions[ i + 1];
+                if( this.transformedVerts[ i + 1] < minY ){
+                    minY = this.transformedVerts[ i + 1];
                 }
-                if( transformedPositions[ i + 2] < minZ ){
-                    minZ = transformedPositions[ i + 2];
+                if( this.transformedVerts[ i + 2] < minZ ){
+                    minZ = this.transformedVerts[ i + 2];
                 }
-                if( transformedPositions[ i + 0] > maxX ){
-                    maxX = transformedPositions[ i + 0];
+                if( this.transformedVerts[ i + 0] > maxX ){
+                    maxX = this.transformedVerts[ i + 0];
                 }
-                if( transformedPositions[ i + 1] > maxY ){
-                    maxY = transformedPositions[ i + 1];
+                if( this.transformedVerts[ i + 1] > maxY ){
+                    maxY = this.transformedVerts[ i + 1];
                 }
-                if( transformedPositions[ i + 2] > maxZ ){
-                    maxZ = transformedPositions[ i + 2];
+                if( this.transformedVerts[ i + 2] > maxZ ){
+                    maxZ = this.transformedVerts[ i + 2];
                 }
                 
             }
@@ -413,9 +433,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             var vertVect3s = [];
             for( var v = 0; v < numFaceVerts; ++v ){
                 vertVect3s[v] = [ 
-                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
-                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
-                this.transformedPositions[ this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
+                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
+                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
+                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
             }
             
             var triangle = new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] );
