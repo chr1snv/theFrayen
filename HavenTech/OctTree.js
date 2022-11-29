@@ -39,18 +39,58 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.minNode = null; //the next node that spans max = (maxCoord+minCoord)/2 and min = minCoord
   this.MaxNode = null; //
   
+  //idealy the oct treebounds are 32-64bit integers
+  //and every node / sub division has a fill/occupancy type
+  //i.e vaccum, air, water, elemental material, etc
+  //the node also may have an object parent, and polygonal bounds
+  //the slope of the surface of a voxel is determined by the triangle it is part of
+  //vox tris - voxels are good but they don't allow for arbitrary edge directions / positions
+  //so have the triangle outer mesh inside be filled with voxels
+  //and in each voxel determine if it is inside or outside an object
+  //by starting at the corners of the object aabb and filling to assign outside 
+  //or inside object status
+  
+  //alternatively use a binary space partition tree, and choose random dividing
+  //plane directions then in objects choose triangle edges and verticies on
+  //opposite sides of the model to subdivide the interior space
+  
+  //having object details at low parts of the tree and summaries / objects
+  //at higher up larger nodes works if no objects span higher node boundries
+  //when small objects span large boundries it causes their parent point to
+  //go higher up in  the tree
+  //the ideal solution is maybe multiple oct trees
+  //static part of the world objects abide by a fixed division oct tree
+  //and dynamic moving objects have a local oct tree that is checked against the
+  //world oct tree
+  //but it still ends up having to be in one structure to do comparision and rendering
+  //so the best is having one structure and mapping things to it as best as possible
+  //voxels either have full occupancy or a point and normal
+  //(portion of a triangle mesh inside) (might be an edge between triangles)
+  //(similar to a surfel https://en.wikipedia.org/wiki/Surfel) but more like a 
+  //higher resolution version of marching cubes
+  //https://en.wikipedia.org/wiki/Marching_cubes
+  //by allowing more detailed resolution placement of voxel surfaces
+  //it can appear like a polygonal mesh, but be performant
+  
   //add an object to the node, if it is full - subdivide it and place objects in the sub nodes
   this.AddObject = function( object, addDepth=0 ) //addDepth is to keep track of if all axies have been checked for seperating the objects
   {
+    //fill nodes until they are full (prevent unessecary subdividing)
+    //but also don't add objects if they are inside objects already in the world
+    //(if something is inside an object it should be parented to it)
     if( this.objects.length < MaxTreeNodeObjects ){
         this.objects.push( object );
         return true;
     }
+    //only leaf nodes should contain objects because that's where rays
+    //check for intersection
     
     //else, split the node until there are only MaxTreeNodeObjects per node
     //to keep object intersection / overlap test performace gains given by the binary oct tree
     var nextAxis = this.generateMinAndMaxNodes();
     
+    //divide the objects between the min and max nodes
+    //subdivide leaf node spanning objects, parenting the subdivided parts to the object
     //distribute the objects between the two new nodes
     //because each layer of the tree only splits one axis, and the nodes are orthogonal
     //checking which sub node the object goes in requires only one comparison
@@ -68,7 +108,34 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
             this.minNode.MaxCoord[nextAxis] < objectAABB.maxCoord[nextAxis] ){
             //the object straddles the center and isn't fully in the min or max nodes
-            //leave it in this node
+            //subdivide it and add it to the nodes that it is in
+            //(objects should be in leaf nodes and not be overlaping for
+            //performance)
+            //as the tree is subdivided further the object's parts will get
+            //put into sub trees / leaves and there will be more nodes it doesn't
+            //occupy than does
+            
+            //if an object straddles multiple leaf nodes, it should be subdivided
+            //by world nodes, and each part placed in the world node
+            //realistically constantly dividing an object and reportioning it as
+            //it moves for dynamic/moving objects will probably not be worth it
+            //so may be better to link to the object (model/quadmesh) in each of
+            //nodes that it appears in and for rays keep track of which objects
+            //aabb's were tested for intersection in the last node
+            //(with rectangular aabb's and straight line rays, there will only
+            //be one entry point and one exit point, so when going between world
+            //oct tree nodes, if in the last node it was in an object's aabb,
+            //and now isn't, it has exited the object and it can be ignored for
+            //preventing rechecking it)
+            //though an object may span multiple world leaf oct tree nodes,
+            //because an object may be concave or have it's aabb overlap another
+            //the ray needs to advance only as far as the end of the 
+            //oct tree node for the next group of objects for their
+            //intersection test
+            
+            this.minNode.AddObject( this.objects[i], addDepth += 1 );
+            this.MaxNode.AddObject( this.objects[i], addDepth += 1 );
+            
         }else if( objectAABB.maxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
             if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; //the objects were not successfuly seperated by the nextAxis splitting 
@@ -192,10 +259,14 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //it should be inside the adjacent node
         var nextNodeRayPoint = ray.PointAtTime( intersectionPointAndRayTime[1] + rayStepEpsilon );
         var parentNode = this.parent;
-        var nextTraceNode = this;
-        var numTries = 3; //if the node is at the edge of the wo
-        while( nextTraceNode == this ){
-            nextTraceNode = this.FindTreeNodeForPoint( nextNodeRayPoint );
+        var nextTraceNode = null;
+        while( nextTraceNode == null ){
+            nextTraceNode = parentNode.FindTreeNodeForPoint( nextNodeRayPoint );
+            if( nextTraceNode == null ){
+                parentNode = parentNode.parent;
+                if( parentNode == null )
+                    break; //the ray is outside the root node world space
+            }
         }
         if( nextTraceNode != null )
             return nextTraceNode.GetClosestIntersectingSurface( 
@@ -224,6 +295,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     var MaxminCoord = [];
     var MaxMaxCoord = [];
     
+    //generate the min and max corners of the nodes
     for(var i = 0; i < 3; ++i){ //(x y z) for loop to avoid seperate if statement for x y and z axies
     
       minminCoord.push( this.minCoord[i] );
@@ -245,6 +317,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   
 }
 
+/*
 function GenerateNodeCorners(node)
 {
     //the 8 corners of the node cube, 4 bottom corners and 4 top corners
@@ -362,6 +435,8 @@ function OctTree_GetNodesThatOverlapOrAreInsideFrustum(node, frustum)
   //otherwise the frustum is completely outside the node
   return [];
 }
+
+*/
 
 
 

@@ -10,6 +10,8 @@ function Triangle( p1, p2, p3 ){
     Vect3_Subtract( this.e2, this.v1 );
     this.norm = [ 0, 0, 0 ];
     Vect3_Cross( this.norm, this.e1, this.e2 );
+    this.e3 = Vect3_CopyNew( this.v3 );
+    Vect3_Subtract( this.e3, this.v2 );
 
     //returns the intersection point of a ray and plane ( triangle )
     //used for finding if / where a ray intersects a triangle
@@ -62,14 +64,16 @@ function Triangle( p1, p2, p3 ){
        var triCenterToRayOrigin = Vect3_CopyNew( ray.origin );
        Vect3_Subtract( triCenterToRayOrigin, this.v1 );
        //use dot products to transform the ray into triangle space
-       var rayOriginInTriSpace = [ Vect3_Dot( triCenterToRayOrigin, triX      ), 
-                                   Vect3_Dot( triCenterToRayOrigin, triY      ), 
-                                   Vect3_Dot( triCenterToRayOrigin, this.norm ) 
-                                 ];
-       var rayNormInTriSpace   = [ Vect3_Dot(             ray.norm, triX      ), 
-                                   Vect3_Dot(             ray.norm, triY      ), 
-                                   Vect3_Dot(             ray.norm, this.norm ) 
-                                 ];
+       var rayOriginInTriSpace = [
+            Vect3_Dot( triCenterToRayOrigin, triX      ),
+            Vect3_Dot( triCenterToRayOrigin, triY      ),
+            Vect3_Dot( triCenterToRayOrigin, this.norm )
+       ];
+       var rayNormInTriSpace   = [
+            Vect3_Dot( ray.norm, triX      ),
+            Vect3_Dot( ray.norm, triY      ),
+            Vect3_Dot( ray.norm, this.norm )
+       ];
        
        var rayTriSpaceSlope = rayNormInTriSpace[2];
        
@@ -83,18 +87,32 @@ function Triangle( p1, p2, p3 ){
        //knowing the plane space line slope and distance from the plane to the lineOrigin (lineOriginInPlaneSpace[z] )
        //0 = linePlaneSpaceSlope (x) + lineOriginInPlaneSpace[z]
        //-lineOriginInPlaneSpace[z] / linePlaneSpaceSlope = x
-       var rayDistanceToPlaneIntercept = -rayOriginInTriSpace[2] / rayTriSpaceSlope;
+       var rayDistanceToTriIntercept = -rayOriginInTriSpace[2] / rayTriSpaceSlope;
        
        //the plane intersection point is
-       var planeSpaceIntersectionPoint = Vect3_CopyNew( rayNormInTriSpace ); 
-       Vect3_MultiplyScalar( planeSpaceIntersectionPoint, lineDistanceToPlaneIntercept );
-       Vect3_Add( planeSpaceIntersectionPoint, lineOriginInPlaneSpace );
+       var triSpaceIntersectionPoint = Vect3_CopyNew( rayNormInTriSpace ); 
+       Vect3_MultiplyScalar( triSpaceIntersectionPoint, rayDistanceToTriIntercept );
+       Vect3_Add( triSpaceIntersectionPoint, rayOriginInTriSpace );
        
-       //check if the position on the plane is within the plane width and height
-       if( Math.abs( planeSpaceIntersectionPoint[0] ) < planeWidth && 
-           Math.abs( planeSpaceIntersectionPoint[0] ) < planeHeight )
-           return true;
-       return false;
+       //check if the position on the plane is within the triangle edges
+       //for each edge get it's 90 deg version (cross product with normal)
+       //and check if the dot product is positive (inside triangle) or negative
+       var e1Orthog = Vect3_NewZero();
+       Vect3_Cross( e1Orthog, this.norm, this.e1 );
+       var e2Orthog = Vect3_NewZero();
+       Vect3_Cross( e2Orthog, this.norm, this.e2 );
+       var e3Orthog = Vect3_NewZero();
+       Vect3_Cross( e3Orthog, this.norm, this.e3 );
+       
+       var e1ODot = Vect3_Dot( e1Orthog, triSpaceIntersectionPoint );
+       var e2ODot = Vect3_Dot( e2Orthog, triSpaceIntersectionPoint );
+       var e3ODot = Vect3_Dot( e3Orthog, triSpaceIntersectionPoint );
+       
+       if( e1ODot < 0 || 
+           e2ODot < 0 ||
+           e3ODot < 0 )
+           return null;
+       return rayDistanceToTriIntercept;
        
     }
 

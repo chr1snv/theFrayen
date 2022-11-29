@@ -97,8 +97,7 @@ function Matrix()// m, type, scale, rot, translation )
         var yAxis = new Float32Array([0.0, 1.0, 0.0]);
         
         //find the angle to rotate by
-        var dotProduct;
-        Vect3_Dot(dotProduct, boneAxis, yAxis);
+        var dotProduct = Vect3_Dot( boneAxis, yAxis );
         var rotationAngle = Math.acos(dotProduct);
         
         //if the bone is not parallel to the y axis
@@ -111,8 +110,7 @@ function Matrix()// m, type, scale, rot, translation )
             
             //generate the rotation quaternion
             //to be delt with
-            var orientationQuat = new Float32Array(3);
-            Quat(rotationAxis, rotationAngle, orientationQuat);
+            var orientationQuat = Quat_FromAxisAng(rotationAxis, rotationAngle);
             
             Matrix(m, MatrixType.quat_rotate, orientationQuat);
         }

@@ -294,6 +294,14 @@ function Graphics( canvasIn, bpp, depthIn )
 
         // Draw one point.
        gl.drawArrays( gl.POINTS, 0, 1 );
+       
+       /*
+       // https://stackoverflow.com/questions/35444202/draw-a-single-pixel-in-webgl-using-gl-points
+       //if you want to draw 3 points at (0,0) (1,1), (2,2) 
+       //then you need to do gl.bufferData(gl.ARRAY_BUFFER, 
+       //new Float32Array([0.5, 0.5, 1.5, 1.5, 2.5, 2.5], gl.STATIC_DRAW) and 
+       //then gl.drawArrays(gl.POINTS, 0, 3);
+       */
 	}
 
 	//initialization code

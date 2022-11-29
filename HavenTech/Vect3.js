@@ -13,6 +13,8 @@ function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] =
 
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
 
+function Vect3_NewZero() { return new Float32Array([0,0,0]); };
+
 function Vect3_CopyNew( v ) { return [ v[0], v[1], v[2] ];  }
 
 function Vect3_Copy(v1, v2) { v1[0] = v2[0]; v1[1] = v2[1]; v1[2] = v2[2]; }
@@ -49,18 +51,21 @@ function Vect3_Cross(ret, v1, v2) {
 //if they are 180 deg (orthogonal) the dot product will be zero, and if
 //oppsite direction, the result will be negative
 //useful for determining if points are on a plane / on one side of the plane or another
-function Vect3_Dot( result, v1, v2)
+//javascript is pass by refrence so it is possible to modify the contents of a
+//passed in array, but not a scalar (because modifying the refrence is not allowed)
+//https://stackoverflow.com/questions/13104494/does-javascript-pass-by-reference
+function Vect3_Dot( v1, v2 )
 { 
-    result = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; 
+    return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; 
 }
 
 //returns the distance between the two vectors or points (assuming the vectors are distances from the same origin to two points)
-function Vect3_Distance(dist, v1, v2) {
+function Vect3_Distance(v1, v2) {
     var diff = new Float32Array(3);
     Vect3_Copy(diff, v1);
     Vect3_Subtract(diff, v2); //diff is now the vector from v2 to v1
 
-    Vect3_Length(dist, diff);
+    return Vect3_Length(diff);
 }
 
 //return the inverse vector

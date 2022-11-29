@@ -245,10 +245,9 @@ function Bone( skelAnimFileLines, SLIdx ){
     this.head_Mat = new Float32Array(4*4);
     Matrix(this.head_Mat, MatrixType.translate, this.head);
     //loc_tail_Mat
-    var tempVec = new Float32Array([0,0,0]);
-    Vect3_Distance(tempVec[1], this.tail, this.head);
+    var distVec = new Float32Array([0, Vect3_Distance( this.tail, this.head ), 0]);
     this.loc_tail_Mat = new Float32Array([0,0,0]);
-    Matrix(this.loc_tail_Mat, MatrixType.translate, tempVec);
+    Matrix(this.loc_tail_Mat, MatrixType.translate, distVec);
 }
 
 
