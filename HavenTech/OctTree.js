@@ -72,8 +72,11 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   //by allowing more detailed resolution placement of voxel surfaces
   //it can appear like a polygonal mesh, but be performant
   
-  //add an object to the node, if it is full - subdivide it and place objects in the sub nodes
-  this.AddObject = function( object, addDepth=0 ) //addDepth is to keep track of if all axies have been checked for seperating the objects
+  //add an object to the node, if it is full - subdivide it 
+  //and place objects in the sub nodes
+  this.AddObject = function( object, addDepth=0 ) 
+  //addDepth is to keep track of if all axies 
+  //have been checked for seperating the objects
   {
     //fill nodes until they are full (prevent unessecary subdividing)
     //but also don't add objects if they are inside objects already in the world
@@ -86,23 +89,31 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     //check for intersection
     
     //else, split the node until there are only MaxTreeNodeObjects per node
-    //to keep object intersection / overlap test performace gains given by the binary oct tree
+    //to keep object intersection / overlap test performace gains 
+    //given by the binary oct tree
     var nextAxis = this.generateMinAndMaxNodes();
     
     //divide the objects between the min and max nodes
-    //subdivide leaf node spanning objects, parenting the subdivided parts to the object
+    //subdivide leaf node spanning objects, parenting the subdivided 
+    //parts to the object
     //distribute the objects between the two new nodes
-    //because each layer of the tree only splits one axis, and the nodes are orthogonal
+    //because each layer of the tree only splits one axis, 
+    //and the nodes are orthogonal
     //checking which sub node the object goes in requires only one comparison
-    // axis split by min and max node  -------minNode-------|minNodeMaxCoord maxNodeMinCoord | -------maxNode-------
-    //the minNodeMin and maxNodeMax were already checked by this node (the parent of the min and max nodes)
-    //so only need to check the extents of the object vs where the min and max nodes are split
+    // axis split by min and max node
+    //  -------minNode-------|minNodeMaxCoord 
+    //                        maxNodeMinCoord | -------maxNode-------
+    //the minNodeMin and maxNodeMax were already checked 
+    //by this node (the parent of the min and max nodes)
+    //so only need to check the extents of the object 
+    //vs where the min and max nodes are split
     var numObjectsAddedToMinNode = 0;
     for( var i = 0; i < this.objects.length; ++i ){
         
         var objectAABB = this.objects[i].GetAABB(0); 
         //get the axis aligned bounding box for the object 
-        //( min and max points defining a box with faces (planes) aligned with the x y z axies
+        //( min and max points defining a box with faces (planes) 
+        //aligned with the x y z axies
         
         //this.minNode.MaxCoord[nextAxis] is the center between of the node
         if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
@@ -155,7 +166,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     }
     
     if( this.objects.length < MaxTreeNodeObjects )
-        return true; //the node was successfuly subdivided and objects distributed to sub nodes such that
+        return true; //the node was successfuly subdivided and objects 
+                     //distributed to sub nodes such that
                      //all nodes have less than MaxTreeNodeObjects
   }
   
@@ -205,12 +217,15 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
                 return node;
         }
         
-        return this; //the origin is in this node and this node is a leaf node ( doesn't have a min or max child )
-        //or it was in this node and this node isn't a leaf node but it wasn't in one of the leaf nodes ( shouldn't happen )
+        return this; //the origin is in this node and this node 
+        //is a leaf node ( doesn't have a min or max child )
+        //or it was in this node and this node isn't a leaf node 
+        //but it wasn't in one of the leaf nodes ( shouldn't happen )
         
     }else{
     
-        return null; //the point is outside this node, null will allow the calling instance of this function to try another node
+        return null; //the point is outside this node, null will allow 
+        //the calling instance of this function to try another node
         
     }
     
@@ -219,33 +234,43 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.GetClosestIntersectingSurface = function( ray, rayLastTime, rayLastPoint ){
     //returns the intersection point, face index, model and object that the ray hit
     
-    //traverses the binary oct tree, starting at a node checking objects in it for intersection with the ray
+    //traverses the binary oct tree, starting at a node 
+    //checking objects in it for intersection with the ray
     //if there isn't an intersection or there are no objects, 
-    //the ray origin is advanced to epsilon + where it intersects the wall of the current node and exits it
-    //and the parent node is returned to checking for a node containing that point
+    //the ray origin is advanced to epsilon + where it 
+    //intersects the wall of the current node and exits it
+    //and the parent node is returned to checking 
+    //for a node containing that point
     
-    //if this is a leaf node check all objects in the node otherwise recurse until reaching a leaf node
-    //if it misses all the objects in a leaf node, find the next leaf node it might intersect with objects in
+    //if this is a leaf node check all objects in the node 
+    //otherwise recurse until reaching a leaf node
+    //if it misses all the objects in a leaf node, 
+    //find the next leaf node it might intersect with objects in
     
     if( this.minNode == null && this.MaxNode == null )
     {
-        //the node is a leaf node, check if any objects in it intersect with the ray
+        //the node is a leaf node, check if any objects 
+        //in it intersect with the ray
        
-        for( var i = 0; i < this.objects.length; ++i ) //loop through the objects (if one isn't yet loaded, it is ignored)
+        for( var i = 0; i < this.objects.length; ++i ) 
+        //loop through the objects (if one isn't yet loaded, it is ignored)
         {
         
             //first check if the ray intersects the model's aabb
             var aabbPointAndTime = this.objects[i].GetAABB().RayIntersects( ray );
-            if( aabbPointAndTime[0] != null ){
+            if( aabbPointAndTime != null ){
             
-                //since the ray intersects the aabb, check all faces of the mesh if the ray intersects, if it does, return the
-                //intersection point, ray distance, face index, model and object that the ray hit
+                //since the ray intersects the aabb, check all faces 
+                //of the mesh if the ray intersects, if it does, return the
+                //intersection point, ray distance, face index, 
+                //model and object that the ray hit
                     
                 if( this.objects[i].quadmesh != null ){
                     var intptDistFaceidx = 
                         this.objects[i].quadmesh.GetRayIntersection( ray );
-                    if( intptDistFaceidx[0] != null ){
-                        return [ intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], this.objects[i] ];
+                    if( intptDistFaceidx != null ){
+                        return [ intptDistFaceidx[0], intptDistFaceidx[1], 
+                                 this.objects[i],     this.objects[i] ];
                     }
                 }
             
@@ -253,31 +278,36 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             
         }
         
-        //this was a leaf node and the ray didn't hit anything in it, find which wall it exits and node it enters
+        //this was a leaf node and the ray didn't hit anything in it, 
+        //find which wall it exits and node it enters
         var intersectionPointAndRayTime = this.AABB.RayIntersects( ray );
-        //increase the wall intersection ray time by epsilon and generate new ray point
+        //increase the wall intersection ray time by epsilon 
+        //and generate new ray point
         //it should be inside the adjacent node
-        var nextNodeRayPoint = ray.PointAtTime( intersectionPointAndRayTime[1] + rayStepEpsilon );
+        var nextNodeRayPoint = ray.PointAtTime( 
+                    intersectionPointAndRayTime[1] + rayStepEpsilon );
         var parentNode = this.parent;
         var nextTraceNode = null;
-        while( nextTraceNode == null ){
+        while( nextTraceNode == null ){ //next node has not yet been found
             nextTraceNode = parentNode.FindTreeNodeForPoint( nextNodeRayPoint );
-            if( nextTraceNode == null ){
-                parentNode = parentNode.parent;
+            if( nextTraceNode == null ){ //go up the hierarchy and try again
+                parentNode = parentNode.parent; //up one level
                 if( parentNode == null )
                     break; //the ray is outside the root node world space
             }
         }
         if( nextTraceNode != null )
             return nextTraceNode.GetClosestIntersectingSurface( 
-                ray, intersectionPointAndRayTime[1], intersectionPointAndRayTime[0] );
+                ray, intersectionPointAndRayTime[1], 
+                intersectionPointAndRayTime[0] );
         //otherwise the ray may have left the world parent node, fall through to
         //return null below
     }else{ 
         //this node has subnodes, decide which should be checked
         var node = this.FindTreeNodeForPoint( rayLastPoint );
         if( node != null && node != this )
-            return node.GetClosestIntersectingSurface( ray, rayLastTime, rayLastPoint );
+            return node.GetClosestIntersectingSurface( ray, 
+                                        rayLastTime, rayLastPoint );
     }
     
     return null; //all nodes along the ray path have been checked and didn't
@@ -286,20 +316,24 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   }
   
   //to be called when the node is filled with the max number of objects
-  //(decided on for performance of number of object tests vs overhead of the depth of the tree)
+  //(decided on for performance of number of object tests vs 
+  //overhead of the depth of the tree)
   this.generateMinAndMaxNodes = function(){
 
-    var nextAxis = (this.axis + 1) % 3; //modulo wrap around from (2)z axis back to x
+    var nextAxis = (this.axis + 1) % 3; 
+    //modulo wrap around from (2)z axis back to x
     var minminCoord = []; //fill these depending on the axis being subdivided
     var minMaxCoord = [];
     var MaxminCoord = [];
     var MaxMaxCoord = [];
     
     //generate the min and max corners of the nodes
-    for(var i = 0; i < 3; ++i){ //(x y z) for loop to avoid seperate if statement for x y and z axies
+    for(var i = 0; i < 3; ++i){ 
+        //(x y z) for loop to avoid seperate if statement for x y and z axies
     
       minminCoord.push( this.minCoord[i] );
-      if( nextAxis == i){ //if this is axis (x y or z) that the minAndMax nodes split then use the mid point
+      if( nextAxis == i){ //if this is axis (x y or z) that the 
+        //minAndMax nodes split then use the mid point
         var midPt = this.midCoord[i];
         minMaxCoord.push( midPt );
         MaxminCoord.push( midPt );
@@ -361,8 +395,10 @@ function pointIsInsideAABB( aabb, point ){
     
 }
 
-//check all 3 xyz axies bounds if the two bounding boxes have at least one corner inside eachother
-//if they overlap in one axis, that means they are in front/back, left/right or top/bottom of eachother
+//check all 3 xyz axies bounds if the two bounding boxes 
+//have at least one corner inside eachother
+//if they overlap in one axis, that means they are 
+//in front/back, left/right or top/bottom of eachother
 //need xyz overlap for volume intersection test
 function OctTree_AABBsIntersect( aabb1, aabb2 ) //frustum is aabb2
 {

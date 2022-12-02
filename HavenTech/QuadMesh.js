@@ -43,6 +43,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //animated mesh
     this.keyedPositions  = [];
     this.skelPositions   = [];
+    
+    //the oct tree of the mesh faces (updated with mesh animations)
+    this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
 
     //animation classes
     //ipo animation affects the root transformation of the quadmesh
@@ -78,7 +81,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             //go through all of the verticies in the face
             for(var j=0; j<numVertIdxs; ++j)
             {
-                //fetch 3 verticies from the face (to get two edges to compute a normal from)
+                //fetch 3 verticies from the face 
+                //(to get two edges to compute a normal from)
                 var vIdx0 = faces[i].vertIdxs[(0+j)%numVertIdxs];
                 var vIdx1 = faces[i].vertIdxs[(1+j)%numVertIdxs];
                 var vIdx2 = faces[i].vertIdxs[(2+j)%numVertIdxs];
@@ -93,17 +97,23 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                           positionCoords[vIdx2*graphics.vertCard+1],
                           positionCoords[vIdx2*graphics.vertCard+2]];
 
-                //calculate the relative vectors (relative to the current middle vert)
-                //(vectors in the direction of the edges of the face from v1->v0 and v1->v2)
+                //calculate the relative vectors 
+                //(relative to the current middle vert)
+                //(vectors in the direction of the edges of the face 
+                //from v1->v0 and v1->v2)
                 Vect3_Subtract(v0, v1);
                 Vect3_Subtract(v2, v1);
                 //calculate the normal (orthogonal vector to the edge vectors)
                 var crossProd = [];
-                Vect3_Cross(crossProd, v2, v0); //normal is the cross product of the relative vectors
-                Vect3_Add(normal, crossProd); //average the contribution of the sub edges of the face
+                Vect3_Cross(crossProd, v2, v0); 
+                //normal is the cross product of the relative vectors
+                Vect3_Add(normal, crossProd); 
+                //average the contribution of the sub edges of the face
             }
-            //normalize the accumulation of normals from the edge pairs of the face 
-            Vect3_Unit(normal); //possibly optional or to be changed so that faces with more / less vertices
+            //normalize the accumulation of normals 
+            //from the edge pairs of the face 
+            Vect3_Unit(normal); //possibly optional or to be changed 
+            //so that faces with more / less vertices
             //contribute more to the per vertex normal
 
             //accumulate the face normal back to each vertex
@@ -123,7 +133,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             } //end write normal data
         } //end for each face
 
-        //normalize the accumulated face normals vectors for each  make the normals unit length (average output)
+        //normalize the accumulated face normals vectors for each  
+        //make the normals unit length (average output)
         for(var i=0; i<positionCoords.length; ++i){
             var idx = i*graphics.normCard;
             var len = Vect3_Length( [ vertNormals[idx+0],
@@ -196,7 +207,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
     }
     
-    //baised on faces (that may be a mixture of triangles and quads) generate only triangle uv coordinates
+    //baised on faces (that may be a mixture of triangles and quads)
+    // generate only triangle uv coordinates
     //for buffering and rendering with gl
     this.tesselateUVCoords = function( uvCoords, faces )
     {
@@ -253,7 +265,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             positionCoords = this.vertPositions;  //static vert positions
             
         if( this.skelAnimation.isValid )
-            this.skelAnimation.GenerateMesh( this.transformedVerts, numVerts, mesh, time );
+            this.skelAnimation.GenerateMesh( 
+                this.transformedVerts, numVerts, mesh, time );
         else
             this.transformedVerts = positionCoords;
         
@@ -261,7 +274,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
 
     //using the MeshKeyAnimation
-    //update the current mesh (used by skeletal animation if present) to the current animationFrame
+    //update the current mesh (used by skeletal animation if present) 
+    //to the current animationFrame
     this.Update = function(animationTime) {
         if( animationTime > this.lastMeshUpdateTime ){
             this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
@@ -329,10 +343,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
         var normCard = 3;
 
-        //generate & tesselate the normal coords from the batch of verts currently being used
+        //generate & tesselate the normal coords 
+        //from the batch of verts currently being used
         
         var normalCoords = new Float32Array(this.transformedPositions.length);
-        this.GenerateNormalCoords(normalCoords, this.faces, this.transformedPositions);
+        this.GenerateNormalCoords(
+                normalCoords, this.faces, this.transformedPositions);
         this.tesselateCoords(normals, this.faces, normalCoords);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
@@ -359,7 +375,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     //type query functions
     this.IsHit = function() {}
-    //thisP is from the caller of this function, so the callback can return to the same context
+    //thisP is from the caller of this function, 
+    //so the callback can return to the same context
     this.IsTransparent = function(callback, thisP) 
     {
         graphics.GetShader( this.shaderNames[0], this.sceneName, callback,
@@ -423,7 +440,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.GetRayIntersection = function(ray){
     
         //check all faces of the mesh if the ray intersects, if it does, return the
-        //intersection point, ray distance, face index, model and object that the ray hit
+        //intersection point, ray distance, face index, that the ray hit
         
         //to avoid checking all faces for each ray, use an oct tree on the model
         for( var f = 0; f < this.faces.length; ++f ){
@@ -433,21 +450,30 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             var vertVect3s = [];
             for( var v = 0; v < numFaceVerts; ++v ){
                 vertVect3s[v] = [ 
-                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
-                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
-                this.transformedVerts[ this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
+                    this.transformedVerts[ 
+                        this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
+                    this.transformedVerts[ 
+                        this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
+                    this.transformedVerts[ 
+                        this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
             }
             
-            var triangle = new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] );
+            var triangle = new Triangle( 
+                vertVect3s[0], vertVect3s[1], vertVect3s[2] );
             
-            //get a point and the face normal and check where the ray intersects the plane
+            
+            
+            //get a point and the face normal and check 
+            //where the ray intersects the plane
             //rayTriangleIntersection
             var intersectionPointTime = triangle.RayTriangleIntersection( ray );
             if( intersectionPointTime != null )
-                return intersectionPointTime;
+                return [intersectionPointTime, f];
+            //else try another triangle
             
         }
         
+        return null;
     }
 
     //constructor functionality
@@ -474,15 +500,24 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		            //read in the origin rotation and size of the mesh
 		            if( temp[0] == 'x' )
 		            {
-		                thisP.origin =   [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		                thisP.origin =   [ 
+		                    parseFloat(words[1]), 
+		                    parseFloat(words[2]), 
+		                    parseFloat(words[3]) ];
 		            }
 		            else if( temp[0] == 'r' )
 		            {
-		                thisP.rotation = [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		                thisP.rotation = [ 
+		                    parseFloat(words[1]), 
+		                    parseFloat(words[2]), 
+		                    parseFloat(words[3]) ];
 		            }
 		            else if( temp[0] == 's' )
 		            {
-		                thisP.scale =    [ parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) ];
+		                thisP.scale =    [ 
+		                    parseFloat(words[1]), 
+		                    parseFloat(words[2]), 
+		                    parseFloat(words[3]) ];
 		            }
 		            else if( temp[0] == 'e' )
 		            {
@@ -501,9 +536,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		    else if( temp[0] == 'v' )
 		    {
 		        //read in the position
-		        thisP.vertPositions.push(parseFloat(words[1]));
-		        thisP.vertPositions.push(parseFloat(words[2]));
-		        thisP.vertPositions.push(parseFloat(words[3]));
+		        thisP.vertPositions.push( parseFloat(words[1]) );
+		        thisP.vertPositions.push( parseFloat(words[2]) );
+		        thisP.vertPositions.push( parseFloat(words[3]) );
 
 		        //read in the normal
 		        temp = meshFileLines[++mLIdx];
@@ -514,9 +549,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		                    ', error expected vertex normal when reading mesh file');
 		            return;
 		        }
-		        thisP.vertNormals.push(parseFloat(words[1]));
-		        thisP.vertNormals.push(parseFloat(words[2]));
-		        thisP.vertNormals.push(parseFloat(words[3]));
+		        thisP.vertNormals.push( parseFloat(words[1]) );
+		        thisP.vertNormals.push( parseFloat(words[2]) );
+		        thisP.vertNormals.push( parseFloat(words[3]) );
 
 		        //read in the bone weights until the end of the vertex
 		        var boneWeights = {};
@@ -559,14 +594,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		            if( temp[0] == 'v' )
 		            {
 		                var numFaceVerts = 0;
-		                for( var vertNumIdx = 1; vertNumIdx < words.length; ++vertNumIdx )
+		                for( var vertNumIdx = 1; 
+		                    vertNumIdx < words.length; ++vertNumIdx )
 		                {
 		                    var vertIdx = parseFloat(words[vertNumIdx]);
 		                    if( vertIdx < 0 || vertIdx > numVerts )
 		                    {
-		                        DPrintf( 'QuadMesh: ' + thisP.meshName + ', face: ' +
-		                               (thisP.faces.length-1).toString()  + ', vertIdx: ' + vertIdx +
-		                               ' is out of range.' );
+		                        DPrintf( 'QuadMesh: ' + thisP.meshName +
+		                                 ', face: ' +
+		                                    (thisP.faces.length-1).toString()  + 
+		                                 ', vertIdx: ' + vertIdx +
+		                                 ' is out of range.' );
 		                        return;
 		                    }
 		                    newFace.vertIdxs.push(vertIdx);
@@ -577,9 +615,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		                else if(numFaceVerts == 4)
 		                    thisP.faceVertsCt += 6; //since will have to tesselate
 		                else{
-		                    DPrintf('QuadMesh: ' + thisP.meshName + 'reading face: ' +
-		                          (thisP.faces.length-1).toString()  +
-		                          ', expected 3 or 4 vertices, instead got: ' + numFaceVerts);
+		                    DPrintf( 'QuadMesh: ' + thisP.meshName + 
+		                             'reading face: ' +
+		                                (thisP.faces.length-1).toString()  +
+		                         ', expected 3 or 4 vertices, instead got: ' + 
+		                            numFaceVerts);
 		                    return;
 		                }
 		            }
@@ -591,7 +631,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		                {
 		                    var u = parseFloat(words[uvIdx]);
 		                    var v = parseFloat(words[uvIdx+1]);
-		                    //v = 1.0 - v; // flip the texture vertically if necessay
+		                    //v = 1.0 - v; 
+		                    // flip the texture vertically if necessay
 		                    newFace.uvs.push(u);
 		                    newFace.uvs.push(v);
 		                }
@@ -602,10 +643,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		            {
 		                if( !(newFace.uvs.length/2 >= newFace.vertIdxs.length) )
 		                {
-		                    DPrintf( 'QuadMesh: ' + thisP.meshName + 'reading face: ' +
-		                            thisP.faces.length  + ', expected: ' +
-		                            newFace.vertIdxs.length + ' uv\'s, but got: ' +
-		                            newFace.uvs.length/2 );
+		                    DPrintf( 'QuadMesh: ' + thisP.meshName + 
+		                             'reading face: ' + thisP.faces.length  + 
+		                             ', expected: ' + newFace.vertIdxs.length + 
+		                             ' uv\'s, but got: ' + newFace.uvs.length/2 );
 		                    //return;
 		                }
 		                thisP.faces.push(newFace);
@@ -622,12 +663,15 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		else
 		    thisP.isValid = true;
 
-		//copy the normals and verticies into a float32 array for compatibility with gl
+		//copy the normals and verticies into a float32 array 
+		//for compatibility with gl
 		thisP.vertPostions = new Float32Array(thisP.vertPositions);
 		thisP.vertNormals  = new Float32Array(thisP.vertNormals);
 
 		//initialize the animation
-		if( thisP.ipoAnimation.isValid || thisP.keyAnimation.isValid || thisP.skelAnimation.isValid )
+		if( thisP.ipoAnimation.isValid || 
+		    thisP.keyAnimation.isValid || 
+		    thisP.skelAnimation.isValid )
 		{
 		    thisP.isAnimated = true;
 		    thisP.Update(0.0);
@@ -638,7 +682,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		        ', verts: ' + thisP.vertPositions.length/3 );
 
 		//finalize the binding between the quadMesh and the skelAnimation
-		//by setting the boneID's in the bone weights based on the bone positions
+		//by setting the boneID's in the bone weights 
+		//based on the bone positions
 		//in the animation bone list
 		for( var i in thisP.vertBoneWeights )
 		    for( var boneName in thisP.vertBoneWeights[i] )
@@ -649,7 +694,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
 
     //read in the materials file
-    var matFileName = "scenes/"+this.sceneName+"/meshMaterials/"+this.meshName+".hvtMeshMat";
+    var matFileName = "scenes/" + this.sceneName + "/meshMaterials/" + 
+                                  this.meshName + ".hvtMeshMat";
 
     this.matFileLoaded = function(matFile, thisP)
     {
@@ -666,15 +712,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 		if( thisP.shaderNames.length < 1 )
 		{
-		    DPrintf('QuadMesh: ' + thisP.meshName + ', failed to read any materials, loading default material');
+		    DPrintf('QuadMesh: ' + thisP.meshName + 
+		        ', failed to read any materials, loading default material');
 		    thisP.shaderNames.push("default");
 		}
 
 		//read in the mesh file
-		var meshFileName = "scenes/"+thisP.sceneName+"/meshes/"+thisP.meshName+".hvtMesh";
-		loadTextFile(meshFileName, thisP.meshFileLoaded, thisP);
+		var meshFileName = "scenes/"  + thisP.sceneName + 
+		                   "/meshes/" + thisP.meshName + ".hvtMesh";
+		loadTextFile( meshFileName, thisP.meshFileLoaded, thisP );
 	}
-	loadTextFile(matFileName, this.matFileLoaded, this);
+	loadTextFile( matFileName, this.matFileLoaded, this );
 
 	
     

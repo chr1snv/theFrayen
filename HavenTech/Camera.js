@@ -263,7 +263,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     this.lastFrustumCalculationTime = -1;
     this.GetFrustum = function()
     {
-        if( this.lastFrustumCalculationTime != this.lastUpdateTime ) //the camera has likely moved since the last frustum parameters were calculated, update the frustum
+        if( this.lastFrustumCalculationTime != this.lastUpdateTime ) 
+        //the camera has likely moved since the last frustum parameters 
+        //were calculated, update the frustum
         {
             this.frustum          = new Frustum();
             this.frustum.origin   = new Float32Array( 3 ); this.getLocation( this.frustum.origin );
@@ -477,7 +479,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     }
 
     function GetFarClipBounds( bounds, fovy, aspect, zFar )  
-    //used to generate world coordinate rays from 2d viewport (camera space) points
+    //used to generate world coordinate rays from 
+    //2d viewport (camera space) points
     {
         var ymax = zFar * Math.tan(fovy * Math.PI / 360.0);
         var ymin = -ymax;
@@ -490,8 +493,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                    [xmax, ymax, -zFar] ]; //top right
     }
 
-    //generate a ray from the camera origin in the direction of the screen into the world
-    //used for ray intersection / hit tests, interactions and clicking on objects in the rendered scene
+    //generate a ray from the camera origin in the direction 
+    //of the screen into the world
+    //used for ray intersection / hit tests, interactions 
+    //and clicking on objects in the rendered scene
     this.GenerateWorldCoordRay = function(rayOrig, rayDir, screenCoords)
     {
         var vertCard = 3;
@@ -508,7 +513,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.getRotation(rot);
         var rotMat     = new Float32Array(4*4);
         Matrix(rotMat, MatrixType.euler_rotate, rot);
-        //get the far clip plane bounds and rotate them by the camera rotation matrix
+        //get the far clip plane bounds and rotate them 
+        //by the camera rotation matrix
         var boundsTemp = new Array(4);
         var bounds     = new Array(4);
         GetFarClipBounds(boundsTemp, fov, 1.0, farClip);
@@ -519,18 +525,30 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         var leftTemp     = new Array(vertCard);
         var rightTemp    = new Array(vertCard);
         var frustumPoint = new Array(vertCard);
-        Vect3_LERP(leftTemp,  bounds[0], bounds[1], screenCoords[1]*0.5+0.5);   //bottom left, top left lerp
-        Vect3_LERP(rightTemp, bounds[2], bounds[3], screenCoords[1]*0.5+0.5);   //bottom right, top right lerp
-        Vect3_LERP(frustumPoint, leftTemp, rightTemp, screenCoords[0]*0.5+0.5); //left, right lerp
+        Vect3_LERP(leftTemp,  bounds[0], bounds[1], screenCoords[1]*0.5+0.5);   
+        //bottom left, top left lerp
+        Vect3_LERP(rightTemp, bounds[2], bounds[3], screenCoords[1]*0.5+0.5);   
+        //bottom right, top right lerp
+        Vect3_LERP(frustumPoint, leftTemp, rightTemp, screenCoords[0]*0.5+0.5); 
+        //left, right lerp
 
         Vect3_Copy(rayDir, frustumPoint);
     }
     
     
-    //traces rays from the camera and returns a SpectralImage (frequency domain) (for conversion and display as bitmap)
+    //traces rays from the camera and returns a SpectralImage (frequency domain) 
+    //(for conversion and display as bitmap)
     
-    this.RayTraceDraw = function( octTreeRoot, width, height, aspect )
-    {
+    //time domain multisampling could also be used to improve image quality
+    //if there isn't much movement from last frame -use the first intersection
+    //point of the previous frame's rays and translate them by the new camera
+    //movement amount
+    //then fade them out by the amount of frames behind the samples are and
+    //if they are from static world objects or dynamicly updated models
+    //refrence - linus tech tips framerate enhancement reprojection video
+    
+    this.RayTraceDraw = function( octTreeRoot, width, height, 
+                                  aspect, numNewRays ){
         var rayOrigin = [0, 0, 0];
         this.getLocation( rayOrigin );
     
@@ -540,43 +558,43 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         var normal = new Float32Array( 3 );
         var camRotMat = this.getRotationMatrix();
         Matrix_Multiply_Vect3( normal,  this.getRotationMatrix(), [ 0, 0, 1 ] );
-    
-        for( var h = 0; h < height; ++h ){
+        
+        //to avoid blocking the calling thread for too long
+        //only trace the requested number of new rays before returning
+        for( var r = 0; r < numNewRays; ++r ){
+             var w = Math.random();
+             var h = Math.random();
+             var vertAngle = -(vertFov/2.0) + ( vertFov * w );
+             var horizAngle = -(horizFov/2.0) + ( horizFov * h );
             
-            var vertAngle = -(vertFov/2.0) + ( (vertFov/height) * h );
+             var rayNormal = Vect3_CopyNew( normal );
             
-            for( var w = 0; w < width; ++w ){
+             var rayHorizRotMat = new Float32Array(4*4);
+             Matrix(rayHorizRotMat, MatrixType.xRot, horizAngle);
             
-                var horizAngle = -(horizFov/2.0) + ( (horizFov/height) * h );
-            
-                var rayNormal = Vect3_CopyNew( normal );
-                
-                var rayHorizRotMat = new Float32Array(4*4);
-                Matrix(rayHorizRotMat, MatrixType.xRot, horizAngle);
-                
-                var rayVertRotMat = new Float32Array(4*4);
-                Matrix(rayVertRotMat, MatrixType.yRot, vertAngle);
+             var rayVertRotMat = new Float32Array(4*4);
+             Matrix(rayVertRotMat, MatrixType.yRot, vertAngle);
 
-                Matrix_Multiply_Vect3( rayNormal, rayHorizRotMat, [0,0,1] );
-                
-                Matrix_Multiply_Vect3( rayNormal, rayVertRotMat,  rayNormal );
-                
-                Matrix_Multiply_Vect3( rayNormal, camRotMat, rayNormal );
-                
-                var ray = new Ray( rayOrigin, rayNormal );
-                
-                //get the closest
-                //intersection point, ray distance, face index, and object
-                //that the ray hit
-                //intptDistFaceidx[0], intptDistFaceidx[1], intptDistFaceidx[2], this.objects[i]
-                var intptDistFaceObj = 
-                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
-                
-                if( intptDistFaceObj != null ){
-                    graphics.drawPixel( w / width, h / height );
-                }
-                
-            }
+             Matrix_Multiply_Vect3( rayNormal, rayHorizRotMat, [0,0,1] );
+            
+             Matrix_Multiply_Vect3( rayNormal, rayVertRotMat,  rayNormal );
+            
+             Matrix_Multiply_Vect3( rayNormal, camRotMat, rayNormal );
+            
+             var ray = new Ray( rayOrigin, rayNormal );
+            
+             //get the closest
+             //intersection point, ray distance, face index, and object
+             //that the ray hit
+             //intptDistFaceidx[0], intptDistFaceidx[1], 
+             //intptDistFaceidx[2], this.objects[i]
+             var intptDistFaceObj = 
+               octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
+             
+             if( intptDistFaceObj != null ){
+                 graphics.drawPixel( w * width, h * height );
+             }
+             
         }
         
     }

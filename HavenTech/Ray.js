@@ -41,11 +41,17 @@ function Ray(origin, direction)
     this.origin    = origin;
     this.norm      = direction;
     
-    //uses binary subdivision to interatively estimate the closest point along the ray to a given point
+    //keep track of the objects checked in the last node, because if
+    //they span world oct tree nodes they don't need to be checked again
+    this.lastNode = null;
+    
+    //uses binary subdivision to iterativly estimate 
+    //the closest point along the ray to a given point
     this.ClosestPointToPoint = function(point){
     }
     
-    //returns the point along the ray at the given multiple of the ray direction (normal)
+    //returns the point along the ray at the given 
+    //multiple of the ray direction (normal)
     this.PointAtTime = function( t ){
         var retPoint = Vect3_CopyNew( this.norm );
         Vect3_MultiplyScalar( retPoint, t );

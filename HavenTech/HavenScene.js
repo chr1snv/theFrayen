@@ -22,20 +22,26 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
     this.activeCameraIdx = -1;
 
     //the main structure for holding scene elements
-    this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
-    //using the camera frustum only objects within view can be drawn / simulated in high fidelity
+    this.octTree = new TreeNode( 0, [-10000, -10000, -10000], 
+                                    [ 10000,  10000,  10000], null );
+    //using the camera frustum only objects within view 
+    //can be drawn / simulated in high fidelity
 
     this.framesSec = 25.0;
     
-    //gl graphics card memory managment (geometry array generation and reuse) for rasterizing scene objects
+    //gl graphics card memory managment (geometry array generation and reuse) 
+    //for rasterizing scene objects
     //this.renderBufferManager = new RenderBufferManager( this.sceneName );
-    //now unused because drawing is raytraced (maybe will come back / be replaced by spectral image for denoising)
+    //now unused because drawing is raytraced 
+    //(maybe will come back / be replaced by spectral image for denoising)
 
     //function members
     this.GetName = function(){ return this.sceneName; }
     
-    //currently updates the entire scene, but using the oct tree only parts that are active
-    //(animated objects within the field of view, or area's with dynamic events occuring) should be updated to minimize compute requirements
+    //currently updates the entire scene, 
+    //but using the oct tree only parts that are active
+    //(animated objects within the field of view, or area's with 
+    //dynamic events occuring) should be updated to minimize compute requirements
     this.Update = function( time, updateCompleteCb )
     {
     
@@ -68,12 +74,14 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
     {
         if(!this.isValid)
         {
-            DPrintf('havenScene: ' + this.sceneName + ' was asked to draw but is not valid');
+            DPrintf('havenScene: ' + this.sceneName + 
+                    ' was asked to draw but is not valid');
             return;
         }
         if(this.activeCameraIdx == -1)
         {
-            DPrintf('havenScene: ' + this.sceneName + ' was asked to draw but has no active camera');
+            DPrintf('havenScene: ' + this.sceneName + 
+                    ' was asked to draw but has no active camera');
             return;
         }
 
@@ -83,25 +91,40 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         graphics.ClearDepth();
         graphics.ClearLights();
         
-        //after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U (the state of the art polygon rasterizer in 2022)
-        //I think that because rasterization cost increases with overdraw and as the number of polygons increases
-        //longterm a render engine based on ray tracing rays from the camera is going to have better performance and realisim
+        //after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
+        //(the state of the art polygon rasterizer in 2022)
+        //I think that because rasterization cost increases with overdraw 
+        //and as the number of polygons increases
+        //longterm a render engine based on ray tracing rays from the camera 
+        //is going to have better performance and realisim
         //than rasterization
-        //the goal of this game / simulation engine is to mimic reality as much as possible with the best performance
-        //so I think it makes sense (and the code is going to be simpler) with an architecture of tracing rays from the camera
-        //and simulating dynamics / moving objects with cpu/general purpose compute and memory per world area
-        //the compute may / may not be syncronized between world regions, and as objects move from one region to another they are passed
-        //(via network / intraprocessor connections) to the memory and simulation in the new region
-        //there are optimizations, reStir, metropolus light transport for decreasing the number of rays that need
-        //to be cast, and also denoising can be applied after ( idea of the spectral image structure )
-        //by caching world space lighting rays, rays from previous frames, using importance sampling,
-        //distributed computing/streaming from a compute farm, and possibly gpu compute shader implementations
-        //of some of the tracing hopefully interactive framerates with photorealisim and minimal noise and can be achieved
+        //the goal of this game / simulation engine is to mimic reality as much
+        //as possible with the best performance
+        //so I think it makes sense (and the code is going to be simpler) 
+        //with an architecture of tracing rays from the camera
+        //and simulating dynamics / moving objects with cpu/general purpose 
+        //compute and memory per world area
+        //the compute may / may not be syncronized between world regions, 
+        //and as objects move from one region to another they are passed
+        //(via network / intraprocessor connections) to the memory and 
+        //simulation in the new region
+        //there are optimizations, reStir, metropolus light transport for 
+        //decreasing the number of rays that need
+        //to be cast, and also denoising can be applied after 
+        //( idea of the spectral image structure )
+        //by caching world space lighting rays, rays from previous frames, 
+        //using importance sampling,
+        //distributed computing/streaming from a compute farm, and possibly 
+        //gpu compute shader implementations
+        //of some of the tracing hopefully interactive framerates with 
+        //photorealisim and minimal noise and can be achieved
         
         
         //raytracing draw call
+        var numRaysToTrace = 5000;
         this.cameras[ this.activeCameraIdx ].RayTraceDraw( 
-            this.octTree, graphics.screenWidth, graphics.screenHeight, graphics.GetScreenAspect() );
+            this.octTree, graphics.screenWidth, graphics.screenHeight, 
+            graphics.GetScreenAspect(), numRaysToTrace );
         
         /*  //old rasterization code here
         
@@ -139,7 +162,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         var rayDir;
         if(this.activeCameraIdx == -1)
             return "";
-        this.cameras[activeCameraIdx].GenerateWorldCoordRay(rayOrig, rayDir, screenCoords);
+        this.cameras[activeCameraIdx].GenerateWorldCoordRay(
+                                        rayOrig, rayDir, screenCoords);
         
         var temp;
         Vect3_Copy(temp, rayDir);
@@ -164,13 +188,18 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         {
             var temp = thisSceneP.textFileLines[i];
             
-            if(temp[0] == 'm') //this is a model to be read in (load the model and then append it to the scenegraph)
+            if(temp[0] == 'm') //this is a model to be read in 
+            //(load the model and then append it to the scenegraph)
             {
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
-                var AABBVecs = [ [ parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5]) ],  //min
-                                 [ parseFloat(words[7]), parseFloat(words[8]), parseFloat(words[9]) ] ] //max;
+                var AABBVecs = [ [ parseFloat(words[3]), 
+                                   parseFloat(words[4]), 
+                                   parseFloat(words[5]) ],  //min
+                                 [ parseFloat(words[7]), 
+                                   parseFloat(words[8]), 
+                                   parseFloat(words[9]) ] ] //max;
                 //try to read in an AABB from the model description line
                 //if there aren't values set the not a number flag
                 var nanValue = false;
@@ -201,7 +230,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                  );
                 
             }
-            //lights and cameras are simple to load can be loaded synchronously as they don't require loading additional files
+            //lights and cameras are simple to load can be loaded synchronously 
+            //as they don't require loading additional files
             //(info is one line in the text file)
             //this is a light to be read in
             if(temp[0] == "l")
@@ -210,24 +240,36 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 
                 var lampName  = words[1];
                 var lightType = parseInt(words[2]);
-                var pos       = [ parseFloat(words[3]),  parseFloat(words[4]),  parseFloat(words[5]) ];
-                var rot       = [ parseFloat(words[6]),  parseFloat(words[7]),  parseFloat(words[8]) ];
-                var col       = [ parseFloat(words[9]),  parseFloat(words[10]), parseFloat(words[11]) ];
+                var pos       = [ parseFloat(words[3]),  
+                                  parseFloat(words[4]),  
+                                  parseFloat(words[5]) ];
+                var rot       = [ parseFloat(words[6]),  
+                                  parseFloat(words[7]),  
+                                  parseFloat(words[8]) ];
+                var col       = [ parseFloat(words[9]),  
+                                  parseFloat(words[10]), 
+                                  parseFloat(words[11]) ];
                 var intensity = parseFloat(words[12]);
                 var coneAngle = parseFloat(words[13]);
-                thisSceneP.lights.push( new Light(lampName, thisSceneP.sceneName, col, intensity, lightType, pos, rot, coneAngle) );
+                thisSceneP.lights.push( new Light(lampName, thisSceneP.sceneName, 
+                        col, intensity, lightType, pos, rot, coneAngle) );
             }
             //this is a camera to be read in
             if(temp[0] == 'c')
             {
                 var words      = temp.split(' ');
                 var cameraName = words[1];
-                var pos        = [ parseFloat(words[2]), parseFloat(words[3]),  parseFloat(words[4]) ];
-                var rot        = [ parseFloat(words[5]), parseFloat(words[6]),  parseFloat(words[7]) ];
+                var pos        = [ parseFloat(words[2]), 
+                                   parseFloat(words[3]),  
+                                   parseFloat(words[4]) ];
+                var rot        = [ parseFloat(words[5]), 
+                                   parseFloat(words[6]),  
+                                   parseFloat(words[7]) ];
                 var angle      =   parseFloat(words[8]);
                 var clipStart  =   parseFloat(words[9]);
                 var clipEnd    =   parseFloat(words[10]);
-                thisSceneP.cameras.push(new Camera(cameraName, thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
+                thisSceneP.cameras.push( new Camera(cameraName, 
+                thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
             }
             //this is the name of the active camera to be read in
             if(temp[0] == 'a' && temp[1] == 'c')
@@ -247,7 +289,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         thisSceneP.checkIfIsLoaded();
     }
 
-	this.textFileLoadedCallback = function(txtFile, thisP) //called after scene description text file has been fetched
+	this.textFileLoadedCallback = function(txtFile, thisP) 
+	//called after scene description text file has been fetched
     {
     	thisP.textFileLines = txtFile.split("\n");
     	
@@ -257,7 +300,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
 
     //constructor functionality begin asynchronous fetch of scene description
     this.pendingModelsAdded = 0;
-    loadTextFile("scenes/"+this.sceneName+".hvtScene", this.textFileLoadedCallback, this);
+    loadTextFile("scenes/"+this.sceneName+".hvtScene", 
+                 this.textFileLoadedCallback, this);
     
 }
 
