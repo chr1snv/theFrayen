@@ -56,6 +56,8 @@ function AABB( minCorner, maxCorner ){
         //outside of the aabb, because closest point will give a point tangent to the smallest sphere surrounding the objectAABBCenter the ray touches
         */
         
+        var epsilon = 0.00001;
+        
         //for each of the three axies find the possible intersection time
         for( var axis = 0; axis < 3; ++axis ){
             
@@ -76,8 +78,8 @@ function AABB( minCorner, maxCorner ){
                 for( var otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
                 {
                     var otherAxis = (axis+otherAxiesIndice) % 3;
-                    if( rayStepPoint[axis] >= this.minCoord[otherAxis] && 
-                        rayStepPoint[axis] <= this.maxCoord[otherAxis] )
+                    if( rayStepPoint[axis] >= this.minCoord[otherAxis] - epsilon && 
+                        rayStepPoint[axis] <= this.maxCoord[otherAxis] + epsilon )
                         numOtherAxiesWithinBounds += 1;
                 }
                 

@@ -224,8 +224,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                     function(){
                       thisSceneP.pendingModelsAdded-=1;
                       thisSceneP.checkIfIsLoaded();
-                    }
-                   );
+                    },
+                    0 ); //0 update time of the model to add to AABB
                 }
                  );
                 

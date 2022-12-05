@@ -44,7 +44,7 @@ function attributeSetFloats( prog, attr_name, rsize, arr)
     gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
-function Graphics( canvasIn, bpp, depthIn )
+function Graphics( canvasIn, loadCompleteCallback )
 {
 	this.canvas = canvasIn;
 	
@@ -287,11 +287,46 @@ function Graphics( canvasIn, bpp, depthIn )
 	}
 	this.UnrefQuadMesh = function(filename, sceneName) {}
 	
+	
+	//https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
+	var pointBuffer   = null;
+	var pointPosAttr = null;
+	var pointColorAttr = null;
+	this.SetupForPixelDrawing = function(){
+	    if( pointBuffer == null )
+    	    pointBuffer = gl.createBuffer();
+    	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+    	pointPosAttr = gl.getAttribLocation( this.currentProgram, "position" );
+    	pointPosAttr = gl.getAttribLocation( this.currentProgram, "color" );
+    	gl.enableVertexAttribArray( pointPosAttr );
+	}
+	
+	this.drawPixels = function( float32Vec3Pixels, numPoints ){
+	    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
+          x+0.5,     y+0.5]), gl.STATIC_DRAW );
+        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+        gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
+        // Draw one point.
+       gl.drawArrays( gl.POINTS, 0, 1 );
+	}
+	
+	//really should buffer pixels before drawing them to reduce gl calls
+	//also should use some sort of point radius falloff or generate a mesh
+	//with interpolation between point values to create a continuous image
+	//maybe sort points by x and y values, then put them into an indexable array
+	//(i think there is a max size for uniform variables, so might have to be
+	//a texture)
+	//https://stackoverflow.com/questions/44856413/why-does-webgl-put-limit-on-uniform-size
+	//"WebGL on my browser only supports 1024 * 4 bytes uniform."
+	//a screenspace shader can get the closest points to an xy coordinate to
+	//and look up their significance to determine their weight/contribution
+	//to a pixel value
 	this.drawPixel = function( x, y ){
 	    // Fills the buffer with a single point?
         gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
           x+0.5,     y+0.5]), gl.STATIC_DRAW );
-
+        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+        gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
         // Draw one point.
        gl.drawArrays( gl.POINTS, 0, 1 );
        
@@ -332,6 +367,9 @@ function Graphics( canvasIn, bpp, depthIn )
 
 	//load and compile the program
 	this.currentProgram = gl.createProgram();
+	
+	this.vertShaderFilename = 'shaders/frayenPointVertShader.vsh';
+	this.fragShaderFilename = 'shaders/frayenPointFragShader.fsh';
 
     //once the fragment shader has been loaded, compile and configure it
 	this.fragShaderLoaded = function(textFile, thisP)
@@ -373,6 +411,7 @@ function Graphics( canvasIn, bpp, depthIn )
 		//lighting setup
 		thisP.enableLighting(true);
 		CheckGLError( "Graphics::end frag shader loaded " );
+		thisP.loadCompleteCallback();
 	}
 
     //once the vertex shader is loaded start loading the fragment shader
@@ -385,11 +424,12 @@ function Graphics( canvasIn, bpp, depthIn )
 			alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
 		gl.attachShader(thisP.currentProgram, vertexShader);
 
-		loadTextFile('shaders/frayenFragShader.fsh', thisP.fragShaderLoaded, thisP);
+		loadTextFile( thisP.fragShaderFilename, thisP.fragShaderLoaded, thisP );
 	}
 
+    this.loadCompleteCallback = loadCompleteCallback;
     //start fetching and loading the vertex shader
-	loadTextFile('shaders/frayenVertShader.vsh', this.vertShaderLoaded, this);
+	loadTextFile(this.vertShaderFilename, this.vertShaderLoaded, this);
 
 }
     

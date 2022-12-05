@@ -138,9 +138,9 @@ function Triangle( p1, p2, p3 ){
        
        //if the intersection point is outside of any of the edges
        //of the triangle the ray does not intersect the triangle
-       if( e1ODot < 0 || 
-           e2ODot < 0 ||
-           e3ODot < 0 )
+       if( e1ODot > 0 || 
+           e2ODot > 0 ||
+           e3ODot > 0 )
            return null;
        //otherwise the point is on the surface of the triangle
        return rayDistanceToTriIntercept;

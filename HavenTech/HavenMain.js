@@ -115,9 +115,10 @@ function havenMain(){
 
     registerInputHandlers();
 
-    graphics = new Graphics(document.getElementById('frayenCanvas'));
+    graphics = new Graphics(document.getElementById('frayenCanvas'), 
+        function(){ sceneChanged(); } ); //get the selected scene from the dropdown and load it
     console.log("graphics loaded");
-    sceneChanged(); //get the selected scene from the dropdown and load it
+    //sceneChanged(); //get the selected scene from the dropdown and load it
 }
 
 function SetCanvasSize(){

@@ -559,6 +559,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         var camRotMat = this.getRotationMatrix();
         Matrix_Multiply_Vect3( normal,  this.getRotationMatrix(), [ 0, 0, 1 ] );
         
+        graphics.SetupForPixelDrawing();
+        
         //to avoid blocking the calling thread for too long
         //only trace the requested number of new rays before returning
         for( var r = 0; r < numNewRays; ++r ){
@@ -592,7 +594,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
              
              if( intptDistFaceObj != null ){
-                 graphics.drawPixel( w * width, h * height );
+                 graphics.drawPixel( w , h  );
              }
              
         }
