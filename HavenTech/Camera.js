@@ -570,10 +570,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         for( var r = 0; r < numNewRays; ++r )
         {
              var w = Math.random();
-             //while( Math.abs( w - 0.5 ) < 0.1 )
+             //while( Math.abs(w - 0.5) < 0.1 )
              //   w = Math.random();
              var h = Math.random();
-             //while( Math.abs( h ) < 0.1 || Math.abs( h  ) > 0.9)
+             //while( Math.abs(h - 0.5) < 0.1 )
              //   h = Math.random();
              var vertAngle = -(vertFov/2.0) + ( vertFov * w );
              var horizAngle = -(horizFov/2.0) + ( horizFov * h );
@@ -599,18 +599,18 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
              //that the ray hit
              //intptDistFaceidx[0], intptDistFaceidx[1], 
              //intptDistFaceidx[2], this.objects[i]
-             var intptDistFaceObj = 
+             var intptdist_Faceidx_pixcolor = 
                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
              
-             if( intptDistFaceObj != null ){
+             if( intptdist_Faceidx_pixcolor != null ){
                 //store pixel screenspace position
-                pixPositions[r*2 + 0] = w*2.0 - 1.0;
-                pixPositions[r*2 + 1] = h*2.0 - 1.0;
+                pixPositions[numRaysIntersected*2 + 0] = w*2.0 - 1.0;
+                pixPositions[numRaysIntersected*2 + 1] = h*2.0 - 1.0;
                 //pixPositions[r*3 + 2] = 0.0;
                 //store pixel color
-                pixColors   [r*3 + 0] = 0.2;
-                pixColors   [r*3 + 1] = 0.7;
-                pixColors   [r*3 + 2] = 0.2;
+                pixColors   [numRaysIntersected*3 + 0] = 1;//intptdist_Faceidx_pixcolor[2][0];
+                pixColors   [numRaysIntersected*3 + 1] = 0;//intptdist_Faceidx_pixcolor[2][1];
+                pixColors   [numRaysIntersected*3 + 2] = 0;//intptdist_Faceidx_pixcolor[2][2];
                 numRaysIntersected += 1;
              }
                  

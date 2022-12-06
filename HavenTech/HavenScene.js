@@ -121,7 +121,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         
         
         //raytracing draw call
-        var numRaysToTrace = 500;
+        var numRaysToTrace = 5000;
         this.cameras[ this.activeCameraIdx ].RayTraceDraw( 
             this.octTree, graphics.screenWidth, graphics.screenHeight, 
             graphics.GetScreenAspect(), numRaysToTrace );
