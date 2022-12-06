@@ -4,14 +4,14 @@
 
 
 in vec3 position;
-in vec3 color;
+in vec3 ptCol;
 
 //variables passed to the fragment shader
 out vec3 normalVarying;
 out vec3 colorVarying;
 
 void main() {
-    gl_Position = vec4(position,1.0);
-    gl_PointSize = 10.0;
-    colorVarying = color;
+    gl_Position = vec4( position.x, position.y, position.z, 1.0 );
+    gl_PointSize = 5.0;
+    colorVarying = ptCol;
 }

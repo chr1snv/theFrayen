@@ -290,24 +290,40 @@ function Graphics( canvasIn, loadCompleteCallback )
 	
 	//https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
 	var pointBuffer   = null;
+	var colorBuffer   = null;
 	var pointPosAttr = null;
 	var pointColorAttr = null;
 	this.SetupForPixelDrawing = function(){
 	    if( pointBuffer == null )
     	    pointBuffer = gl.createBuffer();
-    	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-    	pointPosAttr = gl.getAttribLocation( this.currentProgram, "position" );
-    	pointPosAttr = gl.getAttribLocation( this.currentProgram, "color" );
-    	gl.enableVertexAttribArray( pointPosAttr );
+    	if( colorBuffer == null )
+    	    colorBuffer = gl.createBuffer();
+    	
 	}
 	
-	this.drawPixels = function( float32Vec3Pixels, numPoints ){
-	    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
-          x+0.5,     y+0.5]), gl.STATIC_DRAW );
+	this.drawPixels = function( float32VecPositions, float32VecColors, numPoints ){
+	    //gl.bufferData( buffer type, 
+	    
+	    gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+	    gl.bufferData( gl.ARRAY_BUFFER,  
+	                   float32VecPositions, gl.STATIC_DRAW );
+        pointPosAttr = gl.getAttribLocation( this.currentProgram, "position" );
+        gl.enableVertexAttribArray( pointPosAttr );
         //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
         gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
-        // Draw one point.
-       gl.drawArrays( gl.POINTS, 0, 1 );
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER,  
+	                   float32VecColors, gl.STATIC_DRAW );
+        pointColorAttr = gl.getAttribLocation( this.currentProgram, "ptCol" );
+	    gl.enableVertexAttribArray( pointColorAttr );
+        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+        gl.vertexAttribPointer(pointColorAttr, 3, gl.FLOAT, false, 0, 0);
+        
+        
+        
+        
+        gl.drawArrays( gl.POINTS, 0, numPoints );
 	}
 	
 	//really should buffer pixels before drawing them to reduce gl calls
@@ -394,10 +410,6 @@ function Graphics( canvasIn, loadCompleteCallback )
 		thisP.Clear();
 
 		CheckGLError( "Graphics::after clear " );
-
-		//drawSquare(thisP);
-
-		CheckGLError( "Graphics::after draw square " );
 			
 		//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 		var temp = [1.0,1.0,1.0,1.0];

@@ -6,7 +6,7 @@ precision mediump float;
 //constant variables
 
 //variables passed from the vertex shader
-//in vec3      normalVarying;
+in vec3      normalVarying;
 in vec3      colorVarying;
 
 out vec4 FragColor;

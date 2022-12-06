@@ -561,11 +561,20 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
         graphics.SetupForPixelDrawing();
         
+        var pixPositions = new Float32Array(numNewRays*2);
+        var pixColors    = new Float32Array(numNewRays*3);
+        
         //to avoid blocking the calling thread for too long
         //only trace the requested number of new rays before returning
-        for( var r = 0; r < numNewRays; ++r ){
+        var numRaysIntersected = 0;
+        for( var r = 0; r < numNewRays; ++r )
+        {
              var w = Math.random();
+             //while( Math.abs( w - 0.5 ) < 0.1 )
+             //   w = Math.random();
              var h = Math.random();
+             //while( Math.abs( h ) < 0.1 || Math.abs( h  ) > 0.9)
+             //   h = Math.random();
              var vertAngle = -(vertFov/2.0) + ( vertFov * w );
              var horizAngle = -(horizFov/2.0) + ( horizFov * h );
             
@@ -594,10 +603,21 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
              
              if( intptDistFaceObj != null ){
-                 graphics.drawPixel( w , h  );
+                //store pixel screenspace position
+                pixPositions[r*2 + 0] = w*2.0 - 1.0;
+                pixPositions[r*2 + 1] = h*2.0 - 1.0;
+                //pixPositions[r*3 + 2] = 0.0;
+                //store pixel color
+                pixColors   [r*3 + 0] = 0.2;
+                pixColors   [r*3 + 1] = 0.7;
+                pixColors   [r*3 + 2] = 0.2;
+                numRaysIntersected += 1;
              }
+                 
+             
              
         }
+        graphics.drawPixels( pixPositions, pixColors, numRaysIntersected );
         
     }
 
