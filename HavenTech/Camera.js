@@ -214,7 +214,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.lastUpdateTime = timeIn;
     }
     
-    this.UpdateOrientation = function(positionDelta, rotationDelta, rotation, updateTime)
+    this.UpdateOrientation = function(positionDelta, rotationDelta, updateTime, rotation=null)
     {
         //Update the cameras transformation given a change in position and rotation.
         
@@ -224,7 +224,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.userRotation[0] += rotationDelta[0];
         this.userRotation[1] += rotationDelta[1];
         
-        if( rotation != undefined )
+        if( rotation != undefined ) //may be defunct
             Vect3_Copy( this.rotation, rotation );
 
         //get the new rotation
@@ -586,7 +586,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
              var rayVertRotMat = new Float32Array(4*4);
              Matrix(rayVertRotMat, MatrixType.yRot, vertAngle);
 
-             Matrix_Multiply_Vect3( rayNormal, rayHorizRotMat, [0,0,1] );
+             Matrix_Multiply_Vect3( rayNormal, rayHorizRotMat, 
+                                        new Float32Array([0,0,1]) );
             
              Matrix_Multiply_Vect3( rayNormal, rayVertRotMat,  rayNormal );
             

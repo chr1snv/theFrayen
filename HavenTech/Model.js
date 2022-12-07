@@ -4,7 +4,7 @@
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
-function Model( nameIn, meshNameIn, sceneNameIn, AABB, 
+function Model( nameIn, meshNameIn, sceneNameIn, //AABB, 
                         modelLoadedParameters, modelLoadedCallback=null )
 {
     //get the quadMesh transformationMatrix
@@ -42,13 +42,13 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	
     //Identification / registration functions so that 
     //the model can be drawn, interact with other objects, and be updated when in view
-    this.AddToOctTree = function( octTreeIn, addCompletedCallback, updateTime )
+    this.AddToOctTree = function( octTreeIn, addCompletedCallback )
     {
         if( octTreeIn == null )
             return;
         this.RemoveFromOctTree();
         this.octTree = octTreeIn;
-        this.octTree.AddObject(this, updateTime);
+        this.octTree.AddObject(this);
         addCompletedCallback();
     }
     
@@ -177,6 +177,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
     this.DrawSkeleton = function(){ 
         graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); }
     
+    /* //for rasterization rendering
     //type query functions
     this.IsTransparent = function( isTransparentCallback, thisP ) {
         graphics.GetShader( this.shaderName, this.shaderScene, isTransparentCallback,
@@ -191,8 +192,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
             {1:cbParams, 2:callback}, function(quadmesh, cbObj){ 
                                     cbObj[2](quadmesh.IsHit(), cbObj[1]); });
     }
+    */
 
+    /*
     //geometry query functions
+    //from before raytrace rendering
     this.RayIntersects = function( t, rayOrig, rayDir ) {
         if(!IsHit())
             return false;
@@ -222,21 +226,34 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
         return false;
 
     }
+    
     this.GetBoundingPlanes = function( finishedCallback ) {
         graphics.GetQuadMesh( meshName, sceneName, 
                     finishedCallback, function( quadMesh, callback ){
             callback( quadMesh.GetBoundingPlanes() );
         });
     }
+    */
+    
+    /* //the AABB is in the quadmesh
+    //model is really for an additional transformation
+    //and scripts on an object
     this.GetAABB = function( time ){
         if( this.lastUpdateTime != time )
             this.Update( time );
         if( this.AABB == null ){
-            this.AABB = this.quadmesh.GetAABB(time);
+            this.AABB = this.quadmesh.AABB;
         }
         return this.AABB; 
         //return the cached AABB in the model 
         //( when the quadmesh is updated it should be updated )
+    }
+    */
+    
+    this.GetAABB = function(  ){
+        //may be more complex as transformations are layered
+        //and subcomponents are added to the model
+        return this.quadmesh.AABB;
     }
 
     this.modelName = nameIn;
@@ -248,7 +265,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
     this.modelDrawable = null;
     this.sceneGraph = null;
     
-    this.AABB = AABB;
+    //this.AABB = AABB;
 
     this.lastUpdateTime = -0.5;
     //this.timeUpdate;
@@ -275,8 +292,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
             thisP.shaderScene = sNameArr[1];
             thisP.quadmesh = quadMesh;
             //if there isn't a modelLoadedCallback callback don't try to call it
-            if( cbObj[3] != null ) 
-                cbObj[3]( cbObj[1], cbObj[2] );
+            if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
+                cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
         } 
     );
 

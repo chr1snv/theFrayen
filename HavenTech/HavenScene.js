@@ -14,6 +14,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
     this.sceneName = sceneNameIn;
     this.isValid = false;
 
+    //will likely be removed since stored in oct tree and a per scene
+    //array of objects may become very big
     this.models  = {};
     this.lights  = [];
     this.cameras = [];
@@ -38,37 +40,37 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
     //function members
     this.GetName = function(){ return this.sceneName; }
     
-    //currently updates the entire scene, 
-    //but using the oct tree only parts that are active
+    //updates the entire scene
+    //only parts of the oct tree that are active should be updated
     //(animated objects within the field of view, or area's with 
-    //dynamic events occuring) should be updated to minimize compute requirements
-    this.Update = function( time, updateCompleteCb )
+    //dynamic events occuring) to minimize compute / power required
+    //because parts of the scene may be on seperate nodes/comp should be parallelized
+    this.Update = function( time )
     {
     
         //    for( var i=0; i<nodesToDraw; ++i ){
         //            nodesToDraw[i].Update(time, undefined, updateLoop);
         //        }
     
-        var m = 0;
-        var l = 0;
+        this.octTree.Update(time);
+
+        /*
+        //from before with flat array for scene
+        //now updated by oct tree for parallelisim / distributive computing
         var c = 0;
         var thisP = this;
-        var updateLoop = function(){
-            //update the models, lights and cameras
-            while( m < thisP.models.length ){
-                thisP.models[m++].Update(time, undefined, updateLoop);
-                return;
-            }
-            while(l < this.lights.length){
-                this.lights[l++].Update(time);
-                return;
-            }
-            while(c < this.cameras.length){
-                this.cameras[c++].Update(time);
-                return;
-            }
-            updateCompleteCb();
+        //update the models, lights and cameras
+        for( var m = 0; m < thisP.models.length; ++m ){
+            thisP.models[m].Update( time );
         }
+        for( var l = 0; l < this.lights.length; ++l ){
+            this.lights[l].Update(time);
+        }
+        while(c < this.cameras.length){
+            this.cameras[c++].Update(time);
+            return;
+        }
+        */
     }
     this.Draw = function()
     {
@@ -102,6 +104,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         //as possible with the best performance
         //so I think it makes sense (and the code is going to be simpler) 
         //with an architecture of tracing rays from the camera
+        //(conceptually initiating requests from camera)
         //and simulating dynamics / moving objects with cpu/general purpose 
         //compute and memory per world area
         //the compute may / may not be syncronized between world regions, 
@@ -194,6 +197,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var words = temp.split(' ');
                 var modelName = words[1];
                 var modelMeshName = modelName;
+                /*
                 var AABBVecs = [ [ parseFloat(words[3]), 
                                    parseFloat(words[4]), 
                                    parseFloat(words[5]) ],  //min
@@ -215,17 +219,18 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                 var mAABB = null;
                 if( nanValue == false )
                     mAABB = new AABB( AABBMin, AABBMax );
+                */
                 thisSceneP.pendingModelsAdded++; //compared in check if is loaded
                 //to check if all models have finished loading
                 newMdl    = new Model( modelName, modelMeshName, 
-                                thisSceneP.sceneName, mAABB, thisSceneP,
+                                thisSceneP.sceneName, /*mAABB,*/ thisSceneP,
                 function( model, havenScenePointer ){ //modelLoadedCallback
+                    model.Update( 0 ); //update to generate AABB
                    model.AddToOctTree( havenScenePointer.octTree,
                     function(){
                       thisSceneP.pendingModelsAdded-=1;
                       thisSceneP.checkIfIsLoaded();
-                    },
-                    0 ); //0 update time of the model to add to AABB
+                    } );
                 }
                  );
                 

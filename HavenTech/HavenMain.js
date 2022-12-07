@@ -145,8 +145,8 @@ function sceneLoaded(havenScene)
 {
     sceneLoadedTime = (new Date()).getTime();
     mainScene = havenScene;
-    mainScene.Update(sceneTime);
-    mainScene.Draw();
+    //mainScene.Update(sceneTime);
+    //mainScene.Draw();
     window.setTimeout(MainLoop, 300);
 }
 
@@ -156,7 +156,7 @@ function MainLoop()
     sceneTime = ( (new Date()).getTime() - sceneLoadedTime ) /1000;
     graphics.Clear();
     mainScene.Update( sceneTime );
-    UpdateCamera();
+    UpdateCamera( sceneTime );
     //drawSquare(graphics);
     mainScene.Draw();
 
@@ -192,12 +192,16 @@ function UpdateCamera( updateTime )
     }
     var relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
     var relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
-    var mX = relMx*document.getElementById("mouseXSen").value; ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
-    var mY = relMy*document.getElementById("mouseYSen").value; ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
+    var mX = relMx*document.getElementById("mouseXSen").value; 
+    ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
+    var mY = relMy*document.getElementById("mouseYSen").value; 
+    ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
     
-    var camRotUpdate     = new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
+    var camRotUpdate     = 
+        new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
     mCoordDelta.x = mCoordDelta.y = 0;
 
     //send the updates to the camera
-    mainScene.cameras[mainScene.activeCameraIdx].UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
+    mainScene.cameras[mainScene.activeCameraIdx].
+        UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
 }

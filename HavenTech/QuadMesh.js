@@ -23,6 +23,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.scale           = new Float32Array([1,1,1]);
     this.rotation        = new Float32Array([0,0,0]);
     this.origin          = new Float32Array([0,0,0]);
+    this.toWorldMatrix   = new Float32Array(4*4);
+    Matrix_SetIdentity( this.toWorldMatrix );
+    this.lastToWorldMatrixUpdateTime = -1;
 
     this.shaderNames     = [];
 
@@ -253,6 +256,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     
     //returns the non tessilated verts. returns new memory
+    //transformed verts are in mesh space
+    //(need to have the orientation matrix
+    //applied for world space coordinates)
     this.UpdateTransformedVerts = function(time)
     {
         var positionCoords;
@@ -272,6 +278,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         
         //return positionCoords;
     }
+    
+    //update the quadmesh to world transformation
+    this.UpdateToWorldMatrix = function(time){
+        if( this.lastToWorldMatrixUpdateTime == time )
+            return this.toWorldMatrix;
+        Matrix( this.toWorldMatrix, 
+                MatrixType.euler_transformation, 
+                this.scale, this.rotation, this.origin );
+        this.lastToWorldMatrixUpdateTime = time;
+        
+        return this.toWorldMatrix;
+    
+    }
 
     //using the MeshKeyAnimation
     //update the current mesh (used by skeletal animation if present) 
@@ -280,6 +299,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         if( animationTime > this.lastMeshUpdateTime ){
             this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
             this.UpdateTransformedVerts(this.lastMeshUpdateTime);
+            this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
+            this.UpdateAABB(this.lastMeshUpdateTime);
         }
     }
     this.GetAnimationLength = function() {}
@@ -302,74 +323,75 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.GetShaderName = function() { return [this.shaderNames[0], this.sceneName]; }
 
     
+    
     //draw interface
-    this.Draw = function(verts, normals, uvs)
-    {
-        //since quad meshes are a mixture of quads and tris,
-        //use the face vertex indices to tesselate the entire mesh into
-        //tris, calculate face normals, and upload to gl and draw
+//    this.Draw = function(verts, normals, uvs)
+//    {
+//        //since quad meshes are a mixture of quads and tris,
+//        //use the face vertex indices to tesselate the entire mesh into
+//        //tris, calculate face normals, and upload to gl and draw
 
-        if(!this.isValid)
-        {
-            DPrintf("QuadMesh::Draw: failed to draw.\n");
-            return;
-        }
+//        if(!this.isValid)
+//        {
+//            DPrintf("QuadMesh::Draw: failed to draw.\n");
+//            return;
+//        }
 
-        /* //assumed Update( time ) has updated the transformedPositions
-           //before this Draw function is called
-        //
-        ///get the animation transformed mesh vertex data
-        ////////////////////////////////////////////////////////////
+//        /* //assumed Update( time ) has updated the transformedPositions
+//           //before this Draw function is called
+//        //
+//        ///get the animation transformed mesh vertex data
+//        ////////////////////////////////////////////////////////////
 
-        var transformedPositions = this.getTransformedVerts();
-        */
+//        var transformedPositions = this.getTransformedVerts();
+//        */
 
-        //
-        ///Generate the vertex position coordinates
-        ////////////////////////////////////////////////////////////
+//        //
+//        ///Generate the vertex position coordinates
+//        ////////////////////////////////////////////////////////////
 
-        //tesselate the mesh
-        this.tesselateCoords( verts, this.faces, this.transformedPositions );
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
-        var attr = gl.getAttribLocation( graphics.currentProgram, "position");
-        gl.enableVertexAttribArray(attr);
-        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
-        gl.vertexAttribPointer(attr, graphics.vertCard, gl.FLOAT, false, 0, 0);
+//        //tesselate the mesh
+//        this.tesselateCoords( verts, this.faces, this.transformedPositions );
+//        
+//        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
+//        var attr = gl.getAttribLocation( graphics.currentProgram, "position");
+//        gl.enableVertexAttribArray(attr);
+//        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
+//        gl.vertexAttribPointer(attr, graphics.vertCard, gl.FLOAT, false, 0, 0);
 
-        ////
-        //Generate the vertex normal coordinates
-        ////////////////////////////////////////////////////////////
+//        ////
+//        //Generate the vertex normal coordinates
+//        ////////////////////////////////////////////////////////////
 
-        var normCard = 3;
+//        var normCard = 3;
 
-        //generate & tesselate the normal coords 
-        //from the batch of verts currently being used
-        
-        var normalCoords = new Float32Array(this.transformedPositions.length);
-        this.GenerateNormalCoords(
-                normalCoords, this.faces, this.transformedPositions);
-        this.tesselateCoords(normals, this.faces, normalCoords);
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
-        var attr = gl.getAttribLocation( graphics.currentProgram, "norm");
-        gl.enableVertexAttribArray(attr);
-        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
-        gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
-        
-        
-        ////
-        //Generate the texture coordinates (per vertex)
-        /////////////////////////////////////////////////////////////
+//        //generate & tesselate the normal coords 
+//        //from the batch of verts currently being used
+//        
+//        var normalCoords = new Float32Array(this.transformedPositions.length);
+//        this.GenerateNormalCoords(
+//                normalCoords, this.faces, this.transformedPositions);
+//        this.tesselateCoords(normals, this.faces, normalCoords);
+//        
+//        gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
+//        var attr = gl.getAttribLocation( graphics.currentProgram, "norm");
+//        gl.enableVertexAttribArray(attr);
+//        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
+//        gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
+//        
+//        
+//        ////
+//        //Generate the texture coordinates (per vertex)
+//        /////////////////////////////////////////////////////////////
 
-        this.tesselateUVCoords(uvs, this.faces);
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, uvsBuffer);
-        var attr = gl.getAttribLocation( graphics.currentProgram, "texCoord");
-        gl.enableVertexAttribArray(attr);
-        gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
-        gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
-    }
+//        this.tesselateUVCoords(uvs, this.faces);
+//        
+//        gl.bindBuffer(gl.ARRAY_BUFFER, uvsBuffer);
+//        var attr = gl.getAttribLocation( graphics.currentProgram, "texCoord");
+//        gl.enableVertexAttribArray(attr);
+//        gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
+//        gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
+//    }
     
     this.DrawSkeleton = function() { this.skelAnimation.Draw(); }
 
@@ -390,11 +412,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //geometry query function
     this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
     
-    this.lastAABBUpdateTime = -1;
-    this.lastAABB = null;
+    this.AABBUpdateTime = -1;
+    this.AABB = null;
     //get the axis aligned bounding box of the mesh
-    this.GetAABB = function(time) {
-        if( this.lastAABBUpdateTime < time )
+    this.UpdateAABB = function(time) {
+        if( this.AABBUpdateTime < time )
         {
             var minX =  Number.MAX_VALUE;
             var minY =  Number.MAX_VALUE;
@@ -429,51 +451,67 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 }
                 
             }
-            this.lastAABBUpdateTime = this.lastMeshUpdateTime;
-            this.lastAABB = new AABB( [ minX, minY, minZ], [maxX, maxY, maxZ] );
+            this.AABBUpdateTime = this.lastMeshUpdateTime;
+            this.AABB = new AABB( [ minX, minY, minZ], [maxX, maxY, maxZ] );
             
         }
-        return this.lastAABB;
+        return this.AABB;
     }
     
     
+    //called during ray trace rendering
     this.GetRayIntersection = function(ray){
     
-        //check all faces of the mesh if the ray intersects, if it does, return the
-        //intersection point, ray distance, face index, that the ray hit
+        //check all faces of the mesh if the ray intersects, 
+        //if it does return the 
+        //[intersection point, ray distance, face, normal, color]
+        //that the ray hit
+        //else returns null
         
         //to avoid checking all faces for each ray, use an oct tree on the model
         for( var f = 0; f < this.faces.length; ++f ){
             //each face should have 3 or 4 verticies
-            var numFaceVerts = this.faces[f].vertIdxs.length;
+            var face = this.faces[f];
+            var numFaceVerts = face.vertIdxs.length;
             
-            var vertVect3s = [];
+            var vertVect3s = []; //the world position verts of the face
             for( var v = 0; v < numFaceVerts; ++v ){
-                vertVect3s[v] = [ 
+                //get the vert local position and transform it to world position
+                var vert = [ 
                     this.transformedVerts[ 
                         this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
                     this.transformedVerts[ 
                         this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
                     this.transformedVerts[ 
                         this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
+                vertVect3s.push( new Float32Array(3));
+                Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
             }
             
+            //triangle constructed from the verts
             var triangle = new Triangle( 
-                vertVect3s[0], vertVect3s[1], vertVect3s[2] );
-            
-            
+                vertVect3s[0], vertVect3s[1], vertVect3s[2],);
             
             //get a point and the face normal and check 
             //where the ray intersects the plane
             //rayTriangleIntersection
-            var intersectionPointTime = triangle.RayTriangleIntersection( ray );
-            if( intersectionPointTime != null )
-                return [intersectionPointTime, f];
+            var intPtAndTime = triangle.RayTriangleIntersection( ray );
+            if( intPtAndTime != null ){
+                //the ray intersects the triangle, find the uv coordinate
+                var uvCoord = triangle.
+                    UVCoordOfPoint( intPtAndTime, 
+                                face.uvs[0], face.uvs[1], face.uvs[2] );
+                return [intPtAndTime[0], this.faces[f], uvCoord ];
+            }
             //else try another triangle
             
         }
         
         return null;
+    }
+    
+    this.GetMaterialColorAtUVCoord = function( uv ){
+        
     }
 
     //constructor functionality
@@ -500,24 +538,24 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		            //read in the origin rotation and size of the mesh
 		            if( temp[0] == 'x' )
 		            {
-		                thisP.origin =   [ 
+		                thisP.origin =   new Float32Array([ 
 		                    parseFloat(words[1]), 
 		                    parseFloat(words[2]), 
-		                    parseFloat(words[3]) ];
+		                    parseFloat(words[3]) ] );
 		            }
 		            else if( temp[0] == 'r' )
 		            {
-		                thisP.rotation = [ 
+		                thisP.rotation = new Float32Array([ 
 		                    parseFloat(words[1]), 
 		                    parseFloat(words[2]), 
-		                    parseFloat(words[3]) ];
+		                    parseFloat(words[3]) ] );
 		            }
 		            else if( temp[0] == 's' )
 		            {
-		                thisP.scale =    [ 
+		                thisP.scale =    new Float32Array([ 
 		                    parseFloat(words[1]), 
 		                    parseFloat(words[2]), 
-		                    parseFloat(words[3]) ];
+		                    parseFloat(words[3]) ] );
 		            }
 		            else if( temp[0] == 'e' )
 		            {

@@ -15,7 +15,7 @@ function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
 
 function Vect3_NewZero() { return new Float32Array([0,0,0]); };
 
-function Vect3_CopyNew( v ) { return [ v[0], v[1], v[2] ];  }
+function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  }
 
 function Vect3_Copy(v1, v2) { v1[0] = v2[0]; v1[1] = v2[1]; v1[2] = v2[2]; }
 

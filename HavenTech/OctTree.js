@@ -78,9 +78,26 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   //by allowing more detailed resolution placement of voxel surfaces
   //it can appear like a polygonal mesh, but be performant
   
+  //update all objects below this node in the oct tree
+  //later may add count of nodes requested/updated to signify completion
+  this.Update = function( time ){
+    var obDict = this.objectDictionary;
+    var obKeys = Object.keys(obDict);
+    for( var i = 0; i < obKeys.length; ++i ) //loop through the objects
+        obDict[ obKeys[i] ].Update(time);
+        
+    //recursevly update sub nodes
+    //this may cause calls to other computers so may need to synchronize
+    //to ensure nodes are updated before rendering
+    if( this.minNode != null )
+        this.minNode.Update( time );
+     if( this.MaxNode != null )
+        this.MaxNode.Update( time );
+  }
+  
   //add an object to the node, if it is full - subdivide it 
   //and place objects in the sub nodes
-  this.AddObject = function( object, updateTime, addDepth=0 ) 
+  this.AddObject = function( object, addDepth=0 ) 
   //addDepth is to keep track of if all axies 
   //have been checked for seperating the objects
   {
@@ -122,7 +139,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     var numObjectsAddedToMinNode = 0;
     for( var i = 0; i < obKeys.length; ++i ){
         
-        var objectAABB = obDict[ obKeys[i] ].GetAABB(updateTime);
+        var objectAABB = obDict[ obKeys[i] ].GetAABB();
         //get the axis aligned bounding box for the object
         //( min and max points defining a box with faces (planes)
         //aligned with the x y z axies
@@ -156,29 +173,32 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             //oct tree node for the next group of objects for their
             //intersection test
             
-            this.minNode.AddObject( obDict[ obKeys[i] ], addDepth += 1, updateTime );
-            this.MaxNode.AddObject( obDict[ obKeys[i] ], addDepth += 1, updateTime );
+            this.minNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
+            this.MaxNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
+            delete( this.objectDictionary[ obKeys[i] ] );
             
         }else if( objectAABB.maxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
+            //should add to min node
             if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; 
                 //the objects were not successfuly 
                 //seperated by the nextAxis splitting 
                 //(addDepth causes wait until all 3 (x y z) axis have been tried 
                 //before considering the objects non seperable
-            this.minNode.AddObject( objects[i], addDepth += 1, updateTime );
-            delete( this.objectDictionary[ objects[i] ] );
+            this.minNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
+            delete( this.objectDictionary[ obKeys[i] ] );
             //this.objects.splice( i,1 );
             numObjectsAddedToMinNode += 1;
         }else{
+            //should add to max node
             if( numObjectsAddedToMinNode < 1 && 
                 i >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
                 return false; 
                 //objects were not successfuly seperated
                 //(break before adding to sub node or the subnode 
                 //will again try to split)
-            this.MaxNode.AddObject( objects[i], addDepth += 1, updateTime );
-            delete( this.objectDictionary[ objects[i] ] );
+            this.MaxNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
+            delete( obDict[ obKeys[i] ] );
             //this.objects.splice( i,1 );
         }
         
@@ -277,7 +297,10 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         for( var i = 0; i < obKeys.length; ++i ) 
         //loop through the objects (if one isn't yet loaded, it is ignored)
         {
-        
+            //check if the model was checked last node
+            if( ray.lastNode != null )
+                if( ray.lastNode.objectDictionary[ obKeys[i] ] != null )
+                    continue;
             //first check if the ray intersects the model's aabb
             var aabbPointAndTime = obDict[ obKeys[i] ].
                                                 GetAABB().RayIntersects( ray );
@@ -338,6 +361,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             //         " this mid: " + this.midCoord + 
             //         " rayNorm " + ray.norm + 
             //         " nextNodeRayPoint " + nextNodeRayPoint );
+            ray.lastNode = this;
             return nextTraceNode.GetClosestIntersectingSurface( 
                 ray, intersectionPointAndRayTime[1] + rayStepEpsilon, 
                 nextNodeRayPoint );
@@ -351,6 +375,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         var node = this.FindTreeNodeForPoint( rayLastPoint );
         if( node != null && node != this ){
             //DPrintf( "GetClosestIntersectingSurface " + node.midCoord );
+            ray.lastNode = this;
             return node.GetClosestIntersectingSurface( ray, 
                                         rayLastTime, rayLastPoint );
         }

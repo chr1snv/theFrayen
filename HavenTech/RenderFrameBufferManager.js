@@ -175,10 +175,14 @@ function RenderBufferManager(sceneNameIn)
         var cameraProjectionMatrix = camera.GetProjectionMatrix();
         
         //i think only the camera matrix should be sent to the shader once per frame to reduce data transfer overhead
-        var uploadMatrixTemp = new Float32Array(4*4); //the projection and model matrix combined
-        var uploadMatrix = new Float32Array(4*4);     //the transposed (inverse) projection and model matrix
+        var uploadMatrixTemp = new Float32Array(4*4); 
+        //the projection and model matrix combined
+        var uploadMatrix = new Float32Array(4*4);     
+        //the transposed (inverse) projection and model matrix
 
-        var previousShader = undefined; //idealy all rendering should be done with one shader (or an opaque and transparent shader)
+        var previousShader = undefined; 
+        //idealy all rendering should be done with one shader 
+        //(or an opaque and transparent shader)
         
         
 
