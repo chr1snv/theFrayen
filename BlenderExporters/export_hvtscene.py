@@ -23,15 +23,169 @@ from bpy_extras.io_utils import (
         )
 #from Blender import Modifier
 import os, math, shutil
+
+def prRed(skk): print("\033[91m {}\033[00m" .format(skk))
+def prGreen(skk): print("\033[92m {}\033[00m" .format(skk))
+def prYellow(skk): print("\033[93m {}\033[00m" .format(skk))
+def prLightPurple(skk): print("\033[94m {}\033[00m" .format(skk))
+def prPurple(skk): print("\033[95m {}\033[00m" .format(skk))
+def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
+def prLightGray(skk): print("\033[97m {}\033[00m" .format(skk))
+def prBlack(skk): print("\033[98m {}\033[00m" .format(skk))
+
 from functions_hvtmdl import writeModel, writeObjectAnimationData
 
 #directory creation helper function
 def make_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
+        
+def AveragePts( pt1, pt2 ):
+    return [ pt1[0] + pt2[0] / 2, 
+             pt1[1] + pt2[1] / 2, 
+             pt1[2] + pt2[2] / 2 ]
+             
+def checkOverlapsInAxies( ob1Min, ob1Max, ob2Min, ob2Max ):
+     axisOverlaps = [False, False, False]
+     for( axis in range(3) ):
+        if( ob2Min[axis] < ob1Min[axis] and ob1Min[axis] < ob2Max[axis] ||
+            ob2Min[axis] < ob1Max[axis] and ob1Max[axis] < ob2Max[axis] ||
+            ob1Min[axis] < ob2Min[axis] and ob2Min[axis] < ob1Max[axis] ):
+            axisOverlaps[axis] = True
+     if( axisOverlaps[0] and axisOverlaps[1] and axisOverlaps[2] ):
+        return True #all three axies overlap
+
+Max_Node_Objects = 5
+class OctTreeNode( ): #I think here is where classes to derive from are placed
+    
+    objects  = [] #the objects in this node sorted by position on the axis
+    #of the node
+    minNode = None #if this node subdivides  the x axis
+    maxNode = None #then the subnodes divide the y, etc
+    
+    #here is where constructor inputs are placed
+    def __init__(self, nmin, nmax, axis):
+        prPurple("oct tree node init" + str(nmin) + " : " + str(nmax) + str(axis) )
+        self.axis = axis
+        self.min  = nmin
+        self.max  = nmax
+        self.mid  = AveragePts( self.min, self.max )
+    
+    def GetGreatestObjectLimit(self):
+        return self.objects[-1].aabbMax[self.axis]
+    def GetLeastObjectLimit(self):
+        return self.objects[0].aabbMin[self.axis]
+    
+    #check if there are overlaps with already added objects
+    #if not check if should subdivide ( max objects added to node)
+    def AddObject( self, obj ):
+        #first try to add the object to this node's object list
+        prCyan( "addObject " + str(obj.obj.name) + " node num objects " + str(len(self.objects)) )
+        if len(self.objects) < Max_Node_Objects :
+            prYellow( "check if the object is less than any of the array objects" )
+            for i in range( len(self.objects) ):
+                #take the midpoint of the object in the array and object, and
+                #insert based on the midpoint and check that there isn't
+                #an overlap in all three axies
+                prYellow( "if the array object min is greater than the new object max (new obj before)" )
+                if self.objects[i].aabbMin[self.axis] > obj.aabbMax[self.axis]:
+                    prYellow( "check if the previous array object is present" )
+                    if i-1 > 0:
+                        prYellow( "check the object below is less than the object" )
+                        if self.objects[ i-1 ].aabbMax[self.axis] > obj.aabbMin[self.axis]:
+                            prRed("the object overlaps in this axis")
+                            return False #the object overlaps (check that it
+                            #does not overlap in the other 2 axies)
+                            checkOverlapsInAxies( 
+                    prGreen( "insert location found " + str(i) + 
+                           " no object below or no overlap" )
+                    self.objects.insert( i, obj )
+                    return
+            prBlack( "finished comparing array objects" )
+            prBlack( "the max array object min is less than the new object max" )
+            prBlack( "checking greatest object for potential overlap" )
+            if len(self.objects) > 0: 
+                if self.objects[-1].aabbMax[self.axis] > obj.aabbMin[self.axis]:
+                    prRed( "greatest object " + self.objects[-1].obj.name + \
+                    " overlaps " + obj.obj.name + " in axis " + str(self.axis) )
+                    return False
+            prBlack( "no objects or no objects less than overlap" )
+            self.objects.insert( -1, obj )
+            prGreen( "added object" )
+            return
+            
+        prLightPurple("there are too many objects in the node")
+        
+        if( obj.aabbMin[self.axis] > self.mid[self.axis] ):
+            prLightPurple("the object goes in the maxNode")
+            if( self.maxNode == None ):
+                self.maxNode = OctTreeNode( self.min, self.mid, (self.axis+1)%3 )
+            self.maxNode.AddObject( obj )
+        elif( obj.aabbMax[self.axis] < self.mid[self.axis] ):
+            prLightPurple("the object goes in the minNode")
+            if( self.minNode == None ):
+                self.minNode = OctTreeNode( self.min, self.mid, (self.axis+1)%3 )
+            self.minNode.AddObject( obj )
+        else:
+            prLightPurple("object overlaps midpoint of this node")
+            prLightPurple("check for overlaps in the min node")
+            if( self.minNode.checkOverlap( obj.aabbMin, obj.aabbMax ) ):
+                return False
+            prLightPurple("check for overlaps in the max node")
+            if( self.maxNode.checkOverlap( obj.aabbMin, obj.aabbMax ) ):
+                return False
+                
+            #it overlaps the midpoint but not any objects, therefore
+            #move the midpoint to halfway between the object max or min
+            #and the next object in the min or max nodes
+            
+            #since it doesn't overlap with any objects
+            prLightPurple("shift the midpoint between the min and max nodes")
+            prLightPurple("to add new object to one of them")
+            minGreatest = self.minNode.GetGreatestObjectLimit( self.axis )
+            minNumObjects = self.minNode.NumObjects()
+            maxLeast    = self.maxNode.GetLeastObjectLimit(    self.axis )
+            maxNumObjects = self.maxNode.NumObjects()
+            
+            #prefer the node with the least number of objects to place the
+            #new object into
+            if( minNumObjects < maxNumObjects ):
+                prPurple("place the new object in the min node")
+                newMidPoint = ( maxLeast + this.mid[this.axis] ) / 2
+                self.minNode.max[self.axis+1] = newMidPoint
+                self.minNode.mid[self.axis+1] = ( self.minNode.min + newMidPoint ) / 2
+                self.minNode.AddObject( obj )
+            else:
+                prPurple("place the new object in the max node")
+                newMidPoint = ( minGreatest + self.mid[self.axis] ) / 2
+                self.maxNode.min[self.axis+1] = newMidPoint
+                self.maxNode.mid = AveragePts( self.maxNode.min + self.maxNode.max ) / 2
+                self.maxNode.AddObject( obj )
+            
+            
+            
+#component axis seperated occupancy linked lists for checking 
+#there aren't overlapping
+#objects (inserted into and checked with binary search)
+#this combined with a skiplist (heirarchical pointers of groups of objects)
+#could be an an alternative to an oct tree, however insertion into an
+#array isn't ideal, and effectively any structure with hierarchical links
+#becomes a tree
+rootNode = OctTreeNode( [-100000, -100000, -100000 ], [100000, 100000, 100000 ], 0 )
+class TreeObj():
+    def __init__(self, aabbMin, aabbMax, obj):
+        self.aabbMin = aabbMin
+        self.aabbMax = aabbMax
+        self.obj = obj
+        self.aabbMid = [ ( aabbMin[0] + aabbMax[0] ) / 2,
+                         ( [aabbMin[0] + aabbMax[0] ) / 2,
+                         ( [aabbMin[0] + aabbMax[0] ) / 2 ]
+
+#if large objects ( enviroment / scenery / buildings ) have objects inside
+#of them, it may be helpful to automatically seperate them into convex parts
+#to allow them to be added to the oct tree
 
 #exports a haventech scene from blender
-
 def writeScene(path):
     """Write a HavenTech scene file, and mesh, animation, light, and camera
     files for each of the items in the scene recognized by HavenTech"""
@@ -72,21 +226,59 @@ def writeScene(path):
     #get the current scene
     sce = bpy.data.scenes[0]#.active
     
+    xAxisOcupiedRegions = []
+    yAxisOcupiedRegions = []
+    zAxisOcupiedRegions = []
+    
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
         #add the information for placing the object in the scene file
         #and call the corresponding exporter for each object
+        #dont allow objects with the same origin/overlapping aabb because
+        #they will not allow for object seperation in the renderer
+        #having objects inside eachother can be done by having the outside
+        #object be multiple objects
+        #overlaping aabb's are not allowed though because it could create the
+        #potential for a ray to have to be tested with many objects per oct tree
+        #node because if things arent oct tree seperable then there isn't
+        #an algorithm in the renderer to determine if a ray intersects an object
+        #without testing every object ( 
+        #numRays*numObjects => 1,000,000 * 1,000,000 => 1,000,000,000,000
+        #very slow compared to num rays * log ( num objects ) => 
+        #1,000,000 * log(1,000,000) => 6,000,000
+        #it would be 1,000,000 times lower frame rate
         if obj.type == 'MESH':
             out.write( 'm %s' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
             AABB = writeModel(sceneDirectory, obj)
-            if AABB == None:
-                print( 'Mesh object %s not exportable (AABB not returned)' % obj.name )
-            else:
-                out.write( '  %f %f %f  %f %f %f\n' % (AABB[0], AABB[1], AABB[2],  AABB[3], AABB[4], AABB[5]) )
             print( 'AABB %s' % AABB ) 
+            if AABB == None:
+                print( 'Mesh object %s not exportable (AABB not returned)' % \
+                        obj.name )
+                break
+            else:
+                out.write( '  %f %f %f  %f %f %f\n' % \
+                    (AABB[0], AABB[1], AABB[2], AABB[3], AABB[4], AABB[5]) )
+                aabbMin = [ AABB[0], AABB[1], AABB[2] ]
+                aabbMax = [ AABB[3], AABB[4], AABB[5] ]
+                newObj = TreeObj(aabbMin, aabbMax, obj)
+                addSuccessful = rootNode.AddObject( newObj )
+                print( "object aabb overlap check result " + \
+                    str( addSuccessful ) )
+                if addSuccessful == False:
+                    break
+                #AddOccupiedRegion( AABB[0], AABB[3], 0 )
+                #AddOccupideRegion( AABB[1], AABB[4], 1 )
+                #AddOccupiedRegion( AABB[2], AABB[5], 2 )
+            out.write( '%f %f %f ' % \
+                 (obj.location[0], obj.location[1], -obj.location[2]))
+            out.write( '%f %f %f ' % \
+                 (obj.rotation_euler[0], \
+                  obj.rotation_euler[1], -\
+                  obj.rotation_euler[2]))
         if obj.type == 'LIGHT':
+        
             lampD = obj.data;
             out.write( 'l %s ' % (obj.name))
             out.write( '%s ' % (lampD.type))

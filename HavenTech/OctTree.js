@@ -337,7 +337,9 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //it should be inside the adjacent node
         if( intersectionPointAndRayTime == null ){
             var lastPointNodeIn = this.FindTreeNodeForPoint( rayLastPoint );
-            DPrintf( "intersectionPointAndRayTime == null  lastPointNodeInMidCoord " + lastPointNodeIn.midCoord );
+            DPrintf( 
+                "intersectionPointAndRayTime == null  \
+                 lastPointNodeInMidCoord " + lastPointNodeIn.midCoord );
             DPrintf( "aabb intersects " + this.AABB.RayIntersects( toNextNodeRay ) );
         }
         var nextNodeRayTime = intersectionPointAndRayTime[1] + rayStepEpsilon;

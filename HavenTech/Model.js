@@ -18,13 +18,15 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		        var pos      = new Float32Array(3); quadMesh.GetPosition(pos);
 		        var rot      = new Float32Array(3); quadMesh.GetRotation(rot);
 		        var scale    = new Float32Array(3); quadMesh.GetScale(scale);
-		        Matrix( quadMeshMatrix, MatrixType.euler_transformation, scale, rot, pos );
+		        Matrix( quadMeshMatrix, MatrixType.euler_transformation, 
+		        scale, rot, pos );
 
 		        //calculate the set transformation matrix
 		        var offsetMatrix = new Float32Array(4*4);
 		        Matrix(offsetMatrix,
 		               MatrixType.euler_transformation,
-		               thisP.scaleOff, thisP.rotationOff, new Float32Array([0,0,0]));
+		               thisP.scaleOff, thisP.rotationOff, 
+		               new Float32Array([0,0,0]));
 		        var transformation = new Float32Array(4*4);
 		        Matrix_Multiply( transformation, offsetMatrix, quadMeshMatrix );
 		        transformation[0*4+3] += thisP.positionOff[0];
@@ -41,7 +43,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 	//public methods
 	
     //Identification / registration functions so that 
-    //the model can be drawn, interact with other objects, and be updated when in view
+    //the model can be drawn, interact with other objects, 
+    //and be updated when in view
     this.AddToOctTree = function( octTreeIn, addCompletedCallback )
     {
         if( octTreeIn == null )

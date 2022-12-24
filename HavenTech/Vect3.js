@@ -89,6 +89,7 @@ function Vect3_Normal(v1){
     var len = Vect3_Length(v1);
     Vect3_DivideScalar(v1, len);
 }
+//another name/alias for Vect3_Normal
 function Vect3_Unit(v1){
     var len = Vect3_Length(v1);
     Vect3_DivideScalar(v1, len);

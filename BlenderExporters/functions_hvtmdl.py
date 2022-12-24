@@ -5,6 +5,7 @@ import bpy, bpy_extras.node_shader_utils
 #import BPyMessages
 #from Blender import Modifier
 import os, math, shutil, sys
+from mathutils import Vector
 
 def popupMenu(message):
     bpy.context.window_manager.popup_menu(lambda self, \
@@ -41,7 +42,11 @@ def writeModel(assetDirectory, ob):
     #---------------------------
     writeAnim(assetDirectory, ob)
     
-    return AABB
+    #apply object location, rotation and scale to AABB
+    AABBmin = ob.matrix_world @ Vector((AABB[0], AABB[1], AABB[2]))
+    AABBmax = ob.matrix_world @ Vector((AABB[3], AABB[4], AABB[5]))
+    
+    return [AABBmin[0], AABBmin[1], AABBmin[2], AABBmax[0], AABBmax[1], AABBmax[2]]
 
 def writeMeshMaterials(assetDirectory, ob):
     """Write a materials file, and a haven tech shader file for each of the

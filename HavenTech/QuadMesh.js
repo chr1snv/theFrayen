@@ -495,13 +495,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             //get a point and the face normal and check 
             //where the ray intersects the plane
             //rayTriangleIntersection
-            var intPtAndTime = triangle.RayTriangleIntersection( ray );
-            if( intPtAndTime != null ){
+            var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
+            if( dist_norm_ptL != null ){
                 //the ray intersects the triangle, find the uv coordinate
-                var uvCoord = triangle.
-                    UVCoordOfPoint( intPtAndTime, 
-                                face.uvs[0], face.uvs[1], face.uvs[2] );
-                return [intPtAndTime[0], this.faces[f], uvCoord ];
+                //var uvCoord = triangle.
+                //    UVCoordOfPoint( triIntPt_Time[0], 
+                //                face.uvs[0], face.uvs[1], face.uvs[2] );
+                return [ dist_norm_ptL[0], dist_norm_ptL[1], [0.5,0,1] ]; //, uvCoord ];
             }
             //else try another triangle
             

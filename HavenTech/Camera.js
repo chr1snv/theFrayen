@@ -600,18 +600,21 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
              //that the ray hit
              //intptDistFaceidx[0], intptDistFaceidx[1], 
              //intptDistFaceidx[2], this.objects[i]
-             var intptdist_Faceidx_pixcolor = 
+             var intptdist_norm_pixcolor = 
                octTreeRoot.GetClosestIntersectingSurface( ray, 0, rayOrigin );
              
-             if( intptdist_Faceidx_pixcolor != null ){
+             if( intptdist_norm_pixcolor != null ){
                 //store pixel screenspace position
                 pixPositions[numRaysIntersected*2 + 0] = w*2.0 - 1.0;
                 pixPositions[numRaysIntersected*2 + 1] = h*2.0 - 1.0;
                 //pixPositions[r*3 + 2] = 0.0;
                 //store pixel color
-                pixColors   [numRaysIntersected*3 + 0] = 1;//intptdist_Faceidx_pixcolor[2][0];
-                pixColors   [numRaysIntersected*3 + 1] = 0;//intptdist_Faceidx_pixcolor[2][1];
-                pixColors   [numRaysIntersected*3 + 2] = 0;//intptdist_Faceidx_pixcolor[2][2];
+                pixColors   [numRaysIntersected*3 + 0] = 
+                                    intptdist_norm_pixcolor[2][0];
+                pixColors   [numRaysIntersected*3 + 1] = 
+                                    intptdist_norm_pixcolor[2][1];
+                pixColors   [numRaysIntersected*3 + 2] = 
+                                    intptdist_norm_pixcolor[2][2];
                 numRaysIntersected += 1;
              }
                  
