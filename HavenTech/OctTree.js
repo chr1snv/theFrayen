@@ -36,7 +36,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   this.parent  = parent; 
   //link to the parent ( to allow traversing back up the tree )
   
-  //this.objects = []; 
+  this.objects = [];  //the axis positionally sorted objects
   this.objectDictionary = {}; //the objects local to the node
   
   this.minNode = null; 
@@ -95,33 +95,49 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         this.MaxNode.Update( time );
   }
   
+  this.addToThisNode = function( object )
+  {
+        //insertion sort the objects
+        var lessThanIndex = 0;
+        for( var i = 0; i < this.objects.length; ++i){
+            if( this.objects[i].GetAABB().center[this.axis] < 
+                object.GetAABB().center[this.axis] )
+                lessThanIndex = i;
+            else
+                break; //because less to greater sorted, once a greater than
+                //object is found, the rest will be greater
+        }
+        this.objects.splice(lessThanIndex+1, 0, object);
+        
+        //keep a dictionary for quickly checking if an object is present
+        this.objectDictionary[ object.uuid ] = object;
+        return true;
+  }
+  
   //add an object to the node, if it is full - subdivide it 
   //and place objects in the sub nodes
   this.AddObject = function( object, addDepth=0 ) 
   //addDepth is to keep track of if all axies 
   //have been checked for seperating the objects
   {
-    
-    var obDict = this.objectDictionary;
-    var obKeys = Object.keys(obDict);
-    
-    
+        
     //fill nodes until they are full (prevent unessecary subdividing)
     //but also don't add objects if they are inside objects already in the world
     //(if something is inside an object it should be parented to it)
-    if( obKeys.length < MaxTreeNodeObjects ){
-        //this.objects.push( object );
-        obDict[ object.uuid ] = object;
-        return true;
+    if( this.objects.length < MaxTreeNodeObjects ){
+        return this.addToThisNode(object);
     }
     //only leaf nodes should contain objects because that's where rays
     //check for intersection
     
-    //else, split the node until there are only MaxTreeNodeObjects per node
+    //else 
+    //split the node until there are only MaxTreeNodeObjects per node
     //to keep object intersection / overlap test performace gains 
     //given by the binary oct tree
-    var nextAxis = this.generateMinAndMaxNodes();
-    
+    var nextAxisAndNumMinObjs = this.generateMinAndMaxNodes(this.objects);
+    var nextAxis = nextAxisAndNumMinObjs[0];
+    var numMinObjs = nextAxisAndNumMinObjs[1];
+
     //divide the objects between the min and max nodes
     //subdivide leaf node spanning objects, parenting the subdivided 
     //parts to the object
@@ -136,84 +152,34 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     //by this node (the parent of the min and max nodes)
     //so only need to check the extents of the object
     //vs where the min and max nodes are split
+    addDepth = addDepth + 1;
     var numObjectsAddedToMinNode = 0;
-    for( var i = 0; i < obKeys.length; ++i ){
+    for( var i = 0; i < this.objects.length; ++i ){
         
-        var objectAABB = obDict[ obKeys[i] ].GetAABB();
-        //get the axis aligned bounding box for the object
-        //( min and max points defining a box with faces (planes)
-        //aligned with the x y z axies
-        
-        //this.minNode.MaxCoord[nextAxis] is the center between of the node
-        if( objectAABB.minCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] &&
-            this.minNode.MaxCoord[nextAxis] < objectAABB.maxCoord[nextAxis] ){
-            //the object straddles the center and isn't fully in the min or max nodes
-            //subdivide it and add it to the nodes that it is in
-            //(objects should be in leaf nodes and not be overlaping for
-            //performance)
-            //as the tree is subdivided further the object's parts will get
-            //put into sub trees / leaves and there will be more nodes it doesn't
-            //occupy than does
-            
-            //if an object straddles multiple leaf nodes, it should be subdivided
-            //by world nodes, and each part placed in the world node
-            //realistically constantly dividing an object and reportioning it as
-            //it moves for dynamic/moving objects will probably not be worth it
-            //so may be better to link to the object (model/quadmesh) in each of
-            //nodes that it appears in and for rays keep track of which objects
-            //aabb's were tested for intersection in the last node
-            //(with rectangular aabb's and straight line rays, there will only
-            //be one entry point and one exit point, so when going between world
-            //oct tree nodes, if in the last node it was in an object's aabb,
-            //and now isn't, it has exited the object and it can be ignored for
-            //preventing rechecking it)
-            //though an object may span multiple world leaf oct tree nodes,
-            //because an object may be concave or have it's aabb overlap another
-            //the ray needs to advance only as far as the end of the 
-            //oct tree node for the next group of objects for their
-            //intersection test
-            
-            this.minNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
-            this.MaxNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
-            delete( this.objectDictionary[ obKeys[i] ] );
-            
-        }else if( objectAABB.maxCoord[nextAxis] < this.minNode.MaxCoord[nextAxis] ){
-            //should add to min node
-            if( numObjectsAddedToMinNode >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
-                return false; 
-                //the objects were not successfuly 
-                //seperated by the nextAxis splitting 
-                //(addDepth causes wait until all 3 (x y z) axis have been tried 
-                //before considering the objects non seperable
-            this.minNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
-            delete( this.objectDictionary[ obKeys[i] ] );
-            //this.objects.splice( i,1 );
-            numObjectsAddedToMinNode += 1;
-        }else{
-            //should add to max node
-            if( numObjectsAddedToMinNode < 1 && 
-                i >= MaxTreeNodeObjects - 1 && addDepth >= 2 )
-                return false; 
-                //objects were not successfuly seperated
-                //(break before adding to sub node or the subnode 
-                //will again try to split)
-            this.MaxNode.AddObject( obDict[ obKeys[i] ], addDepth += 1 );
-            delete( obDict[ obKeys[i] ] );
-            //this.objects.splice( i,1 );
-        }
-        
+        if(i < numMinObjs )
+            this.minNode.AddObject( this.objects[i], addDepth );
+        else
+            this.MaxNode.AddObject( this.objects[i], addDepth );
     }
+    this.objects = [];
+    this.objectDictionary = {};
     
-    if( Object.keys(this.objectDictionary).length < MaxTreeNodeObjects )
-        return true; //the node was successfuly subdivided and objects 
-                     //distributed to sub nodes such that
-                     //all nodes have less than MaxTreeNodeObjects
+    if( this.objects.length < MaxTreeNodeObjects )
+        return this.addToThisNode(object); 
+        //the node was successfuly subdivided and objects 
+        //distributed to sub nodes such that
+        //all nodes have less than MaxTreeNodeObjects
+        //now that this node has room for the new object add it
+    return false;
   }
   
   /*
   //rasterize the objects in the node, depreciated because without raytracing
   //render cost scales with triangles, depth culling and physically based materials
   //transparency, reflectivity and shadowing each incur extra steps
+  //rasterization is faster and less noisy for low poly and overdraw scenes
+  //though when attempting to reach photo realisim, raytracing with de noising
+  //samples the world less (only dependent on desired generated image quality)
   this.RasterDraw = function( camera, cameraCenter ){
     //select a level of detail baised on the distance from the camera
     var distToCam = 0;
@@ -235,13 +201,14 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     
     if( point[0] > this.minCoord[0] && 
         point[1] > this.minCoord[1] && 
-        point[2] > this.minCoord[2] &&
-        
+        point[2] > this.minCoord[2] && //each axis of the point is greater than
+                                       //those of the min coord
         point[0] < this.MaxCoord[0] && 
         point[1] < this.MaxCoord[1] && 
-        point[2] < this.MaxCoord[2] ){
+        point[2] < this.MaxCoord[2] ){ //each axis of the point is also 
+                                       //less than those of the max coord
         
-        //the ray origin is in this node
+        //theirfore the ray origin is in this node
         
         if( this.minNode != null ){ 
             //check if it is in the min node or one of the min node's subnodes
@@ -288,100 +255,97 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     //if it misses all the objects in a leaf node, 
     //find the next leaf node it might intersect with objects in
     
-    if( this.minNode == null && this.MaxNode == null )
+    
+    //first check if any objects in this node intersect with the ray
+    var obDict = this.objectDictionary;
+    var obKeys = Object.keys(obDict);
+    for( var i = 0; i < obKeys.length; ++i ) 
+    //loop through the objects (if one isn't yet loaded, it is ignored)
     {
-        //the node is a leaf node, check if any objects 
-        //in it intersect with the ray
-        var obDict = this.objectDictionary;
-        var obKeys = Object.keys(obDict);
-        for( var i = 0; i < obKeys.length; ++i ) 
-        //loop through the objects (if one isn't yet loaded, it is ignored)
-        {
-            //check if the model was checked last node
-            if( ray.lastNode != null )
-                if( ray.lastNode.objectDictionary[ obKeys[i] ] != null )
-                    continue;
-            //first check if the ray intersects the model's aabb
-            var aabbPointAndTime = obDict[ obKeys[i] ].
-                                                GetAABB().RayIntersects( ray );
-            if( aabbPointAndTime != null ){
-            
-                //since the ray intersects the aabb, check all faces 
-                //of the mesh if the ray intersects, if it does, return the
-                //intersection point, ray distance, face index, 
-                //model and object that the ray hit
-                    
-                if( obDict[ obKeys[i] ].quadmesh != null ){
-                    var intptDistFaceidx = 
-                        obDict[ obKeys[i] ].quadmesh.GetRayIntersection( ray );
-                    if( intptDistFaceidx != null ){
-                        return [ intptDistFaceidx[0], intptDistFaceidx[1], 
-                                 obDict[ obKeys[i] ] ];
-                    }
-                }
-            
-            }
-            
-        }
+        //check if the model was checked last node
+        if( ray.lastNode != null )
+            if( ray.lastNode.objectDictionary[ obKeys[i] ] != null )
+                continue; //if already checked skip it
+        //first check if the ray intersects the model's aabb
+        var aabbPointAndTime = obDict[ obKeys[i] ].
+                                            GetAABB().RayIntersects( ray );
+        if( aabbPointAndTime != null ){
         
-        //this was a leaf node and the ray didn't hit anything in it, 
-        //find which wall it exits and node it enters
-        
-        //create a new ray starting in this node to avoid getting intersection
-        //with the entrance wall again
-        var toNextNodeRay = new Ray( rayLastPoint, ray.norm );
-        //DPrintf( "toNextNodeRay origin " + toNextNodeRay.origin + " norm " + toNextNodeRay.norm );
-        var intersectionPointAndRayTime = this.AABB.RayIntersects( toNextNodeRay );
-        //increase the wall intersection ray time by epsilon 
-        //and generate new ray point
-        //it should be inside the adjacent node
-        if( intersectionPointAndRayTime == null ){
-            var lastPointNodeIn = this.FindTreeNodeForPoint( rayLastPoint );
-            DPrintf( 
-                "intersectionPointAndRayTime == null  \
-                 lastPointNodeInMidCoord " + lastPointNodeIn.midCoord );
-            DPrintf( "aabb intersects " + this.AABB.RayIntersects( toNextNodeRay ) );
-        }
-        var nextNodeRayTime = intersectionPointAndRayTime[1] + rayStepEpsilon;
-        var nextNodeRayPoint = toNextNodeRay.PointAtTime( nextNodeRayTime );
-        var parentNode = this.parent;
-        var nextTraceNode = null;
-        while( nextTraceNode == null ){ //next node has not yet been found
-            //DPrintf( "nextTraceNode search Parent: " + parentNode.midCoord + 
-            //         " nextRayPoint " + nextNodeRayPoint );
-            nextTraceNode = parentNode.FindTreeNodeForPoint( nextNodeRayPoint );
-            if( nextTraceNode == null ){ //go up the hierarchy and try again
-                parentNode = parentNode.parent; //up one level
-                if( parentNode == null ){
-                    //DPrintf( "nextTraceNode parentNode == null" );
-                    break; //the ray is outside the root node world space
+            //since the ray intersects the aabb, check all faces 
+            //of the mesh if the ray intersects, if it does, return the
+            //intersection point, ray distance, face index, 
+            //model and object that the ray hit
+            
+            if( obDict[ obKeys[i] ].quadmesh != null ){
+                var intptDistNormColor = 
+                    obDict[ obKeys[i] ].quadmesh.GetRayIntersection( ray );
+                if( intptDistNormColor != null ){ //if a face intersects
+                
+                    return intptDistNormColor;
+                    //return the intersection distance normal and color
                 }
             }
-        }
-        if( nextTraceNode != null ){
-            //DPrintf( "found next trace node " + nextTraceNode.midCoord + 
-            //         " this mid: " + this.midCoord + 
-            //         " rayNorm " + ray.norm + 
-            //         " nextNodeRayPoint " + nextNodeRayPoint );
-            ray.lastNode = this;
-            return nextTraceNode.GetClosestIntersectingSurface( 
-                ray, intersectionPointAndRayTime[1] + rayStepEpsilon, 
-                nextNodeRayPoint );
-        }
-        //otherwise the ray may have left the world parent node, fall through to
-        //return null below
-    }else{ 
-        //this node has subnodes, decide which should be checked
-        //DPrintf( "check subnodes this mid: " + this.midCoord + 
-        //         " rayNorm " + ray.norm );
-        var node = this.FindTreeNodeForPoint( rayLastPoint );
-        if( node != null && node != this ){
-            //DPrintf( "GetClosestIntersectingSurface " + node.midCoord );
-            ray.lastNode = this;
-            return node.GetClosestIntersectingSurface( ray, 
-                                        rayLastTime, rayLastPoint );
         }
     }
+        
+    //the ray didn't hit anything in this node 
+    //find which wall of this node the ray exits and which node it enters
+    
+    //check all nodes below this node if the point is in a sub node for
+    //the starting point to trace from
+    var lastPointNodeIn = this.FindTreeNodeForPoint( rayLastPoint );
+    if( lastPointNodeIn == null )
+        return null;
+    
+    //create a new ray starting in this node to avoid getting intersection
+    //with the entrance wall again
+    var toNextNodeRay = new Ray( rayLastPoint, ray.norm );
+    //DPrintf( "toNextNodeRay origin " + toNextNodeRay.origin + " norm " + toNextNodeRay.norm );
+    var intersectionPointAndRayTime = lastPointNodeIn.AABB.RayIntersects( toNextNodeRay );
+    //increaseing the wall intersection ray time by epsilon 
+    //(is done in next GetClosestIntersecting surface call)
+    //generating a new ray point (which is inside the adjacent node)
+    if( intersectionPointAndRayTime == null ){ 
+        //somehow the ray started outside of this node and didn't intersect
+        //with it
+        
+        //DPrintf( 
+        //    "intersectionPointAndRayTime == null  \
+        //     lastPointNodeInMidCoord " + lastPointNodeIn.midCoord );
+        //DPrintf( "aabb intersects " + this.AABB.RayIntersects( toNextNodeRay ) );
+        return null; //ray has exited oct tree
+    }
+    
+    //get a point along the ray at the next intersection point + epsilon
+    var nextNodeRayTime = intersectionPointAndRayTime[1] + rayStepEpsilon;
+    var nextNodeRayPoint = toNextNodeRay.PointAtTime( nextNodeRayTime );
+    var parentNode = this;
+    var nextTraceNode = null;
+    while( nextTraceNode == null ){ //next node has not yet been found
+        //DPrintf( "nextTraceNode search Parent: " + parentNode.midCoord + 
+        //         " nextRayPoint " + nextNodeRayPoint );
+        nextTraceNode = parentNode.FindTreeNodeForPoint( nextNodeRayPoint );
+        if( nextTraceNode == null ){ //go up the hierarchy and try again
+            parentNode = parentNode.parent; //up one level
+            if( parentNode == null ){
+                //DPrintf( "nextTraceNode parentNode == null" );
+                return null; //the ray is outside the root node world space
+            }
+        }
+    }
+    if( nextTraceNode != null ){
+        //DPrintf( "found next trace node " + nextTraceNode.midCoord + 
+        //         " this mid: " + this.midCoord + 
+        //         " rayNorm " + ray.norm + 
+        //         " nextNodeRayPoint " + nextNodeRayPoint );
+        ray.lastNode = this;
+        return nextTraceNode.GetClosestIntersectingSurface( 
+            ray, intersectionPointAndRayTime[1] + rayStepEpsilon, 
+            nextNodeRayPoint );
+    }
+    //otherwise the ray has left the world parent node
+    //this shouldn't be reached though because of above if parent node == null
+    //return null in while loop
     
     return null; //all nodes along the ray path have been checked and didn't
     //have an intersection with the ray
@@ -391,10 +355,20 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   //to be called when the node is filled with the max number of objects
   //(decided on for performance of number of object tests vs 
   //overhead of the depth of the tree)
-  this.generateMinAndMaxNodes = function(){
+  //should this try to put an equal number of objects in each sub node?
+  //(and divide at aabb boundries)
+  //yes, because otherwise objects that straddle a node boundry are put in
+  //both the min and max nodes and it doesn't reduce the number of objects
+  //in a node (leading to infinite attempts to split the node to reach the
+  //max object count)
+  this.generateMinAndMaxNodes = function(objects){
 
     var nextAxis = (this.axis + 1) % 3; 
     //modulo wrap around from (2)z axis back to x
+    
+    if( this.minNode != null ) //if already subdivided dont generate new
+        return nextAxis;       //nodes and abandond previosly generated ones
+    
     var minminCoord = []; //fill these depending on the axis being subdivided
     var minMaxCoord = [];
     var MaxminCoord = [];
@@ -404,17 +378,24 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     for(var i = 0; i < 3; ++i){ 
         //(x y z) for loop to avoid seperate if statement for x y and z axies
     
-      minminCoord.push( this.minCoord[i] );
+      minminCoord.push( this.minCoord[i] ); //least is least of this node
       if( nextAxis == i){ //if this is axis (x y or z) that the 
-        //minAndMax nodes split then use the mid point
-        var midPt = this.midCoord[i];
+        //minAndMax nodes split then use the mid point (could try to put even
+        var midPt = this.midCoord[i]; //number of objects in min and max)
+        var midOfObjs2And3 = ( objects[2].GetAABB().maxCoord[i] + objects[2].GetAABB().minCoord[i] ) / 2;
+        var midOfObjs1And2 = ( objects[1].GetAABB().maxCoord[i] + objects[2].GetAABB().minCoord[i] ) / 2;
+        if( Math.abs(midOfObjs2And3 - midPt) < Math.abs(midOfObjs1And2 - midPt) )
+            midPt = midOfObjs2And3;
+        else
+            midPt = midOfObjs1And2;
+        //the closest between object midpoint to the middle of the node is selected
         minMaxCoord.push( midPt );
         MaxminCoord.push( midPt );
-      }else{ //else since only one axis is being split
-        minMaxCoord.push( this.MaxCoord[i] );
-        MaxminCoord.push( this.minCoord[i] );
+      }else{ //for other axies use full range of this node  
+        minMaxCoord.push( this.MaxCoord[i] ); //the other axies span
+        MaxminCoord.push( this.minCoord[i] ); //the full extent of this node
       }
-      MaxMaxCoord.push( this.MaxCoord[i] );
+      MaxMaxCoord.push( this.MaxCoord[i] ); //max is max of this node
     }
     //now that the extents of the nodes have been found create them
     this.minNode = new TreeNode(nextAxis, minminCoord, minMaxCoord, this);   

@@ -321,77 +321,6 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
     //color manipulation functions
     this.GetShaderName = function() { return [this.shaderNames[0], this.sceneName]; }
-
-    
-    
-    //draw interface
-//    this.Draw = function(verts, normals, uvs)
-//    {
-//        //since quad meshes are a mixture of quads and tris,
-//        //use the face vertex indices to tesselate the entire mesh into
-//        //tris, calculate face normals, and upload to gl and draw
-
-//        if(!this.isValid)
-//        {
-//            DPrintf("QuadMesh::Draw: failed to draw.\n");
-//            return;
-//        }
-
-//        /* //assumed Update( time ) has updated the transformedPositions
-//           //before this Draw function is called
-//        //
-//        ///get the animation transformed mesh vertex data
-//        ////////////////////////////////////////////////////////////
-
-//        var transformedPositions = this.getTransformedVerts();
-//        */
-
-//        //
-//        ///Generate the vertex position coordinates
-//        ////////////////////////////////////////////////////////////
-
-//        //tesselate the mesh
-//        this.tesselateCoords( verts, this.faces, this.transformedPositions );
-//        
-//        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
-//        var attr = gl.getAttribLocation( graphics.currentProgram, "position");
-//        gl.enableVertexAttribArray(attr);
-//        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
-//        gl.vertexAttribPointer(attr, graphics.vertCard, gl.FLOAT, false, 0, 0);
-
-//        ////
-//        //Generate the vertex normal coordinates
-//        ////////////////////////////////////////////////////////////
-
-//        var normCard = 3;
-
-//        //generate & tesselate the normal coords 
-//        //from the batch of verts currently being used
-//        
-//        var normalCoords = new Float32Array(this.transformedPositions.length);
-//        this.GenerateNormalCoords(
-//                normalCoords, this.faces, this.transformedPositions);
-//        this.tesselateCoords(normals, this.faces, normalCoords);
-//        
-//        gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
-//        var attr = gl.getAttribLocation( graphics.currentProgram, "norm");
-//        gl.enableVertexAttribArray(attr);
-//        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
-//        gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
-//        
-//        
-//        ////
-//        //Generate the texture coordinates (per vertex)
-//        /////////////////////////////////////////////////////////////
-
-//        this.tesselateUVCoords(uvs, this.faces);
-//        
-//        gl.bindBuffer(gl.ARRAY_BUFFER, uvsBuffer);
-//        var attr = gl.getAttribLocation( graphics.currentProgram, "texCoord");
-//        gl.enableVertexAttribArray(attr);
-//        gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
-//        gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
-//    }
     
     this.DrawSkeleton = function() { this.skelAnimation.Draw(); }
 
@@ -460,6 +389,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     
     //called during ray trace rendering
+    //returns the 
     this.GetRayIntersection = function(ray){
     
         //check all faces of the mesh if the ray intersects, 
@@ -498,9 +428,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
             if( dist_norm_ptL != null ){
                 //the ray intersects the triangle, find the uv coordinate
-                //var uvCoord = triangle.
-                //    UVCoordOfPoint( triIntPt_Time[0], 
-                //                face.uvs[0], face.uvs[1], face.uvs[2] );
+                var uvCoord = triangle.
+                    UVCoordOfPoint( dist_norm_ptL[2],
+                                face.uvs[0], face.uvs[1], face.uvs[2] );
                 return [ dist_norm_ptL[0], dist_norm_ptL[1], [0.5,0,1] ]; //, uvCoord ];
             }
             //else try another triangle
@@ -511,7 +441,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
     
     this.GetMaterialColorAtUVCoord = function( uv ){
-        
+        //method from rasterization was to asynchronously load the shader
+        //and bind it, impractical for query based rays where each ray
+        //may reach a different shader
+        //need to make sure the shaders in each mesh are loaded before rendering
+        //though may be good to keep them stored in scene global dictionary to
+        //avoid duplicate per mesh loading/instancing of shaders and materials
+        //graphics.GetShader( filename, sceneName, 
+        //     readyCallbackParams, shaderReadyCallback ) )
+        return [0.5,0.2,0.7,1.0]; //use a solid color until shaders and textures
+        //for raytracing implemented
     }
 
     //constructor functionality
@@ -759,8 +698,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		var meshFileName = "scenes/"  + thisP.sceneName + 
 		                   "/meshes/" + thisP.meshName + ".hvtMesh";
 		loadTextFile( meshFileName, thisP.meshFileLoaded, thisP );
+		//when completed calls mesh file loaded above
 	}
 	loadTextFile( matFileName, this.matFileLoaded, this );
+	//when completed calls to mat file loaded above
 
 	
     

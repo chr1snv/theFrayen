@@ -226,11 +226,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                                 thisSceneP.sceneName, /*mAABB,*/ thisSceneP,
                 function( model, havenScenePointer ){ //modelLoadedCallback
                     model.Update( 0 ); //update to generate AABB
-                   model.AddToOctTree( havenScenePointer.octTree,
-                    function(){
-                      thisSceneP.pendingModelsAdded-=1;
-                      thisSceneP.checkIfIsLoaded();
-                    } );
+                    model.AddToOctTree( havenScenePointer.octTree,
+                        function(){
+                            thisSceneP.pendingModelsAdded-=1;
+                            thisSceneP.checkIfIsLoaded();
+                        } );
                 }
                  );
                 
