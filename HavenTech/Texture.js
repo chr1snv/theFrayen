@@ -1,28 +1,9 @@
 //Texture.js: texture implementation
 
-//get the next power of two size up
-function nextPot(size)
-{
-    var i = 1;
-    for(var i=0; i<8; ++i)
-    {
-        if(size <= (32 << i))
-        {
-            ret = (32 << i);
-            break;
-        }
-    }
-    return ret;
-}
-
-function isPowerOfTwo(x) {
-    return (x & (x - 1)) == 0;
-}
-
 //called to create a new texture,
 //the texture ready callback is called to return the result to the caller when loading is complete
 
-function Texture( nameIn, sceneNameIn, textureReadyCallback ){
+function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback ){
     
     this.textureHandle = 0;
     this.texName = nameIn;
@@ -33,68 +14,87 @@ function Texture( nameIn, sceneNameIn, textureReadyCallback ){
 
     this.filename = "scenes/"+this.sceneName+"/textures/"+this.texName;
 
-    //load a texture from a file, and upload it to gl
+    //load a texture from a file, and store its pixels in shared memory for the
+    //section of the oct tree where it is used
     
     this.loadedImage = new Image();
+    this.width = 0;
+    this.height = 0;
+    this.pixData = null;
     var thisP = this;
+    
+    this.GetColorAtUV = function( uv ){
+        var x = Math.round(uv[0] * this.width);
+        var y = Math.round(uv[1] * this.height);
+        var retVal = new Float32Array(
+               [ this.pixData[ (x + y * this.width) * 4 + 0 ] / 255.0,
+                 this.pixData[ (x + y * this.width) * 4 + 1 ] / 255.0,
+                 this.pixData[ (x + y * this.width) * 4 + 2 ] / 255.0,
+                 this.pixData[ (x + y * this.width) * 4 + 3 ] / 255.0 ] );
+        return retVal;
+    }
 
-    this.loadedImage.onload = function() { //when the image file loads sucessfully this is called
-        //upload the texture to webgl
-        thisP.textureHandle = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, thisP.textureHandle);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thisP.loadedImage);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    this.loadedImage.onload = function() { 
+        //when the image file loads sucessfully this is called
+        //upload the texture to webgl (maybe used when adding gpu compute)
+        //thisP.textureHandle = gl.createTexture();
+        //gl.activeTexture(gl.TEXTURE0);
+        //gl.bindTexture(gl.TEXTURE_2D, thisP.textureHandle);
+        //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thisP.loadedImage);
+        //gl.generateMipmap(gl.TEXTURE_2D);
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 
         thisP.isValid = true;
+        
+		var c = document.createElement('canvas');
+		c.width = thisP.loadedImage.width;
+		c.height = thisP.loadedImage.height;
+		var context = c.getContext("2d");
+		context.drawImage(thisP.loadedImage, 0, 0);
+		
+		var imgd = context.getImageData(0, 0, c.width, c.height);
+	    thisP.width = c.width;
+	    thisP.height = c.height;
+        thisP.pixData = imgd.data;
+		
+        for (var i = 0, n = thisP.pixData.length; i < n; i += 4) {
+            //pix[i  ] = 255 - pix[i  ]; // red
+            //pix[i+1] = 255 - pix[i+1]; // green
+            //pix[i+2] = 255 - pix[i+2]; // blue
+            // i+3 is alpha (the fourth element)
+        }
+        
+        
+        //console.log( thisP.pixData[0] + ", " + thisP.pixData[1] + ", " + thisP.pixData[2] );
 
-        //locally cache the successfully loaded texture so when it is asked for from graphics again it can be reloaded
+        //register the successfully loaded texture with the global texture list
+        //so when it is asked for again the cached data can be fetched
         graphics.AppendTexture( thisP.texName, thisP.sceneName, thisP );
-        textureReadyCallback(thisP); //when the image is loaded and uploaded to gl, return
+        if(textureReadyCallback)
+            textureReadyCallback(readyCallbackParams, thisP); //when the image is loaded, return
     }
     
     //if the texture doesn't load from the server correctly
     //get the default texture from graphics and store
     this.loadedImage.onerror = function(){
-    
         graphics.GetTexture( "default.png", "default", 
             function( defaultTexture ){
                 graphics.AppendTexture( thisP.texName, thisP.sceneName, defaultTexture );
-                textureReadyCallback( defaultTexture );
+                textureReadyCallback( readyCallbackParams, defaultTexture );
             }
         );
-        
     }
     this.loadedImage.onabort = function(){
-    
         graphics.GetTexture( "default.png", "default", 
             function( defaultTexture ){
                 graphics.AppendTexture( thisP.texName, thisP.sceneName, defaultTexture );
-                textureReadyCallback( defaultTexture );
+                textureReadyCallback( readyCallbackParams, defaultTexture );
             }
         );
     }
     
-    
-    
-    //begin loading the asynchronous loading of the texture image file
+    //begin the asynchronous loading of the texture image file
     this.loadedImage.src = this.filename; 
-
-
-
-    //called when a shader uses the loaded texture, makes it accessable to webgl shader program
-    this.Bind = function(textureUnitToBindTo){
-        if(this.isValid){
-            gl.activeTexture( gl.TEXTURE0+textureUnitToBindTo );
-            gl.bindTexture( gl.TEXTURE_2D, this.textureHandle );
-        }
-    }
-
-    this.GetTextureHandle = function()
-    {
-        return this.textureHandle;
-    }
 
 }

@@ -25,6 +25,10 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
     this.isHit = false;
     this.isValid = false;
     
+    this.textureLoaded = function( thisP, tex ){
+        thisP.texture = tex;
+    }
+    
     this.shaderTextLoaded = function(shaderFile, thisP)
     {
     	if( shaderFile === undefined )
@@ -109,6 +113,9 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
                                 thisP.normalTextureName  = textureName;
                             if(isEmit)
                                 thisP.emitTextureName    = textureName;
+                                
+                            //preload the texture
+                            graphics.GetTexture(textureName, thisP.sceneName, thisP, thisP.textureLoaded);
                         }
                         if(temp[0] == 'e') // sort of unnesscary, as soon as the file
                             break;         //name is read reading this texture is done
@@ -132,6 +139,9 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
 
             thisP.isValid = true;
        }
+       
+       
+       
        shaderReadyCallback( thisP, readyCallbackParams );
     }
 
@@ -170,91 +180,10 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
             texture.GetHeight()
         ];
     }
-
-    this.Bind = function(previousShader, callbackParams, bindFinishedCallback)
-    {
-        if(this.isHit){
-            //make it black so that when its color is combined with
-            //the depth fog it will be black when near the camera and
-            //white when far from the camera
-            //(depth render pickling)
-            IPrintf("drawing a hit object\n");
-            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),  0.0, 0.0, 0.0, 1.0 );
-            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'texturingEnabled'), 0 );
-            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 0 );
-            CheckGLError("Shader: bind");
-            bindFinishedCallback(callbackParams);
-        }
-        else { // is a standard shader
-            if(previousShader === undefined || previousShader.isHit || previousShader.isShadeless ){
-                gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 1);
-            }
-
-            if(this.diffuseTextureName !== undefined){
-                var thisP = this;
-                //var finishedCallback = bindFinshedCallback;
-                graphics.GetTexture(this.diffuseTextureName, this.sceneName, function(texture){
-                    gl.uniform1f(gl.getUniformLocation(thisP.glShaderProgramRefId, 'texturingEnabled'), 1 );
-                    texture.Bind(0);
-                    thisP.shaderTextureBindFinishedCallback(previousShader);
-                    CheckGLError("Shader: bind");
-                    bindFinishedCallback(callbackParams);
-                });
-            }else{
-                this.shaderTextureBindFinishedCallback(previousShader);
-                CheckGLError("Shader: bind");
-                bindFinishedCallback(callbackParams);
-            }
-
-        }
-
+    
+    this.GetColorAtUVCoord = function( uv ){
+        return this.texture.GetColorAtUV( uv );
     }
 
-    this.shaderTextureBindFinishedCallback = function(previousShader)
-    {
-
-        if(!this.isShadeless){
-            var colAlph = new Float32Array([0,0,0,this.alpha]);
-
-            Vect3_Copy(colAlph, this.diffuseCol);
-            Vect3_MultiplyScalar(colAlph, this.diffuseMix);
-
-            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),
-                colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
-
-            Vect3_Copy(colAlph, this.specularCol);
-            Vect3_MultiplyScalar(colAlph, this.specularMix);
-            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'specularColor'),
-                colAlph[0], colAlph[1], colAlph[2], colAlph[3] );
-
-            var specularExponent = this.specularHardness*128.0;
-            if(specularExponent > 128.0)
-                specularExponent = 128;
-            gl.uniform1f(gl.getUniformLocation(this.glShaderProgramRefId, 'specularExponent'), specularExponent);
-
-            Vect3_Copy(colAlph, this.diffuseCol);
-            Vect3_MultiplyScalar(colAlph, this.emitAmount);
-            gl.uniform4fv(gl.getUniformLocation(this.glShaderProgramRefId, 'emissionColor'), colAlph);
-        }
-        else{
-            gl.uniform1i(gl.getUniformLocation(this.glShaderProgramRefId, 'lightingEnabled'), 0 );
-            gl.uniform4f(gl.getUniformLocation(this.glShaderProgramRefId, 'diffuseColor'),
-                this.diffuseCol[0], this.diffuseCol[1], this.diffuseCol[2], this.alpha);
-        }
-
-        if(previousShader === undefined || this.IsTransparent() != previousShader.IsTransparent()){
-            if( this.IsTransparent() )
-            {
-                //graphics.enableDepthMask(false);
-                //graphics.enableDepthTest(false);
-            }   
-            else
-            {
-                //graphics.enableDepthMask(true);
-                //graphics.enableDepthTest(true);
-            }
-        }
-
-    }
 
 }

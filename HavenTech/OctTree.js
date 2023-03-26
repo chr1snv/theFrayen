@@ -156,7 +156,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     var numObjectsAddedToMinNode = 0;
     for( var i = 0; i < this.objects.length; ++i ){
         
-        if(i < numMinObjs )
+        if( i < numMinObjs )
             this.minNode.AddObject( this.objects[i], addDepth );
         else
             this.MaxNode.AddObject( this.objects[i], addDepth );
@@ -257,17 +257,15 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     
     
     //first check if any objects in this node intersect with the ray
-    var obDict = this.objectDictionary;
-    var obKeys = Object.keys(obDict);
-    for( var i = 0; i < obKeys.length; ++i ) 
+    for( var i = 0; i < this.objects.length; ++i ) 
     //loop through the objects (if one isn't yet loaded, it is ignored)
     {
         //check if the model was checked last node
         if( ray.lastNode != null )
-            if( ray.lastNode.objectDictionary[ obKeys[i] ] != null )
+            if( ray.lastNode.objectDictionary[ this.objects[i].uuid ] != null )
                 continue; //if already checked skip it
         //first check if the ray intersects the model's aabb
-        var aabbPointAndTime = obDict[ obKeys[i] ].
+        var aabbPointAndTime = this.objects[i].
                                             GetAABB().RayIntersects( ray );
         if( aabbPointAndTime != null ){
         
@@ -276,9 +274,9 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             //intersection point, ray distance, face index, 
             //model and object that the ray hit
             
-            if( obDict[ obKeys[i] ].quadmesh != null ){
+            if( this.objects[i].quadmesh != null ){
                 var intptDistNormColor = 
-                    obDict[ obKeys[i] ].quadmesh.GetRayIntersection( ray );
+                    this.objects[i].quadmesh.GetRayIntersection( ray );
                 if( intptDistNormColor != null ){ //if a face intersects
                 
                     return intptDistNormColor;
@@ -404,130 +402,5 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   }
   
 }
-
-/*
-function GenerateNodeCorners(node)
-{
-    //the 8 corners of the node cube, 4 bottom corners and 4 top corners
-   return [
-     [ node.minCoord[0], node.minCoord[1], node.minCoord[2] ],  //left back bottom
-     [ node.MaxCoord[0], node.minCoord[1], node.minCoord[2] ],
-     [ node.minCoord[0], node.MaxCoord[1], node.minCoord[2] ],
-     [ node.MaxCoord[0], node.MaxCoord[1], node.minCoord[2] ],
-   
-     [ node.minCoord[0], node.minCoord[1], node.MaxCoord[2] ],  //top
-     [ node.MaxCoord[0], node.minCoord[1], node.MaxCoord[2] ],
-     [ node.minCoord[0], node.MaxCoord[1], node.MaxCoord[2] ],
-     [ node.MaxCoord[0], node.MaxCoord[1], node.MaxCoord[2] ]  ];
-}
-
-
-//returns true if the 8 corners of the node are within the frustum
-function OctTree_NumNodeCornersInFrustum(nodeCorners, frustum)
-{
-   
-   var numPointsInFrustum = 0;
-   
-   for( var i = 0; i < nodeCorners.length; ++i )
-   {
-      if( frustum.PointInFrustum( nodeCorners[i] ) )
-         numPointsInFrustum += 1;
-   }
-   //a corner of the cube is in the frustum return it
-   return numPointsInFrustum;
-   
-}
-
-
-function pointIsInsideAABB( aabb, point ){
-
-    if( aabb.minCoord[0] < point[0] && point[0] < aabb.MaxCoord[0] &&
-        aabb.minCoord[1] < point[1] && point[1] < aabb.MaxCoord[1] &&
-        aabb.minCoord[2] < point[2] && point[2] < aabb.MaxCoord[2] )
-        return true;
-    return false;
-    
-}
-
-//check all 3 xyz axies bounds if the two bounding boxes 
-//have at least one corner inside eachother
-//if they overlap in one axis, that means they are 
-//in front/back, left/right or top/bottom of eachother
-//need xyz overlap for volume intersection test
-function OctTree_AABBsIntersect( aabb1, aabb2 ) //frustum is aabb2
-{
-    var numOverlappingAxies = 0;
-    for( var i = 0; i < 3; ++i ){ //check if aabb1 is inside aabb2
-        if( ( aabb2.minCoord[i] < aabb1.minCoord[i] && aabb1.minCoord[i] < aabb2.MaxCoord[i] ) ||
-            ( aabb2.minCoord[i] < aabb1.MaxCoord[i] && aabb1.MaxCoord[i] < aabb2.MaxCoord[i] ) )
-            numOverlappingAxies += 1;
-    }
-    if( numOverlappingAxies >= 3 )
-        return true;  //part of aabb1 is inside aabb2
-    numOverlappingAxies = 0;
-    for( var i = 0; i < 3; ++i ){ //check if aabb2 is inside aabb1
-        if( ( aabb1.minCoord[i] < aabb2.minCoord[i] && aabb2.minCoord[i] < aabb1.MaxCoord[i] ) ||
-            ( aabb1.minCoord[i] < aabb2.MaxCoord[i] && aabb2.MaxCoord[i] < aabb1.MaxCoord[i] ) )
-            numOverlappingAxies += 1;
-    }
-    if( numOverlappingAxies >= 3 )
-        return true; //part of aabb2 is inside aabb1
-        
-    return false; //a corner of aabb1 is not inside aabb2 and a corner of aabb2 is not inside aabb1
-}
-
-//find the minimal set of oct tree leaf nodes that are inside or overlap the frustum
-//starting with the root, check if the volume of the node is inside the frustum AABB
-//  if it is inside return the entire node
-//  if it is outside don't return it
-//  if it partially overlaps
-//     if it is a leaf node return it, otherwise
-//     for each sub node
-//        if it partially or fully is inside repeat the above
-//        ignore fully outside nodes
-function OctTree_GetNodesThatOverlapOrAreInsideFrustum(node, frustum)
-{   
-   var overlap = OctTree_AABBsIntersect( node, frustum );
-   
-   if( overlap ){
-       //the aabb overlaps
-       
-       //check if there are sub nodes and one can be excluded
-       if( node.minNode == null && node.MaxNode == null )
-       {
-         //there are no subnodes, so this is a leaf node of the binary oct tree 
-         //(reached the bottom of the spatial division recursion)
-         //return this node even though its area outside the frustum may be larger than the frustum
-         return [node];
-       }
-   
-       //the node isn't completely overlapping the frustum if one of it
-       //check if any of it's sub nodes ( or sub sub nodes etc ) can be excluded from the
-       //draw / update to improve performance
-       var returnNodes = [];
-       overlap = OctTree_AABBsIntersect( node.minNode, frustum );
-       if( overlap ){
-         var overlapNodes = OctTree_GetNodesThatOverlapOrAreInsideFrustum( node.minNode, frustum );
-         for( var i = 0; i < overlapNodes.length; ++i )
-           returnNodes.push( overlapNodes[i] );
-       }
-       
-       overlap = OctTree_AABBsIntersect( node.MaxNode, frustum );
-       if( overlap ){
-         var overlapNodes = OctTree_GetNodesThatOverlapOrAreInsideFrustum( node.MaxNode, frustum );
-         for( var i = 0; i < overlapNodes.length; ++i )
-           returnNodes.push( overlapNodes[i] );
-       }
-       
-       return returnNodes;
-  }
-  
-  //otherwise the frustum is completely outside the node
-  return [];
-}
-
-*/
-
-
 
 

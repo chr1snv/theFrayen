@@ -241,7 +241,8 @@ function Graphics( canvasIn, loadCompleteCallback )
 			    {
 			        //if( newShader.isValid )
 			        graphics.shaders[concatName] = newShader;
-			        shaderReadyCallback(newShader, readyCallbackParams1);
+			        if(shaderReadyCallback)
+    			        shaderReadyCallback(newShader, readyCallbackParams1);
 			    });
 		}else
 		{
@@ -256,18 +257,19 @@ function Graphics( canvasIn, loadCompleteCallback )
 		this.textures[concatName] = newValidTexture;
 	}
 	//get a texture that has been previously requested or attempt to load it from the servertextureReadyCallback(newTexture);
-	this.GetTexture = function(filename, sceneName, textureReadyCallback)
+	this.GetTexture = function(filename, sceneName, readyCallbackParams, textureReadyCallback)
 	{
 		var concatName = filename + sceneName;
 		var texture = this.textures[concatName];
 		if(texture === undefined)
 		{
 		    //texture is not loaded, load the new texture and have it return when it's ready (async load)
-		    new Texture(filename, sceneName, textureReadyCallback );
+		    new Texture(filename, sceneName, readyCallbackParams, textureReadyCallback );
 		}else
 		{
 		    //the cached texture is ready, have it return through the callback
-		    textureReadyCallback(texture);
+		    if(textureReadyCallback)
+		    textureReadyCallback(readyCallbackParams, texture);
 		}
 	}
 	this.UnrefTexture = function(filename, sceneName) {}

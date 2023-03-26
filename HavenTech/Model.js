@@ -60,9 +60,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
         if( this.octTree != null ){
         
         	var OctTreeRemoveCompleted = function( thisP ){
-        	
 	        	thisP.octTree = null;
-	        	
         	}
         	
             this.octTree.Remove( removeCompleted, this );
@@ -133,44 +131,6 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
         this.AddToSceneGraph( currentSceneGraph );
     }
 
-    /*
-    //draw functions
-    this.GetNumVerts = function( cbParams, cb )
-    {
-        graphics.GetQuadMesh( this.meshName, this.sceneName, {1:cbParams, 2:cb}, 
-            function( quadMesh, cbObj ){ cbObj[2]( quadMesh.faceVertsCt, cbObj[1] ); }
-        );
-    }
-    //must draw forces the quadmesh to regenerate it's mesh 
-    //passed to gl (depreciated rasterization draw function)
-    this.Draw = function( frustum, verts, normals, uvs, 
-                           modelTransform, mustDraw, completeCallback )
-    {
-        if( this.timeUpdate || mustDraw ) //check if the model should 
-        {
-            //generateModelMatrix( cbObjs, completeCallback )
-            this.generateModelMatrix(
-                { 1:this, 2:frustum, 3:verts, 4:normals, 5:uvs, 
-                  6:modelTransform, 7:mustDraw, 8:completeCallback }, //cbObjs
-                function( transformation, cbObjs ) //completeCallback( transform, cbObjs )
-                {
-                	Matrix_Copy( cbObjs[6], transformation ); //copy( modelTransform, transformation );
-                	//getQuadMesh( this.filename, this.sceneName, readyCallbackParameters, quadMeshReadyCallback )
-                	graphics.GetQuadMesh( cbObjs[1].meshName, cbObjs[1].sceneName, cbObjs, 
-                		function( quadMesh, cbObjs ) //quadMeshReadyCallback( quadMesh, cbObjs )
-                		{
-                	    	quadMesh.Draw( cbObjs[3], cbObjs[4], cbObjs[5] ); //draw( verts, normals, uvs );
-                	    	cbObjs[1].timeUpdate = false; //clear the time update flag
-	                	    cbObjs[8]( true ); //completeCallback( true )
-                		}
-            		);
-            	}
-            );
-        }else{
-            completeCallback( false );
-        }
-    }
-    */
     this.GetOptTransform = function( retMat )
     {
         if( optTransformUpdated )
@@ -180,63 +140,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
     this.DrawSkeleton = function(){ 
         graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); }
     
-    /* //for rasterization rendering
-    //type query functions
-    this.IsTransparent = function( isTransparentCallback, thisP ) {
-        graphics.GetShader( this.shaderName, this.shaderScene, isTransparentCallback,
-            function( shader, cb )
-            {
-            	cb( shader.IsTransparent(), thisP );
-            }
-        );
-    }
-    this.IsHit = function( cbParams, callback ) {
-        graphics.GetQuadMesh( this.meshName, this.sceneName,
-            {1:cbParams, 2:callback}, function(quadmesh, cbObj){ 
-                                    cbObj[2](quadmesh.IsHit(), cbObj[1]); });
-    }
-    */
-
-    /*
-    //geometry query functions
-    //from before raytrace rendering
-    this.RayIntersects = function( t, rayOrig, rayDir ) {
-        if(!IsHit())
-            return false;
-
-        var meshVertsCt = graphics.GetQuadMesh( meshName, sceneName ).faceVertsCt;
-        var meshVerts = new Float32Array[meshVertsCt*graphics.vertCard];
-        graphicsGetQuadMesh( meshName, sceneName ).GetWorldSpaceMesh( 
-                                                     meshVerts, meshVertsCt );
-        
-        //apply the model orientation matrix
-        var transformation = new Float32Array(4*4);
-        var temp = new Float32Array(4*4);
-        this.generateModelMatrix( transformation );
-
-        var transformedPositions = new GLfloat[meshVertsCt*vertCard];
-        Matrix_Multiply_Array3( transformedPositions, meshVertsCt*vertCard, 
-                                                 transformation, meshVerts );
-        
-        var numTris = meshVertsCt/3;
-        var didHit = Drawable.RayIntersectsHull( t, transformedPositions, 
-                                                numTris,  rayOrig, rayDir );
-        meshVerts = null;
-        transformedPositions = null;
-        
-        if(didHit)
-            return true;
-        return false;
-
-    }
-    
-    this.GetBoundingPlanes = function( finishedCallback ) {
-        graphics.GetQuadMesh( meshName, sceneName, 
-                    finishedCallback, function( quadMesh, callback ){
-            callback( quadMesh.GetBoundingPlanes() );
-        });
-    }
-    */
+   
     
     /* //the AABB is in the quadmesh
     //model is really for an additional transformation

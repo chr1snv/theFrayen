@@ -9,6 +9,17 @@ function Triangle( p1, p2, p3 ){
     this.v1W = p1;
     this.v2W = p2;
     this.v3W = p3;
+    
+    var minCorner = new Float32Array( [
+                     Math.min( p1[0], p2[0], p3[0] ),
+                     Math.min( p1[1], p2[1], p3[1] ),
+                     Math.min( p1[2], p2[2], p3[2] ) ] );
+    var maxCorner = new Float32Array( [
+                     Math.max( p1[0], p2[0], p3[0] ),
+                     Math.max( p1[1], p2[1], p3[1] ),
+                     Math.max( p1[2], p2[2], p3[2] ) ]);
+    this.aabb = new AABB( minCorner, maxCorner );
+    
     //calculate the world space edge vectors to generate the 
     //world space surface normal
     this.e1W = Vect3_CopyNew( this.v2W );
@@ -150,7 +161,7 @@ function Triangle( p1, p2, p3 ){
         //it should be if the local space basis vectors are unit length
         //and the ray normal is unit (or equal) length in local and world space
        
-        if( rayDistToPtWL < 0 )
+        if( rayDistToPtWL < 0  || rayDistToPtWL != rayDistToPtWL )
             return null; //the intersection is behind the start of the ray
         //not a valid intersection point
        

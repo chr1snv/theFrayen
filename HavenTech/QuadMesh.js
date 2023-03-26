@@ -28,6 +28,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.lastToWorldMatrixUpdateTime = -1;
 
     this.shaderNames     = [];
+    this.shaders         = [];
 
     //the calculated mesh data
     
@@ -61,198 +62,6 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
     
     this.lastMeshUpdateTime = -0.5;
-    
-    /*
-
-    //calculate per vertex normals from face averaged normals
-    //calculated from vertex position coordinates
-    this.GenerateNormalCoords = function( vertNormals, faces, positionCoords )
-    {
-
-        //zero the output accumulator
-        for( var i in vertNormals )
-            vertNormals[i] = 0;
-
-        //for each face generate an accumulated normal vector
-        for(var i=0; i<faces.length; ++i)
-        {
-            var numVertIdxs = faces[i].vertIdxs.length;
-            if(numVertIdxs < 3)
-                DPrintf("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
-            //newell's method
-            var normal = [0,0,0];
-            //go through all of the verticies in the face
-            for(var j=0; j<numVertIdxs; ++j)
-            {
-                //fetch 3 verticies from the face 
-                //(to get two edges to compute a normal from)
-                var vIdx0 = faces[i].vertIdxs[(0+j)%numVertIdxs];
-                var vIdx1 = faces[i].vertIdxs[(1+j)%numVertIdxs];
-                var vIdx2 = faces[i].vertIdxs[(2+j)%numVertIdxs];
-                //graphics.vertCard is the cardinality of a vertex (3 x y z)
-                var v0 = [positionCoords[vIdx0*graphics.vertCard+0],
-                          positionCoords[vIdx0*graphics.vertCard+1],
-                          positionCoords[vIdx0*graphics.vertCard+2]];
-                var v1 = [positionCoords[vIdx1*graphics.vertCard+0],
-                          positionCoords[vIdx1*graphics.vertCard+1],
-                          positionCoords[vIdx1*graphics.vertCard+2]];
-                var v2 = [positionCoords[vIdx2*graphics.vertCard+0],
-                          positionCoords[vIdx2*graphics.vertCard+1],
-                          positionCoords[vIdx2*graphics.vertCard+2]];
-
-                //calculate the relative vectors 
-                //(relative to the current middle vert)
-                //(vectors in the direction of the edges of the face 
-                //from v1->v0 and v1->v2)
-                Vect3_Subtract(v0, v1);
-                Vect3_Subtract(v2, v1);
-                //calculate the normal (orthogonal vector to the edge vectors)
-                var crossProd = [];
-                Vect3_Cross(crossProd, v2, v0); 
-                //normal is the cross product of the relative vectors
-                Vect3_Add(normal, crossProd); 
-                //average the contribution of the sub edges of the face
-            }
-            //normalize the accumulation of normals 
-            //from the edge pairs of the face 
-            Vect3_Unit(normal); //possibly optional or to be changed 
-            //so that faces with more / less vertices
-            //contribute more to the per vertex normal
-
-            //accumulate the face normal back to each vertex
-            for(var j=0; j<numVertIdxs; ++j)
-            {
-                //add the new normal to it
-                var vertIdx = (faces[i].vertIdxs[j])*graphics.normCard;
-                var tempAccum = [];
-                Vect3_Copy(tempAccum, [ vertNormals[vertIdx+0],
-                                        vertNormals[vertIdx+1],
-                                        vertNormals[vertIdx+2] ]);
-                Vect3_Add(tempAccum, normal);
-                vertNormals[vertIdx+0] = tempAccum[0];
-                vertNormals[vertIdx+1] = tempAccum[1];
-                vertNormals[vertIdx+2] = tempAccum[2];
-                
-            } //end write normal data
-        } //end for each face
-
-        //normalize the accumulated face normals vectors for each  
-        //make the normals unit length (average output)
-        for(var i=0; i<positionCoords.length; ++i){
-            var idx = i*graphics.normCard;
-            var len = Vect3_Length( [ vertNormals[idx+0],
-                                      vertNormals[idx+1],
-                                      vertNormals[idx+2] ] );
-            vertNormals[idx+0] /= len;
-            vertNormals[idx+1] /= len;
-            vertNormals[idx+2] /= len;
-        }
-    }
-    
-    //used to tesselate position coordinates
-    //(convert from quad and triangle faces to only triangles
-    //3 verticies per face) for rendering with webgl 
-    this.tesselateCoords = function( coords,
-                                     faces,
-                                     inputCoords )
-    {
-        var cI = 0;
-        
-        //create the vertex array
-        for(var i=0; i<faces.length; ++i)
-        {
-            var coordsSize = faces[i].vertIdxs.length;
-            
-            if(coordsSize == 3) //triangle
-            {
-                for(var j=0; j<faces[i].vertIdxs.length; ++j)
-                {
-                    var coordIdx = (faces[i].vertIdxs[j])*graphics.vertCard;
-                    coords[cI++] = inputCoords[coordIdx];
-                    coords[cI++] = inputCoords[coordIdx+1];
-                    coords[cI++] = inputCoords[coordIdx+2];
-                }
-            }
-            else if(coordsSize == 4) //quad. tesselate into two triangles
-            {
-                var coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-                
-                coordIdx = (faces[i].vertIdxs[1])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-                
-                coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-                
-                coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-                
-                coordIdx = (faces[i].vertIdxs[3])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-                
-                coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
-                coords[cI++] = inputCoords[coordIdx];
-                coords[cI++] = inputCoords[coordIdx+1];
-                coords[cI++] = inputCoords[coordIdx+2];
-            }
-        }
-        if(cI != coords.length)
-            DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
-    }
-    
-    //baised on faces (that may be a mixture of triangles and quads)
-    // generate only triangle uv coordinates
-    //for buffering and rendering with gl
-    this.tesselateUVCoords = function( uvCoords, faces )
-    {
-        var cI = 0;
-        
-        //create the vertex index array
-        for(var i=0; i<faces.length; ++i)
-        {
-            var vertsSize = faces[i].vertIdxs.length;
-            
-            if( vertsSize == 3) //triangle
-            {
-                for(var j=0; j<3*graphics.uvCard; j+=graphics.uvCard)
-                {
-                    uvCoords[cI++] = faces[i].uvs[j+0];
-                    uvCoords[cI++] = faces[i].uvs[j+1];
-                }
-            }
-            else if(vertsSize == 4) //quad. tesselate into two triangles
-            {
-                uvCoords[cI++] = faces[i].uvs[0+0];
-                uvCoords[cI++] = faces[i].uvs[0+1];
-                
-                uvCoords[cI++] = faces[i].uvs[1+0];
-                uvCoords[cI++] = faces[i].uvs[1+1];
-                
-                uvCoords[cI++] = faces[i].uvs[2+0];
-                uvCoords[cI++] = faces[i].uvs[2+1];
-                
-                uvCoords[cI++] = faces[i].uvs[2+0];
-                uvCoords[cI++] = faces[i].uvs[2+1];
-                
-                uvCoords[cI++] = faces[i].uvs[3+0];
-                uvCoords[cI++] = faces[i].uvs[3+1];
-                
-                uvCoords[cI++] = faces[i].uvs[0+0];
-                uvCoords[cI++] = faces[i].uvs[0+1];
-            }
-        }
-    }
-    */
     
     
     //returns the non tessilated verts. returns new memory
@@ -358,35 +167,80 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             if( this.transformedVerts == null || this.lastMeshUpdateTime < time)
                 this.Update( time );
             for ( var i = 0; i < this.transformedVerts.length; 
-                  i+=graphics.vertCard ){
-            
-                if( this.transformedVerts[ i + 0] < minX ){
+                                                    i+=graphics.vertCard ){
+                //get the min and max bounds of the mesh
+                if( this.transformedVerts[ i + 0] < minX )
                     minX = this.transformedVerts[ i + 0];
-                }
-                if( this.transformedVerts[ i + 1] < minY ){
+                if( this.transformedVerts[ i + 1] < minY )
                     minY = this.transformedVerts[ i + 1];
-                }
-                if( this.transformedVerts[ i + 2] < minZ ){
+                if( this.transformedVerts[ i + 2] < minZ )
                     minZ = this.transformedVerts[ i + 2];
-                }
-                if( this.transformedVerts[ i + 0] > maxX ){
+                if( this.transformedVerts[ i + 0] > maxX )
                     maxX = this.transformedVerts[ i + 0];
-                }
-                if( this.transformedVerts[ i + 1] > maxY ){
+                if( this.transformedVerts[ i + 1] > maxY )
                     maxY = this.transformedVerts[ i + 1];
-                }
-                if( this.transformedVerts[ i + 2] > maxZ ){
+                if( this.transformedVerts[ i + 2] > maxZ )
                     maxZ = this.transformedVerts[ i + 2];
-                }
-                
             }
             this.AABBUpdateTime = this.lastMeshUpdateTime;
-            this.AABB = new AABB( [ minX, minY, minZ], [maxX, maxY, maxZ] );
+            //transform the min and max into world space
+            var minL = new Float32Array( [ minX, minY, minZ ] );
+            var maxL = new Float32Array( [ maxX, maxY, maxZ ] );
+            var minW = new Float32Array(3);
+            var maxW = new Float32Array(3);
+            Matrix_Multiply_Vect3( minW, this.toWorldMatrix, minL );
+            Matrix_Multiply_Vect3( maxW, this.toWorldMatrix, maxL );
+            this.AABB = new AABB( minW, maxW );
             
         }
         return this.AABB;
     }
     
+    //generate world space triangles from a face index
+    this.GenerateFaceTriangles = function(f){
+        var face = this.faces[f];
+        var numFaceVerts = face.vertIdxs.length;
+        
+        var vertVect3s = []; //the world position verts of the face
+        for( var v = 0; v < numFaceVerts; ++v ){
+            //get the vert local position and transform it to world position
+            var vert = [ 
+                this.transformedVerts[ 
+                    this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
+                this.transformedVerts[ 
+                    this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
+                this.transformedVerts[ 
+                    this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
+            vertVect3s.push( new Float32Array(3));
+            Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
+        }
+        
+        //construct the triangles (maybe should add uv's when constructing)
+        var triangles = [];
+        triangles.push( 
+            new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] ) );
+        if( numFaceVerts > 3 ){ //if face is a quad generate second triangle
+            triangles.push( 
+                new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0] ) );
+        }
+        
+        return triangles;
+    }
+    
+    this.UpdateOctTree = function(){
+        //update the oct tree of faces for the current time
+        //to minimize number of triangle ray intersection tests
+        for( var f = 0; f < this.faces.length; ++f ){
+            //get an aabb around the face and insert it into an oct tree
+            var tris = GenerateFaceTriangles( f );
+            
+            for( var t = 0; t < this.tris.length; ++t){
+                var tri = tris[t];
+                
+            }
+            
+        }
+    }
     
     //called during ray trace rendering
     //returns the 
@@ -417,30 +271,46 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 vertVect3s.push( new Float32Array(3));
                 Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
             }
-            
-            //triangle constructed from the verts
+
+            //triangles constructed from the verts
             var triangle = new Triangle( 
-                vertVect3s[0], vertVect3s[1], vertVect3s[2],);
-            
-            //get a point and the face normal and check 
-            //where the ray intersects the plane
-            //rayTriangleIntersection
+                vertVect3s[0], vertVect3s[1], vertVect3s[2] );
+                
             var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
             if( dist_norm_ptL != null ){
                 //the ray intersects the triangle, find the uv coordinate
                 var uvCoord = triangle.
                     UVCoordOfPoint( dist_norm_ptL[2],
-                                face.uvs[0], face.uvs[1], face.uvs[2] );
-                return [ dist_norm_ptL[0], dist_norm_ptL[1], [0.5,0,1] ]; //, uvCoord ];
+                                [face.uvs[0*2],face.uvs[0*2+1]], 
+                                [face.uvs[1*2],face.uvs[1*2+1]],
+                                [face.uvs[2*2],face.uvs[2*2+1]] );
+
+                var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
+                return [ dist_norm_ptL[0], dist_norm_ptL[1], color ]; //, uvCoord ];
             }
-            //else try another triangle
+                
+            if( numFaceVerts > 3 ){ //if face is a quad try the other triangle
+                    triangle = new Triangle( 
+                                    vertVect3s[2], vertVect3s[3], vertVect3s[0] );
+                 dist_norm_ptL = triangle.RayTriangleIntersection( ray );
+                 if( dist_norm_ptL != null ){
+                    //the ray intersects the triangle, find the uv coordinate
+                    var uvCoord = triangle.
+                        UVCoordOfPoint( dist_norm_ptL[2],
+                                    [face.uvs[2*2],face.uvs[2*2+1]], 
+                                    [face.uvs[3*2],face.uvs[3*2+1]],
+                                    [face.uvs[0*2],face.uvs[0*2+1]] );
+                    var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
+                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ]; //, uvCoord ];
+                }                   
+            }
             
-        }
+        } //end this.faces.length loop
         
         return null;
     }
     
-    this.GetMaterialColorAtUVCoord = function( uv ){
+    this.GetMaterialColorAtUVCoord = function( uv, matID ){
         //method from rasterization was to asynchronously load the shader
         //and bind it, impractical for query based rays where each ray
         //may reach a different shader
@@ -449,8 +319,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         //avoid duplicate per mesh loading/instancing of shaders and materials
         //graphics.GetShader( filename, sceneName, 
         //     readyCallbackParams, shaderReadyCallback ) )
-        return [0.5,0.2,0.7,1.0]; //use a solid color until shaders and textures
+        //return [0.5,0.2,0.7,1.0]; //use a solid color until shaders and textures
         //for raytracing implemented
+        return this.shaders[matID].GetColorAtUVCoord( uv );
+
     }
 
     //constructor functionality
@@ -565,7 +437,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 		            //read in the material id of the face
 		            if( temp[0] == 'm' )
-		                newFace.materialID = words[1];
+		                newFace.materialID = parseInt(words[1]);
 
 		            //read in the vertex idx's of the face
 		            if( temp[0] == 'v' )
@@ -673,6 +545,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //read in the materials file
     var matFileName = "scenes/" + this.sceneName + "/meshMaterials/" + 
                                   this.meshName + ".hvtMeshMat";
+                                  
+    this.shaderReady = function( shader, thisPAndShaderIdx ){
+        thisPAndShaderIdx[0].shaders.splice( thisPAndShaderIdx[1], 0, shader);
+    }
 
     this.matFileLoaded = function(matFile, thisP)
     {
@@ -685,6 +561,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		    {
 		        var words = temp.split(' ');
 		        thisP.shaderNames.push(words[1]);
+		        //preload the shader
+		        graphics.GetShader( words[1], thisP.sceneName, 
+		        [thisP, thisP.shaderNames.length-1], thisP.shaderReady );
 		    }
 		}
 		if( thisP.shaderNames.length < 1 )
@@ -692,6 +571,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		    DPrintf('QuadMesh: ' + thisP.meshName + 
 		        ', failed to read any materials, loading default material');
 		    thisP.shaderNames.push("default");
+		    //preload the shader
+	        graphics.GetShader( "default", thisP.sceneName,
+	        [thisP, thisP.shaderNames.length-1], thisP.shaderReady );
 		}
 
 		//read in the mesh file
