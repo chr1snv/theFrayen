@@ -78,8 +78,8 @@ function AABB( minCorner, maxCorner ){
                 for( var otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
                 {
                     var otherAxis = (axis+otherAxiesIndice) % 3;
-                    if( rayStepPoint[axis] >= this.minCoord[otherAxis] - epsilon && 
-                        rayStepPoint[axis] <= this.maxCoord[otherAxis] + epsilon )
+                    if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
+                        rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
                         numOtherAxiesWithinBounds += 1;
                 }
                 

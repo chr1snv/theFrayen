@@ -148,13 +148,14 @@ function sceneLoaded(havenScene)
     //mainScene.Update(sceneTime);
     //mainScene.Draw();
     window.setTimeout(MainLoop, 300);
+    graphics.Clear();
 }
 
 //the main rendering and update function called each frame
 function MainLoop()
 {
     sceneTime = ( (new Date()).getTime() - sceneLoadedTime ) /1000;
-    graphics.Clear();
+    //graphics.Clear();
     mainScene.Update( sceneTime );
     UpdateCamera( sceneTime );
     //drawSquare(graphics);

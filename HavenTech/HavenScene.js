@@ -90,8 +90,9 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         //draw the scene
         
         //clear the render buffer and reset rendering state
-        graphics.ClearDepth();
-        graphics.ClearLights();
+        graphics.Clear();
+        //graphics.ClearDepth();
+        //graphics.ClearLights();
         
         //after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
         //(the state of the art polygon rasterizer in 2022)
@@ -154,7 +155,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         
         */
         
-        graphics.Flush();
+        //graphics.Flush();
     }
 
     //trace a ray from a screen point with the active camera into the scene to find

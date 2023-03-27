@@ -238,84 +238,71 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
   }
   
   this.GetClosestIntersectingSurface = function( ray, 
-                                            rayLastTime, rayLastPoint ){
+                                            rayLastTime, nodeEntrancePoint ){
     //returns the intersection point, face index, 
     //model and object that the ray hit
     
     //traverses the binary oct tree, starting at a node 
-    //checking objects in it for intersection with the ray
-    //if there isn't an intersection or there are no objects, 
-    //the ray origin is advanced to epsilon + where it 
-    //intersects the wall of the current node and exits it
-    //and the parent node is returned to checking 
-    //for a node containing that point
+    //checking objects in each node traversed for intersection with the ray
+    //if no object intersections occur, 
+    //the ray origin is advanced to the wall of the node it exits
+    //and traversal returns to the parent node to check it's children for
+    //the spatially adjacent node
     
-    //if this is a leaf node check all objects in the node 
+    //if this node contains objects check all objects in the node
+    //with aabb's overlapping the ray's path through the node 
     //otherwise recurse until reaching a leaf node
     //if it misses all the objects in a leaf node, 
     //find the next leaf node it might intersect with objects in
     
     
+    //check all nodes below this node if the point is in a sub node for
+    //the starting point to trace from
+    var lastPointNodeIn = this.FindTreeNodeForPoint( nodeEntrancePoint );
+    if( lastPointNodeIn == null )
+        return null;
+    
+    //find which wall of this node the ray exits and which node it enters
+    
+    //create a new ray starting in this node to avoid getting intersection
+    //with the entrance wall again
+    var toNextNodeRay = new Ray( nodeEntrancePoint, ray.norm );
+    //DPrintf( "toNextNodeRay origin " + toNextNodeRay.origin + " norm " + toNextNodeRay.norm );
+    var nodeExitPointAndRayTime = lastPointNodeIn.AABB.RayIntersects( toNextNodeRay );
+    //increaseing the wall intersection ray time by epsilon 
+    //(is done in next GetClosestIntersecting surface call)
+    //generating a new ray point (which is inside the adjacent node)
+    if( nodeExitPointAndRayTime == null ){ 
+        //somehow the ray started outside of this node and didn't intersect
+        //with it
+        
+        //DPrintf( "aabb intersects " + this.AABB.RayIntersects( toNextNodeRay ) );
+        return null; //ray has exited the entire oct tree
+    }
+    
+    var minRayCoord = Math.min( nodeEntrancePoint[this.axis], 
+                                nodeExitPointAndRayTime[0][this.axis] );
+    var maxRayCoord = Math.max( nodeEntrancePoint[this.axis], 
+                                nodeExitPointAndRayTime[0][this.axis] );
+    
     //first check if any objects in this node intersect with the ray
     for( var i = 0; i < this.objects.length; ++i ) 
     //loop through the objects (if one isn't yet loaded, it is ignored)
     {
-        //check if the model was checked last node
-        if( ray.lastNode != null )
+        if( ray.lastNode != null ) //don't recheck if checked last node
             if( ray.lastNode.objectDictionary[ this.objects[i].uuid ] != null )
                 continue; //if already checked skip it
-        //first check if the ray intersects the model's aabb
-        var aabbPointAndTime = this.objects[i].
-                                            GetAABB().RayIntersects( ray );
-        if( aabbPointAndTime != null ){
-        
-            //since the ray intersects the aabb, check all faces 
-            //of the mesh if the ray intersects, if it does, return the
-            //intersection point, ray distance, face index, 
-            //model and object that the ray hit
-            
-            if( this.objects[i].quadmesh != null ){
-                var intptDistNormColor = 
-                    this.objects[i].quadmesh.GetRayIntersection( ray );
-                if( intptDistNormColor != null ){ //if a face intersects
-                
-                    return intptDistNormColor;
-                    //return the intersection distance normal and color
-                }
-            }
+        //check if the ray intersects the object
+        var intersectionResult = this.objects[i].RayIntersect( ray );
+        if( intersectionResult != null ){ //if it did intersect
+            return intersectionResult; //return the result from the object
         }
     }
         
     //the ray didn't hit anything in this node 
-    //find which wall of this node the ray exits and which node it enters
-    
-    //check all nodes below this node if the point is in a sub node for
-    //the starting point to trace from
-    var lastPointNodeIn = this.FindTreeNodeForPoint( rayLastPoint );
-    if( lastPointNodeIn == null )
-        return null;
-    
-    //create a new ray starting in this node to avoid getting intersection
-    //with the entrance wall again
-    var toNextNodeRay = new Ray( rayLastPoint, ray.norm );
-    //DPrintf( "toNextNodeRay origin " + toNextNodeRay.origin + " norm " + toNextNodeRay.norm );
-    var intersectionPointAndRayTime = lastPointNodeIn.AABB.RayIntersects( toNextNodeRay );
-    //increaseing the wall intersection ray time by epsilon 
-    //(is done in next GetClosestIntersecting surface call)
-    //generating a new ray point (which is inside the adjacent node)
-    if( intersectionPointAndRayTime == null ){ 
-        //somehow the ray started outside of this node and didn't intersect
-        //with it
-        
-        //DPrintf( 
-        //    "intersectionPointAndRayTime == null  \
-        //     lastPointNodeInMidCoord " + lastPointNodeIn.midCoord );
-        //DPrintf( "aabb intersects " + this.AABB.RayIntersects( toNextNodeRay ) );
-        return null; //ray has exited oct tree
-    }
     
     //get a point along the ray at the next intersection point + epsilon
-    var nextNodeRayTime = intersectionPointAndRayTime[1] + rayStepEpsilon;
+    var nextNodeRayTime = nodeExitPointAndRayTime[1] + rayStepEpsilon;
     var nextNodeRayPoint = toNextNodeRay.PointAtTime( nextNodeRayTime );
     var parentNode = this;
     var nextTraceNode = null;
@@ -338,7 +325,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //         " nextNodeRayPoint " + nextNodeRayPoint );
         ray.lastNode = this;
         return nextTraceNode.GetClosestIntersectingSurface( 
-            ray, intersectionPointAndRayTime[1] + rayStepEpsilon, 
+            ray, nodeExitPointAndRayTime[1] + rayStepEpsilon, 
             nextNodeRayPoint );
     }
     //otherwise the ray has left the world parent node

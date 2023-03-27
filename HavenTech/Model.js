@@ -162,6 +162,27 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
         //and subcomponents are added to the model
         return this.quadmesh.AABB;
     }
+    
+    this.RayIntersect = function(ray){
+        var aabbPointAndTime = this.GetAABB().RayIntersects( ray );
+        if( aabbPointAndTime != null ){
+        
+            //since the ray intersects the aabb, check faces 
+            //of the mesh if the ray intersects, if it does, return the
+            //intersection point, ray distance, face index, 
+            //model and object that the ray hit
+            
+            if( this.quadmesh != null ){
+                var intptDistNormColor = 
+                    this.quadmesh.GetRayIntersection( ray );
+                if( intptDistNormColor != null ){ //if a face intersects
+                
+                    return intptDistNormColor;
+                    //return the intersection distance normal and color
+                }
+            }
+        }
+    }
 
     this.modelName = nameIn;
     this.meshName = meshNameIn;

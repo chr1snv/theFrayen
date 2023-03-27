@@ -11,6 +11,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         this.materialID = 0;
         this.uvs        = [];
         this.vertIdxs   = [];
+        this.tris       = [];
+        this.AABB       = null;
+        this.GetAABB = function(){ return this.AABB; }
     }
 
     this.meshName        = nameIn;
@@ -50,6 +53,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     //the oct tree of the mesh faces (updated with mesh animations)
     this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
+    this.localMinAndMaxCorners = null;
 
     //animation classes
     //ipo animation affects the root transformation of the quadmesh
@@ -64,28 +68,32 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.lastMeshUpdateTime = -0.5;
     
     
-    //returns the non tessilated verts. returns new memory
+    //updates the non tessilated "transformedVerts" with the mesh animation/simulation
     //transformed verts are in mesh space
     //(need to have the orientation matrix
     //applied for world space coordinates)
     this.UpdateTransformedVerts = function(time)
     {
-        var positionCoords;
+        var updated = false;
+        var transformedVertCoords = null;
         
+        //use the unmodified vertex coordinates from the appropriate
+        //animation type
         if(this.keyedPositions.length != 0)
-            positionCoords = this.keyedPositions; //keyframe animated positions
+            transformedVertCoords = this.keyedPositions; //keyframe animated positions
         else if(this.skelPositions.length != 0)
-            positionCoords = this.skelPositions;
+            transformedVertCoords = this.skelPositions;
         else
-            positionCoords = this.vertPositions;  //static vert positions
-            
-        if( this.skelAnimation.isValid )
-            this.skelAnimation.GenerateMesh( 
-                this.transformedVerts, numVerts, mesh, time );
-        else
-            this.transformedVerts = positionCoords;
+            transformedVertCoords = this.vertPositions;  //static vert positions
         
-        //return positionCoords;
+        //update the coordinates with the animation / simulation type
+        if( this.skelAnimation.isValid )
+            updated = this.skelAnimation.GenerateMesh( 
+                this.transformedVerts, numVerts, mesh, time );
+        else //there isn't a simulation use the unmodified base coordinates
+            this.transformedVerts = transformedVertCoords;
+        
+        return updated;
     }
     
     //update the quadmesh to world transformation
@@ -105,11 +113,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //update the current mesh (used by skeletal animation if present) 
     //to the current animationFrame
     this.Update = function(animationTime) {
+        //if the new update time is newer (don't update twice for the same frame)
         if( animationTime > this.lastMeshUpdateTime ){
+            
+            var vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
+            if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
+                this.localMinAndMaxCorners = this.UpdateOctTree();
+            }
+            
+            var worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
+            if( worldTransformUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
+                this.UpdateAABB(animationTime);
+            }
+            
             this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
-            this.UpdateTransformedVerts(this.lastMeshUpdateTime);
-            this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
-            this.UpdateAABB(this.lastMeshUpdateTime);
         }
     }
     this.GetAnimationLength = function() {}
@@ -148,7 +165,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
 
     //geometry query function
-    this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
+    //this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
     
     this.AABBUpdateTime = -1;
     this.AABB = null;
@@ -156,40 +173,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.UpdateAABB = function(time) {
         if( this.AABBUpdateTime < time )
         {
-            var minX =  Number.MAX_VALUE;
-            var minY =  Number.MAX_VALUE;
-            var minZ =  Number.MAX_VALUE;
-            var maxX = -Number.MAX_VALUE;
-            var maxY = -Number.MAX_VALUE;
-            var maxZ = -Number.MAX_VALUE;
-            //assumed that Update( time ) has been called to update the 
-            //transformedPositions before this
-            if( this.transformedVerts == null || this.lastMeshUpdateTime < time)
-                this.Update( time );
-            for ( var i = 0; i < this.transformedVerts.length; 
-                                                    i+=graphics.vertCard ){
-                //get the min and max bounds of the mesh
-                if( this.transformedVerts[ i + 0] < minX )
-                    minX = this.transformedVerts[ i + 0];
-                if( this.transformedVerts[ i + 1] < minY )
-                    minY = this.transformedVerts[ i + 1];
-                if( this.transformedVerts[ i + 2] < minZ )
-                    minZ = this.transformedVerts[ i + 2];
-                if( this.transformedVerts[ i + 0] > maxX )
-                    maxX = this.transformedVerts[ i + 0];
-                if( this.transformedVerts[ i + 1] > maxY )
-                    maxY = this.transformedVerts[ i + 1];
-                if( this.transformedVerts[ i + 2] > maxZ )
-                    maxZ = this.transformedVerts[ i + 2];
-            }
+            
             this.AABBUpdateTime = this.lastMeshUpdateTime;
             //transform the min and max into world space
-            var minL = new Float32Array( [ minX, minY, minZ ] );
-            var maxL = new Float32Array( [ maxX, maxY, maxZ ] );
             var minW = new Float32Array(3);
             var maxW = new Float32Array(3);
-            Matrix_Multiply_Vect3( minW, this.toWorldMatrix, minL );
-            Matrix_Multiply_Vect3( maxW, this.toWorldMatrix, maxL );
+            Matrix_Multiply_Vect3( minW, this.toWorldMatrix, this.localMinAndMaxCorners[0] );
+            Matrix_Multiply_Vect3( maxW, this.toWorldMatrix, this.localMinAndMaxCorners[1] );
             this.AABB = new AABB( minW, maxW );
             
         }
@@ -197,9 +187,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
     
     //generate world space triangles from a face index
-    this.GenerateFaceTriangles = function(f){
+    this.UpdateFaceAABBAndGenerateTriangles = function(f){
         var face = this.faces[f];
         var numFaceVerts = face.vertIdxs.length;
+        
+        //initialized to opposite extrema to accept any value at first
+        var minCorner = new Float32Array( [  999999,  999999,  999999 ] );
+        var maxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
         
         var vertVect3s = []; //the world position verts of the face
         for( var v = 0; v < numFaceVerts; ++v ){
@@ -211,35 +205,52 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                     this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
                 this.transformedVerts[ 
                     this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
-            vertVect3s.push( new Float32Array(3));
+            vertVect3s.push( new Float32Array(3) );
             Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
+            
+            minCorner[0] = Math.min( minCorner[0], vert[0] );
+            minCorner[1] = Math.min( minCorner[1], vert[1] );
+            minCorner[2] = Math.min( minCorner[2], vert[2] );
+            
+            maxCorner[0] = Math.max( maxCorner[0], vert[0] );
+            maxCorner[1] = Math.max( maxCorner[1], vert[1] );
+            maxCorner[2] = Math.max( maxCorner[2], vert[2] );
+                                    
         }
+        this.faces[f].AABB =  new AABB( minCorner, maxCorner );
         
         //construct the triangles (maybe should add uv's when constructing)
-        var triangles = [];
-        triangles.push( 
+        this.faces[f].tris.push( 
             new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] ) );
         if( numFaceVerts > 3 ){ //if face is a quad generate second triangle
-            triangles.push( 
+            this.faces[f].tris.push( 
                 new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0] ) );
         }
         
-        return triangles;
+        return [minCorner, maxCorner];
     }
     
     this.UpdateOctTree = function(){
         //update the oct tree of faces for the current time
         //to minimize number of triangle ray intersection tests
+        
+        var localMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
+        var localMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+        
         for( var f = 0; f < this.faces.length; ++f ){
             //get an aabb around the face and insert it into an oct tree
-            var tris = GenerateFaceTriangles( f );
+            var minAndMaxCorner = this.UpdateFaceAABBAndGenerateTriangles( f );
+            localMinCorner[0] = Math.min( localMinCorner[0], minAndMaxCorner[0][0] );
+            localMinCorner[1] = Math.min( localMinCorner[1], minAndMaxCorner[0][1] );
+            localMinCorner[2] = Math.min( localMinCorner[2], minAndMaxCorner[0][2] );
             
-            for( var t = 0; t < this.tris.length; ++t){
-                var tri = tris[t];
-                
-            }
+            localMaxCorner[0] = Math.max( localMaxCorner[0], minAndMaxCorner[1][0] );
+            localMaxCorner[1] = Math.max( localMaxCorner[1], minAndMaxCorner[1][1] );
+            localMaxCorner[2] = Math.max( localMaxCorner[2], minAndMaxCorner[1][2] );
             
+            this.octTree.AddObject(this.faces[f]);
         }
+        return [localMinCorner, localMaxCorner];
     }
     
     //called during ray trace rendering
