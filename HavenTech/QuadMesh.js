@@ -1,20 +1,23 @@
 //QuadMesh.js - implementation of QuadMesh
 //a polygonal mesh with faces of 3 or 4 (quad) verticies
 
-function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
-{
-	this.quadMeshReadyCallback = quadMeshReadyCallback;
-	this.readyCallbackParameters = readyCallbackParameters;
-
-    function Face()
-    {
+class Face {
+    constructor(){
         this.materialID = 0;
         this.uvs        = [];
         this.vertIdxs   = [];
         this.tris       = [];
         this.AABB       = null;
-        this.GetAABB = function(){ return this.AABB; }
     }
+    GetAABB(){ return this.AABB; }
+}
+
+function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
+{
+	this.quadMeshReadyCallback = quadMeshReadyCallback;
+	this.readyCallbackParameters = readyCallbackParameters;
+
+    
 
     this.meshName        = nameIn;
     this.sceneName       = sceneNameIn;
@@ -254,16 +257,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     }
     
     //called during ray trace rendering
-    //returns the 
+    //returns the ray distance, surface normal, and color at the intersection pt
     this.GetRayIntersection = function(ray){
-    
-        //check all faces of the mesh if the ray intersects, 
-        //if it does return the 
-        //[intersection point, ray distance, face, normal, color]
-        //that the ray hit
-        //else returns null
         
-        //to avoid checking all faces for each ray, use an oct tree on the model
+        //to speed up this loop, use the oct tree of faces of the mesh
+        
+        //check all faces of the mesh if the ray intersects
         for( var f = 0; f < this.faces.length; ++f ){
             //each face should have 3 or 4 verticies
             var face = this.faces[f];
@@ -292,27 +291,27 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 //the ray intersects the triangle, find the uv coordinate
                 var uvCoord = triangle.
                     UVCoordOfPoint( dist_norm_ptL[2],
-                                [face.uvs[0*2],face.uvs[0*2+1]], 
-                                [face.uvs[1*2],face.uvs[1*2+1]],
-                                [face.uvs[2*2],face.uvs[2*2+1]] );
+                                [face.uvs[0*2+0],face.uvs[0*2+1]], 
+                                [face.uvs[1*2+0],face.uvs[1*2+1]],
+                                [face.uvs[2*2+0],face.uvs[2*2+1]] );
 
                 var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-                return [ dist_norm_ptL[0], dist_norm_ptL[1], color ]; //, uvCoord ];
+                return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];
             }
                 
             if( numFaceVerts > 3 ){ //if face is a quad try the other triangle
-                    triangle = new Triangle( 
-                                    vertVect3s[2], vertVect3s[3], vertVect3s[0] );
+                triangle = new Triangle( 
+                            vertVect3s[2], vertVect3s[3], vertVect3s[0] );
                  dist_norm_ptL = triangle.RayTriangleIntersection( ray );
                  if( dist_norm_ptL != null ){
                     //the ray intersects the triangle, find the uv coordinate
                     var uvCoord = triangle.
                         UVCoordOfPoint( dist_norm_ptL[2],
-                                    [face.uvs[2*2],face.uvs[2*2+1]], 
-                                    [face.uvs[3*2],face.uvs[3*2+1]],
-                                    [face.uvs[0*2],face.uvs[0*2+1]] );
+                                [face.uvs[2*2+0],face.uvs[2*2+1]], 
+                                [face.uvs[3*2+0],face.uvs[3*2+1]],
+                                [face.uvs[0*2+0],face.uvs[0*2+1]] );
                     var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ]; //, uvCoord ];
+                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];
                 }                   
             }
             

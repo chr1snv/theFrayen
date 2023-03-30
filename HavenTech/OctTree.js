@@ -173,26 +173,6 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     return false;
   }
   
-  /*
-  //rasterize the objects in the node, depreciated because without raytracing
-  //render cost scales with triangles, depth culling and physically based materials
-  //transparency, reflectivity and shadowing each incur extra steps
-  //rasterization is faster and less noisy for low poly and overdraw scenes
-  //though when attempting to reach photo realisim, raytracing with de noising
-  //samples the world less (only dependent on desired generated image quality)
-  this.RasterDraw = function( camera, cameraCenter ){
-    //select a level of detail baised on the distance from the camera
-    var distToCam = 0;
-    
-    Vect3_Distance( distToCam, cameraCenter, this.midCoord );
-    
-    for( var i = 0; i < this.objects.length; ++i ){
-            //this.objects[i].Draw(  
-    }
-  
-  }
-  */
-  
   
   this.FindTreeNodeForPoint = function( point )
   {
@@ -237,8 +217,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     
   }
   
-  this.GetClosestIntersectingSurface = function( ray, 
-                                            rayLastTime, nodeEntrancePoint ){
+  this.Trace = function( ray, rayLastTime, nodeEntrancePoint ){
     //returns the intersection point, face index, 
     //model and object that the ray hit
     
@@ -293,9 +272,12 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
             if( ray.lastNode.objectDictionary[ this.objects[i].uuid ] != null )
                 continue; //if already checked skip it
         //check if the ray intersects the object
-        var intersectionResult = this.objects[i].RayIntersect( ray );
-        if( intersectionResult != null ){ //if it did intersect
-            return intersectionResult; //return the result from the object
+        if( this.objects[i].GetAABB().
+                RangeOverlaps( minRayCoord, maxRayCoord, this.axis ) ){
+            var intersectionResult = this.objects[i].RayIntersect( ray );
+            if( intersectionResult != null ){ //if it did intersect
+                return intersectionResult; //return the result from the object
+            }
         }
     }
         
@@ -324,7 +306,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //         " rayNorm " + ray.norm + 
         //         " nextNodeRayPoint " + nextNodeRayPoint );
         ray.lastNode = this;
-        return nextTraceNode.GetClosestIntersectingSurface( 
+        return nextTraceNode.Trace( 
             ray, nodeExitPointAndRayTime[1] + rayStepEpsilon, 
             nextNodeRayPoint );
     }

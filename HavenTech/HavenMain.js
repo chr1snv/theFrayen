@@ -20,8 +20,17 @@
 //easier to write code with less bugs in than low level compiled languages like c - c++
 //HavenTech was first written in c++ for ios, but the difficulty of getting apps published
 //and the desire for better tools, tool integration and process of reviewing and approving apps,
-//and intrest in game engines, lead to making this
-
+//and intrest in the underlying technology in game engines, 
+//and experience with unstable closed source engines and programs with
+//changing licencing and usage terms lead to making this
+//with javascript the source code is distributed with every running version
+//so it also allows for learning of how it works and modification / extension
+//doing something without being able to explain why (closed source code),
+//usually leads to problems later
+//the ethos of haven tech / the frayen is to deliver a virtual enviroment
+//where ever it can, in the real world hardware and power may be limited
+//hence "haven" it is designed to give a place for creativive thoughts and
+//experiences to be explored
 
 //transitions the rendering to fullscreen
 function EnterFullscreen(){
@@ -62,7 +71,7 @@ function EnterFullscreen(){
     }
     
     
-                       
+    
     
 }
 

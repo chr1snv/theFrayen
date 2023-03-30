@@ -21,15 +21,46 @@
 //it has functions for determining if a point is inside the AABB
 //and if a ray intersects the AABB
 
+function RangesOverlap( am, aM, bm, bM ){
+    //if the ranges overlap the maximum distance between
+    //any two points will be less than the sum of the range spans
+    let max = Math.max(aM, bM);
+    let min = Math.min(am, bm);
+    let totalRange = max - min;
+    let aRange = aM - am;
+    let bRange = bM - bm;
+    if( totalRange <= aRange + bRange )
+        return true;
+    return false;
+}
+
 function AABB( minCorner, maxCorner ){
 
-    this.minCoord = Vect3_CopyNew( minCorner );
-    this.maxCoord = Vect3_CopyNew( maxCorner );
+    this.minCoord = new Float32Array(3);
+    Vect3_Copy( this.minCoord, minCorner );
+    this.maxCoord = new Float32Array(3);
+    Vect3_Copy( this.maxCoord, maxCorner );
     
     //generate the center coordinate
-    this.center = Vect3_CopyNew( this.minCoord );
+    this.center = new Float32Array(3);
+    Vect3_Copy( this.center, this.minCoord );
     Vect3_Add( this.center, this.maxCoord );
     Vect3_DivideScalar( this.center, 2 );
+    
+    this.RangeOverlaps = function( am, aM, axis ){
+        //if the range overlaps the maximum distance between
+        //any two points will be less than the sum of the range spans
+        let bm = this.minCoord[axis];
+        let bM = this.maxCoord[axis];
+        let max = Math.max(aM, bM);
+        let min = Math.min(am, bm);
+        let totalRange = max - min;
+        let aRange = aM - am;
+        let bRange = bM - bm;
+        if( totalRange <= aRange + bRange )
+            return true;
+        return false;
+    }
 
     //return a point and time along the ray that is inside the AABB or null
     this.RayIntersects = function( ray ){
@@ -56,28 +87,28 @@ function AABB( minCorner, maxCorner ){
         //outside of the aabb, because closest point will give a point tangent to the smallest sphere surrounding the objectAABBCenter the ray touches
         */
         
-        var epsilon = 0.00001;
+        let epsilon = 0.00001;
         
         //for each of the three axies find the possible intersection time
-        for( var axis = 0; axis < 3; ++axis ){
+        for( let axis = 0; axis < 3; ++axis ){
             
             //find the possible times (min and max aabb faces)
-            rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
+            let rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
                         (this.maxCoord[axis] - ray.origin[axis]) / ray.norm[axis] ];
             
             //for each axis check the min and max side
-            for( var side = 0; side < 2; ++side )
+            for( let side = 0; side < 2; ++side )
             {
-                if( rayStep[side] < 0 ) //ignore AABB sides behind the ray origin
+                if( rayStep[side] < -epsilon ) //ignore AABB sides behind the ray origin
                     continue;
                 //advance the ray to the intersection point
-                rayStepPoint = ray.PointAtTime( rayStep[side] );
+                let rayStepPoint = ray.PointAtTime( rayStep[side] );
                 
                 //check the orthogonal axies of the point are within the aabb bounds
-                var numOtherAxiesWithinBounds = 0;
-                for( var otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
+                let numOtherAxiesWithinBounds = 0;
+                for( let otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
                 {
-                    var otherAxis = (axis+otherAxiesIndice) % 3;
+                    let otherAxis = (axis+otherAxiesIndice) % 3;
                     if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
                         rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
                         numOtherAxiesWithinBounds += 1;

@@ -356,33 +356,28 @@ function Matrix_Inverse(ret, m)
     return;
 }
 
-function Matrix_Multiply_Vect3( ret, m, vect)
+function Matrix_Multiply_Vect3( ret, m, v)
 {
-    //turn the vect3 into a 4d vector (set w=1) and preform the matrix
+    //turn the vect3 into a 4d vector (set w=1) and perform the matrix
     //multiplication on it
     
-    var vX = vect[0];
-    var vY = vect[1];
-    var vZ = vect[2];
+    //let vX = vect[0];
+    //let vY = vect[1];
+    //let vZ = vect[2];
     
-    ret[0] = m[0*4+0]*vX + m[0*4+1]*vY +
-             m[0*4+2]*vZ + m[0*4+3];//*1.0
+    ret[0] = m[0*4+0]*v[0] + m[0*4+1]*v[1] + m[0*4+2]*v[2] + m[0*4+3];//*1.0
+    ret[1] = m[1*4+0]*v[0] + m[1*4+1]*v[1] + m[1*4+2]*v[2] + m[1*4+3];//*1.0
+    ret[2] = m[2*4+0]*v[0] + m[2*4+1]*v[1] + m[2*4+2]*v[2] + m[2*4+3];//*1.0
     
-    ret[1] = m[1*4+0]*vX + m[1*4+1]*vY +
-             m[1*4+2]*vZ + m[1*4+3];//*1.0
-    
-    ret[2] = m[2*4+0]*vX + m[2*4+1]*vY +
-             m[2*4+2]*vZ + m[2*4+3];//*1.0
-    
-    var w  = m[3*4+0]*vX + m[3*4+1]*vY +
-             m[3*4+2]*vZ + m[3*4+3];//*1.0
+    let w  = m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3];//*1.0
 
-    //check if w is not 1, (this implies rotation, which requires normalizing
-    //the vector so that w is one again to map from the imaginary coordinates
-    //back to the reals)
+    //check if w is not 1, (this implies perspective projection
+    //which requires normalizing ( w divide) )
     if(Math.abs(w - 1.0) > 0.000001)
     {
-        var wInv = 1.0/w;
+        // / by w to map from the imaginary coordinates
+        //back to the reals
+        let wInv = 1.0/w;
         ret[0] = ret[0] * wInv;
         ret[1] = ret[1] * wInv;
         ret[2] = ret[2] * wInv;
@@ -396,14 +391,13 @@ function Matrix_Multiply_Vect3( ret, m, vect)
 function Matrix_Multiply_Array3( arrayOut, m, arrayIn )
 {
     //multiply an array of vec3's by the matrix m
-    
-    for(var i = 0; i < arrayIn.length; i+=3){
-        var result = new Float32Array(3);
-        Matrix_Multiply_Vect3( result,
-                              m,
-                                [arrayIn[i+0],
-                                 arrayIn[i+1],
-                                 arrayIn[i+2]] );
+    let temp = new Float32Array(3);
+    let result = new Float32Array(3);
+    for(let i = 0; i < arrayIn.length; i+=3){
+        temp[0] = arrayIn[i+0];
+        temp[1] = arrayIn[i+1];
+        temp[2] = arrayIn[i+2];
+        Matrix_Multiply_Vect3( result, m, temp );
         arrayOut[i+0] = result[0];
         arrayOut[i+1] = result[1];
         arrayOut[i+2] = result[2];
@@ -415,10 +409,10 @@ function Matrix_Multiply( ret, a, b )
     //multiply the two 4x4 matricies together
 
     //this loop pattern was found by writing out the multiplication term by term
-    for(var i=0; i<4; ++i){          //   row of matrix a, and ret matrix
-        for(var j=0; j<4; ++j){      //column of matrix b, and ret matrix
-            var accum = 0;
-            for(var k=0; k<4; ++k){  //   row of matrix b, and column of matrix a
+    for(let i=0; i<4; ++i){          //   row of matrix a, and ret matrix
+        for(let j=0; j<4; ++j){      //column of matrix b, and ret matrix
+            let accum = 0;
+            for(let k=0; k<4; ++k){  //   row of matrix b, and column of matrix a
                 accum += a[i*4+k]*b[k*4+j];
             }
             ret[i*4+j] = accum;
@@ -429,8 +423,8 @@ function Matrix_Multiply( ret, a, b )
 function Matrix_Transpose( ret, m )
 {
     //read each input column and write it out as a row
-    for(var i=0; i<4; ++i)
-        for(var j=0; j<4; ++j){
+    for(let i=0; i<4; ++i)
+        for(let j=0; j<4; ++j){
             ret[i*4+j] = m[j*4+i]; //swap i and j indicies
         }
 }
@@ -490,12 +484,16 @@ function Matrix_Determinant( m, dimension, row)
 }
 
 
-function Matrix_Print( m )
+function Matrix_Print( m, name )
 {
-    DPrintf("Matrix Print:\n");
-    DPrintf(m[0*4+0].toFixed(2) + " " + m[0*4+1].toFixed(2) + " " + m[0*4+2].toFixed(2) + " " + m[0*4+3].toFixed(2));
-    DPrintf(m[1*4+0].toFixed(2) + " " + m[1*4+1].toFixed(2) + " " + m[1*4+2].toFixed(2) + " " + m[1*4+3].toFixed(2));
-    DPrintf(m[2*4+0].toFixed(2) + " " + m[2*4+1].toFixed(2) + " " + m[2*4+2].toFixed(2) + " " + m[2*4+3].toFixed(2));
-    DPrintf(m[3*4+0].toFixed(2) + " " + m[3*4+1].toFixed(2) + " " + m[3*4+2].toFixed(2) + " " + m[3*4+3].toFixed(2));
+    DPrintf("Matrix : " + name );
+    DPrintf(m[0*4+0].toFixed(2) + " " + m[0*4+1].toFixed(2) + " " 
+          + m[0*4+2].toFixed(2) + " " + m[0*4+3].toFixed(2) );
+    DPrintf(m[1*4+0].toFixed(2) + " " + m[1*4+1].toFixed(2) + " " 
+          + m[1*4+2].toFixed(2) + " " + m[1*4+3].toFixed(2));
+    DPrintf(m[2*4+0].toFixed(2) + " " + m[2*4+1].toFixed(2) + " " 
+          + m[2*4+2].toFixed(2) + " " + m[2*4+3].toFixed(2));
+    DPrintf(m[3*4+0].toFixed(2) + " " + m[3*4+1].toFixed(2) + " " 
+          + m[3*4+2].toFixed(2) + " " + m[3*4+3].toFixed(2));
 }
 

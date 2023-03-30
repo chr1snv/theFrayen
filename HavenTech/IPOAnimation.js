@@ -124,7 +124,8 @@ function IPOAnimation(nameIn, sceneNameIn){
 		                    words = textFileLines[lineNum];
 		                    //read in a point
 		                    if(temp[0] == 'p')
-		                        thisP.curves[curveName].InsertPoint(parseFloat(words[1]), parseFloat(words[2]));
+		                        thisP.curves[curveName].InsertPoint(
+		                            parseFloat(words[1]), parseFloat(words[2]));
 		                    if(temp[0] == 'e'){
 		                        var tempDuration = thisP.curves[curveName].GetLength();
 		                        if(tempDuration > thisP.duration) //set the duration
