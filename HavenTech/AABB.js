@@ -6,7 +6,12 @@
 //Bounding
 //Box
 
-//it is used as the lowest cost volumetric space occupancy container
+//it is used because checking if something is inside or outside of it
+//has a low compute time cost (check the x y and z axies independantly)
+//and aabb's (cubes/rectangular regions) can pack/fill a volume
+
+//spheres are simpler objects, though they don't fill cartesian space
+
 //it has 6 sides
 
 //top
@@ -62,53 +67,54 @@ function AABB( minCorner, maxCorner ){
         return false;
     }
 
-    //return a point and time along the ray that is inside the AABB or null
-    this.RayIntersects = function( ray ){
-    
-        //first check if the ray intersects the model's aabb
+    //return a point and time along the ray that intersects an AABB bound or null
+    this.RayIntersects = function( ray, minRayTime ){
         
-        //if the ray intersects there will be a point where x,y,or z will be equal to the aabb bounds (walls)
-        //and the other axies will be within the bounds ( min and max extents )
-        // y = m x + b - using the versatile 2d equation of line, substituting values and solving for the time/multiple of the ray direction
+        //if the ray intersects or enters the aabb there will be a point 
+        //on the ray where x,y,or z will be equal to 
+        //that of the aabb bound/cartesian plane (wall)
+        //and the other axies of the point will be within the bounds 
+        //( min and max extents ) of the aabb
+        // y = m x + b - using the versatile 2d equation of line, 
+            //substituting values and solving for the time/multiple of the ray direction
         //let                  aabbBound = ray normal * x + ray origin
         //solving for x gives (aabbBound - ray origin) / normal = x
-        //since the AABB and ray are 3 dimensional, find the three x's (one for each x,y and z)and points
-        //if any of those points are > aabb min coord and < max coord then there is a point on the ray in the aabb, so the ray intersects the AABB
-        //
+        //since the AABB and ray are 3 dimensional, find the three x's 
+        //(one for each x,y and z)and points
+        //if any of those points are > aabb min coord and < max coord
+        //then there is a point on the ray in the aabb, so the ray intersects the AABB
         
-        /*
-        var vectToAABBCenter = Vect3_CopyNew( objectAABBCenter );
-        Vect3_Subtract( vectToAABBCenter, ray.origin );
-        var pctNormal = 0;
-        Vect3_Dot( pctNormal, vectToAABBCenter, ray.normal );
+        //var closest = ray.closestPoint( objectAABBCenter ); 
+            //this won't necessarily be a point inside the aabb 
+            //if the aabb is non cube shaped
+        //i.e. if it is very narrow/skinny, 
+        //and the ray intersects one of the long/skinny faces, far from the center 
+        //the closest point to the aabb center may be outside of the aabb, 
+        //because closest point will give a point tangent to the smallest sphere 
+        //surrounding the objectAABBCenter the ray touches
         
-        //var closest = ray.closestPoint( objectAABBCenter ); //this won't necessarily be a point inside the aabb if the aabb is non cube shaped
-        //i.e. if it is very narrow/skinny, and the ray intersects one of the long/skinny faces, far from the center it may then be closer to the center
-        //outside of the aabb, because closest point will give a point tangent to the smallest sphere surrounding the objectAABBCenter the ray touches
-        */
-        
-        let epsilon = 0.00001;
         
         //for each of the three axies find the possible intersection time
         for( let axis = 0; axis < 3; ++axis ){
             
             //find the possible times (min and max aabb faces)
-            let rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
+            const rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
                         (this.maxCoord[axis] - ray.origin[axis]) / ray.norm[axis] ];
             
             //for each axis check the min and max side
             for( let side = 0; side < 2; ++side )
             {
-                if( rayStep[side] < -epsilon ) //ignore AABB sides behind the ray origin
+                if( rayStep[side] < minRayTime ) //ignore AABB sides behind the ray origin
                     continue;
                 //advance the ray to the intersection point
-                let rayStepPoint = ray.PointAtTime( rayStep[side] );
+                let rayStepPoint = new Float32Array(3);
+                ray.PointAtTime( rayStepPoint, rayStep[side] );
                 
                 //check the orthogonal axies of the point are within the aabb bounds
                 let numOtherAxiesWithinBounds = 0;
                 for( let otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
                 {
-                    let otherAxis = (axis+otherAxiesIndice) % 3;
+                    const otherAxis = (axis+otherAxiesIndice) % 3;
                     if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
                         rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
                         numOtherAxiesWithinBounds += 1;
@@ -116,12 +122,11 @@ function AABB( minCorner, maxCorner ){
                 
                 //if the two other axies are within the bounds the point 
                 //intersects a face of the aabb
-                if( numOtherAxiesWithinBounds > 1 ){ 
+                if( numOtherAxiesWithinBounds > 1 ){
                     //the point is inside the aabb
                     
                     //return the point and ray time
-                    rayStep = rayStep[side];
-                    return [ rayStepPoint, rayStep ];  
+                    return [ rayStepPoint, rayStep[side] ];
                 }
                 
            }

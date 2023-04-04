@@ -164,7 +164,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
     }
     
     this.RayIntersect = function(ray){
-        var aabbPointAndTime = this.GetAABB().RayIntersects( ray );
+        var aabbPointAndTime = this.GetAABB().RayIntersects( ray, 0 );
         if( aabbPointAndTime != null ){
         
             //since the ray intersects the aabb, check faces 

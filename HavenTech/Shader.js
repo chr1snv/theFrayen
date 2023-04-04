@@ -182,7 +182,9 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
     }
     
     this.GetColorAtUVCoord = function( uv ){
-        return this.texture.GetColorAtUV( uv );
+        if( this.texture )
+            return this.texture.GetColorAtUV( uv );
+        return this.diffuseCol;
     }
 
 

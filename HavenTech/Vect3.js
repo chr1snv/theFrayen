@@ -9,6 +9,8 @@
 //optimizing the data movement for these vector operations and the matrix operations is important
 //to having interactive framerates
 
+function Vect3_SetScalar( v, val ){ v[0] = val; v[1] = val; v[2] = val; }
+
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
 
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }

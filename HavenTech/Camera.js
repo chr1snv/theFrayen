@@ -191,16 +191,16 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             Vect3_Copy( this.rotation, rotation );
 
         //get the new rotation
-        var rot            = new Float32Array( 3 );
+        let rot            = new Float32Array( 3 );
         this.getRotation(rot);
 
-        var rotMat         = new Float32Array( 4 * 4 );
+        let rotMat         = new Float32Array( 4 * 4 );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
 
         //apply the camera rotation to the positionDeta 
         //to get a new position offset 
         //transform positionDelta from camera to world space
-        var transformedRot = new Float32Array( 3 );
+        let transformedRot = new Float32Array( 3 );
         Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
 
         //    //prevent up down rotation past vertical
@@ -214,8 +214,11 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.userPosition[1] += transformedRot[1];
         this.userPosition[2] += transformedRot[2];
         
-        var infoString  = "pos "        + ToFixedPrecisionString( this.userPosition, 2 ) + "\n";
-            infoString += "rot "        + ToFixedPrecisionString( this.userRotation, 2 ) + "\n";
+        let camOrigin = [0, 0, 0];
+        this.getLocation( camOrigin );
+        
+        let infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
+            infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
             infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
             infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
         document.getElementById( "cameraDebugText" ).innerHTML = infoString;
@@ -236,48 +239,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                    [xmin, ymax, -zFar],   //top left
                    [xmax, ymin, -zFar],   //bottom right
                    [xmax, ymax, -zFar] ]; //top right
-    }
-
-    //generate a ray from the camera origin in the direction 
-    //of the screen into the world
-    //used for ray intersection / hit tests, interactions 
-    //and clicking on objects in the rendered scene
-    this.GenerateWorldCoordRay = function(rayOrig, rayDir, screenCoords)
-    {
-        var vertCard = 3;
-        
-        //get the camera origin
-        this.getLocation(rayOrig);
-        
-        //construct the far clip plane, and get the rayDir by
-        //lerping between the boundries of the farClip plane
-        /////////
-        
-        //get the camera rotation matrix
-        var rot        = new Float32Array(3);
-        this.getRotation(rot);
-        var rotMat     = new Float32Array(4*4);
-        Matrix(rotMat, MatrixType.euler_rotate, rot);
-        //get the far clip plane bounds and rotate them 
-        //by the camera rotation matrix
-        var boundsTemp = new Array(4);
-        var bounds     = new Array(4);
-        GetFarClipBounds(boundsTemp, fov, 1.0, farClip);
-
-        Matrix_Multiply_Array3(bounds, rotMat, boundsTemp);
-        
-        //interpolate between the points to get the end point of the ray
-        var leftTemp     = new Array(vertCard);
-        var rightTemp    = new Array(vertCard);
-        var frustumPoint = new Array(vertCard);
-        Vect3_LERP(leftTemp,  bounds[0], bounds[1], screenCoords[1]*0.5+0.5);   
-        //bottom left, top left lerp
-        Vect3_LERP(rightTemp, bounds[2], bounds[3], screenCoords[1]*0.5+0.5);   
-        //bottom right, top right lerp
-        Vect3_LERP(frustumPoint, leftTemp, rightTemp, screenCoords[0]*0.5+0.5); 
-        //left, right lerp
-
-        Vect3_Copy(rayDir, frustumPoint);
     }
     
     
@@ -330,24 +291,33 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //generate rays in a grid and perturb the positions randomly
         //to generate the sample positions (to be tiled "bundled" when multi-threaded)
         let rayNorm = new Float32Array( 3 );
+        let screenPos = new Float32Array( 3 );
+        const startTime = (new Date()).getTime();
+        let newTime = startTime;
+        const allowedTime = 100;
         for(let v = 0; v < numVertRays; ++v ){
+            newTime = (new Date()).getTime();
+            if ( newTime - startTime > allowedTime) //prevent slowing the browser
+                break;
             for( let h = 0; h < numHorizRays; ++h ){
-                let vPos = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
-                let hPos = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
+                const vPos = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
+                const hPos = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
                 //get the world space end position of the ray normal
-                Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, [hPos, vPos, 0] );
+                screenPos[0] = hPos; screenPos[1] = vPos; screenPos[2] = 0;
+                Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, screenPos );
                 Vect3_Subtract( rayNorm, camOrigin );
                 //get the forward normal of the camera
                 Vect3_Normal( rayNorm );
                 
-                var ray = new Ray( camOrigin, rayNorm );
+                const ray = new Ray( camOrigin, rayNorm );
                 
                 //get the closest intersection point and pixel color
-                var dist_norm_color = 
-                  octTreeRoot.Trace( ray, 0, camOrigin );
+                const dist_norm_color = 
+                  octTreeRoot.Trace( ray, 0 );
                 
                 if( dist_norm_color != null ){
-                   var intPt = ray.PointAtTime( dist_norm_color[0] );
+                   var intPt = new Float32Array(3);
+                   ray.PointAtTime( intPt, dist_norm_color[0] );
                    
                    //store pixel screenspace position
                    pixPositions[numRaysIntersected*2 + 0] = hPos;
@@ -377,9 +347,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         }
         
         //transform previous frame rays to screen space
-        let screenPos = new Float32Array( 3 );
+        //let screenPos = new Float32Array( 3 );
         let worldPos  = new Float32Array( 3 );
-        for( var i = 0; i < this.numRaysAccumulated; ++i ){
+        for( let i = 0; i < this.numRaysAccumulated; ++i ){
             worldPos[0] = this.prevRayPositions[i*3 + 0];
             worldPos[1] = this.prevRayPositions[i*3 + 1];
             worldPos[2] = this.prevRayPositions[i*3 + 2];

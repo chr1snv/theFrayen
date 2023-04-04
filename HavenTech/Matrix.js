@@ -355,7 +355,7 @@ function Matrix_Inverse(ret, m)
 
     return;
 }
-
+var wTemp = 0;
 function Matrix_Multiply_Vect3( ret, m, v)
 {
     //turn the vect3 into a 4d vector (set w=1) and perform the matrix
@@ -370,17 +370,17 @@ function Matrix_Multiply_Vect3( ret, m, v)
     ret[2] = m[2*4+0]*v[0] + m[2*4+1]*v[1] + m[2*4+2]*v[2] + m[2*4+3];//*1.0
     
     let w  = m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3];//*1.0
-
+    const wDiff = w - 1.0;
     //check if w is not 1, (this implies perspective projection
     //which requires normalizing ( w divide) )
-    if(Math.abs(w - 1.0) > 0.000001)
+    if( wDiff > 0.000001 || wDiff < 0.000001)
     {
         // / by w to map from the imaginary coordinates
         //back to the reals
-        let wInv = 1.0/w;
-        ret[0] = ret[0] * wInv;
-        ret[1] = ret[1] * wInv;
-        ret[2] = ret[2] * wInv;
+        w = 1.0/w;//let wInv = 1.0/w;
+        ret[0] = ret[0] * w;//wInv;
+        ret[1] = ret[1] * w;//wInv;
+        ret[2] = ret[2] * w;//wInv;
     }
 
     //the w component of ret will always be 1

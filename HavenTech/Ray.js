@@ -51,11 +51,12 @@ function Ray(origin, direction){
     
     //returns the point along the ray at the given 
     //multiple of the ray direction (normal)
-    this.retPointTemp = new Float32Array(3);
-    this.PointAtTime = function( t ){
-        Vect3_Copy( this.retPointTemp, this.norm );
-        Vect3_MultiplyScalar( this.retPointTemp, t );
-        Vect3_Add( this.retPointTemp, this.origin );
-        return this.retPointTemp;
+    this.PointAtTime = function( point, t ){
+        point[0] = this.norm[0] * t + this.origin[0];
+        point[1] = this.norm[1] * t + this.origin[1];
+        point[2] = this.norm[2] * t + this.origin[2];
+        //Vect3_Copy( point, this.norm );
+        //Vect3_MultiplyScalar( point, t );
+        //Vect3_Add( point, this.origin );
     }
 }

@@ -59,7 +59,9 @@ function Triangle( p1, p2, p3 ){
     //returns the intersection point of a ray and plane ( triangle )
     //used for finding if / where a ray intersects a triangle
     this.triToRayOriW = new Float32Array(3);
-    this.pointL = new Float32Array(3);
+    this.pointL       = new Float32Array(3);
+    this.rayOriL      = new Float32Array(3);
+    this.rayNormL     = new Float32Array(3);
     this.RayTriangleIntersection = function( ray )
     {
        //Definition of a plane - ( 2d flat surface in 3 dimensional space ) 
@@ -113,31 +115,31 @@ function Triangle( p1, p2, p3 ){
        //( triangle normal -> triangle space z, v2-v1 triangle space x, 
        //triangle space z (cross product) triangle space x -> triangle space y )
        
-       
+       let rayNormLZ = Vect3_Dot(     ray.norm, this.triZW  );
+       //DPrintf( rayNormLZ );
+       if( rayNormLZ > 0 ) //backface culling (triangles not towards ray)
+        return null;
        
        //get the vector to the ray start from the triangle origin
        Vect3_Copy( this.triToRayOriW, ray.origin );
        Vect3_Subtract( this.triToRayOriW, this.v1W );
        //use dot products to transform the ray into triangle space
-       let rayOriL = [
-            Vect3_Dot( this.triToRayOriW, this.triXW  ),
-            Vect3_Dot( this.triToRayOriW, this.triYW  ),
-            Vect3_Dot( this.triToRayOriW, this.triZW  )
-       ];
-       let rayNormL   = [
-            Vect3_Dot(     ray.norm, this.triXW  ),
-            Vect3_Dot(     ray.norm, this.triYW  ),
-            Vect3_Dot(     ray.norm, this.triZW  )
-       ];
+       this.rayOriL[0] = Vect3_Dot( this.triToRayOriW, this.triXW  );
+       this.rayOriL[1] = Vect3_Dot( this.triToRayOriW, this.triYW  );
+       this.rayOriL[2] = Vect3_Dot( this.triToRayOriW, this.triZW  );
+
+       this.rayNormL[0] = Vect3_Dot(     ray.norm, this.triXW  );
+       this.rayNormL[1] = Vect3_Dot(     ray.norm, this.triYW  );
+       this.rayNormL[2] = rayNormLZ;
        
        //since the distance of a point above the triangle is
        //the triangle space (local) z coordinate, on a graph of
        //ray point z coordinate vs ray time the slope ( rise / run ) of the line
        //is the z amount of the ray direction or normal in local space
-       let rayZChangeL = rayNormL[2];
+       let rayZChangeL = this.rayNormL[2];
        
        if( Math.abs( rayZChangeL ) < 0.0001 && 
-           Math.abs( rayOriL[2] ) > 0.01 )
+           Math.abs( this.rayOriL[2] ) > 0.01 )
         return null; //the line is parallel to the plane and 
         //the line starts away from the surface of the plane, 
         //it's very unlikely there is an intersection point 
@@ -153,7 +155,7 @@ function Triangle( p1, p2, p3 ){
         //to the lineOrigin (lineOriginInPlaneSpace[z] )
         //0 = linePlaneSpaceSlope (x) + lineOriginInPlaneSpace[z]
         //-lineOriginInPlaneSpace[z] / linePlaneSpaceSlope = x
-        var rayDistToPtWL = -rayOriL[2] / rayZChangeL;
+        var rayDistToPtWL = -this.rayOriL[2] / rayZChangeL;
         //is the rayDistToSurface the same in world and local space?
         //it should be if the local space basis vectors are unit length
         //and the ray normal is unit (or equal) length in local and world space
@@ -163,9 +165,9 @@ function Triangle( p1, p2, p3 ){
         //not a valid intersection point
        
         //the plane space intersection point is
-        Vect3_Copy( this.pointL, rayNormL ); 
+        Vect3_Copy( this.pointL, this.rayNormL ); 
         Vect3_MultiplyScalar( this.pointL, rayDistToPtWL );
-        Vect3_Add( this.pointL, rayOriL );
+        Vect3_Add( this.pointL, this.rayOriL );
         //the triangle space intersection point z coordinate should be 0
        
         //check if the position on the plane is within the triangle edges
@@ -215,7 +217,7 @@ function Triangle( p1, p2, p3 ){
        //though ideally those should involve additional ray intersections
        //that scatter the light conserving energy
             
-       
+       //DPrintf( "rayD " + rayDistToPtWL + " triZ " + this.triZW );
        return [ rayDistToPtWL, this.triZW, this.pointL ];
        
     }

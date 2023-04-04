@@ -10,21 +10,26 @@ class Face {
         this.AABB       = null;
     }
     GetAABB(){ return this.AABB; }
+    RayIntersect( ray ){ 
+        for(let i = 0; i < this.tris.length; ++i ){
+            var dist_norm_ptL = this.tris[i].RayTriangleIntersection( ray );
+            if( dist_norm_ptL != null )
+                return [dist_norm_ptL, i, this];
+        }
+    }
 }
 
 function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
 {
-	this.quadMeshReadyCallback = quadMeshReadyCallback;
-	this.readyCallbackParameters = readyCallbackParameters;
-
+    this.quadMeshReadyCallback = quadMeshReadyCallback;
+    this.readyCallbackParameters = readyCallbackParameters;
     
-
     this.meshName        = nameIn;
     this.sceneName       = sceneNameIn;
-
+    
     this.isValid         = false; //true once loading is complete
     this.isAnimated      = false;
-
+    
     //the orientation matrix
     this.scale           = new Float32Array([1,1,1]);
     this.rotation        = new Float32Array([0,0,0]);
@@ -32,31 +37,25 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.toWorldMatrix   = new Float32Array(4*4);
     Matrix_SetIdentity( this.toWorldMatrix );
     this.lastToWorldMatrixUpdateTime = -1;
-
+    
     this.shaderNames     = [];
     this.shaders         = [];
-
-    //the calculated mesh data
     
-    //the gl buffers
-    var vertsBuffer   = gl.createBuffer();
-    var normalsBuffer = gl.createBuffer();
-    var uvsBuffer     = gl.createBuffer();
-
-    //the raw mesh data
+    //the mesh data
     this.faces           = [];
     this.faceVertsCt     = 0;
     this.vertPositions   = [];
     this.vertNormals     = [];
     this.vertBoneWeights = [];
 
-    //animated mesh
+    //animation base mesh
     this.keyedPositions  = [];
     this.skelPositions   = [];
     
     //the oct tree of the mesh faces (updated with mesh animations)
     this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
-    this.localMinAndMaxCorners = null;
+    this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
+    this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
 
     //animation classes
     //ipo animation affects the root transformation of the quadmesh
@@ -121,11 +120,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             
             var vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
             if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
-                this.localMinAndMaxCorners = this.UpdateOctTree();
+                this.UpdateOctTree(); //updates world space min and max corners
             }
             
             var worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
-            if( worldTransformUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
+            if( worldTransformUpdated || vertsUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
                 this.UpdateAABB(animationTime);
             }
             
@@ -174,34 +173,28 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.AABB = null;
     //get the axis aligned bounding box of the mesh
     this.UpdateAABB = function(time) {
-        if( this.AABBUpdateTime < time )
-        {
-            
+        if( this.AABBUpdateTime < time ){
             this.AABBUpdateTime = this.lastMeshUpdateTime;
-            //transform the min and max into world space
-            var minW = new Float32Array(3);
-            var maxW = new Float32Array(3);
-            Matrix_Multiply_Vect3( minW, this.toWorldMatrix, this.localMinAndMaxCorners[0] );
-            Matrix_Multiply_Vect3( maxW, this.toWorldMatrix, this.localMinAndMaxCorners[1] );
-            this.AABB = new AABB( minW, maxW );
-            
+            this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
         }
         return this.AABB;
     }
     
     //generate world space triangles from a face index
-    this.UpdateFaceAABBAndGenerateTriangles = function(f){
-        var face = this.faces[f];
-        var numFaceVerts = face.vertIdxs.length;
+    this.UpdateFaceAABBAndGenerateTriangles = function(min, max, f){
+        let face = this.faces[f];
+        const numFaceVerts = face.vertIdxs.length;
+        
+        this.faces[f].tris = []; //clear previously calculated triangles
         
         //initialized to opposite extrema to accept any value at first
-        var minCorner = new Float32Array( [  999999,  999999,  999999 ] );
-        var maxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+        Vect3_SetScalar( min,  999999 );
+        Vect3_SetScalar( max, -999999 );
         
         var vertVect3s = []; //the world position verts of the face
-        for( var v = 0; v < numFaceVerts; ++v ){
+        for( let v = 0; v < numFaceVerts; ++v ){
             //get the vert local position and transform it to world position
-            var vert = [ 
+            let vert = [ 
                 this.transformedVerts[ 
                     this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
                 this.transformedVerts[ 
@@ -211,16 +204,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             vertVect3s.push( new Float32Array(3) );
             Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
             
-            minCorner[0] = Math.min( minCorner[0], vert[0] );
-            minCorner[1] = Math.min( minCorner[1], vert[1] );
-            minCorner[2] = Math.min( minCorner[2], vert[2] );
+            min[0] = Math.min( min[0], vert[0] );
+            min[1] = Math.min( min[1], vert[1] );
+            min[2] = Math.min( min[2], vert[2] );
             
-            maxCorner[0] = Math.max( maxCorner[0], vert[0] );
-            maxCorner[1] = Math.max( maxCorner[1], vert[1] );
-            maxCorner[2] = Math.max( maxCorner[2], vert[2] );
+            max[0] = Math.max( max[0], vert[0] );
+            max[1] = Math.max( max[1], vert[1] );
+            max[2] = Math.max( max[2], vert[2] );
                                     
         }
-        this.faces[f].AABB =  new AABB( minCorner, maxCorner );
+        this.faces[f].AABB =  new AABB( min, max );
         
         //construct the triangles (maybe should add uv's when constructing)
         this.faces[f].tris.push( 
@@ -230,30 +223,31 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
                 new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0] ) );
         }
         
-        return [minCorner, maxCorner];
     }
     
     this.UpdateOctTree = function(){
         //update the oct tree of faces for the current time
         //to minimize number of triangle ray intersection tests
+        this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
         
-        var localMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
-        var localMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+        this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
+        this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
         
         for( var f = 0; f < this.faces.length; ++f ){
             //get an aabb around the face and insert it into an oct tree
-            var minAndMaxCorner = this.UpdateFaceAABBAndGenerateTriangles( f );
-            localMinCorner[0] = Math.min( localMinCorner[0], minAndMaxCorner[0][0] );
-            localMinCorner[1] = Math.min( localMinCorner[1], minAndMaxCorner[0][1] );
-            localMinCorner[2] = Math.min( localMinCorner[2], minAndMaxCorner[0][2] );
+            let worldMin = new Float32Array(3);
+            let worldMax = new Float32Array(3);
+            this.UpdateFaceAABBAndGenerateTriangles( worldMin, worldMax, f );
+            this.worldMinCorner[0] = Math.min( worldMin[0], this.worldMinCorner[0] );
+            this.worldMinCorner[1] = Math.min( worldMin[1], this.worldMinCorner[1] );
+            this.worldMinCorner[2] = Math.min( worldMin[2], this.worldMinCorner[2] );
             
-            localMaxCorner[0] = Math.max( localMaxCorner[0], minAndMaxCorner[1][0] );
-            localMaxCorner[1] = Math.max( localMaxCorner[1], minAndMaxCorner[1][1] );
-            localMaxCorner[2] = Math.max( localMaxCorner[2], minAndMaxCorner[1][2] );
+            this.worldMaxCorner[0] = Math.max( worldMax[0], this.worldMaxCorner[0] );
+            this.worldMaxCorner[1] = Math.max( worldMax[1], this.worldMaxCorner[1] );
+            this.worldMaxCorner[2] = Math.max( worldMax[2], this.worldMaxCorner[2] );
             
             this.octTree.AddObject(this.faces[f]);
         }
-        return [localMinCorner, localMaxCorner];
     }
     
     //called during ray trace rendering
@@ -261,58 +255,42 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.GetRayIntersection = function(ray){
         
         //to speed up this loop, use the oct tree of faces of the mesh
-        
-        //check all faces of the mesh if the ray intersects
-        for( var f = 0; f < this.faces.length; ++f ){
-            //each face should have 3 or 4 verticies
-            var face = this.faces[f];
-            var numFaceVerts = face.vertIdxs.length;
-            
-            var vertVect3s = []; //the world position verts of the face
-            for( var v = 0; v < numFaceVerts; ++v ){
-                //get the vert local position and transform it to world position
-                var vert = [ 
-                    this.transformedVerts[ 
-                        this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
-                    this.transformedVerts[ 
-                        this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
-                    this.transformedVerts[ 
-                        this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
-                vertVect3s.push( new Float32Array(3));
-                Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
-            }
-
-            //triangles constructed from the verts
-            var triangle = new Triangle( 
-                vertVect3s[0], vertVect3s[1], vertVect3s[2] );
-                
-            var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
-            if( dist_norm_ptL != null ){
-                //the ray intersects the triangle, find the uv coordinate
-                var uvCoord = triangle.
-                    UVCoordOfPoint( dist_norm_ptL[2],
+        var distNormPtL_TriIdxFace = this.octTree.Trace( ray, 0 );
+        if( distNormPtL_TriIdxFace != undefined ){
+            //the ray intersects the triangle, find the uv coordinate
+            let face = distNormPtL_TriIdxFace[2];
+            let triIdx = distNormPtL_TriIdxFace[1];
+            let uvCoord = face.tris[triIdx].
+                    UVCoordOfPoint( distNormPtL_TriIdxFace[0][2],
                                 [face.uvs[0*2+0],face.uvs[0*2+1]], 
                                 [face.uvs[1*2+0],face.uvs[1*2+1]],
                                 [face.uvs[2*2+0],face.uvs[2*2+1]] );
+            var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
+            return [ distNormPtL_TriIdxFace[0][0], distNormPtL_TriIdxFace[0][1], color ];
+        }
+        
+        //check all faces of the mesh if the ray intersects
+        for( let f = 0; f < this.faces.length; ++f ){
+            //each face should have 3 or 4 verticies
+            const face = this.faces[f];
+            
+            for( let t = 0; t < face.tris.length; ++t ){
 
-                var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-                return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];
-            }
-                
-            if( numFaceVerts > 3 ){ //if face is a quad try the other triangle
-                triangle = new Triangle( 
-                            vertVect3s[2], vertVect3s[3], vertVect3s[0] );
-                 dist_norm_ptL = triangle.RayTriangleIntersection( ray );
-                 if( dist_norm_ptL != null ){
+                let triangle = this.faces[f].tris[t];
+                    
+                var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
+                if( dist_norm_ptL != null ){
                     //the ray intersects the triangle, find the uv coordinate
-                    var uvCoord = triangle.
+                    let uvCoord = triangle.
                         UVCoordOfPoint( dist_norm_ptL[2],
-                                [face.uvs[2*2+0],face.uvs[2*2+1]], 
-                                [face.uvs[3*2+0],face.uvs[3*2+1]],
-                                [face.uvs[0*2+0],face.uvs[0*2+1]] );
+                                    [face.uvs[0*2+0],face.uvs[0*2+1]], 
+                                    [face.uvs[1*2+0],face.uvs[1*2+1]],
+                                    [face.uvs[2*2+0],face.uvs[2*2+1]] );
+
                     var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];
-                }                   
+                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];                
+                }
+                
             }
             
         } //end this.faces.length loop
