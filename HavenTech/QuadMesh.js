@@ -182,7 +182,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     //generate world space triangles from a face index
     this.UpdateFaceAABBAndGenerateTriangles = function(min, max, f){
-        let face = this.faces[f];
+        const face = this.faces[f];
         const numFaceVerts = face.vertIdxs.length;
         
         this.faces[f].tris = []; //clear previously calculated triangles
@@ -194,13 +194,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         var vertVect3s = []; //the world position verts of the face
         for( let v = 0; v < numFaceVerts; ++v ){
             //get the vert local position and transform it to world position
-            let vert = [ 
-                this.transformedVerts[ 
-                    this.faces[f].vertIdxs[v]*graphics.vertCard + 0 ],
-                this.transformedVerts[ 
-                    this.faces[f].vertIdxs[v]*graphics.vertCard + 1 ],
-                this.transformedVerts[ 
-                    this.faces[f].vertIdxs[v]*graphics.vertCard + 2 ] ];
+            const vert = [ 
+                this.transformedVerts[ face.vertIdxs[v]*3 + 0 ],
+                this.transformedVerts[ face.vertIdxs[v]*3 + 1 ],
+                this.transformedVerts[ face.vertIdxs[v]*3 + 2 ] ];
             vertVect3s.push( new Float32Array(3) );
             Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
             
@@ -216,11 +213,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         this.faces[f].AABB =  new AABB( min, max );
         
         //construct the triangles (maybe should add uv's when constructing)
-        this.faces[f].tris.push( 
-            new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2] ) );
+        let uv0 = new Float32Array(2);
+        let uv1 = new Float32Array(2);
+        let uv2 = new Float32Array(2);
+        uv0[0] = face.uvs[0*2+0]; uv0[1] = face.uvs[0*2+1];
+        uv1[0] = face.uvs[1*2+0]; uv1[1] = face.uvs[1*2+1];
+        uv2[0] = face.uvs[2*2+0]; uv2[1] = face.uvs[2*2+1];
+        face.tris.push( 
+         new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2], uv0, uv1, uv2 ) );
         if( numFaceVerts > 3 ){ //if face is a quad generate second triangle
-            this.faces[f].tris.push( 
-                new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0] ) );
+         uv0[0] = face.uvs[2*2+0]; uv0[1] = face.uvs[2*2+1];
+         uv1[0] = face.uvs[3*2+0]; uv1[1] = face.uvs[3*2+1];
+         uv2[0] = face.uvs[0*2+0]; uv2[1] = face.uvs[0*2+1];
+         face.tris.push( 
+         new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0], uv0, uv1, uv2 ) );
         }
         
     }
@@ -252,8 +258,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     //called during ray trace rendering
     //returns the ray distance, surface normal, and color at the intersection pt
-    this.GetRayIntersection = function(ray){
+    this.GetRayIntersection = function(retVal, ray){
         
+        /*
         //to speed up this loop, use the oct tree of faces of the mesh
         var distNormPtL_TriIdxFace = this.octTree.Trace( ray, 0 );
         if( distNormPtL_TriIdxFace != undefined ){
@@ -268,27 +275,28 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
             var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
             return [ distNormPtL_TriIdxFace[0][0], distNormPtL_TriIdxFace[0][1], color ];
         }
+        */
         
         //check all faces of the mesh if the ray intersects
+        let uvCoord = new Float32Array(2);
         for( let f = 0; f < this.faces.length; ++f ){
             //each face should have 3 or 4 verticies
             const face = this.faces[f];
             
             for( let t = 0; t < face.tris.length; ++t ){
 
-                let triangle = this.faces[f].tris[t];
+                const triangle = this.faces[f].tris[t];
+                //let pointL = new Float32Array(3);
+                retVal[0] = triangle.RayTriangleIntersection( ray );
+                if( retVal[0] > 0 ){
                     
-                var dist_norm_ptL = triangle.RayTriangleIntersection( ray );
-                if( dist_norm_ptL != null ){
                     //the ray intersects the triangle, find the uv coordinate
-                    let uvCoord = triangle.
-                        UVCoordOfPoint( dist_norm_ptL[2],
-                                    [face.uvs[0*2+0],face.uvs[0*2+1]], 
-                                    [face.uvs[1*2+0],face.uvs[1*2+1]],
-                                    [face.uvs[2*2+0],face.uvs[2*2+1]] );
-
-                    var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-                    return [ dist_norm_ptL[0], dist_norm_ptL[1], color ];                
+                    
+                    triangle.UVCoordOfPoint( uvCoord, triangle.pointL );
+                    
+                    this.GetMaterialColorAtUVCoord( retVal[2], uvCoord, face.materialID );
+                    retVal[1] = triangle.triZW;
+                    return;
                 }
                 
             }
@@ -298,7 +306,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         return null;
     }
     
-    this.GetMaterialColorAtUVCoord = function( uv, matID ){
+    this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
         //method from rasterization was to asynchronously load the shader
         //and bind it, impractical for query based rays where each ray
         //may reach a different shader
@@ -309,7 +317,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         //     readyCallbackParams, shaderReadyCallback ) )
         //return [0.5,0.2,0.7,1.0]; //use a solid color until shaders and textures
         //for raytracing implemented
-        return this.shaders[matID].GetColorAtUVCoord( uv );
+        return this.shaders[matID].GetColorAtUVCoord( color, uv );
 
     }
 

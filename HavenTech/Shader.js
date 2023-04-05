@@ -181,10 +181,15 @@ function Shader(nameIn, sceneNameIn, readyCallbackParams, shaderReadyCallback)
         ];
     }
     
-    this.GetColorAtUVCoord = function( uv ){
+    this.GetColorAtUVCoord = function( color, uv ){
         if( this.texture )
-            return this.texture.GetColorAtUV( uv );
-        return this.diffuseCol;
+            this.texture.GetColorAtUV( color, uv );
+        else{
+            color[0] = this.diffuseCol[0];
+            color[1] = this.diffuseCol[1];
+            color[2] = this.diffuseCol[2];
+            color[3] = this.diffuseCol[3];
+        }
     }
 
 

@@ -214,9 +214,11 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     }
     
   }
-  //trace and aabb uses the m
+
   const rayStepEpsilon = 0.00001;
-  this.Trace = function( ray, minTraceTime ){
+  this.nextNodeRayPoint = new Float32Array(3);
+  this.rayExitPoint = new Float32Array(3);
+  this.Trace = function( retVal, ray, minTraceTime ){
     //returns data from nearest object the ray intersects
     
     //traverses the binary oct tree, starting at a node 
@@ -235,22 +237,22 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     
     //create a new ray starting in this node to avoid getting intersection
     //with the entrance wall again
-    
-    let nodeExitPointAndRayTime = this.AABB.RayIntersects( ray, minTraceTime );
+
     //increasing the wall intersection ray time by epsilon 
     //(is done in next GetClosestIntersecting surface call)
     //generating a new ray point (which is inside the adjacent node)
-    if( nodeExitPointAndRayTime == null ){ 
+    const rayExitStep = this.AABB.RayIntersects( this.rayExitPoint, ray, minTraceTime );
+    if( rayExitStep < 0 ){ 
         //somehow the ray started outside of this node and didn't intersect
         //with it
-        
-        return null; //ray has exited the entire oct tree
+        retVal[0] = -1;
+        return; //ray has exited the entire oct tree
     }
     
-    let minRayCoord = Math.min( ray.origin[this.axis], 
-                                nodeExitPointAndRayTime[0][this.axis] );
-    let maxRayCoord = Math.max( ray.origin[this.axis], 
-                                nodeExitPointAndRayTime[0][this.axis] );
+    const minRayCoord = Math.min( ray.origin[this.axis], 
+                                this.rayExitPoint[this.axis] );
+    const maxRayCoord = Math.max( ray.origin[this.axis], 
+                                this.rayExitPoint[this.axis] );
     
     //first check if any objects in this node intersect with the ray
     for( let i = 0; i < this.objects.length; ++i ) 
@@ -262,9 +264,9 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //check if the ray intersects the object
         if( this.objects[i].GetAABB().
                 RangeOverlaps( minRayCoord, maxRayCoord, this.axis ) ){
-            var intersectionResult = this.objects[i].RayIntersect( ray );
-            if( intersectionResult != null ){ //if it did intersect
-                return intersectionResult; //return the result from the object
+            this.objects[i].RayIntersect( retVal, ray );
+            if( retVal[0] > 0 ){ //if it did intersect
+                return; //return the result from the object
             }
         }
     }
@@ -272,31 +274,32 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
     //the ray didn't hit anything in this node 
     
     //get a point along the ray inside the next node
-    let nextNodeRayPoint = new Float32Array(3);
-    ray.PointAtTime( nextNodeRayPoint,
-                                nodeExitPointAndRayTime[1] + rayStepEpsilon );
+    ray.PointAtTime( this.nextNodeRayPoint,
+                                rayExitStep + rayStepEpsilon );
     //find the next node starting at the current node and going up the tree
     //until there is a subnode that contains the next node point
     let parentNode = this;
     let nextTraceNode = null;
     while( nextTraceNode == null ){ //next node has not yet been found
-        nextTraceNode = parentNode.SubNode( nextNodeRayPoint );
+        nextTraceNode = parentNode.SubNode( this.nextNodeRayPoint );
         if( nextTraceNode == null ){ //go up the hierarchy and try again
             parentNode = parentNode.parent; //up one level
             if( parentNode == null ){
-                return null; //the ray is outside the root node world space
+                retVal[0] = -1;
+                return; //the ray is outside the root node world space
             }
         }
     }
     if( nextTraceNode != null ){
         ray.lastNode = this;
-        return nextTraceNode.Trace( ray, nodeExitPointAndRayTime[1] );
+        return nextTraceNode.Trace( retVal, ray, rayExitStep );
     }
     //otherwise the ray has left the world parent node
     //this shouldn't be reached though because of above if parent node == null
     //return null in while loop
     
-    return null; //all nodes along the ray path have been checked and didn't
+    retVal[0] = -1;
+    return; //all nodes along the ray path have been checked and didn't
     //have an intersection with the ray
     
   }

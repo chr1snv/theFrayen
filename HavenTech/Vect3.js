@@ -59,6 +59,7 @@ function Vect3_Cross(ret, v1, v2) {
 //passed in array, but not a scalar (because modifying the refrence is not allowed)
 //https://stackoverflow.com/questions/13104494/does-javascript-pass-by-reference
 function Vect3_Dot( v1, v2 ){ return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
+//can return by refrence with array objects (this is likely a slow function)
 
 //returns the distance between the two vectors or points (assuming the vectors are distances from the same origin to two points)
 function Vect3_Distance(v1, v2) {

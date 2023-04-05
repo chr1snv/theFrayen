@@ -90,7 +90,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
         //draw the scene
         
         //clear the render buffer and reset rendering state
-        graphics.Clear();
+        //graphics.Clear();
         //graphics.ClearDepth();
         //graphics.ClearLights();
         

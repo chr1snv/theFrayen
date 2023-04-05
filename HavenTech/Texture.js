@@ -23,15 +23,13 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
     this.pixData = null;
     var thisP = this;
     
-    this.GetColorAtUV = function( uv ){
-        var x = Math.round(uv[0] * this.width);
-        var y = Math.round(uv[1] * this.height);
-        var retVal = new Float32Array(
-               [ this.pixData[ (x + y * this.width) * 4 + 0 ] / 255.0,
-                 this.pixData[ (x + y * this.width) * 4 + 1 ] / 255.0,
-                 this.pixData[ (x + y * this.width) * 4 + 2 ] / 255.0,
-                 this.pixData[ (x + y * this.width) * 4 + 3 ] / 255.0 ] );
-        return retVal;
+    this.GetColorAtUV = function( retVal, uv ){
+        const x = Math.round(uv[0] * this.width);
+        const y = Math.round(uv[1] * this.height);
+        retVal[0] = this.pixData[ (x + y * this.width) * 4 + 0 ] / 255.0;
+        retVal[1] = this.pixData[ (x + y * this.width) * 4 + 1 ] / 255.0;
+        retVal[2] = this.pixData[ (x + y * this.width) * 4 + 2 ] / 255.0;
+        retVal[3] = this.pixData[ (x + y * this.width) * 4 + 3 ] / 255.0;
     }
 
     this.loadedImage.onload = function() { 

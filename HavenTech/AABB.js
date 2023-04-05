@@ -55,20 +55,24 @@ function AABB( minCorner, maxCorner ){
     this.RangeOverlaps = function( am, aM, axis ){
         //if the range overlaps the maximum distance between
         //any two points will be less than the sum of the range spans
-        let bm = this.minCoord[axis];
-        let bM = this.maxCoord[axis];
-        let max = Math.max(aM, bM);
-        let min = Math.min(am, bm);
-        let totalRange = max - min;
-        let aRange = aM - am;
-        let bRange = bM - bm;
+        let max = aM
+        if(this.maxCoord[axis] > aM)
+            max = this.maxCoord[axis];
+        let min = am;
+        if( this.minCoord[axis] < am)
+            min = this.minCoord[axis];
+        const totalRange = max - min;
+        const aRange = aM - am;
+        const bRange = this.maxCoord[axis] - this.minCoord[axis];
         if( totalRange <= aRange + bRange )
             return true;
         return false;
     }
 
     //return a point and time along the ray that intersects an AABB bound or null
-    this.RayIntersects = function( ray, minRayTime ){
+    this.rayTime = 9999999;
+    this.intersectAxis = 0;
+    this.RayIntersects = function( rayStepPoint, ray, minRayTime ){
         
         //if the ray intersects or enters the aabb there will be a point 
         //on the ray where x,y,or z will be equal to 
@@ -95,44 +99,52 @@ function AABB( minCorner, maxCorner ){
         
         
         //for each of the three axies find the possible intersection time
+        this.rayTime = 99999999;
         for( let axis = 0; axis < 3; ++axis ){
             
             //find the possible times (min and max aabb faces)
-            const rayStep = [ (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis], 
-                        (this.maxCoord[axis] - ray.origin[axis]) / ray.norm[axis] ];
+            const minRayStep = (this.minCoord[axis] - ray.origin[axis]) / ray.norm[axis];
+            const maxRayStep = (this.maxCoord[axis] - ray.origin[axis]) / ray.norm[axis];
             
-            //for each axis check the min and max side
-            for( let side = 0; side < 2; ++side )
-            {
-                if( rayStep[side] < minRayTime ) //ignore AABB sides behind the ray origin
-                    continue;
-                //advance the ray to the intersection point
-                let rayStepPoint = new Float32Array(3);
-                ray.PointAtTime( rayStepPoint, rayStep[side] );
-                
-                //check the orthogonal axies of the point are within the aabb bounds
-                let numOtherAxiesWithinBounds = 0;
-                for( let otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
-                {
-                    const otherAxis = (axis+otherAxiesIndice) % 3;
-                    if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
-                        rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
-                        numOtherAxiesWithinBounds += 1;
+            if( minRayStep > minRayTime ) //ignore AABB sides behind the ray origin
+                if( minRayStep < this.rayTime ){
+                    this.rayTime = minRayStep;
+                    this.intersectAxis = axis;
                 }
-                
-                //if the two other axies are within the bounds the point 
-                //intersects a face of the aabb
-                if( numOtherAxiesWithinBounds > 1 ){
-                    //the point is inside the aabb
-                    
-                    //return the point and ray time
-                    return [ rayStepPoint, rayStep[side] ];
+            if( maxRayStep > minRayTime )
+                if( maxRayStep < this.rayTime ){
+                    this.rayTime = maxRayStep;
+                    this.intersectAxis = axis;
                 }
-                
-           }
-        }
+            
+         }
+         
+         //advance the ray to the possible intersection point
+         ray.PointAtTime( rayStepPoint, this.rayTime );
         
-        return null; //no intersection point found don't return anything
+         //check the orthogonal axies of the point are within the aabb bounds
+         let numOtherAxiesWithinBounds = 0;
+         for( let otherAxiesIndice = 1; otherAxiesIndice < 3; ++otherAxiesIndice )
+         {
+             const otherAxis = (this.intersectAxis+otherAxiesIndice) % 3;
+             if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
+                 rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
+                 numOtherAxiesWithinBounds += 1;
+         }
+        
+         //if the two other axies are within the bounds the point 
+         //intersects a face of the aabb
+         if( numOtherAxiesWithinBounds > 1 ){
+             //the point is inside the aabb
+            
+             //return the point and ray time
+             return this.rayTime;
+         }
+                
+           
+        
+        
+        return -1; //no intersection point found don't return anything
         
     }
     

@@ -312,10 +312,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
                 const ray = new Ray( camOrigin, rayNorm );
                 
                 //get the closest intersection point and pixel color
-                const dist_norm_color = 
-                  octTreeRoot.Trace( ray, 0 );
+                let dist_norm_color = [0, new Float32Array(3), new Float32Array(4)];
+                  octTreeRoot.Trace( dist_norm_color, ray, 0 );
                 
-                if( dist_norm_color != null ){
+                if( dist_norm_color[0] > 0 ){
                    var intPt = new Float32Array(3);
                    ray.PointAtTime( intPt, dist_norm_color[0] );
                    

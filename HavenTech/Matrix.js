@@ -96,8 +96,8 @@ function Matrix()// m, type, scale, rot, translation )
         
         var yAxis = new Float32Array([0.0, 1.0, 0.0]);
         
-        //find the angle to rotate by
-        var dotProduct = Vect3_Dot( boneAxis, yAxis );
+        //find the angle to rotate by (boneAxis dot yAxis)
+        let dotProduct = boneAxis[0]*yAxis[0]+boneAxis[1]*yAxis[1]+boneAxis[2]*yAxis[2];
         var rotationAngle = Math.acos(dotProduct);
         
         //if the bone is not parallel to the y axis

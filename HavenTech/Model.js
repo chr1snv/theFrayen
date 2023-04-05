@@ -163,25 +163,19 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
         return this.quadmesh.AABB;
     }
     
-    this.RayIntersect = function(ray){
-        var aabbPointAndTime = this.GetAABB().RayIntersects( ray, 0 );
-        if( aabbPointAndTime != null ){
+    this.aabbPoint = new Float32Array(3);
+    this.RayIntersect = function(retVal, ray){
+        //const aabbTime = this.GetAABB().RayIntersects( this.aabbPoint, ray, 0 );
+        //if( aabbTime > 0 ){
         
             //since the ray intersects the aabb, check faces 
             //of the mesh if the ray intersects, if it does, return the
-            //intersection point, ray distance, face index, 
-            //model and object that the ray hit
+            //ray distance, normal, and color of the the ray hit
             
             if( this.quadmesh != null ){
-                var intptDistNormColor = 
-                    this.quadmesh.GetRayIntersection( ray );
-                if( intptDistNormColor != null ){ //if a face intersects
-                
-                    return intptDistNormColor;
-                    //return the intersection distance normal and color
-                }
+                this.quadmesh.GetRayIntersection( retVal, ray );
             }
-        }
+        //}
     }
 
     this.modelName = nameIn;
