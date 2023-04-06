@@ -2,8 +2,11 @@
 
 //frayen point drawing vert shader
 
+uniform mat4 projection;
+uniform float pointSize;
+uniform float pointFalloff;
 
-in vec2 position;
+in vec3 position;
 in vec3 ptCol;
 
 //variables passed to the fragment shader
@@ -11,7 +14,7 @@ out vec3 normalVarying;
 out vec3 colorVarying;
 
 void main() {
-    gl_Position = vec4( position.x, position.y, 0.0, 1.0 );
-    gl_PointSize = 5.0;
+    gl_Position = projection*vec4( position, 1.0 );
+    gl_PointSize = pointSize-(gl_Position.z*pointFalloff);
     colorVarying = ptCol;
 }

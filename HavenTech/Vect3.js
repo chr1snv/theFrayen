@@ -74,7 +74,7 @@ function Vect3_Distance(v1, v2) {
 function Vect3_Negative(v1){ v1[0] = -v1[0]; v1[1] = -v1[1]; v1[2] = -v1[2]; }
 
 function Vect3_Length(v1) {
-    let len = Vect3_LengthSquared(v1);
+    const len = Vect3_LengthSquared(v1);
     return Math.sqrt(len);
 }
 
@@ -87,26 +87,26 @@ function Vect3_LengthSquared(v1){
 function Vect3_Normal(v1){
     //let len = Vect3_Length(v1);
     //Vect3_DivideScalar(v1, len);
-    let len = Math.sqrt( v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2] );
+    const len = Math.sqrt( v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2] );
     v1[0] /= len; v1[1] /= len; v1[2] /= len;
 }
 //another name/alias for Vect3_Normal
 function Vect3_Unit(v1){
-    let len = Vect3_Length(v1);
+    const len = Vect3_Length(v1);
     Vect3_DivideScalar(v1, len);
 }
 
 function Vect3_Orthogonal(v1){
     //returns the unit vector orthogonal in the zx plane
     //(no vertical component) [used in camera class]
-    let temp = v1[0];
+    const temp = v1[0];
     v1[0] = -v1[2]; v1[1] = 0; v1[2] = -temp;
     Vect3_Unit(v1);
 }
 
 //linearly interpolates between the two vectors
 function Vect3_LERP(v, v1, v2, v2Weight){
-    let v1Weight = 1.0-v2Weight;
+    const v1Weight = 1.0-v2Weight;
     v[0] = v1[0]*v1Weight + v2[0]*v2Weight;
     v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
     v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
@@ -114,7 +114,7 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 
 //for debug printing
 function ToFixedPrecisionString( v, numDecimalPlaces ){
-    var retString = 0;
+    let retString = 0;
     for( let i = 0; i < v.length; ++i ){
         retString += v[i].toFixed(numDecimalPlaces);
         if( i != v.length - 1 )

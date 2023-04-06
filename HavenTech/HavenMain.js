@@ -152,18 +152,24 @@ var sceneTime = 0;
 var sceneLoadedTime = 0;
 function sceneLoaded(havenScene)
 {
-    sceneLoadedTime = (new Date()).getTime();
+    sceneLoadedTime = Date.now();
     mainScene = havenScene;
     //mainScene.Update(sceneTime);
     //mainScene.Draw();
     window.setTimeout(MainLoop, 300);
-    graphics.Clear();
+    //graphics.Clear();
+    graphics.SetupForPixelDrawing();
+    mouseSenChange();
+    raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
+    raysPerFrameChange();
+    pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+    pointSizeChange();
 }
 
 //the main rendering and update function called each frame
 function MainLoop()
 {
-    sceneTime = ( (new Date()).getTime() - sceneLoadedTime ) /1000;
+    sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
     //graphics.Clear();
     mainScene.Update( sceneTime );
     UpdateCamera( sceneTime );
@@ -174,15 +180,44 @@ function MainLoop()
     
 }
 
+let pointSizeElm = document.getElementById( "pointSize" );
+let pointFalloffElm = document.getElementById( "pointFalloff" );
+function pointSizeChange(){
+    gl.uniform1f(graphics.pointSizeAttr, pointSizeElm.value );
+    gl.uniform1f(graphics.pointFalloffAttr, pointFalloffElm.value );
+}
+
+let raysPerFrameElm = document.getElementById("raysPerFrame");
+let accumulatedRaysElm = document.getElementById("accumulatedRays");
+function raysPerFrameChange(){
+    mainScene.cameras[mainScene.activeCameraIdx].changeNumRaysPerFrame( raysPerFrameElm.value, accumulatedRaysElm.value );
+}
+
+let mouseXSen = document.getElementById("mouseXSen");
+let mouseYSen = document.getElementById("mouseYSen");
+let mouseXSenValue;
+let mouseYSenValue;
+function mouseSenChange(){
+    mouseXSenValue = mouseXSen.value;
+    mouseYSenValue = mouseYSen.value;
+}
+
 //called from the mainloop, gets user input and updates the freelook camera
+let moveAmt = 0.2;
+let camPositionUpdate = new Float32Array( 3 );
+let mY = 0;
+let mX = 0;
+let relMx;
+let relMy;
+let camRotUpdate = new Float32Array(3);
+
 function UpdateCamera( updateTime )
 {
     if( mainScene.cameras.length < 1 )
        return;
        
     //generate the position update
-    var moveAmt = 0.2;
-    var camPositionUpdate = new Float32Array( [ 0, 0, 0 ] );
+    camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
     if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
         camPositionUpdate[2] -= moveAmt;
     if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
@@ -193,22 +228,22 @@ function UpdateCamera( updateTime )
         camPositionUpdate[0] += moveAmt;
 
     //generate the rotation update
-    var mY = 0;
-    var mX = 0;
+    
     if( mDown )
     {
         if(ptrLck == null)
             requestPointerLock();
     }
-    var relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
-    var relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
-    var mX = relMx*document.getElementById("mouseXSen").value; 
+    relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
+    relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
+    mX = relMx*mouseXSenValue; 
     ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
-    var mY = relMy*document.getElementById("mouseYSen").value; 
+    mY = relMy*mouseYSenValue; 
     ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
     
-    var camRotUpdate     = 
-        new Float32Array( [ (-mY*Math.PI/180), (-mX*Math.PI/180), 0 ] );
+    camRotUpdate[0] = -mY*Math.PI/180;
+    camRotUpdate[1] = -mX*Math.PI/180;
+    camRotUpdate[2] = 0;
     mCoordDelta.x = mCoordDelta.y = 0;
 
     //send the updates to the camera

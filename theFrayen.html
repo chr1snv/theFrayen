@@ -25,9 +25,9 @@
 
         <tr><td>Mouse X Sensitivity</td><td></td><td>Mouse Y Sensitivity</td></tr>
         <tr>
-            <td><input type="number" id="mouseXSen" value="0.1" increment=0.1; style="width:4em;"></input></td>
+            <td><input type="number" id="mouseXSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
             <td></td>
-            <td><input type="number" id="mouseYSen" value="0.1" increment=0.1; style="width:4em;"></input></td>
+            <td><input type="number" id="mouseYSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
         </tr>
         
         <tr><td>Canvas Width</td><td></td><td>Canvas Height</td></tr>
@@ -44,7 +44,18 @@
             <td></td>
             <td><input type="number" id="fullScrCanvHeight" value="1080" increment=0.1; style="width:4em;"></input></td>
         </tr>
-        
+        <tr><td>Rays Per Frame</td><td></td><td>Accumulated Rays</td></tr>
+        <tr>
+            <td><input type="number" id="raysPerFrame" value="5000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+            <td></td>
+            <td><input type="number" id="accumulatedRays" value="8000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+        </tr>
+        <tr><td>Point Size</td><td></td><td>Distance Falloff Multiplier</td></tr>
+        <tr>
+            <td><input type="number" id="pointSize" value="10" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+            <td></td>
+            <td><input type="number" id="pointFalloff" value="0.5" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+        </tr>
     </table>
     </div>
     <div class="footerContainer" style="width:80%; height:80%;">

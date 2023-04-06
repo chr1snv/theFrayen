@@ -68,7 +68,7 @@ function InertialSensors(){
 
     this.devMotionHandler = function(e){
         
-        var time = (new Date()).getTime();
+        var time = Date.now();
         
         var accel =         [e.acceleration.x,
                              e.acceleration.y,
@@ -106,7 +106,7 @@ function InertialSensors(){
         
         var orient = Quat_FromEuler( [e.alpha, e.beta, e.gamma] );
         
-        pushAbsOrientationData( orient, (new Date()).getTime() );
+        pushAbsOrientationData( orient, Date.now() );
         
     }
     

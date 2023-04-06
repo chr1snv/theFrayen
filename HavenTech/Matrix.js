@@ -36,50 +36,47 @@ function Matrix_Copy( m, m2 ){
         m[i] = m2[i];
 }
 
+let tempMat1 = new Float32Array(4*4);
+let tempMat2 = new Float32Array(4*4);
+let tempMat3 = new Float32Array(4*4);
 //high level euler rotation angle Transformation matrix constructor
 function Matrix()// m, type, scale, rot, translation )
 {
-	var m = arguments[0];
-    var type = arguments[1];
-    if(type == MatrixType.identity)
+	//var m = arguments[0];
+    //var type = arguments[1];
+    if(arguments[1] == MatrixType.identity)
     {
-        Matrix_SetIdentity(m);
+        Matrix_SetIdentity(arguments[0]);
     }
-    else if(type == MatrixType.euler_transformation )
+    else if(arguments[1] == MatrixType.euler_transformation )
     {
-        var scale       = arguments[2];
-        var rot         = arguments[3];
-        var translation = arguments[4];
-        var tempMat1 = new Float32Array(4*4);
-        var tempMat2 = new Float32Array(4*4);
-        var tempMat3 = new Float32Array(4*4);
+        //var scale       = arguments[2];
+        //var rot         = arguments[3];
+        //var translation = arguments[4];
         //scale, rotate, then translate
-        Matrix(m,        MatrixType.scale, scale);
-        Matrix(tempMat1, MatrixType.euler_rotate, rot);
-        Matrix(tempMat2, MatrixType.translate, translation);
-        Matrix_Multiply(tempMat3, tempMat1, m);
-        Matrix_Multiply(m,        tempMat2, tempMat3);
+        Matrix(arguments[0],        MatrixType.scale, arguments[2]);
+        Matrix(tempMat1, MatrixType.euler_rotate, arguments[3]);
+        Matrix(tempMat2, MatrixType.translate, arguments[4]);
+        Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
+        Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
     }
-    else if( type == MatrixType.quat_transformation)
+    else if( arguments[1] == MatrixType.quat_transformation)
     {
-        var scale       = arguments[2];
-        var rot         = arguments[3];
-        var translation = arguments[4];
-        var tempMat1 = new Float32Array(4*4);
-        var tempMat2 = new Float32Array(4*4);
-        var tempMat3 = new Float32Array(4*4);
+        //var scale       = arguments[2];
+        //var rot         = arguments[3];
+        //var translation = arguments[4];
         //scale, rotate, then translate
-        Matrix(m,        MatrixType.scale, scale);
-        Matrix(tempMat1, MatrixType.quat_rotate, rot);
-        Matrix(tempMat2, MatrixType.translate, translation);
-        Matrix_Multiply(tempMat3, tempMat1, m);
-        Matrix_Multiply(m,        tempMat2, tempMat3);
+        Matrix(arguments[0],        MatrixType.scale, arguments[2]);
+        Matrix(tempMat1, MatrixType.quat_rotate, arguments[3]);
+        Matrix(tempMat2, MatrixType.translate, arguments[4]);
+        Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
+        Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
     }
-    else if( type == MatrixType.orientation)
+    else if( arguments[1] == MatrixType.orientation)
     {
-        var tail = arguments[2];
-        var head = arguments[3];
-        Matrix_SetIdentity(m);
+        //var tail = arguments[2];
+        //var head = arguments[3];
+        Matrix_SetIdentity(arguments[0]);
 
         //generate the bone orientation matrix
         //the orientation matrix is the transformation from bone space
@@ -89,9 +86,9 @@ function Matrix()// m, type, scale, rot, translation )
         // the y axis to the axis of the bone (boneAxisVector)
         
         var boneAxis = new Float32Array(3);
-        Vect3_Copy(boneAxis, tail);
+        Vect3_Copy(boneAxis, arguments[2]);
         
-        Vect3_Subtract(boneAxis, head);
+        Vect3_Subtract(boneAxis, arguments[3]);
         Vect3_Unit(boneAxis);
         
         var yAxis = new Float32Array([0.0, 1.0, 0.0]);
@@ -112,7 +109,7 @@ function Matrix()// m, type, scale, rot, translation )
             //to be delt with
             var orientationQuat = Quat_FromAxisAng(rotationAxis, rotationAngle);
             
-            Matrix(m, MatrixType.quat_rotate, orientationQuat);
+            Matrix(arguments[0], MatrixType.quat_rotate, orientationQuat);
         }
         else // the bone is parallel to the y axis
         {
@@ -122,98 +119,94 @@ function Matrix()// m, type, scale, rot, translation )
             if(boneAxis[1] > 0.0)
                 return; //identity matrix already set
             
-            Matrix(m, MatrixType.xRot, Math.PI);
+            Matrix(arguments[0], MatrixType.xRot, Math.PI);
         }
     }
-    else if( type == MatrixType.xRot )
+    else if( arguments[1] == MatrixType.xRot )
     {
-        var rot = arguments[2];
-        Matrix_SetZero(m);
-        m[3*4+3] = 1;
-        m[0*4+0] = 1;
-        m[1*4+1] = Math.cos(rot);
-        m[1*4+2] = -Math.sin(rot);
-        m[2*4+1] = Math.sin(rot);
-        m[2*4+2] = Math.cos(rot);
+        //var rot = arguments[2];
+        Matrix_SetZero(arguments[0]);
+        arguments[0][3*4+3] = 1;
+        arguments[0][0*4+0] = 1;
+        arguments[0][1*4+1] = Math.cos(arguments[2]);
+        arguments[0][1*4+2] = -Math.sin(arguments[2]);
+        arguments[0][2*4+1] = Math.sin(arguments[2]);
+        arguments[0][2*4+2] = Math.cos(arguments[2]);
     }
-    else if( type == MatrixType.yRot)
+    else if( arguments[1] == MatrixType.yRot)
     {
-        var rot = arguments[2];
-        Matrix_SetZero(m);
-        m[3*4+3] = 1;
-        m[0*4+0] = Math.cos(rot);
-        m[0*4+2] = Math.sin(rot);
-        m[1*4+1] = 1;
-        m[2*4+0] = -Math.sin(rot);
-        m[2*4+2] = Math.cos(rot);
+        //var rot = arguments[2];
+        Matrix_SetZero(arguments[0]);
+        arguments[0][3*4+3] = 1;
+        arguments[0][0*4+0] = Math.cos(arguments[2]);
+        arguments[0][0*4+2] = Math.sin(arguments[2]);
+        arguments[0][1*4+1] = 1;
+        arguments[0][2*4+0] = -Math.sin(arguments[2]);
+        arguments[0][2*4+2] = Math.cos(arguments[2]);
     }
-    else if( type == MatrixType.zRot)
+    else if( arguments[1] == MatrixType.zRot)
     {
-        var rot = arguments[2];
-        Matrix_SetZero(m);
-        m[3*4+3] = 1;
-        m[0*4+0] = Math.cos(rot);
-        m[0*4+1] = -Math.sin(rot);
-        m[1*4+0] = Math.sin(rot);
-        m[1*4+1] = Math.cos(rot);
-        m[2*4+2] = 1;
+        //var rot = arguments[2];
+        Matrix_SetZero(arguments[0]);
+        arguments[0][3*4+3] = 1;
+        arguments[0][0*4+0] = Math.cos(arguments[2]);
+        arguments[0][0*4+1] = -Math.sin(arguments[2]);
+        arguments[0][1*4+0] = Math.sin(arguments[2]);
+        arguments[0][1*4+1] = Math.cos(arguments[2]);
+        arguments[0][2*4+2] = 1;
     }
-    else if( type == MatrixType.quat_rotate )
+    else if( arguments[1] == MatrixType.quat_rotate )
     {
         var quat = arguments[2];
-        Matrix_SetIdentity(m);
+        Matrix_SetIdentity(arguments[0]);
         if(quat[3] == 0.0)
             return;
         //make a rotation matrix from a quaternion
-        m[0*4+0] = 1 - 2*quat[1]*quat[1] - 2*quat[2]*quat[2];
-        m[0*4+1] =     2*quat[0]*quat[1] - 2*quat[2]*quat[3];
-        m[0*4+2] =     2*quat[0]*quat[2] + 2*quat[1]*quat[3];
+        arguments[0][0*4+0] = 1 - 2*quat[1]*quat[1] - 2*quat[2]*quat[2];
+        arguments[0][0*4+1] =     2*quat[0]*quat[1] - 2*quat[2]*quat[3];
+        arguments[0][0*4+2] =     2*quat[0]*quat[2] + 2*quat[1]*quat[3];
         
-        m[1*4+0] =     2*quat[0]*quat[1] + 2*quat[2]*quat[3];
-        m[1*4+1] = 1 - 2*quat[0]*quat[0] - 2*quat[2]*quat[2];
-        m[1*4+2] =     2*quat[1]*quat[2] - 2*quat[0]*quat[3];
+        arguments[0][1*4+0] =     2*quat[0]*quat[1] + 2*quat[2]*quat[3];
+        arguments[0][1*4+1] = 1 - 2*quat[0]*quat[0] - 2*quat[2]*quat[2];
+        arguments[0][1*4+2] =     2*quat[1]*quat[2] - 2*quat[0]*quat[3];
         
-        m[2*4+0] =     2*quat[0]*quat[2] - 2*quat[1]*quat[3];
-        m[2*4+1] =     2*quat[1]*quat[2] + 2*quat[0]*quat[3];
-        m[2*4+2] = 1 - 2*quat[0]*quat[0] - 2*quat[1]*quat[1];
+        arguments[0][2*4+0] =     2*quat[0]*quat[2] - 2*quat[1]*quat[3];
+        arguments[0][2*4+1] =     2*quat[1]*quat[2] + 2*quat[0]*quat[3];
+        arguments[0][2*4+2] = 1 - 2*quat[0]*quat[0] - 2*quat[1]*quat[1];
     }
-    else if(type == MatrixType.scale)
+    else if(arguments[1] == MatrixType.scale)
     {
-        var scale = arguments[2];
-        Matrix_SetIdentity(m);
-        m[0*4+0] = scale[0];
-        m[1*4+1] = scale[1];
-        m[2*4+2] = scale[2];
+        //var scale = arguments[2];
+        Matrix_SetIdentity(arguments[0]);
+        arguments[0][0*4+0] = arguments[2][0];
+        arguments[0][1*4+1] = arguments[2][1];
+        arguments[0][2*4+2] = arguments[2][2];
     }
-    else if(type == MatrixType.euler_rotate)
+    else if(arguments[1] == MatrixType.euler_rotate)
     {
-        var rotVect = arguments[2];
-        Matrix_SetIdentity(m);
+        //var rotVect = arguments[2];
+        Matrix_SetIdentity(arguments[0]);
         //generate a rotation matrix with (xyz) ordering
-        var tempMat1 = new Array(4*4);
-        var tempMat2 = new Array(4*4);
-        var tempMat3 = new Array(4*4);
-        Matrix(m, MatrixType.xRot, rotVect[0]);
-        Matrix(tempMat1, MatrixType.zRot, rotVect[2]);
-        Matrix(tempMat2, MatrixType.yRot, rotVect[1]);
-        Matrix_Multiply(tempMat3, tempMat1, m);
-        Matrix_Multiply(m, tempMat2, tempMat3);
+        Matrix(arguments[0], MatrixType.xRot, arguments[2][0]);
+        Matrix(tempMat1, MatrixType.zRot, arguments[2][2]);
+        Matrix(tempMat2, MatrixType.yRot, arguments[2][1]);
+        Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
+        Matrix_Multiply(arguments[0], tempMat2, tempMat3);
     }
-    else if(type == MatrixType.translate)
+    else if(arguments[1] == MatrixType.translate)
     {
-        var translation = arguments[2];
-        Matrix_SetIdentity(m);
-        m[0*4+3] = translation[0];
-        m[1*4+3] = translation[1];
-        m[2*4+3] = translation[2];
+        Matrix_SetIdentity(arguments[0]);
+        arguments[0][0*4+3] = arguments[2][0];
+        arguments[0][1*4+3] = arguments[2][1];
+        arguments[0][2*4+3] = arguments[2][2];
     }
-    else if( type == MatrixType.copy ){
-        var m2 = arguments[2];
-        Matrix_Copy(m, m2);
+    else if( arguments[1] == MatrixType.copy ){
+        //var m2 = arguments[2];
+        Matrix_Copy(arguments[0], arguments[2]);
     }
     else
     {
-        Matrix_SetZero(m);
+        Matrix_SetZero(arguments[0]);
     }
 }
 
@@ -355,7 +348,10 @@ function Matrix_Inverse(ret, m)
 
     return;
 }
-var wTemp = 0;
+var wInv;
+const floatA = new Float32Array([1, 0.5]);
+const float1 = floatA[0];
+const floatP5 = floatA[1];
 function Matrix_Multiply_Vect3( ret, m, v)
 {
     //turn the vect3 into a 4d vector (set w=1) and perform the matrix
@@ -369,19 +365,19 @@ function Matrix_Multiply_Vect3( ret, m, v)
     ret[1] = m[1*4+0]*v[0] + m[1*4+1]*v[1] + m[1*4+2]*v[2] + m[1*4+3];//*1.0
     ret[2] = m[2*4+0]*v[0] + m[2*4+1]*v[1] + m[2*4+2]*v[2] + m[2*4+3];//*1.0
     
-    let w  = m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3];//*1.0
-    const wDiff = w - 1.0;
+    wInv  = float1/(m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3]);//*1.0
+    //const wDiff = w - 1.0;
     //check if w is not 1, (this implies perspective projection
     //which requires normalizing ( w divide) )
-    if( wDiff > 0.000001 || wDiff < 0.000001)
-    {
+    //if( wDiff > 0.000001 || wDiff < 0.000001)
+    //{
         // / by w to map from the imaginary coordinates
         //back to the reals
-        w = 1.0/w;//let wInv = 1.0/w;
-        ret[0] = ret[0] * w;//wInv;
-        ret[1] = ret[1] * w;//wInv;
-        ret[2] = ret[2] * w;//wInv;
-    }
+        //w = 1.0/w;//let wInv = 1.0/w;
+        ret[0] = ret[0] * wInv;
+        ret[1] = ret[1] * wInv;
+        ret[2] = ret[2] * wInv;
+    //}
 
     //the w component of ret will always be 1
     //the reason for turning the vect3 into a vect4 is to allow for the

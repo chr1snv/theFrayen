@@ -17,6 +17,7 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
                            0,  0, zs, tz,
                            0,  0,  0,  1 ] );
 }
+var gPM = new Float32Array(4*4);
 function gluPerspective(fovy, aspect, zNear, zFar)
 {
     //generates the perspective projection matrix
@@ -31,12 +32,13 @@ function gluPerspective(fovy, aspect, zNear, zFar)
     var ys = f;                            //y scale factor
     var zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
     var tz = (2*zFar*zNear)/(zNear-zFar);
-    return new Float32Array([ xs,  0,  0,  0,
-                               0, ys,  0,  0,
-                               0,  0, zs, tz,
-                               0,  0, -1,  0 ]);
+    gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0; gPM[0*4+3]=0;
+    gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0; gPM[1*4+3]=0;
+    gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=zs;gPM[2*4+3]=tz;
+    gPM[3*4+0]=0; gPM[3*4+1]=0; gPM[3*4+2]=-1;gPM[3*4+3]=0;
     
-    var frustumDepth = (zFar-zNear);
+    //var frustumDepth = (zFar-zNear);
+    
     //depth_pct = (z-zNear)/frustumDepth
     //x_projected = x / ( depth_pct * farfrustumWidth  + (1-depth_pct) * nearfrustumWidth  )
     //y_projected = y / ( depth_pct * farfrustumHeight + (1-depth_pct) * nearfrustumHeight )
@@ -77,7 +79,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     this.lastUpdateTime = 0;
 
     this.camToWorldMat         = new Float32Array(4*4);
-    this.invProjMat            = new Float32Array(4*4);
+    this.worldToCamMat         = new Float32Array(4*4); //view matrix
     this.worldToScreenSpaceMat = new Float32Array(4*4);
     this.screenSpaceToWorldMat = new Float32Array(4*4);
     //this.frustum;
@@ -115,7 +117,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     //world space to camera space matrix 
     //( invert the projection matrix (camera space to screen space) * camera to world space matrix )
     {
-        let projectionMat = null;
         if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
         {
             projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
@@ -124,7 +125,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         }
         else
         {
-            projectionMat = gluPerspective(
+                gluPerspective(
                        this.fov,                   //field of view
                        graphics.GetScreenAspect(), //aspect ratio
                        this.nearClip,              //near clip plane distance
@@ -137,38 +138,39 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         //to transform the camera to its position in the world, but we want the
         //model view matrix to be the inverse of that, the matrix required to
         //bring the world into the view of the camera)
-        let worldToCamMat = new Float32Array(4*4); //view matrix
-        let camToWorldMat  = this.getCameraToWorldMatrix();
+        this.genCameraToWorldMatrix();
         Matrix_Copy(this.camToWorldMat, camToWorldMat); //save before inverting
-        Matrix_Inverse( worldToCamMat, camToWorldMat );
+        Matrix_Inverse( this.worldToCamMat, camToWorldMat );
         
         //multiply the inverseTransformationMatrix by the 
         //perspective matrix to get the camera projection matrix
-        Matrix_Multiply( this.worldToScreenSpaceMat, projectionMat, worldToCamMat );
+        Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
         
         Matrix_Copy(camToWorldMat, this.worldToScreenSpaceMat);
         Matrix_Inverse( this.screenSpaceToWorldMat, camToWorldMat );
         
     }
 
-    this.getCameraToWorldMatrix = function()
+    let translation     = new Float32Array(3);
+    let rot             = new Float32Array(3);
+    let transMat        = new Float32Array(4*4);
+    let invTransMat     = new Float32Array(4*4);
+    let rotMat          = new Float32Array(4*4);
+
+    var camToWorldMat    = new Float32Array(4*4); //gets inverted
+    this.genCameraToWorldMatrix = function()
     {
         //get the camera rotation and translation from the ipo (animation)
-        let translation     = new Float32Array(3);
-        let rot             = new Float32Array(3);
+        
         this.getRotation(rot);
         this.getLocation(translation);
 
-        let transMat        = new Float32Array(4*4);
-        let invTransMat     = new Float32Array(4*4);
-        let rotMat          = new Float32Array(4*4);
 
-        var camToWorldMat    = new Float32Array(4*4);
         //combine the translation and rotation into one matrix
         Matrix( transMat, MatrixType.translate, translation );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
         Matrix_Multiply( camToWorldMat, transMat, rotMat );
-        return camToWorldMat;
+        //return camToWorldMat;
     }
 
     //update the Cameras position based on its animation
@@ -177,6 +179,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.lastUpdateTime = timeIn;
     }
     
+    let transformedRot = new Float32Array( 3 );
+    let infoString = "";
     this.UpdateOrientation = function(positionDelta, rotationDelta, updateTime, rotation=null)
     {
         //Update the cameras transformation given a change in position and rotation.
@@ -191,16 +195,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             Vect3_Copy( this.rotation, rotation );
 
         //get the new rotation
-        let rot            = new Float32Array( 3 );
         this.getRotation(rot);
 
-        let rotMat         = new Float32Array( 4 * 4 );
         Matrix( rotMat, MatrixType.euler_rotate, rot );
 
         //apply the camera rotation to the positionDeta 
         //to get a new position offset 
         //transform positionDelta from camera to world space
-        let transformedRot = new Float32Array( 3 );
         Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
 
         //    //prevent up down rotation past vertical
@@ -214,15 +215,16 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         this.userPosition[1] += transformedRot[1];
         this.userPosition[2] += transformedRot[2];
         
-        let camOrigin = [0, 0, 0];
-        this.getLocation( camOrigin );
+        //let camOrigin = [0, 0, 0];
+        //this.getLocation( camOrigin );
         
-        let infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
-            infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
-            infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
-            infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
+        /*
+        infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
+        infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
+        infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
+        infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
         document.getElementById( "cameraDebugText" ).innerHTML = infoString;
-        
+        */
     }
 
 
@@ -255,20 +257,65 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
     //if they are from static world objects or dynamicly updated models
     //refrence - linus tech tips framerate enhancement reprojection video
     
-    this.numRaysToAccum = 80000;
-    this.prevPixPositions = new Float32Array(this.numRaysToAccum*2);
-    this.prevRayPositions = new Float32Array(this.numRaysToAccum*3);
-    this.prevPixColors    = new Float32Array(this.numRaysToAccum*3);
-    this.numRaysAccumulated = 0;
-    this.accumIndex = 0;
+    this.numRaysToAccum;
+    this.prevPixPositions;
+    this.prevRayPositions;
+    this.prevPixColors;
+    this.numRaysAccumulated;
+    this.accumIndex;
     
-    this.RayTraceDraw = function( octTreeRoot, width, height, 
-                                  aspect, numNewRays ){
-        let camOrigin = [0, 0, 0];
+    let camOrigin = new Float32Array( 3 );
+    
+    var horizFov = this.fov;
+    var vertFov  = this.fov * graphics.GetScreenAspect();
+    
+    //buffers of new ray intersections this frame
+    let numRaysPerFrame;
+    let rayPositions;
+    let pixPositions;
+    let pixColors;
+    
+    let numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
+    let numVertRays = numRaysPerFrame / numHorizRays;
+    
+    this.changeNumRaysPerFrame = function( newNumRaysPerFrame, newAccumulatedRays ){
+        numRaysPerFrame = newNumRaysPerFrame;
+        rayPositions = new Float32Array(numRaysPerFrame*3);
+        pixPositions = new Float32Array(numRaysPerFrame*2);
+        pixColors    = new Float32Array(numRaysPerFrame*3);
+    
+        numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
+        numVertRays = numRaysPerFrame / numHorizRays;
+        
+        newAccumulatedRays
+        this.numRaysToAccum = newAccumulatedRays;
+        this.prevPixPositions = new Float32Array(this.numRaysToAccum*2);
+        this.prevRayPositions = new Float32Array(this.numRaysToAccum*3);
+        this.prevPixColors    = new Float32Array(this.numRaysToAccum*3);
+        this.numRaysAccumulated = 0;
+        this.accumIndex = 0;
+    }
+    this.changeNumRaysPerFrame(5000, 8000);
+    
+    let numRaysIntersected = 0; //number of intersections found
+    //generate rays in a grid and perturb the positions randomly
+    //to generate the sample positions (to be tiled "bundled" when multi-threaded)
+    let rayNorm = new Float32Array( 3 );
+    let screenPos = new Float32Array( 3 );
+    screenPos[2] = 0;
+    let len = rayNorm[0];
+    let ray = new Ray( camOrigin, rayNorm );
+    let dist_norm_color = [0, new Float32Array(3), new Float32Array(4)];
+    let intPt = new Float32Array(3);
+    const startTime = (new Date()).getTime();
+    let newTime = startTime;
+    const allowedTime = 100;
+    let worldPos  = new Float32Array( 3 );
+    this.RayTraceDraw = function( octTreeRoot ){
+        
         this.getLocation( camOrigin );
         
-        var horizFov = this.fov;
-        var vertFov  = this.fov * aspect;
+        
         
         //get the camera matrix and inverse to cast and reproject ray
         //intersections from previous frames
@@ -277,51 +324,39 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
         //Matrix_Print( this.screenSpaceToWorldMat, "screenToWorldMatrix" );
         
-        graphics.SetupForPixelDrawing();
         
-        //buffers of new ray intersections this frame
-        let rayPositions = new Float32Array(numNewRays*3);
-        let pixPositions = new Float32Array(numNewRays*2);
-        let pixColors    = new Float32Array(numNewRays*3);
         
-        let numHorizRays = Math.sqrt(numNewRays) * aspect;
-        let numVertRays = numNewRays / numHorizRays;
         
-        let numRaysIntersected = 0; //number of intersections found
-        //generate rays in a grid and perturb the positions randomly
-        //to generate the sample positions (to be tiled "bundled" when multi-threaded)
-        let rayNorm = new Float32Array( 3 );
-        let screenPos = new Float32Array( 3 );
-        const startTime = (new Date()).getTime();
-        let newTime = startTime;
-        const allowedTime = 100;
+        
         for(let v = 0; v < numVertRays; ++v ){
-            newTime = (new Date()).getTime();
-            if ( newTime - startTime > allowedTime) //prevent slowing the browser
-                break;
+            //newTime = (new Date()).getTime();
+            //if ( newTime - startTime > allowedTime) //prevent slowing the browser
+             //   break;
             for( let h = 0; h < numHorizRays; ++h ){
-                const vPos = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
-                const hPos = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
+                screenPos[1] = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
+                screenPos[0] = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
                 //get the world space end position of the ray normal
-                screenPos[0] = hPos; screenPos[1] = vPos; screenPos[2] = 0;
                 Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, screenPos );
-                Vect3_Subtract( rayNorm, camOrigin );
+                rayNorm[0]-=camOrigin[0];rayNorm[1]-=camOrigin[1];rayNorm[2]-=camOrigin[2];
                 //get the forward normal of the camera
-                Vect3_Normal( rayNorm );
+                len = rayNorm[0]*rayNorm[0]+rayNorm[1]*rayNorm[1]+rayNorm[2]*rayNorm[2];
+                rayNorm[0]/=len;rayNorm[1]/=len;rayNorm[2]/=len;
                 
-                const ray = new Ray( camOrigin, rayNorm );
+                ray.origin = camOrigin;
+                ray.norm = rayNorm;
+                ray.lastNode = null;
                 
                 //get the closest intersection point and pixel color
-                let dist_norm_color = [0, new Float32Array(3), new Float32Array(4)];
-                  octTreeRoot.Trace( dist_norm_color, ray, 0 );
+                
+                octTreeRoot.Trace( dist_norm_color, ray, 0 );
                 
                 if( dist_norm_color[0] > 0 ){
-                   var intPt = new Float32Array(3);
+                   
                    ray.PointAtTime( intPt, dist_norm_color[0] );
                    
                    //store pixel screenspace position
-                   pixPositions[numRaysIntersected*2 + 0] = hPos;
-                   pixPositions[numRaysIntersected*2 + 1] = vPos;
+                   pixPositions[numRaysIntersected*2 + 0] = screenPos[0];
+                   pixPositions[numRaysIntersected*2 + 1] = screenPos[1];
                    
                    //store pixel color
                    pixColors   [numRaysIntersected*3 + 0] = dist_norm_color[2][0];
@@ -348,7 +383,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         
         //transform previous frame rays to screen space
         //let screenPos = new Float32Array( 3 );
-        let worldPos  = new Float32Array( 3 );
+        /*
         for( let i = 0; i < this.numRaysAccumulated; ++i ){
             worldPos[0] = this.prevRayPositions[i*3 + 0];
             worldPos[1] = this.prevRayPositions[i*3 + 1];
@@ -357,9 +392,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
             this.prevPixPositions[i*2 + 0] = screenPos[0];
             this.prevPixPositions[i*2 + 1] = screenPos[1];
         }
+        */
+        
         //redraw previously calculated pixels
-        graphics.drawPixels( 
-            this.prevPixPositions, this.prevPixColors, this.numRaysAccumulated );
+        graphics.drawPixels( /*this.prevPixPositions*/
+            this.prevRayPositions, this.prevPixColors, 
+            this.numRaysAccumulated, this.worldToScreenSpaceMat );
         
         this.numRaysAccumulated += numRaysIntersected;
         if( this.numRaysAccumulated > this.numRaysToAccum )
@@ -368,7 +406,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
         /*    
         //if the number of new rays in this frame is low
         //remove rays to avoid stale rays from cluttering view
-        var numRaysToRemove = (numNewRays - numRaysIntersected) * 0.3;
+        var numRaysToRemove = (numRaysPerFrame - numRaysIntersected) * 0.3;
         this.numRaysAccumulated -= numRaysToRemove;
         if( this.numRaysAccumulated < 0 )
             this.numRaysAccumulated = 0;

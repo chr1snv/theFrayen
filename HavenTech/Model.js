@@ -76,11 +76,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
                 function( quadMesh, cbObj )
                 {
                     quadMesh.Update(time);
-                    cbObj.lastUpdateTime = time; 
-                    //cbObj[1].timeUpdate = true; 
-                    //set this model's flag that the animation of the mesh 
+                    cbObj.lastUpdateTime = time;
+                    //cbObj[1].timeUpdate = true;
+                    //set this model's flag that the animation of the mesh
                     //has been updated so it should regenerate it's gl buffer
-                    //cbObj[3]( cbObj[2] ); 
+                    //cbObj[3]( cbObj[2] );
                     //updateCompleteCallback(updateCompleteParams);
                 }
             );
@@ -90,26 +90,26 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
         }
 
     }
-    this.GetAnimationLength = function() { 
+    this.GetAnimationLength = function() {
       return graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
 
     //draw transformation manipulation functions
     //getters
-    this.GetPosition = function( pos )      { 
+    this.GetPosition = function( pos )      {
        graphics.GetQuadMesh( this.meshName, this.sceneName ).GetPosition(pos); }
-    this.GetScale    = function( scaleOut ) { 
+    this.GetScale    = function( scaleOut ) {
        graphics.GetQuadMesh( this.meshName, this.sceneName ).GetScale   (scaleOut); }
-    this.GetRotation = function( rotOut )   { 
+    this.GetRotation = function( rotOut )   {
        graphics.GetQuadMesh( this.meshName, this.sceneName ).GetRotation(rotOut);   }
     //setters
-    this.SetPosition = function( newPos ) { 
-        Vect3_Copy( positionOff, newPos  ); 
+    this.SetPosition = function( newPos ) {
+        Vect3_Copy( positionOff, newPos  );
         positionSet = true; optTransformUpdated = true; }
-    this.SetScale    = function( scaleIn ){ 
-        Vect3_Copy( scaleOff   , scaleIn ); 
+    this.SetScale    = function( scaleIn ){
+        Vect3_Copy( scaleOff   , scaleIn );
         scaleSet    = true; optTransformUpdated = true; }
-    this.SetRotation = function( rotNew ) { 
-        Vect3_Copy( rotationOff, rotNew  ); 
+    this.SetRotation = function( rotNew ) {
+        Vect3_Copy( rotationOff, rotNew  );
         rotationSet = true; optTransformUpdated = true; }
 
     //shader binding functions
@@ -197,17 +197,17 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
     this.scaleOff    = new Float32Array([1,1,1]);
     this.rotationOff = new Float32Array([0,0,0]);
     this.positionOff = new Float32Array([0,0,0]);
-    //refrence the shader through a name to allow 
+    //refrence the shader through a name to allow
     //for runtime modification of shader
     this.shaderName  = this.shaderScene = "";
 
     var thisP = this;
     //request the quadmesh from the graphics class to get it to load it
     graphics.GetQuadMesh( meshNameIn, sceneNameIn,
-        { 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }, 
+        { 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },
         //pack parameters into object to pass to callback below
-        function( quadMesh, cbObj ) 
-        //inline callback to get loaded parameters and call 
+        function( quadMesh, cbObj )
+        //inline callback to get loaded parameters and call
         {
             var sNameArr = quadMesh.GetShaderName();
             thisP.shaderName  = sNameArr[0];

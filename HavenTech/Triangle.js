@@ -72,7 +72,11 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
     this.rayNormLZ    = this.rayNormL[0]; //float 32 value
     this.vToPtFromV2L = new Float32Array(2);
     //this.rayDistToPtWL = this.rayNormL[0];
-    this.RayTriangleIntersection = function( ray )
+    let rayDistToPtWL;
+    let e1OrthogDotL;
+    let e2OrthogDotL;
+    let e3OrthogDotL;
+    this.RayTriangleIntersection = function( retZW, ray )
     {
        //Definition of a plane - ( 2d flat surface in 3 dimensional space ) 
        //all points on a plane have (point - planeCenter) dot planeNormal = 0 
@@ -165,7 +169,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
         //to the lineOrigin (lineOriginInPlaneSpace[z] )
         //0 = linePlaneSpaceSlope (x) + lineOriginInPlaneSpace[z]
         //-lineOriginInPlaneSpace[z] / linePlaneSpaceSlope = x
-        const rayDistToPtWL = -this.rayOriL[2] / this.rayNormL[2];
+        rayDistToPtWL = -this.rayOriL[2] / this.rayNormL[2];
         //is the rayDistToSurface the same in world and local space?
         //it should be if the local space basis vectors are unit length
         //and the ray normal is unit (or equal) length in local and world space
@@ -192,12 +196,12 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
         //all edge orthogonals are facing outward)
         //or positive signifying that from the edge the direction
         //taken to reach the point exits the bounds of the triangle
-        const e1OrthogDotL =  this.v2L_e1L[1]*this.pointL[0] + 
+        e1OrthogDotL =  this.v2L_e1L[1]*this.pointL[0] + 
                            -this.v2L_e1L[0]*this.pointL[1]; 
         //e1Orthog, the vector from v1L to v2L is rotated clockwise
         //to face outwards from the triangle
                                          
-        const e2OrthogDotL = -this.v3L_e2L[1]*this.pointL[0] + 
+        e2OrthogDotL = -this.v3L_e2L[1]*this.pointL[0] + 
                             this.v3L_e2L[0]*this.pointL[1];
         //the vector from v1L to v3L 
         //is rotated counterclockwise to face outwards
@@ -206,7 +210,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
         this.vToPtFromV2L[1] = this.pointL[1] - this.v2L_e1L[1];
         
         //vector to the point from a point on edge3L (from v3L to v2L)
-        const e3OrthogDotL =  this.e3L[1]*this.vToPtFromV2L[0] + 
+        e3OrthogDotL =  this.e3L[1]*this.vToPtFromV2L[0] + 
                            -this.e3L[0]*this.vToPtFromV2L[1];
         //edge 3 (from v2l to v3l)
         //is rotated clockwise to face away from the triangle
@@ -229,22 +233,45 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
        //that scatter the light conserving energy
             
        //DPrintf( "rayD " + rayDistToPtWL + " triZ " + this.triZW );
+       retZW[0] = this.triZW[0];
+       retZW[1] = this.triZW[1];
+       retZW[2] = this.triZW[2];
        return rayDistToPtWL;//[ this.rayDistToPtWL, this.triZW, this.pointL ];
        
     }
     
+    let vDiff = new Float32Array(3);
+    let v1Dist;
+    let v2Dist;
+    let v3Dist;
+    let totalDistInv;
+    let v1UvAmt;
+    let v2UvAmt;
+    let u3UvAmt;
     this.UVCoordOfPoint = function( uv, lpoint ){
        //calculate the uv coordinates of the intersection point
        //by interpolating between given uv coordinates of verticies
        //based on how far the point is to each vertex in local triangle space
-       const v1Dist = Vect3_Distance(this.v1L    , lpoint);
-       const v2Dist = Vect3_Distance(this.v2L_e1L, lpoint);
-       const v3Dist = Vect3_Distance(this.v3L_e2L, lpoint);
-       const totalDist = v1Dist + v2Dist + v3Dist; //get the total distance
+       vDiff[0] = this.v1L[0] - lpoint[0];
+       vDiff[1] = this.v1L[1] - lpoint[1];
+       vDiff[2] = this.v1L[2] - lpoint[2];
+       v1Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
+       
+       vDiff[0] = this.v2L_e1L[0] - lpoint[0];
+       vDiff[1] = this.v2L_e1L[1] - lpoint[1];
+       vDiff[2] = this.v2L_e1L[2] - lpoint[2];
+       v2Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
+       
+       vDiff[0] = this.v3L_e2L[0] - lpoint[0];
+       vDiff[1] = this.v3L_e2L[1] - lpoint[1];
+       vDiff[2] = this.v3L_e2L[2] - lpoint[2];
+       v3Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
+       
+       totalDistInv = float1/(v1Dist + v2Dist + v3Dist); //get the total distance
        //to normalize the contribution from each vertex
-       const v1UvAmt = v1Dist / totalDist; //how much each vertex contributes
-       const v2UvAmt = v2Dist / totalDist;
-       const v3UvAmt = v3Dist / totalDist;
+       v1UvAmt = v1Dist * totalDistInv; //how much each vertex contributes
+       v2UvAmt = v2Dist * totalDistInv;
+       v3UvAmt = v3Dist * totalDistInv;
        //the interpolated uv value is the normalized sum of contributions
        uv[0] = this.u1[0] * v1UvAmt + this.u2[0] * v2UvAmt + this.u3[0] * v3UvAmt;
        uv[1] = this.u1[1] * v1UvAmt + this.u2[1] * v2UvAmt + this.u3[1] * v3UvAmt;

@@ -56,6 +56,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
     this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
     this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+    this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
 
     //animation classes
     //ipo animation affects the root transformation of the quadmesh
@@ -170,14 +171,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     //this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
     
     this.AABBUpdateTime = -1;
-    this.AABB = null;
     //get the axis aligned bounding box of the mesh
     this.UpdateAABB = function(time) {
         if( this.AABBUpdateTime < time ){
             this.AABBUpdateTime = this.lastMeshUpdateTime;
-            this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
+            this.AABB.minCoord[0] = this.worldMinCorner[0];
+            this.AABB.minCoord[1] = this.worldMinCorner[1];
+            this.AABB.minCoord[2] = this.worldMinCorner[2];
+            this.AABB.maxCoord[0] = this.worldMaxCorner[0];
+            this.AABB.maxCoord[1] = this.worldMaxCorner[1];
+            this.AABB.maxCoord[2] = this.worldMaxCorner[2];
+            this.AABB.center[0] = (this.worldMinCorner[0] + this.worldMaxCorner[0]) * floatP5;
+            this.AABB.center[1] = (this.worldMinCorner[1] + this.worldMaxCorner[1]) * floatP5;
+            this.AABB.center[2] = (this.worldMinCorner[2] + this.worldMaxCorner[2]) * floatP5;
         }
-        return this.AABB;
     }
     
     //generate world space triangles from a face index
@@ -258,6 +265,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
     
     //called during ray trace rendering
     //returns the ray distance, surface normal, and color at the intersection pt
+    let uvCoord = new Float32Array(2);
+    let face;
+    let tri;
     this.GetRayIntersection = function(retVal, ray){
         
         /*
@@ -278,24 +288,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
         */
         
         //check all faces of the mesh if the ray intersects
-        let uvCoord = new Float32Array(2);
         for( let f = 0; f < this.faces.length; ++f ){
             //each face should have 3 or 4 verticies
-            const face = this.faces[f];
-            
+            face = this.faces[f];
             for( let t = 0; t < face.tris.length; ++t ){
-
-                const triangle = this.faces[f].tris[t];
+                tri = face.tris[t];
                 //let pointL = new Float32Array(3);
-                retVal[0] = triangle.RayTriangleIntersection( ray );
+                retVal[0] = tri.RayTriangleIntersection( retVal[1], ray );
                 if( retVal[0] > 0 ){
-                    
                     //the ray intersects the triangle, find the uv coordinate
-                    
-                    triangle.UVCoordOfPoint( uvCoord, triangle.pointL );
-                    
+                    //retVal[2] = this.shaders[face.materialID].diffuseCol;
+                    tri.UVCoordOfPoint( uvCoord, tri.pointL );
                     this.GetMaterialColorAtUVCoord( retVal[2], uvCoord, face.materialID );
-                    retVal[1] = triangle.triZW;
+                    //retVal[1] = tri.triZW;
                     return;
                 }
                 

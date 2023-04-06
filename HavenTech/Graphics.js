@@ -273,57 +273,64 @@ function Graphics( canvasIn, loadCompleteCallback )
 		}
 	}
 	this.UnrefTexture = function(filename, sceneName) {}
+	let concatName;
+	let quadMesh;
 	this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback)
 	{
-		var concatName = filename + sceneName;
-		var quadMesh = this.quadMeshes[concatName];
+		concatName = filename + sceneName;
+		quadMesh = this.quadMeshes[concatName];
 		if(quadMesh === undefined)
 		{
 			//mesh is not loaded, load the new mesh and return it (asynchronous load)
-			var newMesh = new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
-			this.quadMeshes[concatName] = newMesh;
+			this.quadMeshes[concatName] =
+                 new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
 		}else
 		{
 			quadMeshReadyCallback( quadMesh, readyCallbackParameters );
 		}
 	}
-	this.UnrefQuadMesh = function(filename, sceneName) {}
-	
-	
-	//https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
-	var pointBuffer   = null;
-	var colorBuffer   = null;
-	var pointPosAttr = null;
-	var pointColorAttr = null;
-	this.SetupForPixelDrawing = function(){
-	    if( pointBuffer == null )
-    	    pointBuffer = gl.createBuffer();
-    	if( colorBuffer == null )
-    	    colorBuffer = gl.createBuffer();
-    	
-	}
-	
-	this.drawPixels = function( float32VecPositions, float32VecColors, numPoints ){
-	    //gl.bufferData( buffer type, 
-	    
-	    gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-	    gl.bufferData( gl.ARRAY_BUFFER,  
-	                   float32VecPositions, gl.STATIC_DRAW );
-        pointPosAttr = gl.getAttribLocation( this.currentProgram, "position" );
+    this.UnrefQuadMesh = function(filename, sceneName) {}
+    
+    
+    //https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
+    var pointBuffer      = null;
+    var colorBuffer      = null;
+    var pointPosAttr     = null;
+    var pointColorAttr   = null;
+    var projMatAttr      = null;
+    this.pointSizeAttr    = null;
+    this.pointFalloffAttr = null;
+    this.SetupForPixelDrawing = function(){
+    	    if( pointBuffer == null )
+            pointBuffer = gl.createBuffer();
+        if( colorBuffer == null )
+            colorBuffer = gl.createBuffer();
+        
+        projMatAttr      = gl.getUniformLocation( this.currentProgram, "projection"   );
+        pointPosAttr     = gl.getAttribLocation(  this.currentProgram, "position"     );
+        pointColorAttr   = gl.getAttribLocation(  this.currentProgram, "ptCol"        );
+        this.pointSizeAttr    = gl.getUniformLocation(  this.currentProgram, "pointSize"    );
+        this.pointFalloffAttr = gl.getUniformLocation(  this.currentProgram, "pointFalloff" );
+    }
+    
+    this.drawPixels = function( float32VecPositions, float32VecColors, numPoints, projMat ){
+        //gl.bufferData( buffer type, 
+
+        gl.uniformMatrix4fv(projMatAttr, true, projMat, 0, 4*4 );
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, float32VecPositions, gl.STATIC_DRAW );
+
         gl.enableVertexAttribArray( pointPosAttr );
         //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-        gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(pointPosAttr, 3, gl.FLOAT, false, 0, 0);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER,  
-	                   float32VecColors, gl.STATIC_DRAW );
-        pointColorAttr = gl.getAttribLocation( this.currentProgram, "ptCol" );
-	    gl.enableVertexAttribArray( pointColorAttr );
+        gl.bufferData( gl.ARRAY_BUFFER, float32VecColors, gl.STATIC_DRAW );
+        
+        gl.enableVertexAttribArray( pointColorAttr );
         //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
         gl.vertexAttribPointer(pointColorAttr, 3, gl.FLOAT, false, 0, 0);
-        
-        
-        
         
         gl.drawArrays( gl.POINTS, 0, numPoints );
 	}
@@ -409,7 +416,7 @@ function Graphics( canvasIn, loadCompleteCallback )
 		CheckGLError( "Graphics::end frag shader validated " );
 
 		//clear the render buffer
-		thisP.Clear();
+		//thisP.Clear();
 
 		CheckGLError( "Graphics::after clear " );
 			
