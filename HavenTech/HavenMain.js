@@ -33,45 +33,43 @@
 //experiences to be explored
 
 //transitions the rendering to fullscreen
+var fullScrCanvWidthElm  = document.getElementById('fullScrCanvWidth');
+var fullScrCanvHeightElm = document.getElementById('fullScrCanvHeight');
+var canvWidthElm = document.getElementById('canvWidth');
+var canvHeightElm = document.getElementById('canvHeight');
 function EnterFullscreen(){
-    var canvas = document.getElementById('frayenCanvas');
     
     //change the canvas resolution if in fullscreen or browser window mode
     document.addEventListener('fullscreenchange', (event) => {
-  // document.fullscreenElement will point to the element that
-  // is in fullscreen mode if there is one. If there isn't one,
-  // the value of the property is null.
-  if (document.fullscreenElement) {
-    //console.log(`Element: ${document.fullscreenElement.id} entered full-screen mode.`);
-    
-    //set the canvas to the fullscreen resolution
-    graphics.SetCanvasSize(document.getElementById('fullScrCanvWidth').value,
-                       document.getElementById('fullScrCanvHeight').value);
-                       
-  } else {
-    console.log('Leaving full-screen mode.');
-    
-    //set the canvas to the non fullscreen resolution
-    graphics.SetCanvasSize(document.getElementById('canvWidth').value,
-                       document.getElementById('canvHeight').value);
-  }
-});
+      // document.fullscreenElement will point to the element that
+      // is in fullscreen mode if there is one. If there isn't one,
+      // the value of the property is null.
+      if (document.fullscreenElement) {
+        //console.log(`Element: ${document.fullscreenElement.id} entered full-screen mode.`);
+        
+        //set the canvas to the fullscreen resolution
+        graphics.SetCanvasSize( fullScrCanvWidthElm.value, fullScrCanvHeightElm.value );
+        
+      } else {
+        console.log('Leaving full-screen mode.');
+        
+        //set the canvas to the non fullscreen resolution
+        graphics.SetCanvasSize( canvWidthElm.value, canvHeight.value );
+      }
+    });
     
     //enter fullscreen
-    if(canvas.webkitRequestFullscreen)
+    if(graphics.canvas.webkitRequestFullscreen)
     {
-        canvas.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        graphics.canvas.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
     }else{
-        canvas.requestFullscrn = 
-        canvas.msRequestFullscreen ||
-        canvas.requestFullscreen;
+        graphics.canvas.requestFullscrn = 
+            graphics.canvas.msRequestFullscreen ||
+            graphics.canvas.requestFullscreen;
         
-        promise = canvas.requestFullscreen();
+        promise = graphics.canvas.requestFullscreen();
         //alert("promise " + promise );
     }
-    
-    
-    
     
 }
 
@@ -125,8 +123,9 @@ function havenMain(){
     registerInputHandlers();
 
     graphics = new Graphics(document.getElementById('frayenCanvas'), 
-        function(){ sceneChanged(); } ); //get the selected scene from the dropdown and load it
+        function(){ statusElm.innerHTML = "Run Scene";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
     console.log("graphics loaded");
+    touch = new TouchScreenControls();
     //sceneChanged(); //get the selected scene from the dropdown and load it
 }
 
@@ -135,16 +134,47 @@ function SetCanvasSize(){
                        document.getElementById('canvHeight').value);
 }
 
+function sceneSelectionFocus(){
+    this.selectedIndex=-1;
+}
+
 //called when the scene selection dropdown changes
-function sceneChanged()
+var sceneSelectorElm = document.getElementById("sceneSelection");
+var statusElm = document.getElementById("status");
+var mainLoopAnimRequestHandle = null;
+function loadScene()
 {
-    var sel = document.getElementById("sceneSelection");
-    var idx = sel.selectedIndex;
-    var newSceneName = sel.children[idx].text;
+    var idx = sceneSelectorElm.selectedIndex;
+    var newSceneName = sceneSelectorElm.children[idx].text;
     
-    window.cancelAnimFrame(MainLoop);
+    stop();
     
     mainScene = new HavenScene(newSceneName, sceneLoaded);
+    
+    statusElm.innerHTML = "Loading Scene";
+    runSceneButtonElm.innerHTML = "Stop";
+    runSceneButtonElm.onclick = stop;
+}
+runSceneButtonElm = document.getElementById("runSceneButton");
+function stop(){
+    if( mainLoopAnimRequestHandle ){
+        window.cancelAnimFrame(mainLoopAnimRequestHandle);
+        mainLoopAnimRequestHandle = null;
+    }
+    statusElm.innerHTML = "Stopped";
+    runSceneButtonElm.innerHTML = "Run";
+    runSceneButtonElm.onclick = loadScene;
+}
+
+function ResetSettings(){
+    mouseXSen.value = 0.1; mouseYSen.value = 0.1;
+    touchMoveSen.value = 0.005; touchLookSen.value = 0.1;
+    
+    raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
+    pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+    
+    fullScrCanvWidthElm.value = 1920; fullScrCanvHeightElm.value = 1080;
+    canvWidthElm.value = 640; canvHeightElm.value = 480;
 }
 
 //callback once a scene has finished loading
@@ -152,6 +182,7 @@ var sceneTime = 0;
 var sceneLoadedTime = 0;
 function sceneLoaded(havenScene)
 {
+    statusElm.innerHTML = "Init Scene";
     sceneLoadedTime = Date.now();
     mainScene = havenScene;
     //mainScene.Update(sceneTime);
@@ -160,13 +191,18 @@ function sceneLoaded(havenScene)
     //graphics.Clear();
     graphics.SetupForPixelDrawing();
     mouseSenChange();
-    raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
+    touchSenChange();
+    //raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
     raysPerFrameChange();
-    pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+    //pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
     pointSizeChange();
+    statusElm.innerHTML = "Running";
 }
 
 //the main rendering and update function called each frame
+var fpsElm = document.getElementById("fps");
+var lastSceneFPSOutputTime = 0;
+var framesSinceLastFPSOutputTime = 0;
 function MainLoop()
 {
     sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
@@ -176,8 +212,13 @@ function MainLoop()
     //drawSquare(graphics);
     mainScene.Draw();
 
-    window.requestAnimFrame(MainLoop);
-    
+    mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
+    framesSinceLastFPSOutputTime += 1;
+    if( sceneTime - lastSceneFPSOutputTime >= 1 ){
+        fpsElm.innerHTML = framesSinceLastFPSOutputTime;
+        lastSceneFPSOutputTime = sceneTime;
+        framesSinceLastFPSOutputTime = 0;
+    }
 }
 
 let pointSizeElm = document.getElementById( "pointSize" );
@@ -200,6 +241,14 @@ let mouseYSenValue;
 function mouseSenChange(){
     mouseXSenValue = mouseXSen.value;
     mouseYSenValue = mouseYSen.value;
+}
+let touchMoveSen = document.getElementById("touchMoveSen");
+let touchLookSen = document.getElementById("touchLookSen");
+let touchMoveSenValue;
+let touchLookSenValue;
+function touchSenChange(){
+    touchMoveSenValue = touchMoveSen.value;
+    touchLookSenValue = touchLookSen.value;
 }
 
 //called from the mainloop, gets user input and updates the freelook camera
@@ -226,6 +275,9 @@ function UpdateCamera( updateTime )
         camPositionUpdate[0] -= moveAmt;
     if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
         camPositionUpdate[0] += moveAmt;
+        
+        camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
+        camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
 
     //generate the rotation update
     
@@ -240,6 +292,8 @@ function UpdateCamera( updateTime )
     ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
     mY = relMy*mouseYSenValue; 
     ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
+    mX += touch.lookDelta[0]*touchLookSenValue;
+    mY += touch.lookDelta[1]*touchLookSenValue;
     
     camRotUpdate[0] = -mY*Math.PI/180;
     camRotUpdate[1] = -mX*Math.PI/180;

@@ -7,37 +7,37 @@ function loadTextFile(filename, callback, thisP)
 {
 	if(callback === undefined)
 		DPrintf("callback undefined");
-    try{
-        var txtFile = new XMLHttpRequest();
-        txtFile.onreadystatechange = function()
-        {
-            if(txtFile.readyState == 4)
-            {
-                if(txtFile.status == 200 || txtFile.status == 0)
-                {
-                    callback(txtFile.responseText, thisP); //callback
-                }
-                else
-                {
-                    var fileParts = filename.split('.');
-	                var fileSuffix = fileParts[fileParts.length-1];
-	                //
-                	if(!( fileSuffix == "hvtIPO" ||
-                		  fileSuffix == "hvtKeys" ||
-                		  fileSuffix == "hvtAnim") )
-                	{
-                    	console.log( "Unable to open file of unknown type: " +  filename);
-                    }
-                }
-            }
-        }
-        txtFile.open("GET", filename, true);
-        txtFile.overrideMimeType("text/plain;");
-        txtFile.send();
-    }catch(err)
-    {
-        return undefined;
-    }
+	try{
+		var txtFile = new XMLHttpRequest();
+		txtFile.onreadystatechange = function()
+		{
+			if(txtFile.readyState == 4)
+			{
+				if(txtFile.status == 200 || txtFile.status == 0)
+				{
+					callback(txtFile.responseText, thisP); //callback
+				}
+				else
+				{
+					var fileParts = filename.split('.');
+					var fileSuffix = fileParts[fileParts.length-1];
+					//
+					if(!( fileSuffix == "hvtIPO" ||
+						  fileSuffix == "hvtKeys" ||
+						  fileSuffix == "hvtAnim") )
+					{
+						console.log( "Unable to open file of unknown type: " +  filename);
+					}
+				}
+			}
+		}
+		txtFile.open("GET", filename, true);
+		txtFile.overrideMimeType("text/plain;");
+		txtFile.send();
+	}catch(err)
+	{
+		return undefined;
+	}
 }
 //synchronous loading gives a simpler loop,
 //but when there are many assets to load the browser ui hangs

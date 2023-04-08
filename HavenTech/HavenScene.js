@@ -186,8 +186,9 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
     this.parseSceneTextFile = function( thisSceneP )
     {
     	
-        for( var i = 0; i<thisSceneP.textFileLines.length; ++i )
+        for( let i = 0; i<thisSceneP.textFileLines.length; ++i )
         {
+            statusElm.innerHTML = "Parsing" + i + "/" + thisSceneP.textFileLines.length;
             var temp = thisSceneP.textFileLines[i];
             
             if(temp[0] == 'm') //this is a model to be read in 
@@ -227,6 +228,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback )
                     model.Update( 0 ); //update to generate AABB
                     model.AddToOctTree( havenScenePointer.octTree,
                         function(){
+                            statusElm.innerHTML = "Loading " + thisSceneP.pendingModelsAdded + " Models";
                             thisSceneP.pendingModelsAdded-=1;
                             thisSceneP.checkIfIsLoaded();
                         } );

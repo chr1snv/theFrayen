@@ -3,35 +3,17 @@
 //helper function for printing gl errors
 function CheckGLError(where)
 {
-	var error = gl.getError();
-	var iter = 0;
-	while(error != gl.NO_ERROR && iter < 100)
-	{
-		DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16) + ' ' + WebGLDebugUtils.glEnumToString(error) );
-		error = gl.getError();
-		++iter;
-	}
-	if(iter > 0)
-		return true;
-	return false;
-}
-
-function drawSquare(graphics) // Draw the picture
-{
-	var vertices = [  0.0,  0.5, 0.0,
-					 -0.5, -0.5, 0.0,
-					  0.5, -0.5, 0.0   ]; 
-	var verts = new Float32Array(vertices);
-
-	attributeSetFloats( graphics.currentProgram, "position",  3, verts );
-	CheckGLError("draw square, after position attributeSetFloats");
-	attributeSetFloats( graphics.currentProgram, "norm",    3, verts );
-	CheckGLError("draw square, after normal attributeSetFloats");
-	attributeSetFloats( graphics.currentProgram, "texCoord",  2, verts );
-	CheckGLError("draw square, after texCoord attributeSetFloats");
-	gl.drawArrays(gl.TRIANGLES, 0, 3);
-	CheckGLError("draw square, after drawArrays");
-	gl.flush();
+    var error = gl.getError();
+    var iter = 0;
+    while(error != gl.NO_ERROR && iter < 100)
+    {
+        DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16) + ' ' + WebGLDebugUtils.glEnumToString(error) );
+        error = gl.getError();
+        ++iter;
+    }
+    if(iter > 0)
+        return true;
+    return false;
 }
 
 //used to pass perameters to a shader
@@ -234,7 +216,7 @@ function Graphics( canvasIn, loadCompleteCallback )
 		}
 		var shader = this.shaders[ concatName ];
 		if( shader === undefined )
-		{	
+		{
 		    //shader is not loaded, load the new shader and return it
 		    new Shader( filename, sceneName, readyCallbackParams, 
 		    	function( newShader, readyCallbackParams1 )
