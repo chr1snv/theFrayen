@@ -127,6 +127,7 @@ function havenMain(){
     console.log("graphics loaded");
     touch = new TouchScreenControls();
     //sceneChanged(); //get the selected scene from the dropdown and load it
+    window.setTimeout( loadScene, 5000 );
 }
 
 function SetCanvasSize(){

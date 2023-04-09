@@ -264,6 +264,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
         //check if the ray intersects the object
         if( this.objects[i].GetAABB().
                 RangeOverlaps( minRayCoord, maxRayCoord, this.axis ) ){
+            retVal[0] = -1;
             this.objects[i].RayIntersect( retVal, ray );
             if( retVal[0] > 0 ){ //if it did intersect
                 return; //return the result from the object
