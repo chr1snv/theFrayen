@@ -72,12 +72,14 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		quadMesh.Update(time);
 		cbObj.lastUpdateTime = time;
 		cbObj.quadmesh = quadMesh;
+		cbObj.AABB = quadMesh.AABB;
 	}
 	this.Update = function( time, updateCompleteParams, updateCompleteCallback ){
 		if( this.quadmesh == null ){
 			graphics.GetQuadMesh( this.meshName, this.sceneName, this, quadMeshLoaded );
 		}else{
 			this.quadmesh.Update( time );
+			this.AABB = this.quadmesh.AABB;
 			this.lastUpdateTime = time;
 		}
 
@@ -134,26 +136,10 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 
 
 
-	/* //the AABB is in the quadmesh
+	//the AABB is in the quadmesh
 	//model is really for an additional transformation
 	//and scripts on an object
-	this.GetAABB = function( time ){
-		if( this.lastUpdateTime != time )
-			this.Update( time );
-		if( this.AABB == null ){
-			this.AABB = this.quadmesh.AABB;
-		}
-		return this.AABB; 
-		//return the cached AABB in the model 
-		//( when the quadmesh is updated it should be updated )
-	}
-	*/
-
-	this.GetAABB = function(  ){
-		//may be more complex as transformations are layered
-		//and subcomponents are added to the model
-		return this.quadmesh.AABB;
-	}
+	
 
 	this.aabbPoint = new Float32Array(3);
 	let aabbTime = 0;

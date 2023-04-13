@@ -112,27 +112,27 @@ function AABB( minCorner, maxCorner ){
 		maxRayStep = (this.maxCoord[0] - ray.origin[0]) / ray.norm[0];
 		//ignore AABB sides behind the ray origin
 		if( minRayStep > minRayTime && minRayStep < rayTime[0] ){
-			rayTime[0] = minRayStep.valueOf();
-			this.intersectAxis[0] = 0;}
+			rayTime[0] = minRayStep;//.valueOf();
+			}
 		if( maxRayStep > minRayTime && maxRayStep < rayTime[0] ){
-			rayTime[0] = maxRayStep.valueOf();
-			this.intersectAxis[0] = 0;}
+			rayTime[0] = maxRayStep;//.valueOf();
+			}
 		minRayStep = (this.minCoord[1] - ray.origin[1]) / ray.norm[1];
 		maxRayStep = (this.maxCoord[1] - ray.origin[1]) / ray.norm[1];
 		if( minRayStep > minRayTime && minRayStep < rayTime[1] ){
-			rayTime[1] = minRayStep.valueOf();
-			this.intersectAxis[1] = 1;}
+			rayTime[1] = minRayStep;//.valueOf();
+			}
 		if( maxRayStep > minRayTime && maxRayStep < rayTime[1] ){
-			rayTime[1] = maxRayStep.valueOf();
-			this.intersectAxis[1] = 1;}
+			rayTime[1] = maxRayStep;//.valueOf();
+			}
 		minRayStep = (this.minCoord[2] - ray.origin[2]) / ray.norm[2];
 		maxRayStep = (this.maxCoord[2] - ray.origin[2]) / ray.norm[2];
 		if( minRayStep > minRayTime && minRayStep < rayTime[2] ){
-			rayTime[2] = minRayStep.valueOf();
-			this.intersectAxis[2] = 2;}
+			rayTime[2] = minRayStep;//.valueOf();
+			}
 		if( maxRayStep > minRayTime && maxRayStep < rayTime[2] ){
-			rayTime[2] = maxRayStep.valueOf();
-			this.intersectAxis[2] = 2;}
+			rayTime[2] = maxRayStep;//.valueOf();
+			}
 
 		//advance the ray to the possible intersection point
 		rayStepPoints[0][0] = ray.norm[0] * rayTime[0] + ray.origin[0];
@@ -149,11 +149,11 @@ function AABB( minCorner, maxCorner ){
 
 		//check the orthogonal axies of the point are within the aabb bounds
 		numOtherAxiesWithinBounds = 0;
-		otherAxis = (this.intersectAxis[0]+1) % 3;
+		otherAxis = (0+1) % 3;
 		if( rayStepPoints[0][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[0][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;
-		otherAxis = (this.intersectAxis[0]+2) % 3;
+		otherAxis = (0+2) % 3;
 		if( rayStepPoints[0][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[0][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;
@@ -164,11 +164,11 @@ function AABB( minCorner, maxCorner ){
 			return rayTime[0];} //return the point and ray time
 		
 		numOtherAxiesWithinBounds = 0;
-		otherAxis = (this.intersectAxis[1]+1) % 3;
+		otherAxis = (1+1) % 3;
 		if( rayStepPoints[1][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[1][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;
-		otherAxis = (this.intersectAxis[1]+2) % 3;
+		otherAxis = (1+2) % 3;
 		if( rayStepPoints[1][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[1][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;
@@ -179,11 +179,11 @@ function AABB( minCorner, maxCorner ){
 			return rayTime[1];} //return the point and ray time
 			
 		numOtherAxiesWithinBounds = 0;
-		otherAxis = (this.intersectAxis[2]+1) % 3;
+		otherAxis = (2+1) % 3;
 		if( rayStepPoints[2][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[2][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;
-		otherAxis = (this.intersectAxis[2]+2) % 3;
+		otherAxis = (2+2) % 3;
 		if( rayStepPoints[2][otherAxis] >= this.minCoord[otherAxis]  && 
 			rayStepPoints[2][otherAxis] <= this.maxCoord[otherAxis]  )
 			numOtherAxiesWithinBounds += 1;

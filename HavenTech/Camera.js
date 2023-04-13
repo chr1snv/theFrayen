@@ -298,11 +298,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	screenPos[2] = 0;
 	let len = rayNorm[0];
 	let ray = new Ray( camOrigin, rayNorm );
-	let dist_norm_color = [0, new Float32Array(3), new Float32Array(4)];
+	let dist_norm_color = [0, new Float32Array(3), new Float32Array(4), null];
 	let intPt = new Float32Array(3);
 	let newTime = sceneLoadedTime;
 	const allowedTime = 100;
 	let worldPos  = new Float32Array( 3 );
+	let startNode = null;
 	this.RayTraceDraw = function( octTreeRoot ){
 
 		this.getLocation( camOrigin );
@@ -329,7 +330,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				ray.lastNode = null;
 				
 				//get the closest intersection point and pixel color
-				octTreeRoot.Trace( dist_norm_color, ray, float0 );
+				startNode = octTreeRoot.SubNode( ray.origin );
+				startNode.Trace( dist_norm_color, ray, float0 );
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
 					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];
@@ -377,4 +379,25 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		*/
 	}
 
+
+	this.AddPoint = function(intPt, col){
+
+		//save new rays to accumulation buffer
+		//store pixel worldspace position
+		this.prevRayPositions[this.accumIndex*3 + 0] = intPt[0];
+		this.prevRayPositions[this.accumIndex*3 + 1] = intPt[1];
+		this.prevRayPositions[this.accumIndex*3 + 2] = intPt[2];
+
+		this.prevPixColors[this.accumIndex*3 + 0]    = col[0];
+		this.prevPixColors[this.accumIndex*3 + 1]    = col[1];
+		this.prevPixColors[this.accumIndex*3 + 2]    = col[2];
+
+		this.accumIndex += 1;
+		if( this.accumIndex > this.numRaysToAccum )
+			this.accumIndex = 0;
+	
+		this.numRaysAccumulated += 1;
+		if( this.numRaysAccumulated > this.numRaysToAccum )
+		    this.numRaysAccumulated = this.numRaysToAccum;
+	}
 }

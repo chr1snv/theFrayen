@@ -28,14 +28,12 @@ function RayRayIntersection( o1, d1, o2, d2 ){
 	var num = ( o2[1] - o1[1] ) * d1[0] - ( o2[0] - o1[0] ) * d1[1];
 	var denom = ( d2[0] * d1[1] - d2[1] * d1[0] );
 
-	if( Math.abs( denom ) < 0.001 )
+	if( denom < 0.001 && denom > 0.001 ) //Math.abs( 
 		return undefined;
 	//return t2
 	return num / denom;
 }
 
-
-rayStepEpsilon = 0.0001;
 
 function Ray(origin, direction){
 	this.origin    = origin;

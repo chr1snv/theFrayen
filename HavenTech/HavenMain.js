@@ -38,105 +38,118 @@ var fullScrCanvHeightElm = document.getElementById('fullScrCanvHeight');
 var canvWidthElm = document.getElementById('canvWidth');
 var canvHeightElm = document.getElementById('canvHeight');
 function EnterFullscreen(){
-    
-    //change the canvas resolution if in fullscreen or browser window mode
-    document.addEventListener('fullscreenchange', (event) => {
-      // document.fullscreenElement will point to the element that
-      // is in fullscreen mode if there is one. If there isn't one,
-      // the value of the property is null.
-      if (document.fullscreenElement) {
-        //console.log(`Element: ${document.fullscreenElement.id} entered full-screen mode.`);
-        
-        //set the canvas to the fullscreen resolution
-        graphics.SetCanvasSize( fullScrCanvWidthElm.value, fullScrCanvHeightElm.value );
-        
-      } else {
-        console.log('Leaving full-screen mode.');
-        
-        //set the canvas to the non fullscreen resolution
-        graphics.SetCanvasSize( canvWidthElm.value, canvHeight.value );
-      }
-    });
-    
-    //enter fullscreen
-    if(graphics.canvas.webkitRequestFullscreen)
-    {
-        graphics.canvas.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-    }else{
-        graphics.canvas.requestFullscrn = 
-            graphics.canvas.msRequestFullscreen ||
-            graphics.canvas.requestFullscreen;
-        
-        promise = graphics.canvas.requestFullscreen();
-        //alert("promise " + promise );
-    }
-    
+	//change the canvas resolution if in fullscreen or browser window mode
+	document.addEventListener('fullscreenchange', (event) => {
+		// document.fullscreenElement will point to the element that
+		// is in fullscreen mode if there is one. If there isn't one,
+		// the value of the property is null.
+		if (document.fullscreenElement) {
+			//console.log(`Element: ${document.fullscreenElement.id} entered full-screen mode.`);
+			//set the canvas to the fullscreen resolution
+			graphics.SetCanvasSize( fullScrCanvWidthElm.value, fullScrCanvHeightElm.value );
+		} else {
+			console.log('Leaving full-screen mode.');
+			//set the canvas to the non fullscreen resolution
+			graphics.SetCanvasSize( canvWidthElm.value, canvHeight.value );
+		}
+	});
+
+	//enter fullscreen
+	if(graphics.canvas.webkitRequestFullscreen)
+	{
+		graphics.canvas.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+	}else{
+		graphics.canvas.requestFullscrn = 
+			graphics.canvas.msRequestFullscreen ||
+			graphics.canvas.requestFullscreen;
+		
+		promise = graphics.canvas.requestFullscreen();
+		//alert("promise " + promise );
+	}
+
 }
 
 //attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
 //(first person like mouse input)
 var ptrLck = null;
 function requestPointerLock(){
-    
-    var canvas = document.getElementById('frayenCanvas');
-    
-    //request mouse pointer lock
-    canvas.rqstPtrLck = 
-    canvas.requestPointerLock ||
-    canvas.mozRequestPointerLock;
-    
-    ptrLck = canvas.rqstPtrLck();
-    
-    //document.addEventListener("mousemove", updatePosition, false);
+	var canvas = document.getElementById('frayenCanvas');
+
+	//request mouse pointer lock
+	canvas.rqstPtrLck = 
+	canvas.requestPointerLock ||
+	canvas.mozRequestPointerLock;
+
+	ptrLck = canvas.rqstPtrLck();
+
+//document.addEventListener("mousemove", updatePosition, false);
 }
 //release the mouse
 function releasePointerLock(){
-    canvas.relPtrLck =
-    canvas.releasePointerCapture;
+	canvas.relPtrLck =
+	canvas.releasePointerCapture;
 
-    canvas.relPtrLck();
+	canvas.relPtrLck();
 }
 
 function ExitFullscreen(){
 
-    var extFullScrn = 
-    document.webkitExitFullscreen ||
-    document.mozCancelFullScreen ||
-    document.msExitFullscreen ||
-    document.exitFullscreen;
-    
-    var extPtrLck =
-    document.exitPointerLock    ||
-    document.mozExitPointerLock;
+	var extFullScrn = 
+	document.webkitExitFullscreen ||
+	document.mozCancelFullScreen ||
+	document.msExitFullscreen ||
+	document.exitFullscreen;
 
-    // Attempt to unlock
-    extFullScrn();
-    extPtrLck();
-    
+	var extPtrLck =
+	document.exitPointerLock    ||
+	document.mozExitPointerLock;
+
+	// Attempt to unlock
+	extFullScrn();
+	extPtrLck();
+
 }
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
+let autoRunCountdown = 4;
+let stopAutoStart = false;
 function havenMain(){
-    //cameraStream = new CameraStream();
+	//cameraStream = new CameraStream();
 
-    registerInputHandlers();
+	registerInputHandlers();
 
-    graphics = new Graphics(document.getElementById('frayenCanvas'), 
-        function(){ statusElm.innerHTML = "Run Scene";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
-    console.log("graphics loaded");
-    touch = new TouchScreenControls();
-    //sceneChanged(); //get the selected scene from the dropdown and load it
-    window.setTimeout( loadScene, 5000 );
+	graphics = new Graphics(document.getElementById('frayenCanvas'), 
+		function(){ statusElm.innerHTML = "Auto run in 5";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
+	console.log("graphics loaded");
+	touch = new TouchScreenControls();
+	//sceneChanged(); //get the selected scene from the dropdown and load it
+	window.setTimeout( autoRunCount, 1000 );
+}
+function stopAutostart(){
+	stopAutoStart = true;
+	statusElm.innerHTML = "Run";
+	runSceneButtonElm.innerHTML = "Run";
+	runSceneButtonElm.onclick = loadScene;
+}
+
+function autoRunCount(){
+	if( !stopAutoStart ){
+		statusElm.innerHTML = "Auto run in " + autoRunCountdown;
+		if( --autoRunCountdown < 1 )
+			loadScene();
+		else
+			window.setTimeout( autoRunCount, 1000 );
+	}
 }
 
 function SetCanvasSize(){
-    graphics.SetCanvasSize(document.getElementById('canvWidth').value,
-                       document.getElementById('canvHeight').value);
+	graphics.SetCanvasSize(document.getElementById('canvWidth').value,
+							document.getElementById('canvHeight').value);
 }
 
 function sceneSelectionFocus(){
-    this.selectedIndex=-1;
+	this.selectedIndex=-1;
 }
 
 //called when the scene selection dropdown changes
@@ -145,37 +158,37 @@ var statusElm = document.getElementById("status");
 var mainLoopAnimRequestHandle = null;
 function loadScene()
 {
-    var idx = sceneSelectorElm.selectedIndex;
-    var newSceneName = sceneSelectorElm.children[idx].text;
-    
-    stop();
-    
-    mainScene = new HavenScene(newSceneName, sceneLoaded);
-    
-    statusElm.innerHTML = "Loading Scene";
-    runSceneButtonElm.innerHTML = "Stop";
-    runSceneButtonElm.onclick = stop;
+	var idx = sceneSelectorElm.selectedIndex;
+	var newSceneName = sceneSelectorElm.children[idx].text;
+
+	stop();
+
+	mainScene = new HavenScene(newSceneName, sceneLoaded);
+
+	statusElm.innerHTML = "Loading Scene";
+	runSceneButtonElm.innerHTML = "Stop";
+	runSceneButtonElm.onclick = stop;
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
 function stop(){
-    if( mainLoopAnimRequestHandle ){
-        window.cancelAnimFrame(mainLoopAnimRequestHandle);
-        mainLoopAnimRequestHandle = null;
-    }
-    statusElm.innerHTML = "Stopped";
-    runSceneButtonElm.innerHTML = "Run";
-    runSceneButtonElm.onclick = loadScene;
+	if( mainLoopAnimRequestHandle ){
+		window.cancelAnimFrame(mainLoopAnimRequestHandle);
+		mainLoopAnimRequestHandle = null;
+	}
+	statusElm.innerHTML = "Stopped";
+	runSceneButtonElm.innerHTML = "Run";
+	runSceneButtonElm.onclick = loadScene;
 }
 
 function ResetSettings(){
-    mouseXSen.value = 0.1; mouseYSen.value = 0.1;
-    touchMoveSen.value = 0.005; touchLookSen.value = 0.1;
-    
-    raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
-    pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
-    
-    fullScrCanvWidthElm.value = 1920; fullScrCanvHeightElm.value = 1080;
-    canvWidthElm.value = 640; canvHeightElm.value = 480;
+	mouseXSen.value = 0.1; mouseYSen.value = 0.1;
+	touchMoveSen.value = 0.005; touchLookSen.value = 0.1;
+
+	raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
+	pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+
+	fullScrCanvWidthElm.value = 1920; fullScrCanvHeightElm.value = 1080;
+	canvWidthElm.value = 640; canvHeightElm.value = 480;
 }
 
 //callback once a scene has finished loading
@@ -183,21 +196,23 @@ var sceneTime = 0;
 var sceneLoadedTime = 0;
 function sceneLoaded(havenScene)
 {
-    statusElm.innerHTML = "Init Scene";
-    sceneLoadedTime = Date.now();
-    mainScene = havenScene;
-    //mainScene.Update(sceneTime);
-    //mainScene.Draw();
-    window.setTimeout(MainLoop, 300);
-    //graphics.Clear();
-    graphics.SetupForPixelDrawing();
-    mouseSenChange();
-    touchSenChange();
-    //raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
-    raysPerFrameChange();
-    //pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
-    pointSizeChange();
-    statusElm.innerHTML = "Running";
+	statusElm.innerHTML = "Init Scene";
+	sceneLoadedTime = Date.now();
+	lastSceneFPSOutputTime = 0;
+	framesSinceLastFPSOutputTime = 0;
+	mainScene = havenScene;
+	//mainScene.Update(sceneTime);
+	//mainScene.Draw();
+	window.setTimeout(MainLoop, 300);
+	//graphics.Clear();
+	graphics.SetupForPixelDrawing();
+	mouseSenChange();
+	touchSenChange();
+	//raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
+	raysPerFrameChange();
+	//pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+	pointSizeChange();
+	statusElm.innerHTML = "Running";
 }
 
 //the main rendering and update function called each frame
@@ -206,33 +221,34 @@ var lastSceneFPSOutputTime = 0;
 var framesSinceLastFPSOutputTime = 0;
 function MainLoop()
 {
-    sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
-    //graphics.Clear();
-    mainScene.Update( sceneTime );
-    UpdateCamera( sceneTime );
-    //drawSquare(graphics);
-    mainScene.Draw();
+	sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
+	//graphics.Clear();
+	mainScene.Update( sceneTime );
+	UpdateCamera( sceneTime );
+	//drawSquare(graphics);
+	mainScene.Draw();
 
-    mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
-    framesSinceLastFPSOutputTime += 1;
-    if( sceneTime - lastSceneFPSOutputTime >= 1 ){
-        fpsElm.innerHTML = framesSinceLastFPSOutputTime;
-        lastSceneFPSOutputTime = sceneTime;
-        framesSinceLastFPSOutputTime = 0;
-    }
+	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
+	framesSinceLastFPSOutputTime += 1;
+	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
+		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
+		lastSceneFPSOutputTime = sceneTime;
+		framesSinceLastFPSOutputTime = 0;
+	}
 }
 
 let pointSizeElm = document.getElementById( "pointSize" );
 let pointFalloffElm = document.getElementById( "pointFalloff" );
 function pointSizeChange(){
-    gl.uniform1f(graphics.pointSizeAttr, pointSizeElm.value );
-    gl.uniform1f(graphics.pointFalloffAttr, pointFalloffElm.value );
+	gl.uniform1f(graphics.pointSizeAttr, pointSizeElm.value );
+	gl.uniform1f(graphics.pointFalloffAttr, pointFalloffElm.value );
 }
 
 let raysPerFrameElm = document.getElementById("raysPerFrame");
 let accumulatedRaysElm = document.getElementById("accumulatedRays");
 function raysPerFrameChange(){
-    mainScene.cameras[mainScene.activeCameraIdx].changeNumRaysPerFrame( raysPerFrameElm.value, accumulatedRaysElm.value );
+	mainScene.cameras[mainScene.activeCameraIdx].
+		changeNumRaysPerFrame( raysPerFrameElm.value, accumulatedRaysElm.value );
 }
 
 let mouseXSen = document.getElementById("mouseXSen");
@@ -240,16 +256,16 @@ let mouseYSen = document.getElementById("mouseYSen");
 let mouseXSenValue;
 let mouseYSenValue;
 function mouseSenChange(){
-    mouseXSenValue = mouseXSen.value;
-    mouseYSenValue = mouseYSen.value;
+	mouseXSenValue = mouseXSen.value;
+mouseYSenValue = mouseYSen.value;
 }
 let touchMoveSen = document.getElementById("touchMoveSen");
 let touchLookSen = document.getElementById("touchLookSen");
 let touchMoveSenValue;
 let touchLookSenValue;
 function touchSenChange(){
-    touchMoveSenValue = touchMoveSen.value;
-    touchLookSenValue = touchLookSen.value;
+	touchMoveSenValue = touchMoveSen.value;
+	touchLookSenValue = touchLookSen.value;
 }
 
 //called from the mainloop, gets user input and updates the freelook camera
@@ -263,45 +279,43 @@ let camRotUpdate = new Float32Array(3);
 
 function UpdateCamera( updateTime )
 {
-    if( mainScene.cameras.length < 1 )
-       return;
-       
-    //generate the position update
-    camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
-    if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
-        camPositionUpdate[2] -= moveAmt;
-    if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
-        camPositionUpdate[2] += moveAmt;
-    if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
-        camPositionUpdate[0] -= moveAmt;
-    if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
-        camPositionUpdate[0] += moveAmt;
-        
-        camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
-        camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
+	if( mainScene.cameras.length < 1 )
+		return;
 
-    //generate the rotation update
-    
-    if( mDown )
-    {
-        if(ptrLck == null)
-            requestPointerLock();
-    }
-    relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
-    relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
-    mX = relMx*mouseXSenValue; 
-    ///graphics.screenWidth*document.getElementById("mouseXSen").value;// - 0.5;
-    mY = relMy*mouseYSenValue; 
-    ///graphics.screenHeight*document.getElementById("mouseYSen").value;// - 0.5;
-    mX += touch.lookDelta[0]*touchLookSenValue;
-    mY += touch.lookDelta[1]*touchLookSenValue;
-    
-    camRotUpdate[0] = -mY*Math.PI/180;
-    camRotUpdate[1] = -mX*Math.PI/180;
-    camRotUpdate[2] = 0;
-    mCoordDelta.x = mCoordDelta.y = 0;
+	//generate the position update
+	camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
+	if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
+		camPositionUpdate[2] -= moveAmt;
+	if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
+		camPositionUpdate[2] += moveAmt;
+	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
+		camPositionUpdate[0] -= moveAmt;
+	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
+		camPositionUpdate[0] += moveAmt;
 
-    //send the updates to the camera
-    mainScene.cameras[mainScene.activeCameraIdx].
-        UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
+		camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
+		camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
+
+	//generate the rotation update
+
+	if( mDown )
+	{
+		if(ptrLck == null)
+			requestPointerLock();
+	}
+	relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
+	relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
+	mX = relMx*mouseXSenValue; 
+	mY = relMy*mouseYSenValue; 
+	mX += touch.lookDelta[0]*touchLookSenValue;
+	mY += touch.lookDelta[1]*touchLookSenValue;
+
+	camRotUpdate[0] = -mY*Math.PI/180;
+	camRotUpdate[1] = -mX*Math.PI/180;
+	camRotUpdate[2] = 0;
+	mCoordDelta.x = mCoordDelta.y = 0;
+
+	//send the updates to the camera
+	mainScene.cameras[mainScene.activeCameraIdx].
+		UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
 }

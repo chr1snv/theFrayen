@@ -4,7 +4,7 @@ h2 {margin-top:10px;}
 h3 {margin-bottom:10px;}
 h4 {margin:0px;}
 
-table {width:680px;}
+table {width:720px;}
 
 .controls {
    border: 1px black;
@@ -28,10 +28,10 @@ table {width:680px;}
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#5AA0D838', endColorstr='#345D7E5E');
     background: -webkit-gradient(linear, left top, left bottom, from(#5AA0D838), to(#345D7E5E));
     background: -moz-linear-gradient(top, #5AA0D838, #345D7E5E); 
-    border-radius: 30px;
+    border-radius: 15px;
     margin:auto;
     padding: 10px;
-    border: 1px solid black;
+    border: 1px solid #aeaeae;
     text-align: center;
 }
 

@@ -4,91 +4,91 @@
 <meta charset=utf-8>
 
 <head>
-    <link rel="stylesheet" type="text/css" href="theFrayen.css" />
-    <script src="HavenTech/HavenInclude.js"></script>
+	<link rel="stylesheet" type="text/css" href="theFrayen.css" />
+	<script src="HavenTech/HavenInclude.js"></script>
 </head>
 
-<body style="background-color:#000; background-image:url('frayenLogo.png'); background-size:cover; text-align:center; font-family:arial; color:white;">
-    <h1>The Frayen</h1>
-    <p style="width:32em; margin:auto;">A raytraced expierence created using the new haven tech game engine first used in SortForce
-    to depict various (frayed) depictions of reality hence the name "The Frayen"</p>
-    <div style="margin:auto; width:700px;">
-    <table>
-        <tr>
-            <td>Scene</td>
-            <td>
-                <select id="sceneSelection" name="scene">
-                    <option>cubeTest</option>
-                    <option>bldgCourtyard</option>
-                    <option>NoName</option>
-                    <option>penisModel</option>
-                    <option>starPlatform9</option>
-                    <option>NoName</option>
-                </select>
-            </td>
-            <td><button type="button" id="runSceneButton" onclick="loadScene()">Run</button></td>
-            <td id="status" style="border:1px solid #ffffff;">Loading Scripts</td>
-            <td>
-                <table style="width:50px; margin:auto;">
-                    <tr><td><div id="fps" style="border:1px solid #ffffff;  width:20px;">0</div></td>
-                        <td>fps</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
+<body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; text-align:center; font-family:arial; color:white;">
+	<h1>The Frayen</h1>
+	<p style="width:32em; margin:auto;">A raytraced expierence created using the new haven tech game engine first used in SortForce
+	to depict various (frayed) depictions of reality hence the name "The Frayen"</p>
+	<div style="margin:auto; width:700px;">
+	<table>
+		<tr>
+			<td>Scene</td>
+			<td>
+				<select id="sceneSelection" name="scene">
+					<option>cubeTest</option>
+					<option>bldgCourtyard</option>
+					<option>NoName</option>
+					<option>penisModel</option>
+					<option>starPlatform9</option>
+					<option>NoName</option>
+				</select>
+			</td>
+			<td><button type="button" id="runSceneButton" onclick="stopAutostart()">Stop Autostart</button></td>
+			<td id="status" style="border:1px solid #ffffff; border-radius:3px; width:150px;">Loading Scripts</td>
+			<td>
+				<table style="width:50px; margin:-5px; margin-left:auto; margin-right:auto;">
+					<tr><td><div id="fps" style="border:1px solid #ffffff; border-radius:3px; width:25px;">0</div></td>
+						<td>fps</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
 
-        <tr style="height:3px;"></tr>
+		<tr style="height:3px;"></tr>
 
-        <tr>
-            <td>Mouse X Sensitivity</td>
-            <td><input type="number" id="mouseXSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
-            <td>Mouse Y Sensitivity</td>
-            <td><input type="number" id="mouseYSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
-            <td><button type="button" onclick="ResetSettings()">Reset Settings</button></td>
-        </tr>
-        <tr>
-            <td>Touch Move Sens</td>
-            <td><input type="number" id="touchMoveSen" value="0.005" increment=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
-            <td>Touch Looks Sens</td>
-            <td><input type="number" id="touchLookSen" value="0.05" increment=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
-        </tr>
-        
-        <tr>
-            <td>Canvas Width</td>
-            <td><input type="number" id="canvWidth" value="640" increment=0.1; style="width:4em;"></input></td>
-            <td>Canvas Height</td>
-            <td><input type="number" id="canvHeight" value="480" increment=0.1; style="width:4em;"></input></td>
-            <td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
-        </tr>
-        
-        <tr>
-            <td>Fullscreen Width</td>
-            <td><input type="number" id="fullScrCanvWidth" value="1920" increment=0.1; style="width:4em;"></input></td>
-            <td>Fullscreen Height</td>
-            <td><input type="number" id="fullScrCanvHeight" value="1080" increment=0.1; style="width:4em;"></input></td>
-            <td><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
-        </tr>
-        <tr>
-            <td>Rays Per Frame</td>
-            <td><input type="number" id="raysPerFrame" value="5000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-            <td>Accumulated Rays</td>
-            <td><input type="number" id="accumulatedRays" value="8000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-        </tr>
-        <tr>
-            <td>Point Size</td>
-            <td><input type="number" id="pointSize" value="10" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
-            <td>Distance Falloff Multiplier</td>
-            <td><input type="number" id="pointFalloff" value="0.5" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
-        </tr>
-    </table>
-    </div>
-    
-    <div class="footerContainer" style="width:80%; height:80%;">
-            <h3>Use WASD keys and click on canvas for camera rotation (ESC to exit)</h3>
-            <h4 id="cameraDebugText"></h4>
-        <canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
-    </div>
-    <h4 id ="status"></h4>
+		<tr>
+			<td>Mouse X Sensitivity</td>
+			<td><input type="number" id="mouseXSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
+			<td>Mouse Y Sensitivity</td>
+			<td><input type="number" id="mouseYSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
+			<td><button type="button" onclick="ResetSettings()">Reset Settings</button></td>
+		</tr>
+		<tr>
+			<td>Touch Move Sens</td>
+			<td><input type="number" id="touchMoveSen" value="0.005" increment=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
+			<td>Touch Looks Sens</td>
+			<td><input type="number" id="touchLookSen" value="0.05" increment=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
+		</tr>
+		
+		<tr>
+			<td>Canvas Width</td>
+			<td><input type="number" id="canvWidth" value="640" increment=0.1; style="width:4em;"></input></td>
+			<td>Canvas Height</td>
+			<td><input type="number" id="canvHeight" value="480" increment=0.1; style="width:4em;"></input></td>
+			<td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
+		</tr>
+		
+		<tr>
+			<td>Fullscreen Width</td>
+			<td><input type="number" id="fullScrCanvWidth" value="1920" increment=0.1; style="width:4em;"></input></td>
+			<td>Fullscreen Height</td>
+			<td><input type="number" id="fullScrCanvHeight" value="1080" increment=0.1; style="width:4em;"></input></td>
+			<td><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+		</tr>
+		<tr>
+			<td>Rays Per Frame</td>
+			<td><input type="number" id="raysPerFrame" value="5000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+			<td>Accumulated Rays</td>
+			<td><input type="number" id="accumulatedRays" value="8000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+		</tr>
+		<tr>
+			<td>Point Size</td>
+			<td><input type="number" id="pointSize" value="10" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+			<td>Distance Falloff Multiplier</td>
+			<td><input type="number" id="pointFalloff" value="0.5" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+		</tr>
+	</table>
+	</div>
+
+	<div class="footerContainer" style="width:80%; height:80%;">
+			<h3>Use WASD keys and click on canvas for camera rotation (ESC to exit)</h3>
+			<h4 id="cameraDebugText"></h4>
+		<canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
+	</div>
+	<h4 id ="status"></h4>
 
 </body>
 </html>

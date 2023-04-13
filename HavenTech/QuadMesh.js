@@ -1,6 +1,7 @@
 //QuadMesh.js - implementation of QuadMesh
 //a polygonal mesh with faces of 3 or 4 (quad) verticies
 
+let uvCoord = new Float32Array(2);
 class Face {
 	constructor(){
 		this.materialID = 0;
@@ -10,13 +11,16 @@ class Face {
 		this.AABB       = null;
 	}
 	GetAABB(){ return this.AABB; }
-	RayIntersect( ray ){ 
+	RayIntersect( ret, ray ){ 
 		for(let i = 0; i < this.tris.length; ++i ){
-			var dist_norm_ptL = this.tris[i].RayTriangleIntersection( ray );
-			if( dist_norm_ptL != null )
-				return [dist_norm_ptL, i, this];
+			ret[0] = this.tris[i].RayTriangleIntersection( ret[1], ray );
+			if( ret[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
+				this.tris[i].UVCoordOfPoint( uvCoord, this.tris[i].pointL );
+				ret[3].GetMaterialColorAtUVCoord( ret[2], uvCoord, this.materialID );
+				return;}
 		}
 	}
+
 }
 
 function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
@@ -121,13 +125,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 			var vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
 			if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
-				this.UpdateOctTree(); //updates world space min and max corners
-			}
+				this.UpdateOctTree();} //updates world space min and max corners
 
 			var worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
 			if( worldTransformUpdated || vertsUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
-				this.UpdateAABB(animationTime);
-			}
+				this.UpdateAABB(animationTime);}
 
 			this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
 		}
@@ -187,6 +189,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	//generate world space triangles from a face index
+	//the world position verts of the face
+	let vertVect3s = [ new Float32Array(3), new Float32Array(3), new Float32Array(3), new Float32Array(3) ];
+	let vert = new Float32Array(3);
+	let uv0 = new Float32Array(2);
+	let uv1 = new Float32Array(2);
+	let uv2 = new Float32Array(2);
 	this.UpdateFaceAABBAndGenerateTriangles = function(min, max, f){
 		const face = this.faces[f];
 		const numFaceVerts = face.vertIdxs.length;
@@ -197,30 +205,25 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		Vect3_SetScalar( min,  999999 );
 		Vect3_SetScalar( max, -999999 );
 		
-		var vertVect3s = []; //the world position verts of the face
 		for( let v = 0; v < numFaceVerts; ++v ){
 			//get the vert local position and transform it to world position
-			const vert = [ 
-				this.transformedVerts[ face.vertIdxs[v]*3 + 0 ],
-				this.transformedVerts[ face.vertIdxs[v]*3 + 1 ],
-				this.transformedVerts[ face.vertIdxs[v]*3 + 2 ] ];
-			vertVect3s.push( new Float32Array(3) );
+			vert[0] = this.transformedVerts[ face.vertIdxs[v]*3 + 0 ];
+			vert[1] = this.transformedVerts[ face.vertIdxs[v]*3 + 1 ];
+			vert[2] = this.transformedVerts[ face.vertIdxs[v]*3 + 2 ];
 			Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
 			
-			min[0] = Math.min( min[0], vert[0] );
-			min[1] = Math.min( min[1], vert[1] );
-			min[2] = Math.min( min[2], vert[2] );
+			min[0] = min[0] > vert[0] ? vert[0] : min[0];
+			min[1] = min[1] > vert[1] ? vert[1] : min[1];
+			min[2] = min[2] > vert[2] ? vert[2] : min[2];
 			
-			max[0] = Math.max( max[0], vert[0] );
-			max[1] = Math.max( max[1], vert[1] );
-			max[2] = Math.max( max[2], vert[2] );
+			max[0] = max[0] < vert[0] ? vert[0] : max[0];
+			max[1] = max[1] < vert[1] ? vert[1] : max[1];
+			max[2] = max[2] < vert[2] ? vert[2] : max[2];
 		}
 		this.faces[f].AABB =  new AABB( min, max );
 		
 		//construct the triangles (maybe should add uv's when constructing)
-		let uv0 = new Float32Array(2);
-		let uv1 = new Float32Array(2);
-		let uv2 = new Float32Array(2);
+		
 		uv0[0] = face.uvs[0*2+0]; uv0[1] = face.uvs[0*2+1];
 		uv1[0] = face.uvs[1*2+0]; uv1[1] = face.uvs[1*2+1];
 		uv2[0] = face.uvs[2*2+0]; uv2[1] = face.uvs[2*2+1];
@@ -235,19 +238,18 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 
 	}
-
+	let worldMin = new Float32Array(3);
+	let worldMax = new Float32Array(3);
 	this.UpdateOctTree = function(){
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
 		this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
 
-		this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
-		this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+		this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
+		this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;
 
 		for( var f = 0; f < this.faces.length; ++f ){
 			//get an aabb around the face and insert it into an oct tree
-			let worldMin = new Float32Array(3);
-			let worldMax = new Float32Array(3);
 			this.UpdateFaceAABBAndGenerateTriangles( worldMin, worldMax, f );
 			this.worldMinCorner[0] = Math.min( worldMin[0], this.worldMinCorner[0] );
 			this.worldMinCorner[1] = Math.min( worldMin[1], this.worldMinCorner[1] );
@@ -263,28 +265,18 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	//called during ray trace rendering
 	//returns the ray distance, surface normal, and color at the intersection pt
-	let uvCoord = new Float32Array(2);
 	let face;
 	let tri;
+	let startNode;
 	this.GetRayIntersection = function(retVal, ray){
 		
-		/*
 		//to speed up this loop, use the oct tree of faces of the mesh
-		var distNormPtL_TriIdxFace = this.octTree.Trace( ray, 0 );
-		if( distNormPtL_TriIdxFace != undefined ){
-			//the ray intersects the triangle, find the uv coordinate
-			let face = distNormPtL_TriIdxFace[2];
-			let triIdx = distNormPtL_TriIdxFace[1];
-			let uvCoord = face.tris[triIdx].
-				UVCoordOfPoint( distNormPtL_TriIdxFace[0][2],
-							[face.uvs[0*2+0],face.uvs[0*2+1]], 
-							[face.uvs[1*2+0],face.uvs[1*2+1]],
-							[face.uvs[2*2+0],face.uvs[2*2+1]] );
-			var color = this.GetMaterialColorAtUVCoord( uvCoord, face.materialID );
-			return [ distNormPtL_TriIdxFace[0][0], distNormPtL_TriIdxFace[0][1], color ];
-		}
-		*/
-
+		retVal[3] = this;
+		startNode = this.octTree.SubNode( ray.origin );
+		startNode.Trace( retVal, ray, 0 );
+		//if( retVal[0] < 0 )
+		//	this.octTree.Trace( retVal, ray, 0 );
+/*
 		//check all faces of the mesh if the ray intersects
 		for( let f = 0; f < this.faces.length; ++f ){
 			//each face should have 3 or 4 verticies
@@ -303,7 +295,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				}
 			}
 		} //end this.faces.length loop
-
+*/
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
@@ -343,35 +335,29 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 					temp = meshFileLines[mLIdx];
 					var words = temp.split(' ');
 					//read in the origin rotation and size of the mesh
-					if( temp[0] == 'x' )
-					{
+					if( temp[0] == 'x' ){
 						thisP.origin =   new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );
-					}
+							parseFloat(words[3]) ] );}
 					else if( temp[0] == 'r' ){
 						thisP.rotation = new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );
-					}
+							parseFloat(words[3]) ] );}
 					else if( temp[0] == 's' ){
 						thisP.scale =    new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );
-					}
+							parseFloat(words[3]) ] );}
 					else if( temp[0] == 'e' ){
-						break;
-					}
+						break;}
 				}
 			}
 
 			//read in the number of vertices
 			else if( temp[0] == 'c' && temp[1] == 'v' ){
-				numVerts = words[1];
-			}
+				numVerts = words[1];}
 
 			//read in a vertex
 			else if( temp[0] == 'v' ){
@@ -386,8 +372,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				if( temp[0] != 'n' ){
 					DPrintf('QuadMesh: ' + thisP.meshName +
 							', error expected vertex normal when reading mesh file');
-					return;
-				}
+					return;}
 				thisP.vertNormals.push( parseFloat(words[1]) );
 				thisP.vertNormals.push( parseFloat(words[2]) );
 				thisP.vertNormals.push( parseFloat(words[3]) );
@@ -400,8 +385,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 					if( temp[0] == 'w' ){
 						var boneName = words[1];
 						var boneWeight = parseFloat(words[2]);
-						boneWeights[boneName] = boneWeight;
-					}
+						boneWeights[boneName] = boneWeight;}
 					else if( temp[0] == 'e')
 						break; //done reading the vertex
 				}

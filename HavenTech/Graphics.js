@@ -1,29 +1,28 @@
 //Graphics.js
 
 //helper function for printing gl errors
-function CheckGLError(where)
-{
-    var error = gl.getError();
-    var iter = 0;
-    while(error != gl.NO_ERROR && iter < 100)
-    {
-        DPrintf(where + ': glError errorNum:' + iter + ' 0x' + error.toString(16) + ' ' + WebGLDebugUtils.glEnumToString(error) );
-        error = gl.getError();
-        ++iter;
-    }
-    if(iter > 0)
-        return true;
-    return false;
+function CheckGLError(where){
+	var error = gl.getError();
+	var iter = 0;
+	while(error != gl.NO_ERROR && iter < 100){
+		DPrintf(where + ': glError errorNum:' + iter + ' 0x' + 
+		error.toString(16) + ' ' + WebGLDebugUtils.glEnumToString(error) );
+		error = gl.getError();
+		++iter;
+	}
+	if(iter > 0)
+		return true;
+return false;
 }
 
 //used to pass perameters to a shader
 function attributeSetFloats( prog, attr_name, rsize, arr)
 {
-    var attr = gl.getAttribLocation( prog, attr_name);
-    gl.enableVertexAttribArray(attr);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
+	var attr = gl.getAttribLocation( prog, attr_name);
+	gl.enableVertexAttribArray(attr);
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
+	gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
 function Graphics( canvasIn, loadCompleteCallback )
@@ -67,19 +66,13 @@ function Graphics( canvasIn, loadCompleteCallback )
 	this.matrixCard   = 4*4;
 
 	//for clearing the color buffer
-	this.Clear = function()
-	{
-		gl.clear( gl.COLOR_BUFFER_BIT ); //| gl.DEPTH_BUFFER_BIT);
-	}
+	this.Clear = function(){
+		gl.clear( gl.COLOR_BUFFER_BIT );} //| gl.DEPTH_BUFFER_BIT);
 	//for clearing depth between scene renderings
-	this.ClearDepth = function()
-	{
-		gl.clear(gl.DEPTH_BUFFER_BIT);
-	}   
-	this.Flush = function()
-	{
-		gl.flush();
-	}
+	this.ClearDepth = function(){
+		gl.clear(gl.DEPTH_BUFFER_BIT);}
+	this.Flush = function(){
+		gl.flush();}
 
 	//functions for fog
 	this.EnableFog = function(clipNear, clipFar)
@@ -106,99 +99,65 @@ function Graphics( canvasIn, loadCompleteCallback )
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 
-    //returns width / height ( multiply fovy by this to get fovh )
-	this.GetScreenAspect = function()
-	{
-	    return this.screenWidth/this.screenHeight;
-	}
+	//returns width / height ( multiply fovy by this to get fovh )
+	this.GetScreenAspect = function(){
+		return this.screenWidth/this.screenHeight;}
 	
 	//functions for altering the rendering state
-	this.enableLighting = function(val)
-	{
-		if(this.lightingEnb != val)
-		{
-		    this.lightingEnb = val;
-		    gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightingEnb'), this.lightingEnb);
-		}
+	this.enableLighting = function(val){
+		if(this.lightingEnb != val){
+			this.lightingEnb = val;
+			gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'lightingEnb'), this.lightingEnb);}
 	}
-	this.enableDepthMask = function(val)
-	{
-		if(this.depthMaskEnb != val)
-		{
-		    this.depthMaskEnb = val;
-		    val ? gl.depthMask(true) : gl.depthMask(false);
-		}
+	this.enableDepthMask = function(val){
+		if(this.depthMaskEnb != val){
+			this.depthMaskEnb = val;
+			val ? gl.depthMask(true) : gl.depthMask(false);}
 	}
-	this.enableDepthTest = function(val)
-	{
-		if(this.depthTestEnb != val)
-		{
-		    this.depthTestEnb = val;
-		    val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
-		}
+	this.enableDepthTest = function(val){
+		if(this.depthTestEnb != val){
+			this.depthTestEnb = val;
+			val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);}
 	}
-	this.setTexture = function(texId)
-	{
-		if(this.currentTexId != texId)
-		{
-		    this.currentTexId = texId;
-		    gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);
-		}
+	this.setTexture = function(texId){
+		if(this.currentTexId != texId){
+			this.currentTexId = texId;
+			gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);}
 	}
-	this.setColor = function(col)
-	{
-		if( !Vect3_Cmp(this.currentColor, col) )
-		{
-		    Vect3_Copy(this.currentColor, col);
-		    gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), this.currentColor);
-		}
+	this.setColor = function(col){
+		if( !Vect3_Cmp(this.currentColor, col) ){
+			Vect3_Copy(this.currentColor, col);
+			gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'color'), this.currentColor);}
 	}
-	this.setAmbientAndDiffuse = function(col)
-	{
-		if(!Vect3_Cmp(this.ambAndDiffuse, col))
-		{
-		    Vect3_Copy(this.ambAndDiffuse, col);
-		    gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), this.ambAndDiffuse);
-		}
+	this.setAmbientAndDiffuse = function(col){
+		if(!Vect3_Cmp(this.ambAndDiffuse, col)){
+			Vect3_Copy(this.ambAndDiffuse, col);
+			gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'ambient'), this.ambAndDiffuse);}
 	}
-	this.setEmission = function(col)
-	{
-		if(!Vect3_Cmp(this.emission, col))
-		{
-		    Vect3_Copy(this.emission, col);
-		    gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), this.emission);
-		}
+	this.setEmission = function(col){
+		if(!Vect3_Cmp(this.emission, col)){
+			Vect3_Copy(this.emission, col);
+			gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'emission'), this.emission);}
 	}
-	this.setSpecular = function(col)
-	{
-		if(!Vect3_Cmp(this.specular, col))
-		{
-		    Vect3_Copy(this.specular, col);
-		    gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), this.specular);
-		}
+	this.setSpecular = function(col){
+		if(!Vect3_Cmp(this.specular, col)){
+			Vect3_Copy(this.specular, col);
+			gl.uniform4fv(gl.getUniformLocation(this.currentProgram, 'specular'), this.specular);}
 	}
-	this.setShinyness = function(expV)
-	{
-		if(this.shinyness != expV)
-		{
-		    this.shinyness = expV;
-		    gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), this.shinyness);
-		}
+	this.setShinyness = function(expV){
+		if(this.shinyness != expV){
+			this.shinyness = expV;
+			gl.uniform1f(gl.getUniformLocation(this.currentProgram, 'shinyness'), this.shinyness);}
 	}
 
-	this.ClearLights = function()
-	{
+	this.ClearLights = function(){
 		for(var i=0; i<this.maxLights; ++i)
-		    gl.uniform4f(gl.getUniformLocation(this.currentProgram, 'lightColor['+i+']'), 0,0,0,0);
-		this.numLightsBounded = 0;
-	}
-	this.BindLight = function(light)
-	{
-		if(this.numLightsBounded >= this.maxLights)
-		{
-		    //DPrintf("Graphics: error Max number of lights already bound.\n");
-		    return;
-		}
+			gl.uniform4f(gl.getUniformLocation(this.currentProgram, 'lightColor['+i+']'), 0,0,0,0);
+		this.numLightsBounded = 0;}
+	this.BindLight = function(light){
+		if(this.numLightsBounded >= this.maxLights){
+			//DPrintf("Graphics: error Max number of lights already bound.\n");
+			return;}
 		this.enableLighting(true);
 		light.BindToGL(this.numLightsBounded);
 		++this.numLightsBounded;
@@ -206,115 +165,98 @@ function Graphics( canvasIn, loadCompleteCallback )
 
 	//content access functions
 	this.CopyShader = function( newName, newSceneName, oldShader ) {}
-	this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback )
-	{
+	this.GetShader = function( filename, sceneName, readyCallbackParams, shaderReadyCallback ){
 		var concatName = filename + sceneName;
-		if(filename === undefined)
-		{
+		if(filename === undefined){
 			filename = "Material";
-			concatName = filename + sceneName;
-		}
+			concatName = filename + sceneName;}
 		var shader = this.shaders[ concatName ];
-		if( shader === undefined )
-		{
-		    //shader is not loaded, load the new shader and return it
-		    new Shader( filename, sceneName, readyCallbackParams, 
-		    	function( newShader, readyCallbackParams1 )
-			    {
-			        //if( newShader.isValid )
-			        graphics.shaders[concatName] = newShader;
-			        if(shaderReadyCallback)
-    			        shaderReadyCallback(newShader, readyCallbackParams1);
-			    });
-		}else
-		{
-		   shaderReadyCallback(shader, readyCallbackParams);
-		}
+		if( shader === undefined ){
+			//shader is not loaded, load the new shader and return it
+			new Shader( filename, sceneName, readyCallbackParams, 
+				function( newShader, readyCallbackParams1 ){
+					//if( newShader.isValid )
+					graphics.shaders[concatName] = newShader;
+					if(shaderReadyCallback)
+						shaderReadyCallback(newShader, readyCallbackParams1);});
+		}else{
+			shaderReadyCallback(shader, readyCallbackParams);}
 	}
 	this.UnrefShader = function(filename, sceneName) {}
 	//cache the texture for later use (called from Texture when it's image file successfully loads)
-	this.AppendTexture = function(textureName, sceneName, newValidTexture)
-	{
+	this.AppendTexture = function(textureName, sceneName, newValidTexture){
 		var concatName = textureName + sceneName;
 		this.textures[concatName] = newValidTexture;
 	}
 	//get a texture that has been previously requested or attempt to load it from the servertextureReadyCallback(newTexture);
-	this.GetTexture = function(filename, sceneName, readyCallbackParams, textureReadyCallback)
-	{
+	this.GetTexture = function(filename, sceneName, readyCallbackParams, textureReadyCallback){
 		var concatName = filename + sceneName;
 		var texture = this.textures[concatName];
-		if(texture === undefined)
-		{
-		    //texture is not loaded, load the new texture and have it return when it's ready (async load)
-		    new Texture(filename, sceneName, readyCallbackParams, textureReadyCallback );
-		}else
-		{
-		    //the cached texture is ready, have it return through the callback
-		    if(textureReadyCallback)
-		    textureReadyCallback(readyCallbackParams, texture);
-		}
+		if(texture === undefined){
+			//texture is not loaded, load the new texture and have it return when it's ready (async load)
+			new Texture(filename, sceneName, readyCallbackParams, textureReadyCallback );
+		}else{
+			//the cached texture is ready, have it return through the callback
+			if(textureReadyCallback)
+				textureReadyCallback(readyCallbackParams, texture);}
 	}
 	this.UnrefTexture = function(filename, sceneName) {}
 	let concatName;
 	let quadMesh;
-	this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback)
-	{
+	this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback){
 		concatName = filename + sceneName;
 		quadMesh = this.quadMeshes[concatName];
-		if(quadMesh === undefined)
-		{
+		if(quadMesh === undefined){
 			//mesh is not loaded, load the new mesh and return it (asynchronous load)
 			this.quadMeshes[concatName] =
-                 new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
-		}else
-		{
-			quadMeshReadyCallback( quadMesh, readyCallbackParameters );
-		}
+				new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
+		}else{
+			quadMeshReadyCallback( quadMesh, readyCallbackParameters );}
 	}
-    this.UnrefQuadMesh = function(filename, sceneName) {}
-    
-    
-    //https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
-    var pointBuffer      = null;
-    var colorBuffer      = null;
-    var pointPosAttr     = null;
-    var pointColorAttr   = null;
-    var projMatAttr      = null;
-    this.pointSizeAttr    = null;
-    this.pointFalloffAttr = null;
-    this.SetupForPixelDrawing = function(){
-    	    if( pointBuffer == null )
-            pointBuffer = gl.createBuffer();
-        if( colorBuffer == null )
-            colorBuffer = gl.createBuffer();
-        
-        projMatAttr      = gl.getUniformLocation( this.currentProgram, "projection"   );
-        pointPosAttr     = gl.getAttribLocation(  this.currentProgram, "position"     );
-        pointColorAttr   = gl.getAttribLocation(  this.currentProgram, "ptCol"        );
-        this.pointSizeAttr    = gl.getUniformLocation(  this.currentProgram, "pointSize"    );
-        this.pointFalloffAttr = gl.getUniformLocation(  this.currentProgram, "pointFalloff" );
-    }
-    
-    this.drawPixels = function( float32VecPositions, float32VecColors, numPoints, projMat ){
-        //gl.bufferData( buffer type, 
+	this.UnrefQuadMesh = function(filename, sceneName) {}
 
-        gl.uniformMatrix4fv(projMatAttr, true, projMat, 0, 4*4 );
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER, float32VecPositions, gl.STATIC_DRAW );
 
-        gl.enableVertexAttribArray( pointPosAttr );
-        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-        gl.vertexAttribPointer(pointPosAttr, 3, gl.FLOAT, false, 0, 0);
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER, float32VecColors, gl.STATIC_DRAW );
-        
-        gl.enableVertexAttribArray( pointColorAttr );
-        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-        gl.vertexAttribPointer(pointColorAttr, 3, gl.FLOAT, false, 0, 0);
-        
-        gl.drawArrays( gl.POINTS, 0, numPoints );
+	//https://www.tutorialspoint.com/webgl/webgl_drawing_points.htm
+	var pointBuffer      = null;
+	var colorBuffer      = null;
+	var pointPosAttr     = null;
+	var pointColorAttr   = null;
+	var projMatAttr      = null;
+	this.pointSizeAttr    = null;
+	this.pointFalloffAttr = null;
+	this.SetupForPixelDrawing = function(){
+		if( pointBuffer == null )
+			pointBuffer = gl.createBuffer();
+		if( colorBuffer == null )
+			colorBuffer = gl.createBuffer();
+		
+		projMatAttr      = gl.getUniformLocation( this.currentProgram, "projection"   );
+		pointPosAttr     = gl.getAttribLocation(  this.currentProgram, "position"     );
+		pointColorAttr   = gl.getAttribLocation(  this.currentProgram, "ptCol"        );
+		this.pointSizeAttr    = gl.getUniformLocation(  this.currentProgram, "pointSize"    );
+		this.pointFalloffAttr = gl.getUniformLocation(  this.currentProgram, "pointFalloff" );
+	}
+
+	this.drawPixels = function( float32VecPositions, float32VecColors, numPoints, projMat ){
+		//gl.bufferData( buffer type, 
+
+		gl.uniformMatrix4fv(projMatAttr, true, projMat, 0, 4*4 );
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+		gl.bufferData( gl.ARRAY_BUFFER, float32VecPositions, gl.STATIC_DRAW );
+
+		gl.enableVertexAttribArray( pointPosAttr );
+		//void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		gl.vertexAttribPointer(pointPosAttr, 3, gl.FLOAT, false, 0, 0);
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+		gl.bufferData( gl.ARRAY_BUFFER, float32VecColors, gl.STATIC_DRAW );
+		
+		gl.enableVertexAttribArray( pointColorAttr );
+		//void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		gl.vertexAttribPointer(pointColorAttr, 3, gl.FLOAT, false, 0, 0);
+		
+		gl.drawArrays( gl.POINTS, 0, numPoints );
 	}
 	
 	//really should buffer pixels before drawing them to reduce gl calls
@@ -329,21 +271,21 @@ function Graphics( canvasIn, loadCompleteCallback )
 	//and look up their significance to determine their weight/contribution
 	//to a pixel value
 	this.drawPixel = function( x, y ){
-	    // Fills the buffer with a single point?
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
-          x+0.5,     y+0.5]), gl.STATIC_DRAW );
-        //void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-        gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
-        // Draw one point.
-       gl.drawArrays( gl.POINTS, 0, 1 );
-       
-       /*
-       // https://stackoverflow.com/questions/35444202/draw-a-single-pixel-in-webgl-using-gl-points
-       //if you want to draw 3 points at (0,0) (1,1), (2,2) 
-       //then you need to do gl.bufferData(gl.ARRAY_BUFFER, 
-       //new Float32Array([0.5, 0.5, 1.5, 1.5, 2.5, 2.5], gl.STATIC_DRAW) and 
-       //then gl.drawArrays(gl.POINTS, 0, 3);
-       */
+		// Fills the buffer with a single point?
+		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array([
+		  x+0.5,     y+0.5]), gl.STATIC_DRAW );
+		//void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+		gl.vertexAttribPointer(pointPosAttr, 2, gl.FLOAT, false, 0, 0);
+		// Draw one point.
+		gl.drawArrays( gl.POINTS, 0, 1 );
+
+		/*
+		// https://stackoverflow.com/questions/35444202/draw-a-single-pixel-in-webgl-using-gl-points
+		//if you want to draw 3 points at (0,0) (1,1), (2,2) 
+		//then you need to do gl.bufferData(gl.ARRAY_BUFFER, 
+		//new Float32Array([0.5, 0.5, 1.5, 1.5, 2.5, 2.5], gl.STATIC_DRAW) and 
+		//then gl.drawArrays(gl.POINTS, 0, 3);
+		*/
 	}
 
 	//initialization code
@@ -378,7 +320,7 @@ function Graphics( canvasIn, loadCompleteCallback )
 	this.vertShaderFilename = 'shaders/frayenPointVertShader.vsh';
 	this.fragShaderFilename = 'shaders/frayenPointFragShader.fsh';
 
-    //once the fragment shader has been loaded, compile and configure it
+	//once the fragment shader has been loaded, compile and configure it
 	this.fragShaderLoaded = function(textFile, thisP)
 	{
 		CheckGLError( "Graphics::begin frag shader loaded " );
@@ -417,9 +359,8 @@ function Graphics( canvasIn, loadCompleteCallback )
 		thisP.loadCompleteCallback();
 	}
 
-    //once the vertex shader is loaded start loading the fragment shader
-	this.vertShaderLoaded = function(textFile, thisP)
-	{
+	//once the vertex shader is loaded start loading the fragment shader
+	this.vertShaderLoaded = function(textFile, thisP){
 		var vertexShader = gl.createShader(gl.VERTEX_SHADER);
 		gl.shaderSource(vertexShader, textFile);
 		gl.compileShader(vertexShader);
@@ -430,10 +371,9 @@ function Graphics( canvasIn, loadCompleteCallback )
 		loadTextFile( thisP.fragShaderFilename, thisP.fragShaderLoaded, thisP );
 	}
 
-    this.loadCompleteCallback = loadCompleteCallback;
-    //start fetching and loading the vertex shader
+	this.loadCompleteCallback = loadCompleteCallback;
+	//start fetching and loading the vertex shader
 	loadTextFile(this.vertShaderFilename, this.vertShaderLoaded, this);
 
 }
-    
-    
+

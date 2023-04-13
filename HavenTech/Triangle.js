@@ -6,9 +6,12 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 	//ending in L is local ( triangle ) space
 
 	//world space points/verticies of the triangle
-	this.v1W = p1;
-	this.v2W = p2;
-	this.v3W = p3;
+	this.v1W = new Float32Array(3);
+	this.v2W = new Float32Array(3);
+	this.v3W = new Float32Array(3);
+	this.v1W[0] = p1[0];this.v1W[1] = p1[1];this.v1W[2] = p1[2];
+	this.v2W[0] = p2[0];this.v2W[1] = p2[1];this.v2W[2] = p2[2];
+	this.v3W[0] = p3[0];this.v3W[1] = p3[1];this.v3W[2] = p3[2];
 	this.u1 = new Float32Array(2);
 	this.u2 = new Float32Array(2);
 	this.u3 = new Float32Array(2);
@@ -52,7 +55,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 	//this is v2 in local space and also the vector e1L (dot product coord remap)
 	this.v2L_e1L[0] = this.e1W[0]*this.triXW[0]+this.e1W[1]*this.triXW[1]+this.e1W[2]*this.triXW[2];
 	this.v2L_e1L[1] = this.e1W[0]*this.triYW[0]+this.e1W[1]*this.triYW[1]+this.e1W[2]*this.triYW[2];
-	this.v2L_e1L[2] = this.e1W[0]*this.triZW[0]+this.e1W[1]*this.triZW[1]+this.e1W[2]*this.triZW[2]
+	this.v2L_e1L[2] = this.e1W[0]*this.triZW[0]+this.e1W[1]*this.triZW[1]+this.e1W[2]*this.triZW[2];
 
 	this.v3L_e2L  = new Float32Array(3);
 	//this is v3 in local space and also the vector e2L (dot product coord remap)
@@ -65,12 +68,12 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 
 	//returns the intersection point of a ray and plane ( triangle )
 	//used for finding if / where a ray intersects a triangle
-	this.triToRayOriW = new Float32Array(3);
+	let triToRayOriW = new Float32Array(3);
 	this.pointL       = new Float32Array(3);
-	this.rayOriL      = new Float32Array(3);
-	this.rayNormL     = new Float32Array(3);
-	this.rayNormLZ    = this.rayNormL[0]; //float 32 value
-	this.vToPtFromV2L = new Float32Array(2);
+	let rayOriL      = new Float32Array(3);
+	let rayNormL     = new Float32Array(3);
+	let rayNormLZ    = float0; //float 32 value
+	let vToPtFromV2L = new Float32Array(2);
 	//this.rayDistToPtWL = this.rayNormL[0];
 	let rayDistToPtWL;
 	let e1OrthogDotL;
@@ -128,31 +131,31 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//( triangle normal -> triangle space z, v2-v1 triangle space x, 
 		//triangle space z (cross product) triangle space x -> triangle space y )
 
-		this.rayNormLZ =  ray.norm[0]*this.triZW[0]+ray.norm[1]*this.triZW[1]+ray.norm[2]*this.triZW[2];
-		if( this.rayNormLZ > 0 ) //backface culling (triangles not towards ray)
+		rayNormLZ =  ray.norm[0]*this.triZW[0]+ray.norm[1]*this.triZW[1]+ray.norm[2]*this.triZW[2];
+		if( rayNormLZ > 0 ) //backface culling (triangles not towards ray)
 			return -1;
 
 		//get the vector to the ray start from the triangle origin
-		this.triToRayOriW[0] = ray.origin[0] - this.v1W[0];
-		this.triToRayOriW[1] = ray.origin[1] - this.v1W[1];
-		this.triToRayOriW[2] = ray.origin[2] - this.v1W[2];
+		triToRayOriW[0] = ray.origin[0] - this.v1W[0];
+		triToRayOriW[1] = ray.origin[1] - this.v1W[1];
+		triToRayOriW[2] = ray.origin[2] - this.v1W[2];
 
 		//use dot products to transform the ray into triangle space
-		this.rayOriL[0] = this.triToRayOriW[0]*this.triXW[0]+this.triToRayOriW[1]*this.triXW[1]+this.triToRayOriW[2]*this.triXW[2];
-		this.rayOriL[1] = this.triToRayOriW[0]*this.triYW[0]+this.triToRayOriW[1]*this.triYW[1]+this.triToRayOriW[2]*this.triYW[2];
-		this.rayOriL[2] = this.triToRayOriW[0]*this.triZW[0]+this.triToRayOriW[1]*this.triZW[1]+this.triToRayOriW[2]*this.triZW[2];
+		rayOriL[0] = triToRayOriW[0]*this.triXW[0]+triToRayOriW[1]*this.triXW[1]+triToRayOriW[2]*this.triXW[2];
+		rayOriL[1] = triToRayOriW[0]*this.triYW[0]+triToRayOriW[1]*this.triYW[1]+triToRayOriW[2]*this.triYW[2];
+		rayOriL[2] = triToRayOriW[0]*this.triZW[0]+triToRayOriW[1]*this.triZW[1]+triToRayOriW[2]*this.triZW[2];
 
-		this.rayNormL[0] = ray.norm[0]*this.triXW[0]+ray.norm[1]*this.triXW[1]+ray.norm[2]*this.triXW[2];
-		this.rayNormL[1] = ray.norm[0]*this.triYW[0]+ray.norm[1]*this.triYW[1]+ray.norm[2]*this.triYW[2];
-		this.rayNormL[2] = this.rayNormLZ;
+		rayNormL[0] = ray.norm[0]*this.triXW[0]+ray.norm[1]*this.triXW[1]+ray.norm[2]*this.triXW[2];
+		rayNormL[1] = ray.norm[0]*this.triYW[0]+ray.norm[1]*this.triYW[1]+ray.norm[2]*this.triYW[2];
+		rayNormL[2] = rayNormLZ;
 
 		//since the distance of a point above the triangle is
 		//the triangle space (local) z coordinate, on a graph of
 		//ray point z coordinate vs ray time the slope ( rise / run ) of the line
 		//is the z amount of the ray direction or normal in local space
 
-		if( ( this.rayNormL[2] < 0.0001 && this.rayNormL[2] > -0.0001 ) && 
-			( this.rayOriL[2] > 0.01 || this.rayOriL[2] < -0.0001 ) )
+		if( ( rayNormL[2] < 0.0001 && rayNormL[2] > -0.0001 ) && 
+			( rayOriL[2] > 0.01 || rayOriL[2] < -0.0001 ) )
 			return -1; //the line is parallel to the plane and 
 		//the line starts away from the surface of the plane, 
 		//it's very unlikely there is an intersection point 
@@ -168,7 +171,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//to the lineOrigin (lineOriginInPlaneSpace[z] )
 		//0 = linePlaneSpaceSlope (x) + lineOriginInPlaneSpace[z]
 		//-lineOriginInPlaneSpace[z] / linePlaneSpaceSlope = x
-		rayDistToPtWL = -this.rayOriL[2] / this.rayNormL[2];
+		rayDistToPtWL = -rayOriL[2] / rayNormL[2];
 		//is the rayDistToSurface the same in world and local space?
 		//it should be if the local space basis vectors are unit length
 		//and the ray normal is unit (or equal) length in local and world space
@@ -178,9 +181,9 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//not a valid intersection point
 
 		//the plane space intersection point is
-		this.pointL[0] = this.rayNormL[0] * rayDistToPtWL + this.rayOriL[0];
-		this.pointL[1] = this.rayNormL[1] * rayDistToPtWL + this.rayOriL[1];
-		this.pointL[2] = this.rayNormL[2] * rayDistToPtWL + this.rayOriL[2];
+		this.pointL[0] = rayNormL[0] * rayDistToPtWL + rayOriL[0];
+		this.pointL[1] = rayNormL[1] * rayDistToPtWL + rayOriL[1];
+		this.pointL[2] = rayNormL[2] * rayDistToPtWL + rayOriL[2];
 		//the triangle space intersection point z coordinate should be 0
 
 		//check if the position on the plane is within the triangle edges
@@ -205,12 +208,12 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//the vector from v1L to v3L 
 		//is rotated counterclockwise to face outwards
 
-		this.vToPtFromV2L[0] = this.pointL[0] - this.v2L_e1L[0];
-		this.vToPtFromV2L[1] = this.pointL[1] - this.v2L_e1L[1];
+		vToPtFromV2L[0] = this.pointL[0] - this.v2L_e1L[0];
+		vToPtFromV2L[1] = this.pointL[1] - this.v2L_e1L[1];
 
 		//vector to the point from a point on edge3L (from v3L to v2L)
-		e3OrthogDotL =  this.e3L[1]*this.vToPtFromV2L[0] + 
-						-this.e3L[0]*this.vToPtFromV2L[1];
+		e3OrthogDotL =  this.e3L[1]*vToPtFromV2L[0] + 
+						-this.e3L[0]*vToPtFromV2L[1];
 		//edge 3 (from v2l to v3l)
 		//is rotated clockwise to face away from the triangle
 
