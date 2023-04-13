@@ -299,7 +299,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 				let midPt = this.midCoord[i];
 				
 				let bestDivPt = objects[0].AABB.minCoord[i];
-				let prevMaxPts = objects[0].AABB.minCoord[i];
+				let prevMaxPt = objects[0].AABB.minCoord[i];
 				let newCenDst;
 				let bestCenDst = bestDivPt - midPt;
 				bestCenDst = bestCenDst > 0 ? bestCenDst : -bestCenDst;
