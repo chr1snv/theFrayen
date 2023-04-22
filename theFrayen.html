@@ -13,7 +13,21 @@
 	<p style="width:32em; margin:auto;">A raytraced expierence created using the new haven tech game engine first used in SortForce
 	to depict various (frayed) depictions of reality hence the name "The Frayen"</p>
 	<div style="margin:auto; width:700px;">
-	<table>
+	<table style="margin:auto; width:450px;">
+		<tr>
+			<td style="width:100px;"><button type="button" id="showSettings" onclick="showHideSettings()">> Settings</button></td>
+			<td id="status" style="border:1px solid #ffffff; border-radius:3px; width:150px;">Loading Scripts</td>
+			<td style="width:30px;">
+				<table style="width:30px; margin:-5px; margin-left:auto; margin-right:auto;">
+					<tr><td><div id="fps" style="border:1px solid #ffffff; border-radius:3px; width:25px;">0</div></td>
+						<td>fps</td>
+					</tr>
+				</table>
+			</td>
+			<td style="width:120px;"><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+		</tr>
+	</table>
+	<table id="settingsTable" style="display:none;">
 		<tr>
 			<td>Scene</td>
 			<td>
@@ -27,66 +41,78 @@
 				</select>
 			</td>
 			<td><button type="button" id="runSceneButton" onclick="stopAutostart()">Stop Autostart</button></td>
-			<td id="status" style="border:1px solid #ffffff; border-radius:3px; width:150px;">Loading Scripts</td>
-			<td>
-				<table style="width:50px; margin:-5px; margin-left:auto; margin-right:auto;">
-					<tr><td><div id="fps" style="border:1px solid #ffffff; border-radius:3px; width:25px;">0</div></td>
-						<td>fps</td>
-					</tr>
-				</table>
-			</td>
+			<td><input type="checkbox" id="treeDebug" onclick="debugToggle()">Debug OctTree</input></td>
+			<td>Opacity<input type="number" id="debOctOpac" onchange="debOctOpacChng(this)" value="0.2" step="0.1" max="1" min="0.1" style="width:50px;"></input></td>
+			
 		</tr>
 
 		<tr style="height:3px;"></tr>
 
 		<tr>
 			<td>Mouse X Sensitivity</td>
-			<td><input type="number" id="mouseXSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="mouseXSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
 			<td>Mouse Y Sensitivity</td>
-			<td><input type="number" id="mouseYSen" value="0.1" increment=0.1; onchange="mouseSenChange()" style="width:4em;"></input></td>
-			<td><button type="button" onclick="ResetSettings()">Reset Settings</button></td>
+			<td><input type="number" id="mouseYSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
+			<td><button type="button" onclick="ResetSettings()" style="background-color:thistle;">Reset Settings</button></td>
 		</tr>
 		<tr>
 			<td>Touch Move Sens</td>
-			<td><input type="number" id="touchMoveSen" value="0.005" increment=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="touchMoveSen" value="0.005" step=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
 			<td>Touch Looks Sens</td>
-			<td><input type="number" id="touchLookSen" value="0.05" increment=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="touchLookSen" value="0.05" step=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
 		</tr>
 		
 		<tr>
 			<td>Canvas Width</td>
-			<td><input type="number" id="canvWidth" value="640" increment=0.1; style="width:4em;"></input></td>
+			<td><input type="number" id="canvWidth" value="640" step=0.1; style="width:4em;"></input></td>
 			<td>Canvas Height</td>
-			<td><input type="number" id="canvHeight" value="480" increment=0.1; style="width:4em;"></input></td>
+			<td><input type="number" id="canvHeight" value="480" step=0.1; style="width:4em;"></input></td>
 			<td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
 		</tr>
 		
 		<tr>
 			<td>Fullscreen Width</td>
-			<td><input type="number" id="fullScrCanvWidth" value="1920" increment=0.1; style="width:4em;"></input></td>
+			<td><input type="number" id="fullScrCanvWidth" value="1920" step=0.1; style="width:4em;"></input></td>
 			<td>Fullscreen Height</td>
-			<td><input type="number" id="fullScrCanvHeight" value="1080" increment=0.1; style="width:4em;"></input></td>
-			<td><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+			<td><input type="number" id="fullScrCanvHeight" value="1080" step=0.1; style="width:4em;"></input></td>
 		</tr>
 		<tr>
 			<td>Rays Per Frame</td>
-			<td><input type="number" id="raysPerFrame" value="5000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="raysPerFrame" value="5000" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
 			<td>Accumulated Rays</td>
-			<td><input type="number" id="accumulatedRays" value="8000" increment=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="accumulatedRays" value="8000" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
 		</tr>
 		<tr>
 			<td>Point Size</td>
-			<td><input type="number" id="pointSize" value="10" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="pointSize" value="10" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
 			<td>Distance Falloff Multiplier</td>
-			<td><input type="number" id="pointFalloff" value="0.5" increment=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
+			<td><input type="number" id="pointFalloff" value="0.5" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
 		</tr>
 	</table>
 	</div>
 
 	<div class="footerContainer" style="width:80%; height:80%;">
-			<h3>Use WASD keys and click on canvas for camera rotation (ESC to exit)</h3>
-			<h4 id="cameraDebugText"></h4>
+		<h3>Controls |Touch| or |WASD keys and left click to capture mouse ESC to exit|</h3>
+		<h4 id="cameraDebugText"></h4>
 		<canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
+	</div>
+	<div style="width:80%; margin:auto;">
+		<table style="margin:auto; text-align:left;">
+			<tr>
+				<td>
+					<table>
+						<tr><td><button type="button" id="showTreeBuildLog" onclick="showHideTreeBuildLog()">> Tree Build Log</button></td></tr>
+						<tr><td><p id="octTreeDivLog" style="text-align:left; color:black; display:none;">Tree Subdivision Log:<br/></p></td></tr>
+					</table>
+				</td>
+				<td>
+					<table>
+						<tr><td><button type="button" id="showTreeHierachyLog" onclick="showHideTreeHierachyLog()">> Tree Hierarchy</button></td></tr>
+						<tr><td><p id="treeHierarchyLog"></p></td></tr>
+					</table>
+				</td>
+			</tr>
+		</table>
 	</div>
 	<h4 id ="status"></h4>
 

@@ -7,11 +7,11 @@ uniform float pointSize;
 uniform float pointFalloff;
 
 in vec3 position;
-in vec3 ptCol;
+in vec4 ptCol;
 
 //variables passed to the fragment shader
 out vec3 normalVarying;
-out vec3 colorVarying;
+out vec4 colorVarying;
 
 void main() {
     gl_Position = projection*vec4( position, 1.0 );

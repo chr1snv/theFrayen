@@ -4,11 +4,13 @@
 let uvCoord = new Float32Array(2);
 class Face {
 	constructor(){
+		this.uuid       = Math.random();
 		this.materialID = 0;
 		this.uvs        = [];
 		this.vertIdxs   = [];
 		this.tris       = [];
 		this.AABB       = null;
+		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( ret, ray ){ 
@@ -125,6 +127,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 			var vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
 			if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
+				octTreeDivLogElm.innerHTML += "<br/>update " + this.meshName + "<br/>";
 				this.UpdateOctTree();} //updates world space min and max corners
 
 			var worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
@@ -168,6 +171,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 
+	this.PrintHierarchy = function(){
+		this.octTree.PrintHierarchy();
+		
+	}
 	//geometry query function
 	//this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
 

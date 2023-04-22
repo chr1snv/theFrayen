@@ -254,7 +254,7 @@ function Graphics( canvasIn, loadCompleteCallback )
 		
 		gl.enableVertexAttribArray( pointColorAttr );
 		//void gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
-		gl.vertexAttribPointer(pointColorAttr, 3, gl.FLOAT, false, 0, 0);
+		gl.vertexAttribPointer(pointColorAttr, 4, gl.FLOAT, false, 0, 0);
 		
 		gl.drawArrays( gl.POINTS, 0, numPoints );
 	}

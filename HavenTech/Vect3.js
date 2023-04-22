@@ -112,6 +112,26 @@ function Vect3_LERP(v, v1, v2, v2Weight){
     v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
 
+function vFxLenStr( v, numDecimalPlaces, len ){
+	let retString = '';
+	let a = '';
+	for( let i = 0; i < v.length; ++i ){
+		a = v[i].toFixed(numDecimalPlaces);
+		if(a.length > len){
+			a = a.slice(0, len-2);
+			a += "..";
+		}else if( a.length < len ){
+			while( a.length < len )
+				a = "0" + a;
+		}
+		retString += a;
+		if( i != v.length - 1 ) //add spaces between the vector components
+			retString += " ";
+	}
+
+	return retString;
+}
+
 //for debug printing
 function ToFixedPrecisionString( v, numDecimalPlaces ){
     let retString = 0;

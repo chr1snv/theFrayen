@@ -14,7 +14,8 @@
 //that holds the data of
 //the objects in the node, updated when requested by the frame buffer manager to draw
 
-var MaxTreeNodeObjects = 5;
+const MaxTreeDepth = 4;
+const MaxTreeNodeObjects = 5;
 const rayStepEpsilon = 0.0001;
 function TreeNode( axis, minCoord, MaxCoord, parent ){
 
@@ -26,6 +27,15 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	Vect3_MultiplyScalar( this.midCoord, 0.5 ); //the center coordinate
 
 	this.AABB = new AABB( this.minCoord, this.MaxCoord );
+	
+	if( parent ){
+		this.depth = parent.depth+1;
+		this.maxDepth = parent.maxDepth;
+	}else{
+		this.depth = 0;
+		this.maxDepth = 0;
+	}
+
 
 	this.parent  = parent; 
 	//link to the parent ( to allow traversing back up the tree )
@@ -52,22 +62,21 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	//update all objects below this node in the oct tree
 	//later may add count of nodes requested/updated to signify completion
 	this.Update = function( time ){
-	for( let i = 0; i < this.objects.length; ++i ) //loop through the objects
-		this.objects[ i ].Update(time);
+		for( let i = 0; i < this.objects.length; ++i ) //loop through the objects
+			this.objects[ i ].Update(time);
 
-	//recursevly update sub nodes
-	//this eventually may cause cross thread/computer calls so may need to synchronize
-	//to ensure nodes are updated before rendering
-	if( this.minNode != null ) this.minNode.Update( time );
-	if( this.MaxNode != null ) this.MaxNode.Update( time );
+		//recursevly update sub nodes
+		//this eventually may cause cross thread/computer calls so may need to synchronize
+		//to ensure nodes are updated before rendering
+		if( this.minNode != null ) this.minNode.Update( time );
+		if( this.MaxNode != null ) this.MaxNode.Update( time );
 	}
 
 	this.addToThisNode = function( object ){
 		//insertion sort the objects
 		let lessThanIndex = -1;
-		for( let i = 0; i < this.objects.length; ++i){
-			if( this.objects[i].AABB.center[this.axis] < 
-				object.AABB.center[this.axis] )
+		for( let i = 0; i < this.objects.length; ++i ){
+			if( this.objects[i].AABB.minCoord[this.axis] < object.AABB.minCoord[this.axis] )
 				lessThanIndex = i;
 			else
 				break; //because less to greater sorted, once a greater than
@@ -79,48 +88,266 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		this.objectDictionary[ object.uuid ] = object;
 		return true;
 	}
+	
+	this.PrintHierarchy = function( ){
+
+		hiLStr+= "<div style=\"margin-left:4px; display:table; outline:1px solid " + aIdxToC(this.axis) + "33;\">";
+		hiLStr+= "<button onclick=\"sohdDiv(this)\">></button>";
+		hiLStr += aIdxToS(this.axis) + " m " + vFxLenStr(this.minCoord, 2, 7) + " M " + vFxLenStr(this.MaxCoord, 2, 7);
+		hiLStr+= "<div style=\"display:none;\">";
+		for(let i = 0; i < this.objects.length; ++i ){
+			if( this.objects[i].meshName ){
+				hiLStr += this.objects[i].meshName + "<br/>";
+				this.objects[i].PrintHierarchy();
+			}else{
+				hiLStr+= minMaxToCSide(this.objects[i].AABB);
+			}
+		}
+		if( this.minNode != null ) this.minNode.PrintHierarchy(  );
+		if( this.MaxNode != null ) this.MaxNode.PrintHierarchy(  );
+		hiLStr += "</div>";
+		hiLStr += "</div>";
+	}
+
+	//check the objects along the axis for overlaps 
+	//filling in the number of overlaps in each object
+	//and return with the -
+	//least overlapping min edge point (closest to the midpoint) and
+	// numObjects before it (minObjects),
+	let bestDivPt; //best for an axis
+	let bestDivPtRank = 9999;
+	let bestNumMinObjs;
+	let bestNumOvlaps;
+	let halfNumObjs;
+	let sortedObjs = [ [], [], [] ];
+	this.FindOverlaps = function( objects, newAxis ){
+		//more important to divide the number of objects in half and place
+		//the new node boundry on an object edge than be near the middle of the
+		//current node (because then the number of objects per node is minimal
+		//and the chance of a new object crossing the created boundry is minimized)
+		
+		//need to sort objects by the minCoord in the newAxis before checking
+		//for overlaps
+		
+		if( newAxis == this.axis ){
+			sortedObjs[newAxis] = this.objects;
+		}else{
+			//copy the objects into the new array
+			sortedObjs[newAxis] = new Array(objects.length);
+			for( let i = 0; i < objects.length; ++i ){
+				sortedObjs[newAxis][i] = objects[i];
+			}
+			//make a temp array
+			let tempArr = new Array(objects.length);
+			//merge sort the array - writing merged values into tempArr and
+			//then back into place
+			let mergeLevels = Math.ceil(Math.log2(objects.length));
+			for( let l = 0; l < mergeLevels; ++l ){ //each power of 2 level
+				let lvlStep = Math.pow(2,l);
+				let temp;
+				for( let i = 0; i < objects.length; i+=lvlStep*2 ){ //per block pair
+					let aItr = 0;
+					let bItr = 0;
+					let j = 0;
+					while( i+j < objects.length && j < lvlStep*2 ){ //merge elms in block pairs
+						if( bItr >= lvlStep ){ //if a & b >= lvlStep j will be >= lvlStep
+							tempArr[j] = sortedObjs[newAxis][i+aItr]; aItr++;
+						}else if( aItr >= lvlStep ){
+							tempArr[j] = sortedObjs[newAxis][i+lvlStep+bItr]; bItr++;
+						}else if( (i+lvlStep+bItr) >= objects.length ||
+							(sortedObjs[newAxis][i+aItr].AABB.minCoord[newAxis] <= 
+							sortedObjs[newAxis][i+lvlStep+bItr].AABB.minCoord[newAxis]) ){
+							tempArr[j] = sortedObjs[newAxis][i+aItr]; aItr++;
+						}else{
+							tempArr[j] = sortedObjs[newAxis][i+lvlStep+bItr]; bItr++;
+						}
+						j++;
+					}
+
+					//copy merged blocks back in place
+					for( let k = 0; k < j; ++k ){
+						sortedObjs[newAxis][i+k] = tempArr[k];
+					}
+
+				}
+			}
+		}
+		
+		octTreeDivLogElm.innerHTML += "sorted ";
+		for( let i = 0; i < objects.length; ++i ){
+			octTreeDivLogElm.innerHTML += sortedObjs[newAxis][i].AABB.minCoord[newAxis] + minMaxToCSide(sortedObjs[newAxis][i].AABB) + " ";
+		}
+
+		bestDivPt = sortedObjs[newAxis][0].AABB.minCoord[newAxis];
+		const queueLen = MaxTreeNodeObjects;
+		//circular fifo queue of objects that overlap in the axis being checked
+		let prevMinPts = [ sortedObjs[newAxis][0].AABB.minCoord[newAxis], null, null, null, null ];
+		let prevMaxPts = [ sortedObjs[newAxis][0].AABB.maxCoord[newAxis], null, null, null, null ];
+		let queueMin = 0;
+		let queueMax = 0;
+		octTreeDivLogElm.innerHTML += "<br/>";
+		
+		//iterate over
+		//min to max minCoord sorted objects checking for overlaps
+		for( let j = 1; j < sortedObjs[newAxis].length; ++j ){
+			//add the new object to the overlap queue
+			++queueMax; if( queueMax >= queueLen ) queueMax = 0; //circular increment
+			prevMinPts[queueMax] = sortedObjs[newAxis][j].AABB.minCoord[newAxis];
+			prevMaxPts[queueMax] = sortedObjs[newAxis][j].AABB.maxCoord[newAxis];
+			//forget prior objects that don't overlap
+			while( prevMaxPts[queueMin] <= prevMinPts[queueMax] && queueMin != queueMax ){
+				++queueMin; if( queueMin >= queueLen ) queueMin = 0;}
+
+			//calculate the number of overlaps for the object
+			let numOverlaps = queueMax-queueMin; if( numOverlaps < 0 ) numOverlaps += queueLen;
+
+			//find the best dividing point between this and previous objects (closest to midpoint)
+			let divPt = sortedObjs[newAxis][j].AABB.minCoord[newAxis];
+			let diffMinHalfObjs = j-halfNumObjs; if( diffMinHalfObjs < 0 ) diffMinHalfObjs = -diffMinHalfObjs;
+
+			//rank this dividing point using a metric involving the number of overlaps and distance to the mid
+			let divPtRank = numOverlaps*2 + diffMinHalfObjs; //lower is better
+
+			//if a better scoring division point has been found record it as best for this axis
+			if( divPtRank < bestDivPtRank ){
+				bestDivPtRank = divPtRank;
+				bestNumOvlaps = numOverlaps;
+				bestNumMinObjs = j;
+				bestDivPt = divPt;
+			}
+
+		}
+
+	}
+	
+	function aIdxToC(a){
+		if(a == 0)
+			return "#FF0000";
+		else if(a == 1)
+			return "#00FF00";
+		else
+			return "#0000FF";
+	}
+	function aIdxToS(a){
+		if(a == 0)
+			return "x";
+		else if(a == 1)
+			return "y";
+		else
+			return "z";
+	}
+	
+	function minMaxToCSide(aabb){
+		
+		if( aabb.minCoord[0] < 0.5 ){
+			if( aabb.minCoord[1] < 0.5 ){
+				if( aabb.minCoord[2] < 0.5 ){ //bottom left back corner
+					if( aabb.maxCoord[0] < 0.5 ){
+						return "left";
+					}else{ //bottom, back
+						if( aabb.maxCoord[2] > 0.5 ){
+							return "bottom";
+						}
+						return "back";
+					}
+				}else{
+					return "front";
+				}
+			}else{ //bottom left front corner
+				return "top";
+			}
+		}else{
+			return "right";
+		}
+	}
 
 	//add an object to the node, if it is full - subdivide it 
 	//and place objects in the sub nodes
 	this.AddObject = function( object, addDepth=0 ){
 	//addDepth is to keep track of if all axies
 	//have been checked for seperating the objects
+		octTreeDivLogElm.innerHTML += "addObject d " + this.depth + 
+							" a " + aIdxToS(this.axis) + 
+							" ob " + minMaxToCSide(object.AABB) + "<br/>";
 
 		//fill nodes until they are full (prevent unessecary subdividing)
 		//but also don't add objects if they are inside objects already in the world
 		//(if something is inside an object it should be parented to it)
-		if( this.minNode == null ){ //not yet subdivided
+		if( this.minNode == null ){ //not yet subdivided, try to add to self
 			this.addToThisNode(object);
 			if( this.objects.length < MaxTreeNodeObjects ){
 				return;
 			}else{ //need to subdivide
 				//only leaf nodes should contain objects to avoid overlap ambiguity
 				//also to allow rays to only check leaves while traversing
+				if( this.depth+1 > MaxTreeDepth )
+					return false;
 
-				//split the node until there are only MaxTreeNodeObjects per node
+				//try to split the node until there are only MaxTreeNodeObjects per node
 				//to keep performace gains
-				let newAxis = (this.axis + 1) % 3;
-				let numMinObjs = this.generateMinAndMaxNodes(this.objects, newAxis);
-
-				while( newAxis != this.axis && numMinObjs == -2 ){ //objects overlap in this axis (not seperable)
-					newAxis = (newAxis + 1) % 3;
-					numMinObjs = this.generateMinAndMaxNodes(this.objects, newAxis);
+				halfNumObjs = Math.floor(this.objects.length/2);
+				let ovNumMinObjs; //ov stands for overall (all axies)
+				let ovDivPtRank = 99999;
+				let ovNumOvlaps;
+				let ovDivPt;
+				let ovAxis;
+				octTreeDivLogElm.innerHTML += "Div at Depth " + addDepth + 
+					" axis " + aIdxToS(this.axis) + " numObj " + this.objects.length +"<br/>";
+				for( let a = 1; a < 3; ++a ){ //each level a different axis
+					let newAxis = (this.axis + a) % 3;
+					octTreeDivLogElm.innerHTML += "a " + aIdxToS(newAxis) + " ";
+					this.FindOverlaps(this.objects, newAxis);
+					octTreeDivLogElm.innerHTML += "numMin " + bestNumMinObjs;
+					octTreeDivLogElm.innerHTML += " ovlaps " + bestNumOvlaps;
+					octTreeDivLogElm.innerHTML += " divPt " + bestDivPt + "<br/>";
+					if( bestDivPtRank < ovDivPtRank ){
+						ovNumMinObjs  = bestNumMinObjs;
+						ovDivPtRank   = bestDivPtRank;
+						ovNumOvlaps   = bestNumOvlaps;
+						ovDivPt       = bestDivPt;
+						ovAxis        = newAxis;
+					}
 				}
-				if( numMinObjs > 0 ){
+				/*
+				//if a in half division hasn't been found, try the other axies
+				if( numMinObjs < numObjH ){ //if an in half division is found break
+					newAxis = (newAxis + 1) % 3; //modulo wrap around from (2)z axis back to x
+					numMinObjs = this.FindOverlaps(this.objects, newAxis);
+					minObj_Score_DivPts[newAxis][0] = numMinObjs;
+					minObj_Score_DivPts[newAxis][1] = bestDivPtRank;
+					minObj_Score_DivPts[newAxis][1] = bestDivPt;
+				}
+				*/
+
+				if( ovNumMinObjs > 0 &&  ovNumMinObjs < this.objects.length ){
+					//create the min and max nodes
+					octTreeDivLogElm.innerHTML += "div axis " + aIdxToS(ovAxis) + "<br/>";
+					octTreeDivLogElm.innerHTML += "numMin " + ovNumMinObjs;
+					octTreeDivLogElm.innerHTML += " ovlaps " + ovNumOvlaps;
+					octTreeDivLogElm.innerHTML += " divPt " + ovDivPt + "<br/>";
+					this.generateMinAndMaxNodes(ovAxis, ovDivPt);
+
 					//divide the objects between the min and max nodes
 					addDepth = addDepth + 1;
-					var numObjectsAddedToMinNode = 0;
 					for( let i = 0; i < this.objects.length; ++i ){
-						if( i < numMinObjs )
-							this.minNode.AddObject( this.objects[i], addDepth );
-						else
-							this.MaxNode.AddObject( this.objects[i], addDepth );
+						if( i < ovNumMinObjs ){
+							octTreeDivLogElm.innerHTML += "addToMin " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
+							this.minNode.AddObject( sortedObjs[ovAxis][i], addDepth );
+							if( i + ovNumOvlaps > ovNumMinObjs ){ //also add it to the max node
+								octTreeDivLogElm.innerHTML += "OaddToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
+								this.MaxNode.AddObject( sortedObjs[ovAxis][i], addDepth );
+
+							}
+						}else{
+							octTreeDivLogElm.innerHTML += "addToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
+							this.MaxNode.AddObject( sortedObjs[ovAxis][i], addDepth );
+						}
 					}
 					this.objects = [];
 					this.objectDictionary = {};
-					
+
 					return;
-					
+
 					//the node was successfuly subdivided and objects
 					//distributed to sub nodes such that
 					//all nodes have less than MaxTreeNodeObjects
@@ -129,62 +356,53 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 
 			}
 		}else{ //already subdivided, decide if should add to min or max node
-			if( object.AABB.center[this.axis] < this.minNode.MaxCoord[this.axis] )
+			if( object.AABB.minCoord[this.axis] < this.minNode.MaxCoord[this.axis] ){
+				octTreeDivLogElm.innerHTML += "DaddToMin " + object.AABB.minCoord[this.axis];
 				return this.minNode.AddObject( object, addDepth+1 );
-			else
+			}else{
+				octTreeDivLogElm.innerHTML += "DaddToMax " + object.AABB.minCoord[this.axis];
 				return this.MaxNode.AddObject( object, addDepth+1 );
+			}
 		}
 
 		return false;
 	}
 
+	this.SubNode = function( point ){
+		//find which node the ray origin is in
+		//to start tracing though node walls and objects from the ray's starting point
 
-	this.SubNode = function( point )
-	{
-	//find which node the ray origin is in
-	//to start tracing though node walls and objects from the ray's starting point
+		if( point[0] > this.minCoord[0] && 
+			point[1] > this.minCoord[1] && 
+			point[2] > this.minCoord[2] && //each axis of the point is greater than
+											//those of the min coord
+			point[0] < this.MaxCoord[0] && 
+			point[1] < this.MaxCoord[1] && 
+			point[2] < this.MaxCoord[2] ){ //each axis of the point is also 
+											//less than those of the max coord
 
-	if( point[0] > this.minCoord[0] && 
-		point[1] > this.minCoord[1] && 
-		point[2] > this.minCoord[2] && //each axis of the point is greater than
-										//those of the min coord
-		point[0] < this.MaxCoord[0] && 
-		point[1] < this.MaxCoord[1] && 
-		point[2] < this.MaxCoord[2] ){ //each axis of the point is also 
-										//less than those of the max coord
-
-		//theirfore the ray origin is in this node
-
-		if( this.minNode != null ){ 
-			//check if it is in the min node or one of the min node's subnodes
-			var node = this.minNode.SubNode( point );
-			if( node != null )
-				return node;
-		}
-		if( this.MaxNode != null ){ 
-			//check if it is in the max node or one of the max node's subnodes
-			var node = this.MaxNode.SubNode( point );
-			if( node != null )
-				return node;
-		}
-
-		return this; //the origin is in this node and this node 
-		//is a leaf node ( doesn't have a min or max child )
-		//or it was in this node and this node isn't a leaf node 
-		//but it wasn't in one of the leaf nodes ( shouldn't happen )
-
-	}else{
-
-		return null; //the point is outside this node, null will allow 
-		//the calling instance of this function to try another node
-
+			//theirfore the ray origin is in this node
+			if( this.minNode != null ){ 
+				//check if it is in the min node or one of the min node's subnodes
+				var node = this.minNode.SubNode( point );
+				if( node != null )
+					return node;}
+			if( this.MaxNode != null ){ 
+				//check if it is in the max node or one of the max node's subnodes
+				var node = this.MaxNode.SubNode( point );
+				if( node != null )
+					return node;}
+			return this; //the origin is in this node and this node 
+			//is a leaf node ( doesn't have a min or max child )
+			//or it was in this node and this node isn't a leaf node 
+			//but it wasn't in one of the leaf nodes ( shouldn't happen )
+		}else{
+			return null;} //the point is outside this node, null will allow 
+			//the calling instance of this function to try another node
 	}
-
-	}
-
 
 	this.nextNodeRayPoint = new Float32Array(3);
-	this.boundColor = new Float32Array([1,1,0]);
+	this.boundColor = new Float32Array([0,0,0,0.5]);
 	this.rayExitPoint = new Float32Array(3);
 	this.Trace = function( retVal, ray, minTraceTime ){
 	//returns data from nearest object the ray intersects
@@ -214,40 +432,34 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		//somehow the ray started outside of this node and didn't intersect
 		//with it
 		retVal[0] = -1;
-		return; //ray has exited the entire oct tree
-	}
+		return;} //ray has exited the entire oct tree
 
-	const minRayCoord = Math.min( ray.origin[this.axis], 
-								this.rayExitPoint[this.axis] );
-	const maxRayCoord = Math.max( ray.origin[this.axis], 
-								this.rayExitPoint[this.axis] );
+	const minRayCoord = ray.origin[this.axis] < this.rayExitPoint[this.axis] ? 
+						ray.origin[this.axis] : this.rayExitPoint[this.axis];
+	const maxRayCoord = this.rayExitPoint[this.axis] > ray.origin[this.axis] ? 
+						this.rayExitPoint[this.axis] : ray.origin[this.axis];
 
 	//first check if any objects in this node intersect with the ray
-	for( let i = 0; i < this.objects.length; ++i ) 
+	for( let i = 0; i < this.objects.length; ++i ){
 	//loop through the objects (if one isn't yet loaded, it is ignored)
-	{
-		if( ray.lastNode != null ) //don't recheck if checked last node
-			if( ray.lastNode.objectDictionary[ this.objects[i].uuid ] != null )
-				continue; //if already checked skip it
-		//check if the ray intersects the object
-		if( this.objects[i].AABB.
+		if( ray.lastNode == null || 
+			ray.lastNode.objectDictionary[ this.objects[i].uuid ] == null ){ //don't recheck if checked last node
+			//check if the ray intersects the object
+			if( this.objects[i].AABB.
 				RangeOverlaps( minRayCoord, maxRayCoord, this.axis ) ){
-			retVal[0] = -1;
-			this.objects[i].RayIntersect( retVal, ray );
-			if( retVal[0] > 0 ){ //if it did intersect
-				return; //return the result from the object
+				retVal[0] = -1;
+				this.objects[i].RayIntersect( retVal, ray );
+				if( retVal[0] > 0 ){ return;} //return the result from the object
 			}
 		}
 	}
-
-	//the ray didn't hit anything in this node 
 
 	//get a point along the ray inside the next node
 	const rayNextNodeStep = rayExitStep + rayStepEpsilon;
 	this.nextNodeRayPoint[0] = ray.norm[0] * rayNextNodeStep + ray.origin[0];
 	this.nextNodeRayPoint[1] = ray.norm[1] * rayNextNodeStep + ray.origin[1];
 	this.nextNodeRayPoint[2] = ray.norm[2] * rayNextNodeStep + ray.origin[2];
-	mainScene.cameras[0].AddPoint(this.nextNodeRayPoint, this.boundColor );
+
 	//find the next node starting at the current node and going up the tree
 	//until there is a subnode that contains the next node point
 	let parentNode = this;
@@ -263,12 +475,18 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		}
 	}
 	if( nextTraceNode != null ){
+		//the ray didn't hit anything in this node
+		if( treeDebug && this.depth == Math.floor((sceneTime/2)%(this.maxDepth+1)) ){
+			this.boundColor[3] = debOctOpac;
+			mainScene.cameras[0].AddPoint( this.rayExitPoint, this.boundColor );
+		}
+
 		ray.lastNode = this;
 		return nextTraceNode.Trace( retVal, ray, rayExitStep );
 	}
 
 	//this shouldn't be reached because of above if parent node == null
-	retVal[0] = -1; 
+	retVal[0] = -1;
 	}
 
 	//to be called when the node is filled with the max number of objects
@@ -277,10 +495,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	let minMaxCoord = new Float32Array(3);
 	let MaxminCoord = new Float32Array(3);
 	let MaxMaxCoord = new Float32Array(3);
-	let numMinObjs = 0;
-	this.generateMinAndMaxNodes = function(objects){
-		const nextAxis = (this.axis + 1) % 3; //modulo wrap around from (2)z axis back to x
-		let numObjH = Math.floor(objects.length/2);
+	this.generateMinAndMaxNodes = function(newAxis, divPt){
+		//let numObjH = Math.floor(objects.length/2);
 
 		if( this.minNode != null ) //if already subdivided dont generate new
 			return -2;       //nodes (would loose objects)
@@ -289,49 +505,12 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		for(let i = 0; i < 3; ++i){
 			//loop to avoid seperate if's for different x y and z nextAxies
 			minminCoord[i] = this.minCoord[i]; //least is least of this node
-			if( nextAxis == i){ //if this is the axis (x y or z) that
-				//minAndMax nodes split then 
-				//find a point closest to the mid point that is between
-				//objects (don't subdivide objects because then ray traversal
-				//may pass through / skip triangles)
-				//assumes that objects are sorted least to greatest and if
-				//there is overlap, they are seperated in another axis 
-				let midPt = this.midCoord[i];
-				
-				let bestDivPt = objects[0].AABB.minCoord[i];
-				let prevMaxPt = objects[0].AABB.minCoord[i];
-				let newCenDst;
-				let bestCenDst = bestDivPt - midPt;
-				bestCenDst = bestCenDst > 0 ? bestCenDst : -bestCenDst;
-				for( let j = 1; j < objects.length; ++j ){
-					//if the minCoord is less than the prevMaxPt
-					if( objects[j].AABB.minCoord[i] >= prevMaxPt ){ //doesn't overlap
-						newCenDst = objects[j].AABB.minCoord[i] - midPt;
-						newCenDst = newCenDst > 0 ? newCenDst : -newCenDst;
-						if( bestCenDst > newCenDst ){ //a closer divison point has been found
-							bestCenDst = newCenDst;
-							bestDivPt = objects[j].AABB.minCoord[i];
-							numMinObjs = j-1;
-						}
-					}
-					prevMaxPt = prevMaxPt > objects[j].AABB.maxCoord[i] ? prevMaxPt : objects[j].AABB.maxCoord[i];
-				}
-				/*
-				var midOfObjs2And3 = ( objects[numObjH-1].AABB.maxCoord[i] + 
-										objects[numObjH].AABB.minCoord[i] ) / 2;
-				var midOfObjs3And4 = ( objects[numObjH].AABB.maxCoord[i] + 
-										objects[numObjH+1].AABB.minCoord[i] ) / 2;
+			if( newAxis == i){ //if this is the axis (x y or z) that
+				//minAndMax nodes split then use the dividing point given
 
-				if( Math.abs(midOfObjs2And3 - midPt) < Math.abs(midOfObjs3And4 - midPt) ){
-					midPt = midOfObjs2And3;
-					numMinObjs = numObjH;
-				}else{
-					midPt = midOfObjs3And4;
-					numMinObjs = numObjH+1;}
-				*/
 				//the closest between object midpoint to the middle of the node is selected
-				minMaxCoord[i] = bestDivPt
-				MaxminCoord[i] = bestDivPt;
+				minMaxCoord[i] = divPt;
+				MaxminCoord[i] = divPt;
 
 			}else{ //for other axies use full range of this node
 				minMaxCoord[i] = this.MaxCoord[i]; //the other axies span
@@ -340,12 +519,19 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			MaxMaxCoord[i] = this.MaxCoord[i]; //max is max of this node
 		}
 		//now that the extents of the nodes have been found create them
-		if ( numMinObjs != 0 ){
-			this.minNode = new TreeNode(nextAxis, minminCoord, minMaxCoord, this);
-			this.MaxNode = new TreeNode(nextAxis, MaxminCoord, MaxMaxCoord, this);
-			return numMinObjs;
-		}
-		return -1;
+		this.maxDepth += 1;
+		this.minNode = new TreeNode(newAxis, minminCoord, minMaxCoord, this);
+		this.MaxNode = new TreeNode(newAxis, MaxminCoord, MaxMaxCoord, this);
+
+		if(		 newAxis == 0 ){
+			this.minNode.boundColor[0] = 1-this.minNode.depth/(this.maxDepth+1);
+			this.MaxNode.boundColor[0] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
+		else if( newAxis == 1 ){
+			this.minNode.boundColor[1] = 1-this.minNode.depth/(this.maxDepth+1);
+			this.MaxNode.boundColor[1] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
+		else if( newAxis == 2 ){
+			this.minNode.boundColor[2] = 1-this.minNode.depth/(this.maxDepth+1);
+			this.MaxNode.boundColor[2] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
 	}
 
 }

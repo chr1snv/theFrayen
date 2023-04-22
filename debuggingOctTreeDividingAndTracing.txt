@@ -1,0 +1,65 @@
+things that are strange about the oct tree dividing planes
+
+rays that hit faces of the cube don't have through node plane intersection points
+
+previous points on the cube move with the camera (don't stay fixed in the world) when
+the camera is moved
+
+	lowering the rays per frame reveals 
+	
+		that rays that hit the faces of the cube do
+		have intersection points they are simply obscured and by the textured face intersection
+		points because there are more of them
+	
+		also the through node points that appeared to be on the face of the cube are
+		actually on a horizontal plane but were being replaced when the camera moved
+		when the number of rays per frame were high
+		
+		
+		
+Apr 17th
+fixed debugging plane colors
+
+found that first axis divided is y (because the root node is x )
+
+this == parent.MaxNode //this is the depth 1 y top node
+this.minCoord = [ -10000,     1, -10000 ]
+this.maxCoord = [  10000, 10000,  10000 ]
+
+objects[0].AABB.minCoord = [ 1, -1,  -1] //right side
+objects[0].AABB.maxCoord = [ 1,  1,   1]
+
+objects[1].AABB.minCoord = [ -1, -1, -1] //bottom
+objects[1].AABB.maxCoord = [  1, -1,  1]
+
+objects[2].AABB.minCoord = [ -1,  1, -1] //top
+objects[2].AABB.maxCoord = [  1,  1,  1]
+
+
+nextTraceNode == this.parent.minNode //level 1 bottom node
+
+nextTraceNode.minCoord = [ -10000, -10000, -10000 ]
+nextTraceNode.MaxCoord = [  10000,      1,  10000 ]
+
+n.objects[0].AABB.minCoord = [ -1, -1, -1 ] //back
+n.objects[0].AABB.maxCoord = [  1,  1, -1 ]
+
+n.objects[1].AABB.minCoord = [ -1, -1,  1 ] //front
+n.objects[1].AABB.maxCoord = [  1,  1,  1 ]
+
+n.objects[2].AABB.minCoord = [ -1, -1, -1 ] //left side
+n.objects[2].AABB.maxCoord = [ -1,  1,  1 ]
+
+
+
+dividing when objects are added
+1 object can cause a large amount of shuffing of nodes during division
+overlaps not checked from both sides (though should be ok b/c sorted)
+found objectDictionary uuid's not set for faces in quadmesh oct tree for check if checked last node
+
+when loading complex scenes, the computer is locking up, probably because the tree
+is dividing excessively using all avaliable ram
+
+need to prevent dividing if having a balance ratio of less than a certian amount
+and rebalance the tree if not well divided
+

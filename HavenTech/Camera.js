@@ -284,7 +284,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		newAccumulatedRays
 		this.numRaysToAccum = newAccumulatedRays;
 		this.prevRayPositions = new Float32Array(this.numRaysToAccum*3);
-		this.prevPixColors    = new Float32Array(this.numRaysToAccum*3);
+		this.prevPixColors    = new Float32Array(this.numRaysToAccum*4);
 		this.numRaysAccumulated = 0;
 		this.accumIndex = 0;
 	}
@@ -345,9 +345,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 					this.prevRayPositions[this.accumIndex*3 + 1] = intPt[1];
 					this.prevRayPositions[this.accumIndex*3 + 2] = intPt[2];
 
-					this.prevPixColors[this.accumIndex*3 + 0]    = dist_norm_color[2][0];
-					this.prevPixColors[this.accumIndex*3 + 1]    = dist_norm_color[2][1];
-					this.prevPixColors[this.accumIndex*3 + 2]    = dist_norm_color[2][2];
+					this.prevPixColors[this.accumIndex*4 + 0]    = dist_norm_color[2][0];
+					this.prevPixColors[this.accumIndex*4 + 1]    = dist_norm_color[2][1];
+					this.prevPixColors[this.accumIndex*4 + 2]    = dist_norm_color[2][2];
+					this.prevPixColors[this.accumIndex*4 + 3]    = dist_norm_color[2][3];
 
 					this.accumIndex += 1;
 					if( this.accumIndex > this.numRaysToAccum )
@@ -388,9 +389,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.prevRayPositions[this.accumIndex*3 + 1] = intPt[1];
 		this.prevRayPositions[this.accumIndex*3 + 2] = intPt[2];
 
-		this.prevPixColors[this.accumIndex*3 + 0]    = col[0];
-		this.prevPixColors[this.accumIndex*3 + 1]    = col[1];
-		this.prevPixColors[this.accumIndex*3 + 2]    = col[2];
+		this.prevPixColors[this.accumIndex*4 + 0]    = col[0];
+		this.prevPixColors[this.accumIndex*4 + 1]    = col[1];
+		this.prevPixColors[this.accumIndex*4 + 2]    = col[2];
+		this.prevPixColors[this.accumIndex*4 + 3]    = col[3];
 
 		this.accumIndex += 1;
 		if( this.accumIndex > this.numRaysToAccum )

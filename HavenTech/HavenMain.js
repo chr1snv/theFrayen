@@ -110,6 +110,66 @@ function ExitFullscreen(){
 
 }
 
+var debOctOpac = 1;
+function debOctOpacChng(elm){
+	debOctOpac = elm.value;
+}
+
+var treeDebug;
+let debugElm = document.getElementById('treeDebug');
+function debugToggle(){
+	treeDebug = debugElm.checked;
+}
+
+function sohdDiv(elm){
+	if( elm.parentElement.children[1].style.display == 'none' ){
+		elm.parentElement.children[1].style="display:table;";
+		elm.innerHTML = "V";
+	}else{
+		elm.parentElement.children[1].style="display:none;";
+		elm.innerHTML = ">";
+	}
+}
+let treeHierarchyLogButtonElm = document.getElementById('showTreeHierachyLog');
+let treeHierarchyLogElm = document.getElementById('treeHierarchyLog');
+let hiLStr = "";
+function showHideTreeHierachyLog(){
+	if( treeHierarchyLogElm.style.display == "none" ){
+		treeHierarchyLogElm.style.display="contents";
+		treeHierarchyLogButtonElm.innerHTML = "V Tree Hierarchy";
+		hiLStr = "";
+		mainScene.octTree.PrintHierarchy(  );
+		treeHierarchyLogElm.innerHTML = hiLStr;
+	}else{
+		treeHierarchyLogElm.style.display="none";
+		treeHierarchyLogButtonElm.innerHTML = "> Tree Hierarchy";
+	}
+}
+
+let treeBuildLogButtonElm = document.getElementById('showTreeBuildLog');
+let treeBuildLogTableElm = document.getElementById('octTreeDivLog');
+function showHideTreeBuildLog(){
+	if( treeBuildLogTableElm.style.display == "none" ){
+		treeBuildLogTableElm.style.display="contents";
+		treeBuildLogButtonElm.innerHTML = "V Tree Build Log";
+	}else{
+		treeBuildLogTableElm.style.display="none";
+		treeBuildLogButtonElm.innerHTML = "> Tree Build Log";
+	}
+}
+
+let settingsButtonElm = document.getElementById('showSettings');
+let settingsTableElm = document.getElementById('settingsTable');
+function showHideSettings(){
+	if( settingsTableElm.style.display == "none" ){
+		settingsTableElm.style.display="contents";
+		settingsButtonElm.innerHTML = "V Settings";
+	}else{
+		settingsTableElm.style.display="none";
+		settingsButtonElm.innerHTML = "> Settings";
+	}
+}
+
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
 let autoRunCountdown = 4;
@@ -151,6 +211,8 @@ function SetCanvasSize(){
 function sceneSelectionFocus(){
 	this.selectedIndex=-1;
 }
+
+let octTreeDivLogElm = document.getElementById("octTreeDivLog");
 
 //called when the scene selection dropdown changes
 var sceneSelectorElm = document.getElementById("sceneSelection");
@@ -213,6 +275,7 @@ function sceneLoaded(havenScene)
 	//pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
 	pointSizeChange();
 	statusElm.innerHTML = "Running";
+	debugToggle();
 }
 
 //the main rendering and update function called each frame
