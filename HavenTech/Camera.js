@@ -1,5 +1,5 @@
 //Camera.js
-
+//to request use or code/art please contact chris@itemfactorystudio.com
 
 function glOrtho(left, right, bottom, top, nearVal, farVal)
 {
@@ -305,6 +305,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let worldPos  = new Float32Array( 3 );
 	let startNode = null;
 	this.RayTraceDraw = function( octTreeRoot ){
+	
+		totalRayFrameHits = 0;
+		octTreeRoot.clearRayCtrs();
 
 		this.getLocation( camOrigin );
 
@@ -331,7 +334,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				
 				//get the closest intersection point and pixel color
 				startNode = octTreeRoot.SubNode( ray.origin );
-				startNode.Trace( dist_norm_color, ray, float0 );
+				if(startNode){
+					startNode.Trace( dist_norm_color, ray, float0 );
+					updateHierarchyView(startNode);
+				}
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
 					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];

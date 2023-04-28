@@ -8,7 +8,7 @@
 	<script src="HavenTech/HavenInclude.js"></script>
 </head>
 
-<body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; text-align:center; font-family:arial; color:white;">
+<body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; background-attachment:fixed; text-align:center; font-family:arial; color:white;">
 	<h1>The Frayen</h1>
 	<p style="width:32em; margin:auto;">A raytraced expierence created using the new haven tech game engine first used in SortForce
 	to depict various (frayed) depictions of reality hence the name "The Frayen"</p>
@@ -16,10 +16,10 @@
 	<table style="margin:auto; width:450px;">
 		<tr>
 			<td style="width:100px;"><button type="button" id="showSettings" onclick="showHideSettings()">> Settings</button></td>
-			<td id="status" style="border:1px solid #ffffff; border-radius:3px; width:150px;">Loading Scripts</td>
+			<td id="status" style="border:1px solid #ffffff; width:150px;">Loading Scripts</td>
 			<td style="width:30px;">
-				<table style="width:30px; margin:-5px; margin-left:auto; margin-right:auto;">
-					<tr><td><div id="fps" style="border:1px solid #ffffff; border-radius:3px; width:25px;">0</div></td>
+				<table style="width:30px; margin:-3px; margin-left:auto; margin-right:auto;">
+					<tr><td><div id="fps" style="border:1px solid #ffffff; width:25px;">0</div></td>
 						<td>fps</td>
 					</tr>
 				</table>
@@ -41,9 +41,9 @@
 				</select>
 			</td>
 			<td><button type="button" id="runSceneButton" onclick="stopAutostart()">Stop Autostart</button></td>
-			<td><input type="checkbox" id="treeDebug" onclick="debugToggle()">Debug OctTree</input></td>
-			<td>Opacity<input type="number" id="debOctOpac" onchange="debOctOpacChng(this)" value="0.2" step="0.1" max="1" min="0.1" style="width:50px;"></input></td>
-			
+			<td><input type="checkbox" id="treeDebug" onclick="debugToggle()">Enable Debug</input></td>
+			<td><input type="number" id="debOctOpac" onchange="debOctOpacChng(this)" value="0.2" step="0.1" max="1" min="0.1" style="width:40px;"></input>Opacity</td>
+
 		</tr>
 
 		<tr style="height:3px;"></tr>
@@ -61,7 +61,7 @@
 			<td>Touch Looks Sens</td>
 			<td><input type="number" id="touchLookSen" value="0.05" step=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
 		</tr>
-		
+
 		<tr>
 			<td>Canvas Width</td>
 			<td><input type="number" id="canvWidth" value="640" step=0.1; style="width:4em;"></input></td>
@@ -69,7 +69,7 @@
 			<td><input type="number" id="canvHeight" value="480" step=0.1; style="width:4em;"></input></td>
 			<td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
 		</tr>
-		
+
 		<tr>
 			<td>Fullscreen Width</td>
 			<td><input type="number" id="fullScrCanvWidth" value="1920" step=0.1; style="width:4em;"></input></td>
@@ -88,27 +88,50 @@
 			<td>Distance Falloff Multiplier</td>
 			<td><input type="number" id="pointFalloff" value="0.5" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
 		</tr>
+		<tr>
+			<td>oT Div overlap penalty</td>
+			<td><input type="number" id="overlapPenalty" value="1" step=0.1; onchange="treeDivSettingChange()" style="width:4em;"></input></td>
+			<td>oT Div not half penalty</td>
+			<td><input type="number" id="halfPenalty" value="1" step=0.1; onchange="treeDivSettingChange()" style="width:4em;"></input></td>
+		</tr>
 	</table>
 	</div>
 
-	<div class="footerContainer" style="width:80%; height:80%;">
-		<h3>Controls |Touch| or |WASD keys and left click to capture mouse ESC to exit|</h3>
-		<h4 id="cameraDebugText"></h4>
-		<canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px;"></canvas>
-	</div>
+	<table style="margin:auto;">
+		<tr>
+			<td>
+				<div>
+					<h3>Controls: Touch / WASD keys, Mouse click to use - ESC to exit</h3>
+					<h4 id="cameraDebugText"></h4>
+					<canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px; outline:1px solid white;"></canvas>
+				</div>
+			</td>
+			<td style="width:400px;">
+				<table style="text-align:left;">
+					<tr>
+						<td>
+							<button type="button" id="showTreeHierachy" style="visibility:hidden;" 
+								onclick="showHideTreeHierachy()">> Tree Hierarchy</button>
+						</td>
+						<td>
+							<button type="button" id="expandAllTreeHierarchy" onclick="expandAllHierarchy()">Expand All</button>
+						</td>
+						<td>
+							<button type="button" id="hideAllTreeHierarchy" onclick="hideAllHierarchy()">Hide All</button>
+						</td>
+					</tr>
+					<tr><td><p id="treeHierarchy"></p></td></tr>
+				</table>
+			</td>
+		</tr>
+	</table>
 	<div style="width:80%; margin:auto;">
 		<table style="margin:auto; text-align:left;">
 			<tr>
 				<td>
 					<table>
 						<tr><td><button type="button" id="showTreeBuildLog" onclick="showHideTreeBuildLog()">> Tree Build Log</button></td></tr>
-						<tr><td><p id="octTreeDivLog" style="text-align:left; color:black; display:none;">Tree Subdivision Log:<br/></p></td></tr>
-					</table>
-				</td>
-				<td>
-					<table>
-						<tr><td><button type="button" id="showTreeHierachyLog" onclick="showHideTreeHierachyLog()">> Tree Hierarchy</button></td></tr>
-						<tr><td><p id="treeHierarchyLog"></p></td></tr>
+						<tr><td><p id="octTreeDivLog" style="text-align:left; color:black; display:none; overflow:scroll; height: 300px;">Tree Subdivision Log:<br/></p></td></tr>
 					</table>
 				</td>
 			</tr>

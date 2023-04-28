@@ -1,10 +1,10 @@
 //HavenMain.js
+//to request use or code/art please contact chris@itemfactorystudio.com
 
 //HavenMain has the loop entry / initalization function
 //the mainloop and transitions between fullscreen and windowed
 
 //load text file functions has been moved to Iohelpers
-
 
 //the overall goal / vision for HavenTech is to provide a framework
 //for loading / running / editing / saving interactive games, content, apps
@@ -110,52 +110,25 @@ function ExitFullscreen(){
 
 }
 
+
 var debOctOpac = 1;
 function debOctOpacChng(elm){
 	debOctOpac = elm.value;
+}
+
+let overlapPenaltyElm = document.getElementById('overlapPenalty');
+let halfPenaltyElm = document.getElementById('halfPenalty');
+let divHalfPenalty = 1;
+let divOverlapPenalty = 1;
+function treeDivSettingChange(){
+	divHalfPenalty = Number.parseInt(halfPenaltyElm.value);
+	divOverlapPenalty = Number.parseInt(overlapPenaltyElm.value);
 }
 
 var treeDebug;
 let debugElm = document.getElementById('treeDebug');
 function debugToggle(){
 	treeDebug = debugElm.checked;
-}
-
-function sohdDiv(elm){
-	if( elm.parentElement.children[1].style.display == 'none' ){
-		elm.parentElement.children[1].style="display:table;";
-		elm.innerHTML = "V";
-	}else{
-		elm.parentElement.children[1].style="display:none;";
-		elm.innerHTML = ">";
-	}
-}
-let treeHierarchyLogButtonElm = document.getElementById('showTreeHierachyLog');
-let treeHierarchyLogElm = document.getElementById('treeHierarchyLog');
-let hiLStr = "";
-function showHideTreeHierachyLog(){
-	if( treeHierarchyLogElm.style.display == "none" ){
-		treeHierarchyLogElm.style.display="contents";
-		treeHierarchyLogButtonElm.innerHTML = "V Tree Hierarchy";
-		hiLStr = "";
-		mainScene.octTree.PrintHierarchy(  );
-		treeHierarchyLogElm.innerHTML = hiLStr;
-	}else{
-		treeHierarchyLogElm.style.display="none";
-		treeHierarchyLogButtonElm.innerHTML = "> Tree Hierarchy";
-	}
-}
-
-let treeBuildLogButtonElm = document.getElementById('showTreeBuildLog');
-let treeBuildLogTableElm = document.getElementById('octTreeDivLog');
-function showHideTreeBuildLog(){
-	if( treeBuildLogTableElm.style.display == "none" ){
-		treeBuildLogTableElm.style.display="contents";
-		treeBuildLogButtonElm.innerHTML = "V Tree Build Log";
-	}else{
-		treeBuildLogTableElm.style.display="none";
-		treeBuildLogButtonElm.innerHTML = "> Tree Build Log";
-	}
 }
 
 let settingsButtonElm = document.getElementById('showSettings');
@@ -222,6 +195,8 @@ function loadScene()
 {
 	var idx = sceneSelectorElm.selectedIndex;
 	var newSceneName = sceneSelectorElm.children[idx].text;
+	
+	treeDivSettingChange();
 
 	stop();
 
@@ -276,6 +251,7 @@ function sceneLoaded(havenScene)
 	pointSizeChange();
 	statusElm.innerHTML = "Running";
 	debugToggle();
+	treeHierarchyButtonElm.style.visibility = "inherit";
 }
 
 //the main rendering and update function called each frame

@@ -1,8 +1,9 @@
 //QuadMesh.js - implementation of QuadMesh
-//a polygonal mesh with faces of 3 or 4 (quad) verticies
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
+//a polygonal mesh with faces of 3 or 4 (quad) verticies
 let uvCoord = new Float32Array(2);
-class Face {
+class Face { //part of mesh stored in mesh octTree
 	constructor(){
 		this.uuid       = Math.random();
 		this.materialID = 0;
@@ -171,8 +172,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 
-	this.PrintHierarchy = function(){
-		this.octTree.PrintHierarchy();
+	this.PrintHierarchy = function(name, par){
+		this.octTree.PrintHierarchy(name, par);
 		
 	}
 	//geometry query function
@@ -280,7 +281,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retVal[3] = this;
 		startNode = this.octTree.SubNode( ray.origin );
-		startNode.Trace( retVal, ray, 0 );
+		if( startNode )
+			startNode.Trace( retVal, ray, 0 );
 		//if( retVal[0] < 0 )
 		//	this.octTree.Trace( retVal, ray, 0 );
 /*

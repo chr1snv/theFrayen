@@ -1,4 +1,5 @@
 //Texture.js: texture implementation
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
 //called to create a new texture,
 //the texture ready callback is called to return the result to the caller when loading is complete

@@ -1,7 +1,5 @@
-
-//when tracing rays check if the cross the planes defined in the if statement tree
-//then test for intersection with the 
-
+//OctTree.js
+//to request use or code/art please contact chris@itemfactorystudio.com
 
 //the idea behind this is a mix between a binary space partioning tree and
 //an oct tree
@@ -16,8 +14,12 @@
 
 const MaxTreeDepth = 4;
 const MaxTreeNodeObjects = 5;
+var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
 function TreeNode( axis, minCoord, MaxCoord, parent ){
+
+	this.enabled = true; //for enab/disab using hierarchy for debugging
+	this.rayHitsPerFrame = 0;
 
 	this.axis = axis; //the axis that the node splits ( (0)x , (1)y , or (2)z )
 	this.minCoord = minCoord; //the minimum corner that the node covers
@@ -27,7 +29,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	Vect3_MultiplyScalar( this.midCoord, 0.5 ); //the center coordinate
 
 	this.AABB = new AABB( this.minCoord, this.MaxCoord );
-	
+
 	if( parent ){
 		this.depth = parent.depth+1;
 		this.maxDepth = parent.maxDepth;
@@ -89,24 +91,129 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		return true;
 	}
 	
-	this.PrintHierarchy = function( ){
+	this.PrintHierarchy = function( nodeName, parn ){
 
-		hiLStr+= "<div style=\"margin-left:4px; display:table; outline:1px solid " + aIdxToC(this.axis) + "33;\">";
-		hiLStr+= "<button onclick=\"sohdDiv(this)\">></button>";
-		hiLStr += aIdxToS(this.axis) + " m " + vFxLenStr(this.minCoord, 2, 7) + " M " + vFxLenStr(this.MaxCoord, 2, 7);
-		hiLStr+= "<div style=\"display:none;\">";
+		let prevHiLActvElm = hiLActvElm;
+
+		let tt = document.createElement('table');
+		tt.parn = parn;
+		tt.style.setProperty('margin-left', '4px');
+		tt.style.setProperty('display', 'table');
+		let bgOpacity = numToHex(this.rayHitsPerFrame/totalFrameRayHits*255);
+		if( bgOpacity[0] > '0' ) //indicate the number of ray hits with opacity intensity
+			bgOpacity = "55";
+		let bgCol = '1px solid ' + aIdxToC(this.axis);
+		
+		let c = document.createElement('table');
+
+		tt.style.setProperty('outline', bgCol  + bgOpacity );
+		let t = document.createElement('table');
+			let ttr = document.createElement('tr');
+				let td = document.createElement('td');
+					td.style.setProperty('background-color', '#00000000');
+					td.style.setProperty('width', '5px');
+					td.style.setProperty('height', '5px');
+					tt.camIco = td;
+			ttr.appendChild(td);
+				td = document.createElement('td');
+					let b = document.createElement('button');
+					b.onclick = function(e){ sohdDiv(e); };
+					b.style.setProperty('outline', bgCol );
+					b.style.setProperty('width', '18px');
+					b.innerText = '>';
+					b.subNdsDiv = c;
+				td.appendChild( b );
+			ttr.appendChild(td);
+			td = document.createElement('td');
+				b = document.createElement('button');
+				b.style.setProperty('margin-left', '4px');
+				b.style.setProperty('background-color','white');
+				b.style.setProperty('color','black');
+				b.style.setProperty('width', '18px');
+				b.oNode = this;
+				b.innerText = 'I';
+				b.onclick = function(e){ enbDisabONode(e); };
+			td.appendChild( b );
+			ttr.appendChild( td );
+				td = document.createElement('td');
+				td.innerText = nodeName;
+				//td.innerText = aIdxToS(this.axis); //+ " " + vFxLenStr(this.minCoord, 2, 4) + " " + vFxLenStr(this.MaxCoord, 2, 4);
+			ttr.appendChild( td );
+		t.appendChild( ttr );
+
+
+		let tr = document.createElement('tr');
+		td = document.createElement('td');
+		td.appendChild( t );
+		tr.appendChild(td);
+
+		tt.appendChild( tr );
+
+		tt.oNode = this;
+		this.hNode = tt; //link the hierarchy view element for updating as the camera moves
+
+		let objSummary = document.createElement('td');
+		objSummary.style.setProperty('width', '100px');
+		objSummary.style.setProperty('height', '20px');
+		objSummary.style.setProperty('overflow', 'scroll');
+		objSummary.style.setProperty('display', 'block ruby');
+		objSummary.style.setProperty('scrollbar-width', 'none');
+		
+		objSummary.onVisible;
+
+
+		c.style.setProperty('display', 'none');
 		for(let i = 0; i < this.objects.length; ++i ){
 			if( this.objects[i].meshName ){
-				hiLStr += this.objects[i].meshName + "<br/>";
-				this.objects[i].PrintHierarchy();
+				objSummary.innerText += " " + this.objects[i].meshName;
+				//td.innerText = this.objects[i].meshName;
+				//tr.appendChild( td );
+				//c.appendChild( tr );
+				tr = document.createElement('tr');
+				td = document.createElement('td');
+				hiLActvElm = td;
+				this.objects[i].PrintHierarchy(this.objects[i].meshName);
+				tr.appendChild( td );
+				c.appendChild( tr );
 			}else{
-				hiLStr+= minMaxToCSide(this.objects[i].AABB);
+				tr = document.createElement('tr');
+				td = document.createElement('td');
+				td.innerText = minMaxToCSide(this.objects[i].AABB);
+				objSummary.innerText += " " + td.innerText;
+				tr.appendChild( td );
+				c.appendChild( tr );
 			}
 		}
-		if( this.minNode != null ) this.minNode.PrintHierarchy(  );
-		if( this.MaxNode != null ) this.MaxNode.PrintHierarchy(  );
-		hiLStr += "</div>";
-		hiLStr += "</div>";
+		tt.sT = objSummary;
+		ttr.appendChild( objSummary );
+		tr = document.createElement('tr');
+		td = document.createElement('td');
+		hiLActvElm = td;
+		if( this.minNode != null ) tt.mN = this.minNode.PrintHierarchy( 'm'+(this.maxDepth-this.depth), tt );
+		tr.appendChild( td );
+		c.appendChild( tr );
+		tr = document.createElement('tr');
+		td = document.createElement('td');
+		hiLActvElm = td;
+		if( this.MaxNode != null ) tt.MN = this.MaxNode.PrintHierarchy( 'M'+(this.maxDepth-this.depth), tt );
+		tr.appendChild( td );
+		c.appendChild( tr );
+
+		tr = document.createElement('tr');
+		td = document.createElement('td');
+		td.appendChild( c );
+		tr.appendChild(td);
+		tt.appendChild( tr );
+
+
+		tr = document.createElement('tr');
+		td = document.createElement('td');
+		td.appendChild( tt );
+		tr.appendChild(td);
+		prevHiLActvElm.appendChild( tr );
+		hiLActvElm = prevHiLActvElm;
+
+		return tt;
 	}
 
 	//check the objects along the axis for overlaps 
@@ -172,7 +279,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 				}
 			}
 		}
-		
+
 		octTreeDivLogElm.innerHTML += "sorted ";
 		for( let i = 0; i < objects.length; ++i ){
 			octTreeDivLogElm.innerHTML += sortedObjs[newAxis][i].AABB.minCoord[newAxis] + minMaxToCSide(sortedObjs[newAxis][i].AABB) + " ";
@@ -186,7 +293,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		let queueMin = 0;
 		let queueMax = 0;
 		octTreeDivLogElm.innerHTML += "<br/>";
-		
+
 		//iterate over
 		//min to max minCoord sorted objects checking for overlaps
 		for( let j = 1; j < sortedObjs[newAxis].length; ++j ){
@@ -206,7 +313,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			let diffMinHalfObjs = j-halfNumObjs; if( diffMinHalfObjs < 0 ) diffMinHalfObjs = -diffMinHalfObjs;
 
 			//rank this dividing point using a metric involving the number of overlaps and distance to the mid
-			let divPtRank = numOverlaps*2 + diffMinHalfObjs; //lower is better
+			let divPtRank = numOverlaps*divOverlapPenalty + diffMinHalfObjs*divHalfPenalty; //lower is better
 
 			//if a better scoring division point has been found record it as best for this axis
 			if( divPtRank < bestDivPtRank ){
@@ -238,7 +345,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	}
 	
 	function minMaxToCSide(aabb){
-		
+
 		if( aabb.minCoord[0] < 0.5 ){
 			if( aabb.minCoord[1] < 0.5 ){
 				if( aabb.minCoord[2] < 0.5 ){ //bottom left back corner
@@ -258,6 +365,17 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			}
 		}else{
 			return "right";
+		}
+	}
+	
+	this.clearRayCtrs = function(){
+		this.rayHitsPerFrame = 0;
+		
+		if( this.minNode ){
+				this.minNode.clearRayCtrs();
+		}
+		if( this.MaxNode ){
+			this.MaxNode.clearRayCtrs();
 		}
 	}
 
@@ -280,7 +398,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			}else{ //need to subdivide
 				//only leaf nodes should contain objects to avoid overlap ambiguity
 				//also to allow rays to only check leaves while traversing
-				if( this.depth+1 > MaxTreeDepth )
+				if( this.depth+1 > MaxTreeDepth ) //prevent unbound tree growth to help avoid running out of memory
 					return false;
 
 				//try to split the node until there are only MaxTreeNodeObjects per node
@@ -308,16 +426,6 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 						ovAxis        = newAxis;
 					}
 				}
-				/*
-				//if a in half division hasn't been found, try the other axies
-				if( numMinObjs < numObjH ){ //if an in half division is found break
-					newAxis = (newAxis + 1) % 3; //modulo wrap around from (2)z axis back to x
-					numMinObjs = this.FindOverlaps(this.objects, newAxis);
-					minObj_Score_DivPts[newAxis][0] = numMinObjs;
-					minObj_Score_DivPts[newAxis][1] = bestDivPtRank;
-					minObj_Score_DivPts[newAxis][1] = bestDivPt;
-				}
-				*/
 
 				if( ovNumMinObjs > 0 &&  ovNumMinObjs < this.objects.length ){
 					//create the min and max nodes
@@ -334,7 +442,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 							octTreeDivLogElm.innerHTML += "addToMin " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
 							this.minNode.AddObject( sortedObjs[ovAxis][i], addDepth );
 							if( i + ovNumOvlaps > ovNumMinObjs ){ //also add it to the max node
-								octTreeDivLogElm.innerHTML += "OaddToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
+								octTreeDivLogElm.innerHTML += "OvlpAddToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
 								this.MaxNode.AddObject( sortedObjs[ovAxis][i], addDepth );
 
 							}
@@ -357,10 +465,10 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			}
 		}else{ //already subdivided, decide if should add to min or max node
 			if( object.AABB.minCoord[this.axis] < this.minNode.MaxCoord[this.axis] ){
-				octTreeDivLogElm.innerHTML += "DaddToMin " + object.AABB.minCoord[this.axis];
+				octTreeDivLogElm.innerHTML += "DivdAddToMin " + object.AABB.minCoord[this.axis];
 				return this.minNode.AddObject( object, addDepth+1 );
 			}else{
-				octTreeDivLogElm.innerHTML += "DaddToMax " + object.AABB.minCoord[this.axis];
+				octTreeDivLogElm.innerHTML += "DivdAddToMax " + object.AABB.minCoord[this.axis];
 				return this.MaxNode.AddObject( object, addDepth+1 );
 			}
 		}
@@ -371,6 +479,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	this.SubNode = function( point ){
 		//find which node the ray origin is in
 		//to start tracing though node walls and objects from the ray's starting point
+		if(!this.enabled)
+			return null;
 
 		if( point[0] > this.minCoord[0] && 
 			point[1] > this.minCoord[1] && 
@@ -407,6 +517,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	this.Trace = function( retVal, ray, minTraceTime ){
 	//returns data from nearest object the ray intersects
 
+	if( !this.enabled )
+		return;
 	//traverses the binary oct tree, starting at a node 
 	//checking objects in each node traversed for intersection with the ray
 	//if no object intersections occur, 
@@ -449,7 +561,12 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 				RangeOverlaps( minRayCoord, maxRayCoord, this.axis ) ){
 				retVal[0] = -1;
 				this.objects[i].RayIntersect( retVal, ray );
-				if( retVal[0] > 0 ){ return;} //return the result from the object
+				if( retVal[0] > 0 ){
+					this.rayHitsPerFrame++;
+					totalFrameRayHits++;
+					this.objects[i].RayIntersect( retVal, ray );
+					return;
+				} //return the result from the object
 			}
 		}
 	}
@@ -523,6 +640,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		this.minNode = new TreeNode(newAxis, minminCoord, minMaxCoord, this);
 		this.MaxNode = new TreeNode(newAxis, MaxminCoord, MaxMaxCoord, this);
 
+		//set the debug oct tree color based on axis and depth
 		if(		 newAxis == 0 ){
 			this.minNode.boundColor[0] = 1-this.minNode.depth/(this.maxDepth+1);
 			this.MaxNode.boundColor[0] = 1-this.MaxNode.depth/(this.maxDepth+1);  }

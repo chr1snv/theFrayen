@@ -63,3 +63,23 @@ is dividing excessively using all avaliable ram
 need to prevent dividing if having a balance ratio of less than a certian amount
 and rebalance the tree if not well divided
 
+
+
+apr 25th
+added tree hierarchy view
+enabling and disabling nodes wasn't working as expected
+it is because the start node for tracing isn't necessarily the root node
+(tracing starts by finding the closest sub node)
+fixed this by adding a check to subnode that if a node is disabled it
+wont return results
+think if tracing starts in an enabled subnode with a disabled parent though it wont
+necessarily be blocked unless a check is added that all parent nodes are enabled
+or enabling/disabling is done recursevly (though that would overwrite subnode settings)
+
+best is probably recursevly setting a parent enabled/disabled flag
+
+as is disabling a node causes traversal to be blocked through the oct tree node
+so if other subnodes are enabled but the camera is in a disabled node, nothing will be rendered
+
+
+

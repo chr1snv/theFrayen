@@ -1,5 +1,5 @@
-
-//AABB
+//AABB.js
+//to request use or code/art please contact chris@itemfactorystudio.com
 
 //Axis
 //Aligned

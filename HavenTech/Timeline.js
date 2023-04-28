@@ -1,3 +1,6 @@
+//Timeline.js
+//for use or code/art requests please contact chris@itemfactorystudio.com
+
  //thing to hold and manage a sequence of events
  //could be notes for a instrument 
  //or events / animations in a scripted sequence
@@ -5,10 +8,8 @@
  //games / expierences / enviroments can be modified without needing a seperate
  //program / installation and then importing / exporting content (though that also should be possible)
  
- function Timeline(){
- 
-   this.events = [];
-   
-   this.addEvent(time, event){
-   }
- }
+function Timeline(){
+	this.events = [];
+	this.addEvent(time, event){
+	}
+}

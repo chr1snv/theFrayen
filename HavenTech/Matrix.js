@@ -1,5 +1,5 @@
 //Matrix.js - implementation of matrix
-
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
 MatrixType =
 {
@@ -40,16 +40,13 @@ let tempMat1 = new Float32Array(4*4);
 let tempMat2 = new Float32Array(4*4);
 let tempMat3 = new Float32Array(4*4);
 //high level euler rotation angle Transformation matrix constructor
-function Matrix()// m, type, scale, rot, translation )
-{
+function Matrix(){// m, type, scale, rot, translation )
 	//var m = arguments[0];
 	//var type = arguments[1];
-	if(arguments[1] == MatrixType.identity)
-	{
+	if(arguments[1] == MatrixType.identity){
 		Matrix_SetIdentity(arguments[0]);
 	}
-	else if(arguments[1] == MatrixType.euler_transformation )
-	{
+	else if(arguments[1] == MatrixType.euler_transformation ){
 		//var scale       = arguments[2];
 		//var rot         = arguments[3];
 		//var translation = arguments[4];
@@ -60,8 +57,7 @@ function Matrix()// m, type, scale, rot, translation )
 		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
 		Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
 	}
-	else if( arguments[1] == MatrixType.quat_transformation)
-	{
+	else if( arguments[1] == MatrixType.quat_transformation){
 		//var scale       = arguments[2];
 		//var rot         = arguments[3];
 		//var translation = arguments[4];
@@ -72,8 +68,7 @@ function Matrix()// m, type, scale, rot, translation )
 		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
 		Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
 	}
-	else if( arguments[1] == MatrixType.orientation)
-	{
+	else if( arguments[1] == MatrixType.orientation){
 		//var tail = arguments[2];
 		//var head = arguments[3];
 		Matrix_SetIdentity(arguments[0]);
@@ -98,8 +93,7 @@ function Matrix()// m, type, scale, rot, translation )
 		var rotationAngle = Math.acos(dotProduct);
 		
 		//if the bone is not parallel to the y axis
-		if(Math.abs(rotationAngle) > 0.000001 && Math.abs(rotationAngle) < 3.141592)
-		{
+		if(Math.abs(rotationAngle) > 0.000001 && Math.abs(rotationAngle) < 3.141592){
 			//find the axis to rotate around
 			var rotationAxis = new Float32Array(3);
 			Vect3_Cross(rotationAxis, boneAxis, yAxis);
@@ -111,8 +105,7 @@ function Matrix()// m, type, scale, rot, translation )
 			
 			Matrix(arguments[0], MatrixType.quat_rotate, orientationQuat);
 		}
-		else // the bone is parallel to the y axis
-		{
+		else{ // the bone is parallel to the y axis
 			//generate a identity matrix (dont need to rotate since we
 			//are already at the y-axis)
 			//or a matrix scaling -1 along the y axis
@@ -122,8 +115,7 @@ function Matrix()// m, type, scale, rot, translation )
 			Matrix(arguments[0], MatrixType.xRot, Math.PI);
 		}
 	}
-	else if( arguments[1] == MatrixType.xRot )
-	{
+	else if( arguments[1] == MatrixType.xRot ){
 		//var rot = arguments[2];
 		Matrix_SetZero(arguments[0]);
 		arguments[0][3*4+3] = 1;
@@ -133,8 +125,7 @@ function Matrix()// m, type, scale, rot, translation )
 		arguments[0][2*4+1] = Math.sin(arguments[2]);
 		arguments[0][2*4+2] = Math.cos(arguments[2]);
 	}
-	else if( arguments[1] == MatrixType.yRot)
-	{
+	else if( arguments[1] == MatrixType.yRot){
 		//var rot = arguments[2];
 		Matrix_SetZero(arguments[0]);
 		arguments[0][3*4+3] = 1;
@@ -144,8 +135,7 @@ function Matrix()// m, type, scale, rot, translation )
 		arguments[0][2*4+0] = -Math.sin(arguments[2]);
 		arguments[0][2*4+2] = Math.cos(arguments[2]);
 	}
-	else if( arguments[1] == MatrixType.zRot)
-	{
+	else if( arguments[1] == MatrixType.zRot){
 		//var rot = arguments[2];
 		Matrix_SetZero(arguments[0]);
 		arguments[0][3*4+3] = 1;
@@ -155,8 +145,7 @@ function Matrix()// m, type, scale, rot, translation )
 		arguments[0][1*4+1] = Math.cos(arguments[2]);
 		arguments[0][2*4+2] = 1;
 	}
-	else if( arguments[1] == MatrixType.quat_rotate )
-	{
+	else if( arguments[1] == MatrixType.quat_rotate ){
 		var quat = arguments[2];
 		Matrix_SetIdentity(arguments[0]);
 		if(quat[3] == 0.0)
@@ -174,16 +163,14 @@ function Matrix()// m, type, scale, rot, translation )
 		arguments[0][2*4+1] =     2*quat[1]*quat[2] + 2*quat[0]*quat[3];
 		arguments[0][2*4+2] = 1 - 2*quat[0]*quat[0] - 2*quat[1]*quat[1];
 	}
-	else if(arguments[1] == MatrixType.scale)
-	{
+	else if(arguments[1] == MatrixType.scale){
 		//var scale = arguments[2];
 		Matrix_SetIdentity(arguments[0]);
 		arguments[0][0*4+0] = arguments[2][0];
 		arguments[0][1*4+1] = arguments[2][1];
 		arguments[0][2*4+2] = arguments[2][2];
 	}
-	else if(arguments[1] == MatrixType.euler_rotate)
-	{
+	else if(arguments[1] == MatrixType.euler_rotate){
 		//var rotVect = arguments[2];
 		Matrix_SetIdentity(arguments[0]);
 		//generate a rotation matrix with (xyz) ordering
@@ -193,8 +180,7 @@ function Matrix()// m, type, scale, rot, translation )
 		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
 		Matrix_Multiply(arguments[0], tempMat2, tempMat3);
 	}
-	else if(arguments[1] == MatrixType.translate)
-	{
+	else if(arguments[1] == MatrixType.translate){
 		Matrix_SetIdentity(arguments[0]);
 		arguments[0][0*4+3] = arguments[2][0];
 		arguments[0][1*4+3] = arguments[2][1];
@@ -204,8 +190,7 @@ function Matrix()// m, type, scale, rot, translation )
 		//var m2 = arguments[2];
 		Matrix_Copy(arguments[0], arguments[2]);
 	}
-	else
-	{
+	else{
 		Matrix_SetZero(arguments[0]);
 	}
 }
@@ -215,8 +200,7 @@ function Matrix()// m, type, scale, rot, translation )
 ////Linear algebra row operation helper functions for Inverse function
 ////
 
-function swapRows( m, r1, r2)
-{
+function swapRows( m, r1, r2){
 	//swap rows of a 4x4 matrix of floats
 	var temp = 0.0;
 	for(let i=0; i<4; ++i){
@@ -226,15 +210,13 @@ function swapRows( m, r1, r2)
 	}
 }
 
-function multiplyRow(matrix, row, scalar)
-{
+function multiplyRow(matrix, row, scalar){
 	//multiply all elements of a given row in a 4x4 matrix by a scalar
 	for(let i=0; i<4; ++i)
 		matrix[row*4+i] *= scalar;
 }
 
-function subtractRow( m, destRow, sourceRow)
-{
+function subtractRow( m, destRow, sourceRow){
 	//for a 4x4 matrix,
 	//subtract all the elements of the destination row from the elements of
 	//the source row, and place the results in the destination row
@@ -242,24 +224,21 @@ function subtractRow( m, destRow, sourceRow)
 		m[destRow*4+i] = m[sourceRow*4+i] - m[destRow*4+i];
 }
 
-function subtractRow2( m, destRow, sourceRow)
-{
+function subtractRow2( m, destRow, sourceRow){
 	//same as subtractRow, but subtract the source row from the destination
 	for(let i=0; i<4; ++i){
 		m[destRow*4+i] = m[destRow*4+i] - m[sourceRow*4+i];
 	}
 }
 
-function closeToZero(value)
-{
+function closeToZero(value){
 	//used as a replacement to ==0.0 for float numbers for numerical stability
 	if(value < 0.000001 && value > -0.000001)
 		return true;
 	return false;
 }
 
-function Matrix_Inverse(ret, m)
-{
+function Matrix_Inverse(ret, m){
 	//returns the inverse of this matrix
 	//using gauss jordian row operations
 
@@ -357,8 +336,7 @@ function Matrix_Multiply_Vect3( ret, m, v){
 	//matrix to preform translation as well as rotation and scaling
 }
 
-function Matrix_Multiply_Array3( arrayOut, m, arrayIn )
-{
+function Matrix_Multiply_Array3( arrayOut, m, arrayIn ){
 	//multiply an array of vec3's by the matrix m
 	let temp = new Float32Array(3);
 	let result = new Float32Array(3);
@@ -373,8 +351,7 @@ function Matrix_Multiply_Array3( arrayOut, m, arrayIn )
 	}
 }
 
-function Matrix_Multiply( ret, a, b )
-{
+function Matrix_Multiply( ret, a, b ){
 	//multiply the two 4x4 matricies together
 
 	//this loop pattern was found by writing out the multiplication term by term
@@ -389,8 +366,7 @@ function Matrix_Multiply( ret, a, b )
 	}
 }
 
-function Matrix_Transpose( ret, m )
-{
+function Matrix_Transpose( ret, m ){
 	//read each input column and write it out as a row
 	for(let i=0; i<4; ++i)
 		for(let j=0; j<4; ++j){
@@ -400,20 +376,17 @@ function Matrix_Transpose( ret, m )
 
 //find the determinant of a square row major matrix with width and height dimension
 //by expansion of minors
-function Matrix_Determinant( m, dimension, row)
-{
+function Matrix_Determinant( m, dimension, row){
 	//the form of 2d -> 1d flattened indexing is:
 	//m[(dimension*row)+col]
 
-	if(dimension < 2)
-	{
+	if(dimension < 2){
 		DPrintf("Matrix_Determinant: dimension < 2\n");
 		return 0; //don't know what to do with a smaller than 2x2 matrix
 	}
 
 	//if we have recursed down to the 2x2 case
-	else if(dimension == 2)
-	{
+	else if(dimension == 2){
 		return (m[(dimension*0)+0]*m[(dimension*1)+1])
 			 - (m[(dimension*1)+0]*m[(dimension*0)+1]);
 	}
@@ -438,8 +411,7 @@ function Matrix_Determinant( m, dimension, row)
 		var newMatrixIDX = 0;
 		//copy the full matrix into the sub matrix except for the crossed out row
 		for(var j=1; j<dimension; ++j)
-			for(var k=0; k<dimension; ++k)
-			{
+			for(var k=0; k<dimension; ++k){
 				if(k != i) //if it equaled it would be the crossed out column
 					subM[newMatrixIDX++] = m[(dimension*j)+k];
 			}
@@ -453,8 +425,7 @@ function Matrix_Determinant( m, dimension, row)
 }
 
 
-function Matrix_Print( m, name )
-{
+function Matrix_Print( m, name ){
 	DPrintf("Matrix : " + name );
 	DPrintf(m[0*4+0].toFixed(2) + " " + m[0*4+1].toFixed(2) + " " 
 		  + m[0*4+2].toFixed(2) + " " + m[0*4+3].toFixed(2) );

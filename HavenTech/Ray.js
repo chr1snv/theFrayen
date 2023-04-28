@@ -1,7 +1,7 @@
 //Ray.js - provides functions dealing with ray intersections
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
 //equation of a ray - p = orig + dir * t
-
 
 //returns the timestep of the second ray for the point of intersection
 //of two rays in R2

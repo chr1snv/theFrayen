@@ -1,11 +1,11 @@
 //Model.js
-
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
 function Model( nameIn, meshNameIn, sceneNameIn, //AABB, 
-                        modelLoadedParameters, modelLoadedCallback=null )
+					modelLoadedParameters, modelLoadedCallback=null )
 {
 	//get the quadMesh transformationMatrix
 	this.generateModelMatrix = function( cbObjs, completeCallback )
@@ -157,8 +157,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		}
 	}
 	
-	this.PrintHierarchy = function(){
-		this.quadmesh.PrintHierarchy();
+	this.PrintHierarchy = function(name, par){
+		this.quadmesh.PrintHierarchy(name, par);
 	}
 
 	this.modelName = nameIn;

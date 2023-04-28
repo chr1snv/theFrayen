@@ -6,11 +6,7 @@
  *        Author: christopher
  */
 
-function DPrintf(str){
-    console.log( "debug: " + str );
-}
-
-function IPrintf(str){
-    console.log("info: " + str);
-}
+function EPrintf(str){console.log("error: " + str);}
+function DPrintf(str){console.log("debug: " + str);}
+function IPrintf(str){console.log("info: "  + str);}
 

@@ -1,4 +1,5 @@
 //Graphics.js
+//to request use or code/art please contact chris@itemfactorystudio.com
 
 //helper function for printing gl errors
 function CheckGLError(where){
@@ -16,8 +17,7 @@ return false;
 }
 
 //used to pass perameters to a shader
-function attributeSetFloats( prog, attr_name, rsize, arr)
-{
+function attributeSetFloats( prog, attr_name, rsize, arr){
 	var attr = gl.getAttribLocation( prog, attr_name);
 	gl.enableVertexAttribArray(attr);
 	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -25,8 +25,7 @@ function attributeSetFloats( prog, attr_name, rsize, arr)
 	gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
 }
 
-function Graphics( canvasIn, loadCompleteCallback )
-{
+function Graphics( canvasIn, loadCompleteCallback ){
 	this.canvas = canvasIn;
 	
 	WebGLDebugUtils.init(this.canvas);
@@ -75,8 +74,7 @@ function Graphics( canvasIn, loadCompleteCallback )
 		gl.flush();}
 
 	//functions for fog
-	this.EnableFog = function(clipNear, clipFar)
-	{
+	this.EnableFog = function(clipNear, clipFar){
 		gl.Enable(gl.FOG);
 		gl.Fogx(gl.FOG_MODE, gl.LINEAR);
 		var params  = [];

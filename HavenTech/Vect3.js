@@ -1,4 +1,6 @@
 //Vect3.js
+//I didn't invent math, though I coded this implementation
+//for use or code/art requests please contact chris@itemfactorystudio.com
 
 //compute in place functions to avoid allocting more memory to keep
 //vector operations fast (that's the idea anyway)
@@ -29,7 +31,7 @@ function Vect3_Subtract(v1, v2) { v1[0] -= v2[0]; v1[1] -= v2[1]; v1[2] -= v2[2]
 function Vect3_Multiply(v1, v2) { v1[0] *= v2[0]; v1[1] *= v2[1]; v1[2] *= v2[2]; }
 
 function Vect3_MultiplyScalar(v1, scalar) { 
-                v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
+				v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
 
 function Vect3_Divide(v1, v2) { v1[0] /= v2[0]; v1[1] /= v2[1]; v1[2] /= v2[2]; }
 
@@ -44,9 +46,9 @@ function Vect3_DivideScalar(v1, scalar) { v1[0] /= scalar; v1[1] /= scalar; v1[2
 //if v1 is the x axis and v2 is the y axis
 //the cross product result will be in the z direction
 function Vect3_Cross(ret, v1, v2) {
-    ret[0] = v1[1]*v2[2] - v2[1]*v1[2];
-    ret[1] = v2[0]*v1[2] - v1[0]*v2[2];
-    ret[2] = v1[0]*v2[1] - v2[0]*v1[1];
+	ret[0] = v1[1]*v2[2] - v2[1]*v1[2];
+	ret[1] = v2[0]*v1[2] - v1[0]*v2[2];
+	ret[2] = v1[0]*v2[1] - v2[0]*v1[1];
 }
 
 //gets the scalar projection of one vector onto another |a||b|cos(theta)
@@ -63,53 +65,53 @@ function Vect3_Dot( v1, v2 ){ return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
 
 //returns the distance between the two vectors or points (assuming the vectors are distances from the same origin to two points)
 function Vect3_Distance(v1, v2) {
-    let diff = new Float32Array(3);
-    Vect3_Copy(diff, v1);
-    Vect3_Subtract(diff, v2); //diff is now the vector from v2 to v1
+	let diff = new Float32Array(3);
+	Vect3_Copy(diff, v1);
+	Vect3_Subtract(diff, v2); //diff is now the vector from v2 to v1
 
-    return Vect3_Length(diff);
+	return Vect3_Length(diff);
 }
 
 //return the inverse vector
 function Vect3_Negative(v1){ v1[0] = -v1[0]; v1[1] = -v1[1]; v1[2] = -v1[2]; }
 
 function Vect3_Length(v1) {
-    const len = Vect3_LengthSquared(v1);
-    return Math.sqrt(len);
+	const len = Vect3_LengthSquared(v1);
+	return Math.sqrt(len);
 }
 
 //a less computationally expensive version of length (avoid preforming square root)
 function Vect3_LengthSquared(v1){ 
-    return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2];
+	return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2];
 }
 
 //normalizes a vector
 function Vect3_Normal(v1){
-    //let len = Vect3_Length(v1);
-    //Vect3_DivideScalar(v1, len);
-    const len = Math.sqrt( v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2] );
-    v1[0] /= len; v1[1] /= len; v1[2] /= len;
+	//let len = Vect3_Length(v1);
+	//Vect3_DivideScalar(v1, len);
+	const len = Math.sqrt( v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2] );
+	v1[0] /= len; v1[1] /= len; v1[2] /= len;
 }
 //another name/alias for Vect3_Normal
 function Vect3_Unit(v1){
-    const len = Vect3_Length(v1);
-    Vect3_DivideScalar(v1, len);
+	const len = Vect3_Length(v1);
+	Vect3_DivideScalar(v1, len);
 }
 
 function Vect3_Orthogonal(v1){
-    //returns the unit vector orthogonal in the zx plane
-    //(no vertical component) [used in camera class]
-    const temp = v1[0];
-    v1[0] = -v1[2]; v1[1] = 0; v1[2] = -temp;
-    Vect3_Unit(v1);
+	//returns the unit vector orthogonal in the zx plane
+	//(no vertical component) [used in camera class]
+	const temp = v1[0];
+	v1[0] = -v1[2]; v1[1] = 0; v1[2] = -temp;
+	Vect3_Unit(v1);
 }
 
 //linearly interpolates between the two vectors
 function Vect3_LERP(v, v1, v2, v2Weight){
-    const v1Weight = 1.0-v2Weight;
-    v[0] = v1[0]*v1Weight + v2[0]*v2Weight;
-    v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
-    v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
+	const v1Weight = 1.0-v2Weight;
+	v[0] = v1[0]*v1Weight + v2[0]*v2Weight;
+	v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
+	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
 
 function vFxLenStr( v, numDecimalPlaces, len ){
@@ -118,11 +120,16 @@ function vFxLenStr( v, numDecimalPlaces, len ){
 	for( let i = 0; i < v.length; ++i ){
 		a = v[i].toFixed(numDecimalPlaces);
 		if(a.length > len){
-			a = a.slice(0, len-2);
-			a += "..";
-		}else if( a.length < len ){
+			//a = a.slice(0, len-2);
+			//a += "..";
+			let fd = a[0] == '-' ? a.slice(0,2) : a[0];
+			let ep = a[0] == '-' ? a.length-2 : a.length-1;
+			a = fd + "e" + ep;
+		}
+		
+		if( a.length < len ){
 			while( a.length < len )
-				a = "0" + a;
+				a = '_' + a;
 		}
 		retString += a;
 		if( i != v.length - 1 ) //add spaces between the vector components
@@ -134,11 +141,32 @@ function vFxLenStr( v, numDecimalPlaces, len ){
 
 //for debug printing
 function ToFixedPrecisionString( v, numDecimalPlaces ){
-    let retString = 0;
-    for( let i = 0; i < v.length; ++i ){
-        retString += v[i].toFixed(numDecimalPlaces);
-        if( i != v.length - 1 )
-            retString += " ";
-    }
-    return retString;   
+	let retString = 0;
+	for( let i = 0; i < v.length; ++i ){
+		retString += v[i].toFixed(numDecimalPlaces);
+		if( i != v.length - 1 )
+			retString += " ";
+	}
+	return retString;
 }
+
+function numToHex(n){ //generate a hex value string from a number
+	n = Math.floor(n);
+	if( n > 255 )
+		return "FF";
+	let ret = "";
+	let nn;
+	let a = 'A'.charCodeAt(0);
+	while (n > 0){
+		nn = Math.floor(n/16);
+		let d = n-(nn*16);
+		if( d > 9 )
+			d = String.fromCharCode(a+(d-10));
+		ret += d;
+		n = nn;
+	}
+	if(ret == "")
+		ret = "00";
+	return ret;
+}
+
