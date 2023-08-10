@@ -8,17 +8,34 @@ function hideNode(n){
 }
 let hideAllElm = document.getElementById('hideAllTreeHierarchy');
 function hideAllHierarchy(){
-	depthFirstTraverseHierarchy(hideNode);
+
+	depthFirstTraverseHierarchy(hierarchyRoot.mN.mN, hideNode, true);
+	depthFirstTraverseHierarchy(hierarchyRoot.mN.MN, hideNode, true);
+	depthFirstTraverseHierarchy(hierarchyRoot.MN.mN, hideNode, true);
+	depthFirstTraverseHierarchy(hierarchyRoot.MN.MN, hideNode, true);
 	//hideAllHierarchy = 
 }
 
 function expandNode(n){
+	n.btn.subNdsDiv.style='display:table;';
+	n.btn.innerHTML = 'V';
 	n.style.setProperty('display', 'inherit');
 }
 let expandAllElm = document.getElementById('expandAllTreeHierarchy');
 function expandAllHierarchy(){
-	depthFirstTraverseHierarchy(expandNode);
+	depthFirstTraverseHierarchy(hierarchyRoot, expandNode, true);
 	//expandAllElm = 
+}
+
+let enDisHirhElm = document.getElementById('enDisHirh');
+function enDisHirhUpdate(){
+	if( hierarchyUpdateEn ){
+		enDisHirhElm.innerText = "Enable Update";
+		hierarchyUpdateEn = false;
+	}else{
+		enDisHirhElm.innerText = "Disable Update";
+		hierarchyUpdateEn = true;
+	}
 }
 
 var hierarchyRoot;
@@ -40,7 +57,7 @@ function enbDisabONode(e){
 
 }
 
-function sohdDiv(e){
+function sohdDiv(e){ //show hide div
 	let elm = e.target;
 	let subNds = elm.subNdsDiv;
 	if( subNds.style.display == 'none' ){
@@ -62,7 +79,7 @@ function showHideTreeHierachy(){
 		//generate the hierarcy view
 		treeHierarchyElm.innerHTML = '';
 		hiLActvElm = treeHierarchyElm;
-		hierarchyRoot = mainScene.octTree.PrintHierarchy( 'Root' );
+		hierarchyRoot = PrintHierarchy(mainScene.octTree, 'Root' );
 	}else{
 		treeHierarchyElm.style.display='none';
 		treeHierarchyButtonElm.innerHTML = '> Tree Hierarchy';
@@ -100,9 +117,9 @@ function scrollAndDisableCamIco(h){
 	}
 }
 
-function depthFirstTraverseHierarchy(nodeAction){
+function depthFirstTraverseHierarchy(h, nodeAction, visitObjs){
 
-	let h = hierarchyRoot;
+	//let h = hierarchyRoot;
 	let stk = [0]; //stack
 	while( stk.length > 0 ){
 		let lidx = stk.length-1;
@@ -124,16 +141,32 @@ function depthFirstTraverseHierarchy(nodeAction){
 				stk.push(0);
 				continue; }
 		}
-		if( stk[lidx] == 3 ){ //node and subnodes visited return to parent
+		if( stk[lidx] >= 3 ){ //node and subnodes visited optionally visit objects
+			if( visitObjs ){
+				let objIdx = stk[lidx] - 3;
+				stk[lidx] += 1;
+				if( objIdx < h.objs.length )
+					depthFirstTraverseHierarchy(h.objs[objIdx], nodeAction, visitObjs);
+				else
+					stk[lidx] = -1;
+			}else{
+				stk[lidx] = -1;
+			}
+		 }
+		if( stk[lidx] == -1 ){ //return to parent
 			h = h.parn;
-			stk.pop(); }
+			stk.pop();
+		}
 	}
 }
 
 var scrollFramePx = 0.001;
 let hierarchyUpdateInterval = 10;
 let numNonHierarchyUpdates = 0;
+let hierarchyUpdateEn = true;
 function updateHierarchyView( camNode ){
+	if( !hierarchyUpdateEn )
+		return;
 	numNonHierarchyUpdates++;	
 	if( numNonHierarchyUpdates < hierarchyUpdateInterval )
 		return;
@@ -144,7 +177,7 @@ function updateHierarchyView( camNode ){
 	let h = hierarchyRoot;
 	let stk = [0]; //stack to traverse hierarchy view (integer state keeps track of if min and max have been visited at parent nodes of traversal)
 	if(hNd){ //node the camera is in
-		depthFirstTraverseHierarchy(scrollAndDisableCamIco);
+		depthFirstTraverseHierarchy(hierarchyRoot, scrollAndDisableCamIco);
 
 		//now all previous camera icons are disabled
 		//make the camera icon visible and
@@ -156,4 +189,180 @@ function updateHierarchyView( camNode ){
 			hNd = hNd.parentElement;
 		}
 	}
+}
+
+function aIdxToC(a){ //axis index to color
+	if(a == 0)
+		return "#FF0000";
+	else if(a == 1)
+		return "#00FF00";
+	else
+		return "#0000FF";
+}
+function aIdxToS(a){ //axis index to string
+	if(a == 0)
+		return "x";
+	else if(a == 1)
+		return "y";
+	else
+		return "z";
+}
+
+//for test cube use the min max of the face aabb to determine which of the 6 faces it is
+function minMaxToCSide(aabb){
+
+	if( aabb.minCoord[0] < 0.5 ){
+		if( aabb.minCoord[1] < 0.5 ){
+			if( aabb.minCoord[2] < 0.5 ){ //bottom left back corner
+				if( aabb.maxCoord[0] < 0.5 ){
+					return "left";
+				}else{ //bottom, back
+					if( aabb.maxCoord[2] > 0.5 ){
+						return "bottom";
+					}
+					return "back";
+				}
+			}else{
+				return "front";
+			}
+		}else{ //bottom left front corner
+			return "top";
+		}
+	}else{
+		return "right";
+	}
+	
+}
+
+//recursive function to walk the oct tree and print nodes
+function PrintHierarchy( on, nodeName, parn, obSumCnts = undefined ){
+
+	let prevHiLActvElm = hiLActvElm;
+
+	let tt = document.createElement('table');  //top table
+	tt.parn = parn; //(top table of parent)
+	tt.style.setProperty('margin-left', '4px');
+	tt.style.setProperty('display', 'table');
+	let bgOpacity = numToHex(on.rayHitsPerFrame/totalFrameRayHits*255);
+	if( bgOpacity[0] > '0' ) //indicate the number of ray hits with opacity intensity
+		bgOpacity = "55";
+	let bgCol = '1px solid ' + aIdxToC(on.axis);
+
+	let c = document.createElement('table');
+
+	tt.style.setProperty('outline', bgCol  + bgOpacity );
+	let t = document.createElement('table');
+		let ttr = document.createElement('tr');
+			let td = document.createElement('td');
+				td.style.setProperty('background-color', '#00000000');
+				td.style.setProperty('width', '5px');
+				td.style.setProperty('height', '5px');
+				tt.camIco = td;
+		ttr.appendChild(td);
+			td = document.createElement('td');
+				let b = document.createElement('button');
+				b.onclick = function(e){ sohdDiv(e); };
+				b.style.setProperty('outline', bgCol );
+				b.style.setProperty('width', '18px');
+				b.innerText = '>';
+				b.subNdsDiv = c;
+				tt.btn = b;
+			td.appendChild( b );
+		ttr.appendChild(td);
+		td = document.createElement('td');
+			b = document.createElement('button');
+			b.style.setProperty('margin-left', '4px');
+			b.style.setProperty('background-color','white');
+			b.style.setProperty('color','black');
+			b.style.setProperty('width', '18px');
+			b.oNode = this;
+			b.innerText = 'I';
+			b.onclick = function(e){ enbDisabONode(e); };
+		td.appendChild( b );
+		ttr.appendChild( td );
+			td = document.createElement('td');
+			td.innerText = nodeName;
+			//td.innerText = aIdxToS(on.axis); //+ " " + vFxLenStr(on.minCoord, 2, 4) + " " + vFxLenStr(on.MaxCoord, 2, 4);
+		ttr.appendChild( td );
+	t.appendChild( ttr );
+
+	let tr = document.createElement('tr');
+	td = document.createElement('td');
+	td.appendChild( t );
+	tr.appendChild(td);
+
+	tt.appendChild( tr );
+
+	tt.oNode = on; //the oct tree node
+	on.hNode = tt; //link the hierarchy view element for updating from the oct tree node as the camera moves
+
+	let objSummary = document.createElement('td');
+	objSummary.style.setProperty('width', '100px');
+	objSummary.style.setProperty('height', '20px');
+	objSummary.style.setProperty('overflow', 'scroll');
+	objSummary.style.setProperty('display', 'block ruby');
+	objSummary.style.setProperty('scrollbar-width', 'none');
+
+	objSummary.onVisible; //attempt to have a callback when in view to scroll contents
+	
+	tt.objs = [];
+
+	c.style.setProperty('display', 'none');
+	hiLActvElm = c;
+	for(let i = 0; i < on.objects.length; ++i ){
+		if( on.objects[i].meshName ){
+			objSummary.innerText += " " + on.objects[i].meshName;
+			//td.innerText = on.objects[i].meshName;
+			//tr.appendChild( td );
+			//c.appendChild( tr );
+			//tr = document.createElement('tr');
+			//td = document.createElement('td');
+			
+			tt.objs.push( PrintHierarchy(on.objects[i].quadmesh.octTree, on.objects[i].meshName, tt, 
+					vFxLenStr(on.objects[i].AABB.minCoord, 2, 3 ) + " " + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 ) ) );
+			//tr.appendChild( td );
+			//c.appendChild( tr );
+		}else{
+			tr = document.createElement('tr');
+			td = document.createElement('td');
+			td.innerText = minMaxToCSide(on.objects[i].AABB) + " " + vFxLenStr( on.objects[i].AABB.minCoord, 2, 3 ) + " " + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 );
+			objSummary.innerText += " " + minMaxToCSide(on.objects[i].AABB);
+			tr.appendChild( td );
+			c.appendChild( tr );
+		}
+	}
+	if( objSummary.innerText == "" && obSumCnts != undefined )
+		objSummary.innerText = obSumCnts;
+	
+	tt.sT = objSummary;
+	ttr.appendChild( objSummary );
+	tr = document.createElement('tr');
+	td = document.createElement('td');
+	hiLActvElm = td;
+	if( on.minNode != null ) tt.mN = PrintHierarchy(on.minNode, 'm'+(on.root.maxDepth-on.depth), tt );
+	tr.appendChild( td );
+	c.appendChild( tr );
+	tr = document.createElement('tr');
+	td = document.createElement('td');
+	hiLActvElm = td;
+	if( on.MaxNode != null ) tt.MN = PrintHierarchy(on.MaxNode, 'M'+(on.root.maxDepth-on.depth), tt );
+	tr.appendChild( td );
+	c.appendChild( tr );
+
+	//add the child objects and min max nodes as a table row to the top level table of this
+	tr = document.createElement('tr');
+	td = document.createElement('td');
+	td.appendChild( c );
+	tr.appendChild(td);
+	tt.appendChild( tr );
+
+	//add the this top level table as a row to the parent at the time of calling
+	tr = document.createElement('tr');
+	td = document.createElement('td');
+	td.appendChild( tt );
+	tr.appendChild(td);
+	prevHiLActvElm.appendChild( tr );
+	hiLActvElm = prevHiLActvElm;
+
+	return tt;
 }

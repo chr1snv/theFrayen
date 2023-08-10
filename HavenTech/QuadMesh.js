@@ -246,9 +246,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 
 	}
-	let worldMin = new Float32Array(3);
-	let worldMax = new Float32Array(3);
-	this.UpdateOctTree = function(){
+	let faceMin = new Float32Array(3);
+	let faceMax = new Float32Array(3);
+	this.UpdateOctTree = function(octUpdateCmpCallback){
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
 		this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
@@ -258,17 +258,18 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 		for( var f = 0; f < this.faces.length; ++f ){
 			//get an aabb around the face and insert it into an oct tree
-			this.UpdateFaceAABBAndGenerateTriangles( worldMin, worldMax, f );
-			this.worldMinCorner[0] = Math.min( worldMin[0], this.worldMinCorner[0] );
-			this.worldMinCorner[1] = Math.min( worldMin[1], this.worldMinCorner[1] );
-			this.worldMinCorner[2] = Math.min( worldMin[2], this.worldMinCorner[2] );
+			this.UpdateFaceAABBAndGenerateTriangles( faceMin, faceMax, f );
+			this.worldMinCorner[0] = Math.min( faceMin[0], this.worldMinCorner[0] );
+			this.worldMinCorner[1] = Math.min( faceMin[1], this.worldMinCorner[1] );
+			this.worldMinCorner[2] = Math.min( faceMin[2], this.worldMinCorner[2] );
 
-			this.worldMaxCorner[0] = Math.max( worldMax[0], this.worldMaxCorner[0] );
-			this.worldMaxCorner[1] = Math.max( worldMax[1], this.worldMaxCorner[1] );
-			this.worldMaxCorner[2] = Math.max( worldMax[2], this.worldMaxCorner[2] );
+			this.worldMaxCorner[0] = Math.max( faceMax[0], this.worldMaxCorner[0] );
+			this.worldMaxCorner[1] = Math.max( faceMax[1], this.worldMaxCorner[1] );
+			this.worldMaxCorner[2] = Math.max( faceMax[2], this.worldMaxCorner[2] );
 
 			this.octTree.AddObject(this.faces[f]);
 		}
+		//octUpdateCmpCallback();
 	}
 
 	//called during ray trace rendering

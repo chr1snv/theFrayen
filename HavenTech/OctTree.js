@@ -32,9 +32,10 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 
 	if( parent ){
 		this.depth = parent.depth+1;
-		this.maxDepth = parent.maxDepth;
+		this.root = parent.root;
 	}else{
 		this.depth = 0;
+		this.root = this;
 		this.maxDepth = 0;
 	}
 
@@ -75,146 +76,42 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	}
 
 	this.addToThisNode = function( object ){
-		//insertion sort the objects
+		//insertion sort the objects (find the objects that have a min edge
+		//before this object)
 		let lessThanIndex = -1;
 		for( let i = 0; i < this.objects.length; ++i ){
-			if( this.objects[i].AABB.minCoord[this.axis] < object.AABB.minCoord[this.axis] )
-				lessThanIndex = i;
-			else
+			if( this.objects[i].AABB.minCoord[this.axis] < object.AABB.minCoord[this.axis] ){
+				lessThanIndex = i; //increment the index until finding a object that has a min
+				//greater than the new object min
+			}else{
 				break; //because less to greater sorted, once a greater than
 				//object is found, the rest will be greater
+			}
 		}
+		
+		//check if the new object overlaps with the previous or the next (if present)
+		if( this.objects.length > 0 ){
+			var cmpIdx = lessThanIndex;
+			if(cmpIdx < 0)
+				cmpIdx = 0;
+			//check the first obj in the array or one to come after it
+			if( AABBsOverlap(this.objects[cmpIdx].AABB, object.AABB) )
+				return false;
+			//check the object before the new object if present
+			if( cmpIdx-1 >= 0 && AABBsOverlap(this.objects[cmpIdx-1].AABB, object.AABB) )
+				return false;
+		}
+		
+		//there isn't an overlap so it's ok to insert
+		
+		//insert at the index
 		this.objects.splice(lessThanIndex+1, 0, object);
 
 		//keep a dictionary for quickly checking if an object is present
 		this.objectDictionary[ object.uuid ] = object;
 		return true;
 	}
-	
-	this.PrintHierarchy = function( nodeName, parn ){
 
-		let prevHiLActvElm = hiLActvElm;
-
-		let tt = document.createElement('table');
-		tt.parn = parn;
-		tt.style.setProperty('margin-left', '4px');
-		tt.style.setProperty('display', 'table');
-		let bgOpacity = numToHex(this.rayHitsPerFrame/totalFrameRayHits*255);
-		if( bgOpacity[0] > '0' ) //indicate the number of ray hits with opacity intensity
-			bgOpacity = "55";
-		let bgCol = '1px solid ' + aIdxToC(this.axis);
-		
-		let c = document.createElement('table');
-
-		tt.style.setProperty('outline', bgCol  + bgOpacity );
-		let t = document.createElement('table');
-			let ttr = document.createElement('tr');
-				let td = document.createElement('td');
-					td.style.setProperty('background-color', '#00000000');
-					td.style.setProperty('width', '5px');
-					td.style.setProperty('height', '5px');
-					tt.camIco = td;
-			ttr.appendChild(td);
-				td = document.createElement('td');
-					let b = document.createElement('button');
-					b.onclick = function(e){ sohdDiv(e); };
-					b.style.setProperty('outline', bgCol );
-					b.style.setProperty('width', '18px');
-					b.innerText = '>';
-					b.subNdsDiv = c;
-				td.appendChild( b );
-			ttr.appendChild(td);
-			td = document.createElement('td');
-				b = document.createElement('button');
-				b.style.setProperty('margin-left', '4px');
-				b.style.setProperty('background-color','white');
-				b.style.setProperty('color','black');
-				b.style.setProperty('width', '18px');
-				b.oNode = this;
-				b.innerText = 'I';
-				b.onclick = function(e){ enbDisabONode(e); };
-			td.appendChild( b );
-			ttr.appendChild( td );
-				td = document.createElement('td');
-				td.innerText = nodeName;
-				//td.innerText = aIdxToS(this.axis); //+ " " + vFxLenStr(this.minCoord, 2, 4) + " " + vFxLenStr(this.MaxCoord, 2, 4);
-			ttr.appendChild( td );
-		t.appendChild( ttr );
-
-
-		let tr = document.createElement('tr');
-		td = document.createElement('td');
-		td.appendChild( t );
-		tr.appendChild(td);
-
-		tt.appendChild( tr );
-
-		tt.oNode = this;
-		this.hNode = tt; //link the hierarchy view element for updating as the camera moves
-
-		let objSummary = document.createElement('td');
-		objSummary.style.setProperty('width', '100px');
-		objSummary.style.setProperty('height', '20px');
-		objSummary.style.setProperty('overflow', 'scroll');
-		objSummary.style.setProperty('display', 'block ruby');
-		objSummary.style.setProperty('scrollbar-width', 'none');
-		
-		objSummary.onVisible;
-
-
-		c.style.setProperty('display', 'none');
-		for(let i = 0; i < this.objects.length; ++i ){
-			if( this.objects[i].meshName ){
-				objSummary.innerText += " " + this.objects[i].meshName;
-				//td.innerText = this.objects[i].meshName;
-				//tr.appendChild( td );
-				//c.appendChild( tr );
-				tr = document.createElement('tr');
-				td = document.createElement('td');
-				hiLActvElm = td;
-				this.objects[i].PrintHierarchy(this.objects[i].meshName);
-				tr.appendChild( td );
-				c.appendChild( tr );
-			}else{
-				tr = document.createElement('tr');
-				td = document.createElement('td');
-				td.innerText = minMaxToCSide(this.objects[i].AABB);
-				objSummary.innerText += " " + td.innerText;
-				tr.appendChild( td );
-				c.appendChild( tr );
-			}
-		}
-		tt.sT = objSummary;
-		ttr.appendChild( objSummary );
-		tr = document.createElement('tr');
-		td = document.createElement('td');
-		hiLActvElm = td;
-		if( this.minNode != null ) tt.mN = this.minNode.PrintHierarchy( 'm'+(this.maxDepth-this.depth), tt );
-		tr.appendChild( td );
-		c.appendChild( tr );
-		tr = document.createElement('tr');
-		td = document.createElement('td');
-		hiLActvElm = td;
-		if( this.MaxNode != null ) tt.MN = this.MaxNode.PrintHierarchy( 'M'+(this.maxDepth-this.depth), tt );
-		tr.appendChild( td );
-		c.appendChild( tr );
-
-		tr = document.createElement('tr');
-		td = document.createElement('td');
-		td.appendChild( c );
-		tr.appendChild(td);
-		tt.appendChild( tr );
-
-
-		tr = document.createElement('tr');
-		td = document.createElement('td');
-		td.appendChild( tt );
-		tr.appendChild(td);
-		prevHiLActvElm.appendChild( tr );
-		hiLActvElm = prevHiLActvElm;
-
-		return tt;
-	}
 
 	//check the objects along the axis for overlaps 
 	//filling in the number of overlaps in each object
@@ -326,48 +223,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		}
 
 	}
-	
-	function aIdxToC(a){
-		if(a == 0)
-			return "#FF0000";
-		else if(a == 1)
-			return "#00FF00";
-		else
-			return "#0000FF";
-	}
-	function aIdxToS(a){
-		if(a == 0)
-			return "x";
-		else if(a == 1)
-			return "y";
-		else
-			return "z";
-	}
-	
-	function minMaxToCSide(aabb){
 
-		if( aabb.minCoord[0] < 0.5 ){
-			if( aabb.minCoord[1] < 0.5 ){
-				if( aabb.minCoord[2] < 0.5 ){ //bottom left back corner
-					if( aabb.maxCoord[0] < 0.5 ){
-						return "left";
-					}else{ //bottom, back
-						if( aabb.maxCoord[2] > 0.5 ){
-							return "bottom";
-						}
-						return "back";
-					}
-				}else{
-					return "front";
-				}
-			}else{ //bottom left front corner
-				return "top";
-			}
-		}else{
-			return "right";
-		}
-	}
-	
 	this.clearRayCtrs = function(){
 		this.rayHitsPerFrame = 0;
 		
@@ -381,7 +237,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 
 	//add an object to the node, if it is full - subdivide it 
 	//and place objects in the sub nodes
-	this.AddObject = function( object, addDepth=0 ){
+	this.AddObject = function( object, addCmpCallback, addDepth=0, maxAddDepth=1 ){
 	//addDepth is to keep track of if all axies
 	//have been checked for seperating the objects
 		octTreeDivLogElm.innerHTML += "addObject d " + this.depth + 
@@ -394,6 +250,8 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		if( this.minNode == null ){ //not yet subdivided, try to add to self
 			this.addToThisNode(object);
 			if( this.objects.length < MaxTreeNodeObjects ){
+				if( addCmpCallback != undefined )
+					addCmpCallback();
 				return;
 			}else{ //need to subdivide
 				//only leaf nodes should contain objects to avoid overlap ambiguity
@@ -409,7 +267,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 				let ovNumOvlaps;
 				let ovDivPt;
 				let ovAxis;
-				octTreeDivLogElm.innerHTML += "Div at Depth " + addDepth + 
+				octTreeDivLogElm.innerHTML += ">Max Obj, Dividing at Depth " + addDepth + 
 					" axis " + aIdxToS(this.axis) + " numObj " + this.objects.length +"<br/>";
 				for( let a = 1; a < 3; ++a ){ //each level a different axis
 					let newAxis = (this.axis + a) % 3;
@@ -440,20 +298,21 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 					for( let i = 0; i < this.objects.length; ++i ){
 						if( i < ovNumMinObjs ){
 							octTreeDivLogElm.innerHTML += "addToMin " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
-							this.minNode.AddObject( sortedObjs[ovAxis][i], addDepth );
+							this.minNode.AddObject( sortedObjs[ovAxis][i], addCmpCallback, addDepth );
 							if( i + ovNumOvlaps > ovNumMinObjs ){ //also add it to the max node
 								octTreeDivLogElm.innerHTML += "OvlpAddToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
-								this.MaxNode.AddObject( sortedObjs[ovAxis][i], addDepth );
-
+								this.MaxNode.AddObject( sortedObjs[ovAxis][i], addCmpCallback, addDepth );
 							}
 						}else{
 							octTreeDivLogElm.innerHTML += "addToMax " + sortedObjs[ovAxis][i].AABB.minCoord[ovAxis];
-							this.MaxNode.AddObject( sortedObjs[ovAxis][i], addDepth );
+							this.MaxNode.AddObject( sortedObjs[ovAxis][i], addCmpCallback, addDepth );
 						}
 					}
 					this.objects = [];
 					this.objectDictionary = {};
 
+					if( addCmpCallback != undefined )
+						addCmpCallback();
 					return;
 
 					//the node was successfuly subdivided and objects
@@ -466,10 +325,10 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 		}else{ //already subdivided, decide if should add to min or max node
 			if( object.AABB.minCoord[this.axis] < this.minNode.MaxCoord[this.axis] ){
 				octTreeDivLogElm.innerHTML += "DivdAddToMin " + object.AABB.minCoord[this.axis];
-				return this.minNode.AddObject( object, addDepth+1 );
+				return this.minNode.AddObject( object, addCmpCallback, addDepth+1 );
 			}else{
 				octTreeDivLogElm.innerHTML += "DivdAddToMax " + object.AABB.minCoord[this.axis];
-				return this.MaxNode.AddObject( object, addDepth+1 );
+				return this.MaxNode.AddObject( object, addCmpCallback, addDepth+1 );
 			}
 		}
 
@@ -593,7 +452,7 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 	}
 	if( nextTraceNode != null ){
 		//the ray didn't hit anything in this node
-		if( treeDebug && this.depth == Math.floor((sceneTime/2)%(this.maxDepth+1)) ){
+		if( treeDebug && this.depth == Math.floor((sceneTime/2)%(this.root.maxDepth+1)) ){
 			this.boundColor[3] = debOctOpac;
 			mainScene.cameras[0].AddPoint( this.rayExitPoint, this.boundColor );
 		}
@@ -636,20 +495,20 @@ function TreeNode( axis, minCoord, MaxCoord, parent ){
 			MaxMaxCoord[i] = this.MaxCoord[i]; //max is max of this node
 		}
 		//now that the extents of the nodes have been found create them
-		this.maxDepth += 1;
+		this.root.maxDepth += 1;
 		this.minNode = new TreeNode(newAxis, minminCoord, minMaxCoord, this);
 		this.MaxNode = new TreeNode(newAxis, MaxminCoord, MaxMaxCoord, this);
 
 		//set the debug oct tree color based on axis and depth
 		if(		 newAxis == 0 ){
-			this.minNode.boundColor[0] = 1-this.minNode.depth/(this.maxDepth+1);
-			this.MaxNode.boundColor[0] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
+			this.minNode.boundColor[0] = 1-this.minNode.depth/(this.root.maxDepth+1);
+			this.MaxNode.boundColor[0] = 1-this.MaxNode.depth/(this.root.maxDepth+1);  }
 		else if( newAxis == 1 ){
-			this.minNode.boundColor[1] = 1-this.minNode.depth/(this.maxDepth+1);
-			this.MaxNode.boundColor[1] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
+			this.minNode.boundColor[1] = 1-this.minNode.depth/(this.root.maxDepth+1);
+			this.MaxNode.boundColor[1] = 1-this.MaxNode.depth/(this.root.maxDepth+1);  }
 		else if( newAxis == 2 ){
-			this.minNode.boundColor[2] = 1-this.minNode.depth/(this.maxDepth+1);
-			this.MaxNode.boundColor[2] = 1-this.MaxNode.depth/(this.maxDepth+1);  }
+			this.minNode.boundColor[2] = 1-this.minNode.depth/(this.root.maxDepth+1);
+			this.MaxNode.boundColor[2] = 1-this.MaxNode.depth/(this.root.maxDepth+1);  }
 	}
 
 }

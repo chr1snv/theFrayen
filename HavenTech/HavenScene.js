@@ -188,7 +188,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		
 		for( let i = 0; i<thisSceneP.textFileLines.length; ++i )
 		{
-			statusElm.innerHTML = "Parsing" + i + "/" + thisSceneP.textFileLines.length;
+			statusElm.innerHTML = "Parsing " + (i+1) + "/" + thisSceneP.textFileLines.length;
 			var temp = thisSceneP.textFileLines[i];
 
 			if(temp[0] == 'm') //this is a model to be read in 

@@ -51,8 +51,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 			return;
 		this.RemoveFromOctTree();
 		this.octTree = octTreeIn;
-		this.octTree.AddObject(this);
-		addCompletedCallback();
+		this.octTree.AddObject(this, addCompletedCallback);
 	}
 
 	this.RemoveFromOctTree = function( removeCompletedCallback )
@@ -74,7 +73,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		cbObj.quadmesh = quadMesh;
 		cbObj.AABB = quadMesh.AABB;
 	}
-	this.Update = function( time, updateCompleteParams, updateCompleteCallback ){
+	this.Update = function( time, updateCompleteParams ){
 		if( this.quadmesh == null ){
 			graphics.GetQuadMesh( this.meshName, this.sceneName, this, quadMeshLoaded );
 		}else{

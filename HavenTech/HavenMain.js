@@ -143,6 +143,13 @@ function showHideSettings(){
 	}
 }
 
+let stepTreeDivElm = document.getElementById("stepTreeDiv");
+function stepTreeToggle(e){
+	if( e.target.value ){
+	
+	}
+}
+
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
 let autoRunCountdown = 4;

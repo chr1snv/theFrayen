@@ -40,6 +40,14 @@ return false;
 }
 */
 
+function AABBsOverlap(a1, a2){
+	if( a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0) ||
+		a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 0) ||
+		a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 0) )
+		return true;
+	return false;
+}
+
 function AABB( minCorner, maxCorner ){
 
 	this.minCoord = new Float32Array(3);
@@ -79,6 +87,9 @@ function AABB( minCorner, maxCorner ){
 	let otherAxis;
 	let rayStepPoints = [ new Float32Array(3), new Float32Array(3), new Float32Array(3) ];
 	this.RayIntersects = function( rayStepPoint, ray, minRayTime ){
+
+		//this code is written in long form without for loops to increase
+		//chance of the runtime compiler parallel optimizing it
 
 		//if the ray intersects or enters the aabb there will be a point 
 		//on the ray where x,y,or z will be equal to 
@@ -122,7 +133,7 @@ function AABB( minCorner, maxCorner ){
 		if( minRayStep > minRayTime && minRayStep < rayTime[2] ){ rayTime[2] = minRayStep; }
 		if( maxRayStep > minRayTime && maxRayStep < rayTime[2] ){ rayTime[2] = maxRayStep; }
 
-		//advance the ray to the possible intersection point
+		//advance the ray to the possible intersection plane points
 		rayStepPoints[0][0] = ray.norm[0] * rayTime[0] + ray.origin[0];
 		rayStepPoints[0][1] = ray.norm[1] * rayTime[0] + ray.origin[1];
 		rayStepPoints[0][2] = ray.norm[2] * rayTime[0] + ray.origin[2];
@@ -136,6 +147,8 @@ function AABB( minCorner, maxCorner ){
 		rayStepPoints[2][2] = ray.norm[2] * rayTime[2] + ray.origin[2];
 
 		//check the orthogonal axies of the point are within the aabb bounds
+		
+		//x plane check y and z point
 		numOtherAxiesWithinBounds = 0;
 		otherAxis = 1;
 		if( rayStepPoints[0][otherAxis] >= this.minCoord[otherAxis]  && 
@@ -151,6 +164,7 @@ function AABB( minCorner, maxCorner ){
 			rayStepPoint[2] = rayStepPoints[0][2];
 			return rayTime[0];} //return the point and ray time
 		
+		//y plane check z and x of point
 		numOtherAxiesWithinBounds = 0;
 		otherAxis = 2;
 		if( rayStepPoints[1][otherAxis] >= this.minCoord[otherAxis]  && 
@@ -165,7 +179,8 @@ function AABB( minCorner, maxCorner ){
 			rayStepPoint[1] = rayStepPoints[1][1];
 			rayStepPoint[2] = rayStepPoints[1][2];
 			return rayTime[1];} //return the point and ray time
-			
+		
+		//z plane check x and y of point
 		numOtherAxiesWithinBounds = 0;
 		otherAxis = 0;
 		if( rayStepPoints[2][otherAxis] >= this.minCoord[otherAxis]  && 

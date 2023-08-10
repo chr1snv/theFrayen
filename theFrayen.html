@@ -53,7 +53,8 @@
 			<td><input type="number" id="mouseXSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
 			<td>Mouse Y Sensitivity</td>
 			<td><input type="number" id="mouseYSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
-			<td><button type="button" onclick="ResetSettings()" style="background-color:thistle;">Reset Settings</button></td>
+			<td><button type="button" class="tooltip" onclick="ResetSettings()" style="background-color:thistle;">Reset Settings
+			<span class="tooltiptext">sets defaults</span></button></td>
 		</tr>
 		<tr>
 			<td>Touch Move Sens</td>
@@ -94,6 +95,9 @@
 			<td>oT Div not half penalty</td>
 			<td><input type="number" id="halfPenalty" value="1" step=0.1; onchange="treeDivSettingChange()" style="width:4em;"></input></td>
 		</tr>
+		<tr>
+			<td><input type="checkbox" id="stepTreeDiv" onclick="stepTreeToggle()">Step Every Oct T Div</input></td>
+		</tr>
 	</table>
 	</div>
 
@@ -119,6 +123,9 @@
 						<td>
 							<button type="button" id="hideAllTreeHierarchy" onclick="hideAllHierarchy()">Hide All</button>
 						</td>
+						<td>
+							<button type="button" id="enDisHirh" onclick="enDisHirhUpdate()">Disable Update</button>
+						</td>
 					</tr>
 					<tr><td><p id="treeHierarchy"></p></td></tr>
 				</table>
@@ -130,7 +137,10 @@
 			<tr>
 				<td>
 					<table>
-						<tr><td><button type="button" id="showTreeBuildLog" onclick="showHideTreeBuildLog()">> Tree Build Log</button></td></tr>
+						<tr>
+							<td><button type="button" id="showTreeBuildLog" onclick="showHideTreeBuildLog()">> Tree Build Log</button></td>
+							<td><button type="button" id="stepTreeBuildLog" onclick="stepTreeBuild()">Step Tree Build</button></td>
+						</tr>
 						<tr><td><p id="octTreeDivLog" style="text-align:left; color:black; display:none; overflow:scroll; height: 300px;">Tree Subdivision Log:<br/></p></td></tr>
 					</table>
 				</td>
