@@ -10,6 +10,11 @@ mDown		= false;
 mDownCoords = {x:0, y:0}; 
 keys		= {};
 
+//https://medium.com/geekculture/detecting-mobile-vs-desktop-browsers-in-javascript-ad46e8d23ce5
+function hasTouchSupport() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 function registerInputHandlers(){
 	//register the canvas mouse move callback
 	document.getElementById("frayenCanvas").onmousemove = canvasMouseMoveHandler;
@@ -95,23 +100,70 @@ function canvasMouseMoveHandler(e){
 }
 //mouse cordinates for canvas
 //http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
-function relMouseCoords(event){
-	var totalOffsetX = 0;
-	var totalOffsetY = 0;
-	var canvasX = 0;
-	var canvasY = 0;
-	var currentElement = this;
-
+function relMouseCoords(e){
+	
+	
+	//https://www.delftstack.com/howto/javascript/javascript-get-screen-size/
+	// Get the browser window size (gets smaller as zoom percentage increases)
+	let windowWidth = window.innerWidth;
+	let windowHeight = window.innerHeight;
+	
+	let xScale = e.target.width / e.target.offsetWidth;
+	let yScale = e.target.height / e.target.offsetHeight;
+	
+	
+	let totalOffsetX = 0;
+	let totalOffsetY = 0;
+	let canvasX = 0;
+	let canvasY = 0;
+	let currentElement = this;
+	
 	do{
-		totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-		totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+	    totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
+	    totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
 	}
 	while(currentElement = currentElement.offsetParent)
+	    
+	e.canvasX = e.pageX - totalOffsetX;
+	e.canvasY = e.pageY - totalOffsetY;
 	
-	canvasX = event.pageX - totalOffsetX;
-	canvasY = event.pageY - totalOffsetY;
-
-return {x:canvasX, y:canvasY}
+	console.log( "eCanv \t" + e.canvasX.toFixed(2) + " : " + e.canvasY.toFixed(2) );
+	
+	let dontYScale = false;
+	if(document.fullscreenElement){
+		
+		
+		e.canvasX = (e.clientX - e.target.offsetLeft);
+		e.canvasY = (e.clientY - e.target.offsetTop);
+		
+		
+		let wdth = e.target.offsetWidth;
+		let hgth = e.target.offsetHeight;
+		
+		//if the scale isn't equal, the offset height or width is larger than the canvas (padded)
+		//assume x and y scale should be equal
+		if( xScale < yScale ){ //width padding
+			wdth = e.target.width / yScale;
+			xScale = yScale; 
+		}else{
+			hgth = e.target.height / xScale;
+			yScale = xScale;
+		}
+		
+		let minX = ( (window.innerWidth - wdth) / 2);
+		let minY = ( (window.innerHeight - hgth) / 2);
+		
+		
+		e.canvasX = (e.canvasX - minX); // / e.target.offsetWidth * e.target.width;
+		e.canvasY = (e.canvasY - minY); // / e.target.height;
+		
+		
+	}
+	
+	
+	e.canvasX *= xScale;
+	e.canvasY *= yScale;
+	
 }
 HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 

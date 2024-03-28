@@ -36,8 +36,10 @@ void main() {
     //sum the diffuse specular and emissive components
     
     FragColor           = diffuseCol * diffuseLightAmt +
-                             specularLightAmt * specularColor +
-                             emissionColor;
+                          specularLightAmt * specularColor +
+                          emissionColor;
+	
+	
     //FragColor.a = 1.0;
 
     //FragColor = texColor;

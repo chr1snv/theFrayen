@@ -51,7 +51,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 			return;
 		this.RemoveFromOctTree();
 		this.octTree = octTreeIn;
-		this.octTree.AddObject(this, addCompletedCallback);
+		let nLvsMDpth = [0,0];
+		this.octTree.AddObject(nLvsMDpth, this, addCompletedCallback);
 	}
 
 	this.RemoveFromOctTree = function( removeCompletedCallback )
@@ -72,6 +73,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		cbObj.lastUpdateTime = time;
 		cbObj.quadmesh = quadMesh;
 		cbObj.AABB = quadMesh.AABB;
+		
 	}
 	this.Update = function( time, updateCompleteParams ){
 		if( this.quadmesh == null ){
@@ -109,7 +111,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 	this.GetOriginalShaderName = function( shaderNameOut, sceneNameOut )
 	{
 		var sNameArr  = 
-			graphics.GetQuadMesh( meshName, sceneName ).GetShaderName();
+			graphics.GetQuadMesh( meshName, sceneName ).GetMaterialName();
 		shaderNameOut = sNameArr[0];
 		sceneNameOut  = sNameArr[1];
 	}
@@ -131,7 +133,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 		return scaleSet || rotationSet || positionSet;
 	}
 	this.DrawSkeleton = function(){ 
-		graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); }
+		graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); 
+	}
 
 
 
@@ -164,7 +167,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 	this.meshName = meshNameIn;
 	this.sceneName = sceneNameIn;
 
-	this.uuid = Math.random()
+	this.uid = NewUID()
+	
+	this.physObj = null;
+	
+	this.treeNodes = {};
 
 	this.modelDrawable = null;
 	this.sceneGraph = null;
@@ -188,15 +195,19 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 	this.getQuadMeshCb = function( quadMesh, cbObj )
 	//inline callback to get loaded parameters and call
 	{
-		var sNameArr = quadMesh.GetShaderName();
+		let thisP = cbObj[1];
+		var sNameArr = quadMesh.GetMaterialName();
 		thisP.shaderName  = sNameArr[0];
 		thisP.shaderScene = sNameArr[1];
 		thisP.quadmesh = quadMesh;
+		thisP.quadmesh.Update( 0 );
+		thisP.AABB = thisP.quadmesh.AABB;
+		thisP.physObj = new PhysObj(thisP.AABB, thisP, 0);
 		//if there isn't a modelLoadedCallback callback don't try to call it
 		if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
 			cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
 	} 
-	var thisP = this;
+	//var thisP = this;
 	//request the quadmesh from the graphics class to get it to load it
 	graphics.GetQuadMesh( meshNameIn, sceneNameIn,
 		{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },

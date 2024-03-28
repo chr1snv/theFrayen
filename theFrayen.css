@@ -95,6 +95,7 @@ input,select{
     text-align: center;
 }
 
+/*
 canvas:-webkit-full-screen {
   width: 100% !important;
 }
@@ -108,7 +109,8 @@ canvas:fullscreen {
   width: 100% !important;
 }
 
-/* While in fullscreen, hide any children with class 'tohide' */
+
+// While in fullscreen, hide any children with class 'tohide' //
 :-webkit-full-screen .tohide {
   display: none;
 }
@@ -121,4 +123,5 @@ canvas:fullscreen {
 :fullscreen .tohide {
   display: none;
 }
+*/
 

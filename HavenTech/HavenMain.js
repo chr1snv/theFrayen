@@ -1,5 +1,4 @@
-//HavenMain.js
-//to request use or code/art please contact chris@itemfactorystudio.com
+//HavenMain.js - to request use permission please contact chris@itemfactorystudio.com
 
 //HavenMain has the loop entry / initalization function
 //the mainloop and transitions between fullscreen and windowed
@@ -133,11 +132,14 @@ function debugToggle(){
 
 let settingsButtonElm = document.getElementById('showSettings');
 let settingsTableElm = document.getElementById('settingsTable');
+let orientationTextDiv = document.getElementById('orientationText');
 function showHideSettings(){
 	if( settingsTableElm.style.display == "none" ){
 		settingsTableElm.style.display="contents";
 		settingsButtonElm.innerHTML = "V Settings";
+		orientationTextDiv.style.display="contents";
 	}else{
+		orientationTextDiv.style.display="none";
 		settingsTableElm.style.display="none";
 		settingsButtonElm.innerHTML = "> Settings";
 	}
@@ -156,6 +158,7 @@ let autoRunCountdown = 4;
 let stopAutoStart = false;
 function havenMain(){
 	//cameraStream = new CameraStream();
+	CreateDebugTabsOnPage();
 
 	registerInputHandlers();
 
@@ -249,7 +252,7 @@ function sceneLoaded(havenScene)
 	//mainScene.Draw();
 	window.setTimeout(MainLoop, 300);
 	//graphics.Clear();
-	graphics.SetupForPixelDrawing();
+	//graphics.pointGraphics.Setup();
 	mouseSenChange();
 	touchSenChange();
 	//raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
@@ -261,18 +264,28 @@ function sceneLoaded(havenScene)
 	treeHierarchyButtonElm.style.visibility = "inherit";
 }
 
+let lastInputTime = -10;
+const noInputDisplayHelpOverlayTime = 3; //display help if no user input for 3 seconds
+
 //the main rendering and update function called each frame
 var fpsElm = document.getElementById("fps");
 var lastSceneFPSOutputTime = 0;
 var framesSinceLastFPSOutputTime = 0;
+let lrOrUdAnim = false;
+let lrOrUdChangeResetFrames = 3;
 function MainLoop()
 {
 	sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
 	//graphics.Clear();
+	//graphics.ClearDepth();
 	mainScene.Update( sceneTime );
 	UpdateCamera( sceneTime );
 	//drawSquare(graphics);
+	CheckGLError("before point graphics setup");
+	graphics.pointGraphics.Setup();
+	CheckGLError("after point graphics setup");
 	mainScene.Draw();
+	CheckGLError("after draw mainScene");
 
 	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
 	framesSinceLastFPSOutputTime += 1;
@@ -281,20 +294,68 @@ function MainLoop()
 		lastSceneFPSOutputTime = sceneTime;
 		framesSinceLastFPSOutputTime = 0;
 	}
+	if( (sceneTime-lastInputTime) > noInputDisplayHelpOverlayTime ){
+		
+		graphics.triGraphics.Setup();
+		
+		if (hasTouchSupport()) {
+			//console.log("Mobile device detected");
+		
+			//draw quads with left of screen movement and right rotate graphics
+			
+			let transAnimTime = sceneTime%4;
+			let lrOff = 0;
+			let udOff = 0;
+			if( lrOrUdAnim ){
+				lrOff = Math.sin(sceneTime*2)*0.25;
+				if( Math.abs(lrOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
+					lrOrUdAnim = false;
+					lrOrUdChangeResetFrames = 10;
+				}
+			}else{
+				udOff = Math.sin(sceneTime*2)*0.25;
+				if( Math.abs(udOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
+					lrOrUdAnim = true;
+					lrOrUdChangeResetFrames = 10;
+				}
+			}
+			let cenPos    = [-0.5+lrOff, udOff];
+			let wdthHight = [ 0.5      , 0.5  ];
+			let minUv     = [   0      , 1    ];
+			let maxUv     = [ 0.5      , 0    ];
+			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+			
+			
+			cenPos        = [ 0.5      , 0    ];
+			wdthHight     = [ 0.5      , 0.5  ];
+			minUv         = [ 0.5      , 1    ];
+			maxUv         = [ 1        , 0    ];
+			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+		
+		} else {
+			//console.log("Desktop device detected");
+			cenPos        = [ 0        , 0    ];
+			wdthHight     = [ 2     , 1.5 ];
+			minUv         = [ 0        , 1    ];
+			maxUv         = [ 1        , 0    ];
+			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+		}
+	}
+	//graphics.Flush();
 }
 
 let pointSizeElm = document.getElementById( "pointSize" );
 let pointFalloffElm = document.getElementById( "pointFalloff" );
 function pointSizeChange(){
-	gl.uniform1f(graphics.pointSizeAttr, pointSizeElm.value );
-	gl.uniform1f(graphics.pointFalloffAttr, pointFalloffElm.value );
+	graphics.pointGraphics.pointSize = pointSizeElm.value;
+	graphics.pointGraphics.pointFalloff = pointFalloffElm.value;
 }
 
 let raysPerFrameElm = document.getElementById("raysPerFrame");
 let accumulatedRaysElm = document.getElementById("accumulatedRays");
 function raysPerFrameChange(){
 	mainScene.cameras[mainScene.activeCameraIdx].
-		changeNumRaysPerFrame( raysPerFrameElm.value, accumulatedRaysElm.value );
+		changeNumRaysPerFrame( parseInt(raysPerFrameElm.value), parseInt(accumulatedRaysElm.value) );
 }
 
 let mouseXSen = document.getElementById("mouseXSen");
@@ -303,7 +364,7 @@ let mouseXSenValue;
 let mouseYSenValue;
 function mouseSenChange(){
 	mouseXSenValue = mouseXSen.value;
-mouseYSenValue = mouseYSen.value;
+	mouseYSenValue = mouseYSen.value;
 }
 let touchMoveSen = document.getElementById("touchMoveSen");
 let touchLookSen = document.getElementById("touchLookSen");
@@ -360,6 +421,10 @@ function UpdateCamera( updateTime )
 	camRotUpdate[1] = -mX*Math.PI/180;
 	camRotUpdate[2] = 0;
 	mCoordDelta.x = mCoordDelta.y = 0;
+	
+	if( Vect3_LengthSquared( camRotUpdate ) > 0.0001 || 
+		Vect3_LengthSquared( camPositionUpdate ) > 0.0001 )
+		lastInputTime = updateTime;
 
 	//send the updates to the camera
 	mainScene.cameras[mainScene.activeCameraIdx].

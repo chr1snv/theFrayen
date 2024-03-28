@@ -3,37 +3,59 @@
 
 //loads all of the haven tech scripts into the dom
 
-var incFiles = ['Iohelpers.js',
+var incFiles = ['DPrintf.js',
+				'Iohelpers.js',
+				'UID.js',
+				
+				'Vect3.js',
+				'Quaternion.js',
 				'Matrix.js',
 				'Curve.js',
 				'IPOAnimation.js',
-				'Vect3.js',
-				'DPrintf.js',
+				
+				'AABB.js',
+				'Ray.js',
+				'OctTree.js',
+				
+				'Math.js',
+				'Physics.js',
+				'PhysObj.js',
+				'PhysConstraintGraph.js',
+				'Capsule.js',
+				
+				'webgl-utils.js',
+				'webgl-debug.js',
+				
 				'Light.js',
 				'Camera.js',
 				'QuadMesh.js',
-				'SkeletalAnimation.js',
-				'Shader.js',
+				
+				'GlProgram.js',
+				'Material.js',
 				'Texture.js',
 				'Graphics.js',
+				'PointGraphics.js',
+				'TriGraphics.js',
+				
 				'Model.js',
 				'Triangle.js',
-				'HavenScene.js',
+				
 				'Bone.js',
-				'OctTree.js',
+				'MeshKeyAnimation.js',
+				'SkeletalAnimation.js',
+				
+				'HavenScene.js',
+				
 				'HierarchyView.js',
 				'HavenMain.js',
-				'MeshKeyAnimation.js',
+				
 				'HavenInputHandlers.js',
 				'TouchScreenControls.js',
 				'InertialSensors.js',
 				//'CameraStream.js',
-				'Quaternion.js',
-				'AABB.js',
-				'Ray.js',
+				
 				'Sound.js',
-				'webgl-utils.js',
-				'webgl-debug.js'];
+				];
 var incFileIdx = 0;
 
 function havenIncMain(){

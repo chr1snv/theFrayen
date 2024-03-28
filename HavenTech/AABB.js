@@ -41,41 +41,74 @@ return false;
 */
 
 function AABBsOverlap(a1, a2){
-	if( a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0) ||
-		a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 0) ||
-		a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 0) )
-		return true;
-	return false;
+	let pOvlp = [0,0,0];
+	return a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0 )  *
+		a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 1) *
+		a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 2);
+	//	return true;
+	//return false;
 }
 
 function AABB( minCorner, maxCorner ){
-
-	this.minCoord = new Float32Array(3);
-	Vect3_Copy( this.minCoord, minCorner );
-	this.maxCoord = new Float32Array(3);
-	Vect3_Copy( this.maxCoord, maxCorner );
-
-	//generate the center coordinate
-	this.center = new Float32Array(3);
-	Vect3_Copy( this.center, this.minCoord );
-	Vect3_Add( this.center, this.maxCoord );
-	Vect3_DivideScalar( this.center, 2 );
-
-	this.RangeOverlaps = function( am, aM, axis ){
-		//if the range overlaps the maximum distance between
-		//any two points will be less than the sum of the range spans
-		let max = aM
-		if(this.maxCoord[axis] > aM)
+	
+	this.minCoord = Vect3_NewZero();
+	this.maxCoord = Vect3_NewZero();
+	this.center   = Vect3_NewZero();
+	this.diag     = Vect3_NewZero();
+	
+	this.OffsetPos = function(delP){
+		Vect3_Add(this.center, delP);
+		Vect3_Add(this.minCoord, delP);
+		Vect3_Add(this.maxCoord, delP);
+	}
+	
+	this.MoveCenter = function(newCent){
+		Vect3_Copy(   this.center, newCent   );
+		Vect3_Copy( this.minCoord, newCent   );
+		Vect3_Copy( this.maxCoord, newCent   );
+		Vect3_Add(  this.maxCoord, this.diag );
+		Vect3_Subtract( this.minCoord, this.diag );
+	}
+	
+	this.UpdateMinMaxCenter = function(minCorner, maxCorner){
+		Vect3_Copy( this.minCoord, minCorner );
+		Vect3_Copy( this.maxCoord, maxCorner );
+		//generate the center coordinate
+		Vect3_Copy( this.center, this.minCoord );
+		Vect3_Add( this.center, this.maxCoord );
+		Vect3_DivideScalar( this.center, 2 );
+		
+		Vect3_Copy( this.diag, this.maxCoord );
+		Vect3_Subtract( this.diag, this.minCoord );
+		Vect3_MultiplyScalar( this.diag, 0.5 );
+	}
+	
+	
+	this.UpdateMinMaxCenter( minCorner, maxCorner );
+	
+	
+	//am and aM are the min and max of the other aabb or object checked
+	//along the axis for overlap
+	this.RangeOverlaps = function( am, aM, axis, touches=false ){
+		//if the range overlaps the maximum spanned distance
+		//will be less than the sum of the range spans
+		let max = aM; //the max of the two maxes
+		if( this.maxCoord[axis] > aM )
 			max = this.maxCoord[axis];
-		let min = am;
-		if( this.minCoord[axis] < am)
+		let min = am; //the min of the two mins
+		if( this.minCoord[axis] < am )
 			min = this.minCoord[axis];
-		const totalRange = max - min;
-		const aRange = aM - am;
-		const bRange = this.maxCoord[axis] - this.minCoord[axis];
-		if( totalRange <= aRange + bRange )
-			return true;
-		return false;
+		const totalRange = max - min; //the furthest points of the two ranges
+		const otherRange = aM - am; //the extent of the other aabb
+		const thisRange = this.maxCoord[axis] - this.minCoord[axis];
+		const rangeSum = otherRange + thisRange;
+		const maxRange = Math.max(otherRange, thisRange);
+		const pctOverlap = 1 - Math.min( 1, (totalRange - maxRange) / otherRange );
+		//if( totalRange < (rangeSum - 0.00001) || touches && totalRange <= rangeSum ) //total range vs sum of two ranges
+		//	return true;
+		//console.log("%c"+am+":"+aM+" "+this.minCoord[axis]+":"+this.maxCoord[axis], "color:orange");
+		//return false;
+		return pctOverlap;
 	}
 
 	//return a point and time along the ray that intersects an AABB bound or null

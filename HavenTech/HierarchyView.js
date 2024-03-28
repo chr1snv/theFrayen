@@ -211,24 +211,27 @@ function aIdxToS(a){ //axis index to string
 //for test cube use the min max of the face aabb to determine which of the 6 faces it is
 function minMaxToCSide(aabb){
 
-	if( aabb.minCoord[0] < 0.5 ){
-		if( aabb.minCoord[1] < 0.5 ){
-			if( aabb.minCoord[2] < 0.5 ){ //bottom left back corner
-				if( aabb.maxCoord[0] < 0.5 ){
+	if( aabb.minCoord[0] < 0.5 ){ //x left
+		if( aabb.minCoord[1] < 0.5 ){ //y down
+			if( aabb.minCoord[2] < 0.5 ){ //z into screen
+				//bottom left back corner is part of aabb
+				if( aabb.maxCoord[0] < 0.5 ){ //entire side is to the left of center
 					return "left";
-				}else{ //bottom, back
-					if( aabb.maxCoord[2] > 0.5 ){
+				}else{ //must be the bottom or back
+					if( aabb.maxCoord[2] > 0.5 ){ //entire side is below center
 						return "bottom";
-					}
+					}//not the left or bottom so must be the back side
 					return "back";
 				}
 			}else{
+				//has a corner below the midpoint (so it's not the top)
+				//also a corner left down (so can't be the right side)
 				return "front";
 			}
-		}else{ //bottom left front corner
+		}else{ //left top corner and left, back and front already checked
 			return "top";
 		}
-	}else{
+	}else{ // min x is to right of center and the other 5 sides have been checked
 		return "right";
 	}
 	
@@ -319,13 +322,13 @@ function PrintHierarchy( on, nodeName, parn, obSumCnts = undefined ){
 			//td = document.createElement('td');
 			
 			tt.objs.push( PrintHierarchy(on.objects[i].quadmesh.octTree, on.objects[i].meshName, tt, 
-					vFxLenStr(on.objects[i].AABB.minCoord, 2, 3 ) + " " + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 ) ) );
+					vFxLenStr(on.objects[i].AABB.minCoord, 2, 3 ) + ":" + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 ) ) );
 			//tr.appendChild( td );
 			//c.appendChild( tr );
 		}else{
 			tr = document.createElement('tr');
 			td = document.createElement('td');
-			td.innerText = minMaxToCSide(on.objects[i].AABB) + " " + vFxLenStr( on.objects[i].AABB.minCoord, 2, 3 ) + " " + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 );
+			td.innerText = minMaxToCSide(on.objects[i].AABB) + ":" + vFxLenStr( on.objects[i].AABB.minCoord, 2, 3 ) + ":" + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 );
 			objSummary.innerText += " " + minMaxToCSide(on.objects[i].AABB);
 			tr.appendChild( td );
 			c.appendChild( tr );

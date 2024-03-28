@@ -24,8 +24,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.activeCameraIdx = -1;
 
 	//the main structure for holding scene elements
-	this.octTree = new TreeNode( 0, [-10000, -10000, -10000], 
-									[ 10000,  10000,  10000], null );
+	this.octTree = new TreeNode( [-10000, -10000, -10000], 
+								 [ 10000,  10000,  10000], null );
 	//using the camera frustum only objects within view 
 	//can be drawn / simulated in high fidelity
 
@@ -76,14 +76,12 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	{
 		if(!this.isValid)
 		{
-			DPrintf('havenScene: ' + this.sceneName + 
-					' was asked to draw but is not valid');
+			DTPrintf(this.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
 			return;
 		}
 		if(this.activeCameraIdx == -1)
 		{
-			DPrintf('havenScene: ' + this.sceneName + 
-					' was asked to draw but has no active camera');
+			DTPrintf( this.sceneName + ' was asked to draw but has no active camera', 'havenScene: ', 'orange');
 			return;
 		}
 

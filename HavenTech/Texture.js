@@ -12,6 +12,8 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
     this.maxXCoord = 0.0;
     this.maxYCoord = 0.0;
     this.isValid   = false;
+    
+    //thisP.textureHandle = null;
 
     this.filename = "scenes/"+this.sceneName+"/textures/"+this.texName;
 
@@ -31,6 +33,17 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
         retVal[1] = this.pixData[ (x + y * this.width) * 4 + 1 ] / 255.0;
         retVal[2] = this.pixData[ (x + y * this.width) * 4 + 2 ] / 255.0;
         retVal[3] = this.pixData[ (x + y * this.width) * 4 + 3 ] / 255.0;
+    }
+    
+    this.Bind = function(){
+    	if( !this.textureHandle )
+		    this.textureHandle = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.textureHandle);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.loadedImage);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     }
 
     this.loadedImage.onload = function() { 

@@ -1,6 +1,6 @@
 //Camera.js
 //to request use or code/art please contact chris@itemfactorystudio.com
-
+var gOM = new Float32Array(4*4);
 function glOrtho(left, right, bottom, top, nearVal, farVal)
 {
     //generates an orthographic (rectangular non perspective)
@@ -12,10 +12,16 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
     var xs =  2/(right-left);
     var ys =  2/(top-bottom);
     var zs = -2/(farVal-nearVal);
-    return Float32Array([ xs,  0,  0, tx,
-                           0, ys,  0, ty,
-                           0,  0, zs, tz,
-                           0,  0,  0,  1 ] );
+    
+    gOM[0*4+0]=xs;gOM[0*4+1]=0 ;gOM[0*4+2]=0; gOM[0*4+3]=tx;
+    gOM[1*4+0]=0; gOM[1*4+1]=ys;gOM[1*4+2]=0; gOM[1*4+3]=ty;
+    gOM[2*4+0]=0; gOM[2*4+1]=0; gOM[2*4+2]=zs;gOM[2*4+3]=tz;
+    gOM[3*4+0]=0; gOM[3*4+1]=0; gOM[3*4+2]=0;gOM[3*4+3]=1;
+    
+    //return Float32Array([ xs,  0,  0, tx,
+    //                       0, ys,  0, ty,
+    //                       0,  0, zs, tz,
+    //                       0,  0,  0,  1 ] );
 }
 var gPM = new Float32Array(4*4);
 function gluPerspective(fovy, aspect, zNear, zFar)
@@ -119,18 +125,18 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	{
 		if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
 		{
-		    projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
-		                            -graphics.screenHeight, graphics.screenHeight,
-		                            -1, 1);
+			projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
+									-graphics.screenHeight, graphics.screenHeight,
+									-1, 1);
 		}
 		else
 		{
-		        gluPerspective(
-		               this.fov,                   //field of view
-		               graphics.GetScreenAspect(), //aspect ratio
-		               this.nearClip,              //near clip plane distance
-		               this.farClip                //far clip plane distance
-		                                  );
+			gluPerspective(
+				this.fov,					//field of view
+				graphics.GetScreenAspect(), //aspect ratio
+				this.nearClip,				//near clip plane distance
+				this.farClip				//far clip plane distance
+											);
 		}
 		
 		//calculate the inverse position transformation matrix for the camera
@@ -215,16 +221,15 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.userPosition[1] += transformedRot[1];
 		this.userPosition[2] += transformedRot[2];
 		
+		//print the camera orientation to the html page
 		//let camOrigin = [0, 0, 0];
 		//this.getLocation( camOrigin );
+		//infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
+		//infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
+		//infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
+		//infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
+		//document.getElementById( "cameraDebugText" ).innerHTML = infoString;
 		
-		/*
-		infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
-		infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
-		infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
-		infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
-		document.getElementById( "cameraDebugText" ).innerHTML = infoString;
-		*/
 	}
 
 
@@ -314,6 +319,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//get the camera matrices to cast and reproject previous rays
 		this.GenWorldToFromScreenSpaceMats();
 		
+		//document.getElementById("cameraDebugText").innerHTML = 
+		//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
+		
 		for(let v = 0; v < numVertRays; ++v ){
 			//newTime = Date.now();
 			//if ( newTime - startTime > allowedTime) //prevent slowing the browser
@@ -366,13 +374,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//transform previous frame rays to screen space done in vertex shader
 		
 		//redraw previously calculated pixels
-		graphics.drawPixels(
-		    this.prevRayPositions, this.prevPixColors, 
-		    this.numRaysAccumulated, this.worldToScreenSpaceMat );
+		graphics.pointGraphics.drawPixels(
+			this.prevRayPositions, this.prevPixColors, 
+			this.numRaysAccumulated, this.worldToScreenSpaceMat );
 		
 		this.numRaysAccumulated += numRaysIntersected;
 		if( this.numRaysAccumulated > this.numRaysToAccum )
-		    this.numRaysAccumulated = this.numRaysToAccum;
+			this.numRaysAccumulated = this.numRaysToAccum;
 		
 		/*    
 		//if the number of new rays in this frame is low
@@ -380,9 +388,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		var numRaysToRemove = (numRaysPerFrame - numRaysIntersected) * 0.3;
 		this.numRaysAccumulated -= numRaysToRemove;
 		if( this.numRaysAccumulated < 0 )
-		    this.numRaysAccumulated = 0;
+			this.numRaysAccumulated = 0;
 		if( this.accumIndex > this.numRaysAccumulated )
-		    this.accumIndex = 0;
+			this.accumIndex = 0;
 		*/
 	}
 

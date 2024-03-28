@@ -5,13 +5,14 @@
 let uvCoord = new Float32Array(2);
 class Face { //part of mesh stored in mesh octTree
 	constructor(){
-		this.uuid       = Math.random();
+		this.uid        = NewUID( );
 		this.materialID = 0;
 		this.uvs        = [];
 		this.vertIdxs   = [];
 		this.tris       = [];
 		this.AABB       = null;
 		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
+		this.treeNodes  = {};
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( ret, ray ){ 
@@ -45,8 +46,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	Matrix_SetIdentity( this.toWorldMatrix );
 	this.lastToWorldMatrixUpdateTime = -1;
 
-	this.shaderNames     = [];
-	this.shaders         = [];
+	this.materialNames     = [];
+	this.materials         = [];
 
 	//the mesh data
 	this.faces           = [];
@@ -60,7 +61,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.skelPositions   = [];
 
 	//the oct tree of the mesh faces (updated with mesh animations)
-	this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
+	this.octTree = new TreeNode( [-10000, -10000, -10000], [10000, 10000, 10000], null );
 	this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
 	this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
 	this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
@@ -109,13 +110,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//update the quadmesh to world transformation
 	this.UpdateToWorldMatrix = function(time){
 		if( this.lastToWorldMatrixUpdateTime == time )
-			return this.toWorldMatrix;
+			return false;
 		Matrix( this.toWorldMatrix, 
 				MatrixType.euler_transformation, 
 				this.scale, this.rotation, this.origin );
 		this.lastToWorldMatrixUpdateTime = time;
 		
-		return this.toWorldMatrix;
+		return true;
 
 	}
 
@@ -126,14 +127,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//if the new update time is newer (don't update twice for the same frame)
 		if( animationTime > this.lastMeshUpdateTime ){
 
-			var vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
+			let vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
 			if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
 				octTreeDivLogElm.innerHTML += "<br/>update " + this.meshName + "<br/>";
-				this.UpdateOctTree();} //updates world space min and max corners
+				this.UpdateOctTree(); //updates world space min and max corners
+			}
 
-			var worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
+			let worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
 			if( worldTransformUpdated || vertsUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
-				this.UpdateAABB(animationTime);}
+				this.UpdateAABB(animationTime);
+			}
 
 			this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
 		}
@@ -155,7 +158,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.GetRotation = function(rotOut)   { Vect3_Copy(rotOut, this.rotation); }
 
 	//color manipulation functions
-	this.GetShaderName = function() { return [this.shaderNames[0], this.sceneName]; }
+	this.GetMaterialName = function() { return [this.materialNames[0], this.sceneName]; }
 
 	this.DrawSkeleton = function() { this.skelAnimation.Draw(); }
 
@@ -165,9 +168,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//so the callback can return to the same context
 	this.IsTransparent = function(callback, thisP) 
 	{
-		graphics.GetShader( this.shaderNames[0], this.sceneName, callback,
-			function( shader, cb ){
-				cb( shader.IsTransparent(), thisP );
+		graphics.GetMaterial( this.materialNames[0], this.sceneName, callback,
+			function( material, cb ){
+				cb( material.IsTransparent(), thisP );
 			});
 	}
 
@@ -229,6 +232,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			max[2] = max[2] < vert[2] ? vert[2] : max[2];
 		}
 		this.faces[f].AABB =  new AABB( min, max );
+		this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB);
 		
 		//construct the triangles (maybe should add uv's when constructing)
 		
@@ -251,7 +255,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.UpdateOctTree = function(octUpdateCmpCallback){
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
-		this.octTree = new TreeNode( 0, [-10000, -10000, -10000], [10000, 10000, 10000], null );
+		this.octTree = new TreeNode( [-10000, -10000, -10000], [10000, 10000, 10000], null );
 
 		this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
 		this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;
@@ -267,7 +271,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			this.worldMaxCorner[1] = Math.max( faceMax[1], this.worldMaxCorner[1] );
 			this.worldMaxCorner[2] = Math.max( faceMax[2], this.worldMaxCorner[2] );
 
-			this.octTree.AddObject(this.faces[f]);
+			let nLvsMDpth = [0, 0];
+			subDivAddDepth = 0;
+			this.octTree.AddObject(nLvsMDpth, this.faces[f]);
 		}
 		//octUpdateCmpCallback();
 	}
@@ -297,7 +303,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				retVal[0] = tri.RayTriangleIntersection( retVal[1], ray );
 				if( retVal[0] > 0 ){
 					//the ray intersects the triangle, find the uv coordinate
-					//retVal[2] = this.shaders[face.materialID].diffuseCol;
+					//retVal[2] = this.materials[face.materialID].diffuseCol;
 					tri.UVCoordOfPoint( uvCoord, tri.pointL );
 					this.GetMaterialColorAtUVCoord( retVal[2], uvCoord, face.materialID );
 					//retVal[1] = tri.triZW;
@@ -309,17 +315,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
-		//method from rasterization was to asynchronously load the shader
+		//method from rasterization was to asynchronously load the material
 		//and bind it, impractical for query based rays where each ray
-		//may reach a different shader
-		//need to make sure the shaders in each mesh are loaded before rendering
+		//may reach a different material
+		//need to make sure the materials in each mesh are loaded before rendering
 		//though may be good to keep them stored in scene global dictionary to
-		//avoid duplicate per mesh loading/instancing of shaders and materials
-		//graphics.GetShader( filename, sceneName, 
-		//     readyCallbackParams, shaderReadyCallback ) )
-		//return [0.5,0.2,0.7,1.0]; //use a solid color until shaders and textures
-		//for raytracing implemented
-		return this.shaders[matID].GetColorAtUVCoord( color, uv );
+		//avoid duplicate per mesh loading/instancing of materials and materials
+		//graphics.GetMaterial( filename, sceneName, 
+		//     readyCallbackParams, materialReadyCallback ) )
+		if( this.materials[matID] )
+			return this.materials[matID].GetColorAtUVCoord( color, uv );
+		else
+			return [0.5,0.2,0.7,1.0]; //use a solid color until materials and textures
+			//for raytracing implemented
 
 	}
 
@@ -517,8 +525,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	var matFileName = "scenes/" + this.sceneName + "/meshMaterials/" + 
  									this.meshName + ".hvtMeshMat";
 
-	this.shaderReady = function( shader, thisPAndShaderIdx ){
-		thisPAndShaderIdx[0].shaders.splice( thisPAndShaderIdx[1], 0, shader);
+	this.materialReady = function( material, thisPAndMaterialIdx ){
+		thisPAndMaterialIdx[0].materials.splice( thisPAndMaterialIdx[1], 0, material);
 	}
 
 	this.matFileLoaded = function(matFile, thisP){
@@ -526,21 +534,21 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 		for( var matIdx in matFileLines ){
 			var temp = matFileLines[matIdx];
-			if( temp[0] == 's' ){ //name of a shader
+			if( temp[0] == 's' ){ //name of a material
 				var words = temp.split(' ');
-				thisP.shaderNames.push(words[1]);
-				//preload the shader
-				graphics.GetShader( words[1], thisP.sceneName, 
-				[thisP, thisP.shaderNames.length-1], thisP.shaderReady );
+				thisP.materialNames.push(words[1]);
+				//preload the material
+				graphics.GetMaterial( words[1], thisP.sceneName, 
+				[thisP, thisP.materialNames.length-1], thisP.materialReady );
 			}
 		}
-		if( thisP.shaderNames.length < 1 ){
+		if( thisP.materialNames.length < 1 ){
 			DPrintf('QuadMesh: ' + thisP.meshName + 
 				', failed to read any materials, loading default material');
-			thisP.shaderNames.push("default");
-			//preload the shader
-			graphics.GetShader( "default", thisP.sceneName,
-			[thisP, thisP.shaderNames.length-1], thisP.shaderReady );
+			thisP.materialNames.push("default");
+			//preload the material
+			graphics.GetMaterial( "default", thisP.sceneName,
+			[thisP, thisP.materialNames.length-1], thisP.materialReady );
 		}
 
 		//read in the mesh file

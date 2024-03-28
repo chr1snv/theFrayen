@@ -13,29 +13,43 @@ afraid of what reprecussions your actions have [scenes of poverty, jail, nationa
 trying to find your place amongst others with the same fears [boss, parents, leaders telling you what to do]
 because making moves without understanding them has oppertunity cost [get excited , ends in yelling, disaster]
 
+when asked to join/joining a company/group/event/gathering/conversation what is being asked is if you want to join a shared dream.
+a interaction with rules/interaction parameters defined by the group
+what all beings in life try to do is defeat entropy, the natural tendancy of local gradients towards the average state or arrangment of the universe
+
 <nieve character>
 the truth is that everyone, and you are gods [morph between scenes of present day and imagination]
 and capable of anything [briefly show fantasy existance, and extreme hardship, also low poly and high res]
+it is only awareness of what that means that differs between individuals
 
 <narrator>you have thought that reality and imagination were seperate things[drawings on a page, pixel graphics]
 <personable character> I'm here to tell you they aren't
 >you are imagination, and imagination is reality
 >that is to say everything you have been looking for is not outside your reach
 >you already have it and you are made of it
+	(physical locations, goods, consumption in excess and reliance or desire for acceptance from others is not where
+	creation of new value begins, the path to happyness and success begins with introspection of the inner ecosystem
+	of the self)
 
-the only question is in an existance without bounds what choices will you make
+the only question is in an existance without defined bounds what choices will you make
+(there of course are some bounds, for without defining them yourself there is only entropy-everything and nothingness)
+(the game also will have some definitions/bounds so players can relate to it and the portion of reality it occupies can be defined (energy requirement and complexity size))
 
 >theFrayen
 
 
 
-fps game intro
+fps story driven game intro
 
 wether your fighting viruses, learning new techniques, entering into battle
 giving a speach, sorting information
-a common skill that is required is having good aim ( a clear purpose and determiniation )
+a common skill that is required is having good aim or intention ( a clear purpose and determiniation )
+having a well chosen intention (something that is realistic (in line with the enviroment of a stiuation)
+not asking for too much, or too little) ensures a good chance of success and benificial carry over into
+subsequent situations
 
 
+||keywords and terms for world thematic banners||
 intensity, curosity
 on call, on scene,
 immediacy
@@ -47,12 +61,14 @@ flovana
 how does spacetime obfsucate information
 
 if reality exists on carrier waves, then an object in different temporal spatial
-locations is 'riding' different waves so though the wave of the object is present
-it is convolved with that of its surrounding location
+locations is 'riding' different waves so though the wave of the object is present,
+it is 'convolved' (multiplied with, interacts) with that of its surrounding location
 
 
-life is like the fortnite bus, a river though space and time, it continues ever
-forward, with the mainflow out of your control though small parts locally modifiable
+from the vantage point of an outside observer in a seperate timeline or universe a person's life
+ is an expierence like riding a tram through a themepark or a person on a guided tour, 
+a river though space and time, it continues ever forward, 
+with the mainflow out of your control though small parts are locally modifiable
 by transistor like cascade actions (butterfly effect)
 
 
@@ -69,21 +85,42 @@ is there a point where socital interaction breaks down when systems and
 expectations are over stressed? yes
 the enemy is always bad form/structure
 i.e. a single ruler / over authoritarian/dictator form of rule
+and micro interactions / assertions of dominance between people
+(when someone speaks louder than another to win an debate or argument, it's
+only a sort term win and doesn't address the underlying logical/organizational problem
+that may again reappear)
 
-the rules/laws of the universe (navier stokes, maxwells equations, etc)
+the rules/laws of the universe (navier stokes, maxwells equations, signal proceessing algorithms, etc)
 dictate the forms that perform better than others
 and the effect echoes/propigates from microscopic to larger scales and longer interaction times
 
 
 
+character - you are sabrina ( slender black hair vixen )
+engineered to be the most attractive, seductive, alluring and powerful human in existance
+designed by a group of borderline anarchist/mad scientists who are rebelling against the status quo
+by using their knowledge and passion of organinc logic engineering to create someone/something beautiful
+as a testiment to their own existance and to benefit the earth's standing in the universe,
+consequences (judgmental/emotional outcries against it from others and peers) be dammed.
+You have free will, and a soul/ethos (core ideals) based on morals based on the knowledge that
+the only way to ensure success for everyone is to do things as well as possible
+and uphold structures and codes of conduct that benefit the whole of society and the enviroment.
+Otherwise corruption will creep in and luxury life with access to means beyond what most can dream of will fade.
+Afterall the average state of the universe does not contain life or a society of dreams
+and from history and the law of diffusion 
+(when a gradient or disparity of anything exists in reality, between hot and cold, order and disorder, rich and poor, etc)
+socities that benefit those in it can only be maintained if as a whole the individuals in the society trend towards maintaining and improving it.
+If actions aren't improving a situation, then it's probably because either there's not enough energy or understanding on your side
+so leaving it is important as the best course of action (prime directive from star trek (don't interfere in the development or affairs
+of non threatening / lesser developed civilizations) )
 
-character - you are sabrina (slender black hair )
-engineered to be the most attractive, seductive, and deadly girl in existance
-designed by a group of anarchist scientists whos goal is only to make
-something beautiful consequences be dammed.
-you have free will, the soul of a champion and access to means beyond 
-what most can dream of
 
+---Ok, so theFrayen is yet another super hero game, why would anyone want to play it?---
+Because of its slightly different take, with some new characters and settings
+made with an in web browser client side based game engine that can be played on mobile or high end pc vr hardware.
+Also being free/ad revenue driven with paid story sections and items
+the player base can potentially be everyone 14+ and interaction durations can vary from 5 minutes to hours to attract /
+be acessible to as many players as possible.
 
 
 https://en.wikipedia.org/wiki/Geodetic_control_network
@@ -93,21 +130,41 @@ After a cartographer registers key points in a digital map to the real world coo
 Without knowlege, an internal system to organize data that ones senses give them
 in daily life, one has no reference point or metric to make decisions based on.
 That is the difference between those that haven't played the frayen and those that
-have. have you gained reference?
+have. have you gained reference? (possible solgan for advertising the frayen)
 
 
-in human life finding a path to success is always desired
+---Concepts for the plot evolution and dialog interactions---
+
+In human life finding a path to success is always desired
 at first glance one would think that mastering logic and the laws of the universe
 would suffice, but there is more to the story
 understanding oneself and others becomes key
 humans are creatures, subject to the laws of the universe like everything else
 and tuned for self survival
-fight, fuck, steal, lie, cheat, deceve are all part of a humans base programming
+fight, f#&*, steal, lie, cheat, deceve are all part of a humans base programming
 if one learns something, the first thoughts of how to use it will be how to aid in ones survival
 
 when interacting with another human, to establish a successful relationship
 that benfits both equally
-it is important to not trigger any of the base programming of the other and
-make sure that the base needs of that human are met before asking anything of them
-first ensure the other feels safe and and don't boast or show off (or it will be
-interpreted as a challenge and met with aggression)
+it is important to be mindful of the base programming of the other and
+be sure it is appeased (the law of the jungle comes first)
+(make sure that the base needs of that human are met) before asking anything of them
+>first ensure the other feels safe and and don't boast or show off unless first certian
+it will be recieved favorably (because if it makes the other feel uncertian or worried it 
+will be interpreted as a challenge and met with aggression)
+
+It's also important to keep in mind that everyone views the world from their
+point of view, that person will prefer to interact in ways that they are familar
+with and seek lines of questioning and reasoning that adhear to their world view
+
+
+When talking with ebay support (FeeBay), they focused on how I was feeling and how my
+day was going and "were glad they could put a smile on my face"....
+They did not fully resolve the issue though, they are still charging exorbinant
+fees and appear to be unable to act profesonally. They also said
+"im sure you will soon be a great seller on eBayb"
+reading about the fact that ebay has a court case against them for harassing
+sellers and that the guy who "bought" the airconditioner has gone to prision
+for stockpiling and selling narcotics, eBay has become like joker from the
+Batman series. Criminals who have become mentally insane and have lost touch
+with reality, precieving reality as a series of twisted jokes.

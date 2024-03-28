@@ -2,25 +2,40 @@
 //I didn't invent math, though I coded this implementation
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
-//compute in place functions to avoid allocting more memory to keep
-//vector operations fast (that's the idea anyway)
-//when transforming the scene geometry, these fuctions end up as the inner loop
-//of the render function making any performance gains / losses heavily affect the
-//performance, frame times and latency
+//it is not a design mistake that these are compute in place and pass by refrence functions 
+//it is to avoid allocting memory to keep vector operations fast
+//when transforming the scene geometry, these fuctions are the inner loop
+//of the render function / engine meaning that tuning these functions for
+//performance gains / losses heavily affects performance, frame times and latency
 
-//optimizing the data movement for these vector operations and the matrix operations is important
-//to having interactive framerates
+//optimizing data movement (code is light / small , data is heavy / numerous)
+//by allocating input and return values at program start
+//for vector / matrix operations and any frequently performed operation is important
+//for interactive framerates and energy efficency because 
+//being the inner most functions in loops they are called / used many thousands of times for each generated frame
+
+//in any system where completing the task as succinctly/efficently (with minimal space/size/mass/time) as possible
+//is desired - having fixed non intermixing pathways for inputs and outputs is the most efficent,
+//because anytime something relies on something else it causes a non laminar / linear flow restriction
+//memory allocation vs having fixed size buffers and piplines is an example of this
+//because where and if memory can be allocated depends on what other memory is allocated, theirby causing
+//a dependancy / intermixing between all users of the memory allocation to their pointers / program counters / data flow
+//having fixed independant functional units to perform the operation removes the interdependancy
+
+//this means putting allocations outside function calls into objects
+//and into global/static program space
+//and also using fixed size arrays/structures where possible
+
+//slow functions, should only use these outside of program loops and pre allocate memory where possible
+function Vect3_NewZero() { return new Float32Array(3);}//[0,0,0]); };
+function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
+function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } //use _Copy function below when possible
 
 function Vect3_SetScalar( v, val ){ v[0] = val; v[1] = val; v[2] = val; }
 
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
 
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
-
-function Vect3_NewZero() { return new Float32Array([0,0,0]); };
-
-//slow function, should use pre allocated memory and _Copy function instead
-function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  }
 
 function Vect3_Copy(v1, v2) { v1[0] = v2[0]; v1[1] = v2[1]; v1[2] = v2[2]; }
 
@@ -30,8 +45,7 @@ function Vect3_Subtract(v1, v2) { v1[0] -= v2[0]; v1[1] -= v2[1]; v1[2] -= v2[2]
 
 function Vect3_Multiply(v1, v2) { v1[0] *= v2[0]; v1[1] *= v2[1]; v1[2] *= v2[2]; }
 
-function Vect3_MultiplyScalar(v1, scalar) { 
-				v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
+function Vect3_MultiplyScalar(v1, scalar) { v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
 
 function Vect3_Divide(v1, v2) { v1[0] /= v2[0]; v1[1] /= v2[1]; v1[2] /= v2[2]; }
 
@@ -81,7 +95,7 @@ function Vect3_Length(v1) {
 }
 
 //a less computationally expensive version of length (avoid preforming square root)
-function Vect3_LengthSquared(v1){ 
+function Vect3_LengthSquared(v1){
 	return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2];
 }
 
@@ -90,7 +104,11 @@ function Vect3_Normal(v1){
 	//let len = Vect3_Length(v1);
 	//Vect3_DivideScalar(v1, len);
 	const len = Math.sqrt( v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2] );
-	v1[0] /= len; v1[1] /= len; v1[2] /= len;
+	if( len == 0 ){
+		Vect3_Zero(v1);
+	}else{
+		v1[0] /= len; v1[1] /= len; v1[2] /= len;
+	}
 }
 //another name/alias for Vect3_Normal
 function Vect3_Unit(v1){
@@ -114,17 +132,21 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
 
-function vFxLenStr( v, numDecimalPlaces, len ){
+//return a string from a vector of numbers
+//make each entry of the vector have 
+function Vect_FixedLenStr( v, numDecimalPlaces, len ){
 	let retString = '';
 	let a = '';
-	for( let i = 0; i < v.length; ++i ){
+	for( let i = 0; i < v.length; ++i ){ //for each number in the vector
 		a = v[i].toFixed(numDecimalPlaces);
-		if(a.length > len){
+		if(a.length > len){ //if adding the decimal places makes it longer than the string length for each number
+			//convert to truncated scientific notation
 			//a = a.slice(0, len-2);
 			//a += "..";
-			let fd = a[0] == '-' ? a.slice(0,2) : a[0];
-			let ep = a[0] == '-' ? a.length-2 : a.length-1;
-			a = fd + "e" + ep;
+			let fd = a[0] == '-' ? a.slice(0,2) : a[0]; //get the (first digit) most significant integer of the number (before decimal)
+			let intStr = v[i].toFixed(0);
+			let ep = intStr == '-' ? intStr.length-2 : intStr.length-1; //get the number of ten's decimal places
+			a = fd + "e" + ep; //first digit e (signifying x10 exponent) power of ten truncated scientific notation string
 		}
 		
 		if( a.length < len ){
@@ -139,11 +161,21 @@ function vFxLenStr( v, numDecimalPlaces, len ){
 	return retString;
 }
 
+function Vect3_ArrToStr( va, numDecPlaces, maxNumLen ){
+	let str = "";
+	for( let i = 0; i < va.length; ++i ){
+		str += Vect_FixedLenStr( va[i], numDecPlaces, maxNumLen );
+		if( i < va.length-1 )
+			str += " : ";
+	}
+	return str;
+}
+
 //for debug printing
-function ToFixedPrecisionString( v, numDecimalPlaces ){
-	let retString = 0;
+function Vect_ToFixedPrecisionString( v, numDecimalPlaces ){
+	let retString = "v";
 	for( let i = 0; i < v.length; ++i ){
-		retString += v[i].toFixed(numDecimalPlaces);
+		retString += v[i].toPrecision(numDecimalPlaces);
 		if( i != v.length - 1 )
 			retString += " ";
 	}
