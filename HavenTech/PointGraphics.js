@@ -24,13 +24,18 @@ function PointGraphics(loadCompleteCallback){
 		if( this.colorBuffer == null )
 			this.colorBuffer = gl.createBuffer();
 		
-		this.projMatAttr      = gl.getUniformLocation( glProgId, "projection"   );
-		
-		this.pointPosAttr     = gl.getAttribLocation(  glProgId, "position"     );
-		this.pointColorAttr   = gl.getAttribLocation(  glProgId, "ptCol"        );
-		
-		this.pointSizeAttr    = gl.getUniformLocation(  glProgId, "pointSize"    );
-		this.pointFalloffAttr = gl.getUniformLocation(  glProgId, "pointFalloff" );
+		if( !this.projMatAttr )
+			this.projMatAttr      = gl.getUniformLocation( glProgId, "projection"   );
+	
+		if( !this.pointPosAttr )
+			this.pointPosAttr     = gl.getAttribLocation(  glProgId, "position"     );
+		if( !this.pointColorAttr )
+			this.pointColorAttr   = gl.getAttribLocation(  glProgId, "ptCol"        );
+	
+		if( !this.pointSizeAttr )
+			this.pointSizeAttr    = gl.getUniformLocation(  glProgId, "pointSize"    );
+		if( !this.pointFalloffAttr )
+			this.pointFalloffAttr = gl.getUniformLocation(  glProgId, "pointFalloff" );
 		
 		//set point size and falloff
 		gl.uniform1f(this.pointSizeAttr, this.pointSize );
@@ -57,7 +62,7 @@ function PointGraphics(loadCompleteCallback){
 		gl.vertexAttribPointer(this.pointColorAttr, 4, gl.FLOAT, false, 0, 0);
 		
 		gl.drawArrays( gl.POINTS, 0, numPoints );
-		gl.flush();
+		//gl.flush();
 	}
 	
 	//really should buffer pixels before drawing them to reduce gl calls

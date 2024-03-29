@@ -285,7 +285,7 @@ function PrintHierarchy( on, nodeName, parn, obSumCnts = undefined ){
 		ttr.appendChild( td );
 			td = document.createElement('td');
 			td.innerText = nodeName;
-			//td.innerText = aIdxToS(on.axis); //+ " " + vFxLenStr(on.minCoord, 2, 4) + " " + vFxLenStr(on.MaxCoord, 2, 4);
+			//td.innerText = aIdxToS(on.axis); //+ " " + Vect_FixedLenStr(on.minCoord, 2, 4) + " " + vFxLenStr(on.MaxCoord, 2, 4);
 		ttr.appendChild( td );
 	t.appendChild( ttr );
 
@@ -312,24 +312,24 @@ function PrintHierarchy( on, nodeName, parn, obSumCnts = undefined ){
 
 	c.style.setProperty('display', 'none');
 	hiLActvElm = c;
-	for(let i = 0; i < on.objects.length; ++i ){
-		if( on.objects[i].meshName ){
-			objSummary.innerText += " " + on.objects[i].meshName;
-			//td.innerText = on.objects[i].meshName;
+	for(let i = 0; i < on.objects[0].length; ++i ){
+		if( on.objects[0][i].meshName ){
+			objSummary.innerText += " " + on.objects[0][i].meshName;
+			//td.innerText = on.objects[0][i].meshName;
 			//tr.appendChild( td );
 			//c.appendChild( tr );
 			//tr = document.createElement('tr');
 			//td = document.createElement('td');
 			
-			tt.objs.push( PrintHierarchy(on.objects[i].quadmesh.octTree, on.objects[i].meshName, tt, 
-					vFxLenStr(on.objects[i].AABB.minCoord, 2, 3 ) + ":" + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 ) ) );
+			tt.objs.push( PrintHierarchy(on.objects[0][i].quadmesh.octTree, on.objects[0][i].meshName, tt, 
+					Vect_FixedLenStr(on.objects[0][i].AABB.minCoord, 2, 3 ) + ":" + Vect_FixedLenStr(on.objects[0][i].AABB.maxCoord, 2, 3 ) ) );
 			//tr.appendChild( td );
 			//c.appendChild( tr );
 		}else{
 			tr = document.createElement('tr');
 			td = document.createElement('td');
-			td.innerText = minMaxToCSide(on.objects[i].AABB) + ":" + vFxLenStr( on.objects[i].AABB.minCoord, 2, 3 ) + ":" + vFxLenStr(on.objects[i].AABB.maxCoord, 2, 3 );
-			objSummary.innerText += " " + minMaxToCSide(on.objects[i].AABB);
+			td.innerText = minMaxToCSide(on.objects[0][i].AABB) + ":" + vFxLenStr( on.objects[0][i].AABB.minCoord, 2, 3 ) + ":" + Vect_FixedLenStr(on.objects[0][i].AABB.maxCoord, 2, 3 );
+			objSummary.innerText += " " + minMaxToCSide(on.objects[0][i].AABB);
 			tr.appendChild( td );
 			c.appendChild( tr );
 		}

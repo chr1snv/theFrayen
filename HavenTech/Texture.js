@@ -36,7 +36,7 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
     }
     
     this.Bind = function(){
-    	if( !this.textureHandle )
+    	if( !this.textureHandle ){
 		    this.textureHandle = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.textureHandle);
@@ -44,6 +44,7 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        }
     }
 
     this.loadedImage.onload = function() { 

@@ -8,78 +8,37 @@ function TriGraphics(loadCompleteCallback){
 	this.specular         = [0.0, 0.0, 0.0, 0.0];
 	this.shinyness        = 0;
 	
-	this.mvpMatrixUnif = null;
 	
+	let temp = [1.0,1.0,1.0,1.0];
 	this.Setup = function(){
 		
 		let progId = this.triProgram.glProgId;
 		
 		gl.useProgram(progId);
-		CheckGLError( "after enable tri glProgram " );
+		//CheckGLError( "after enable tri glProgram " );
+		
+		if( !this.texturingEnabled_UnifF1 )
+			this.texturingEnabled_UnifF1 = gl.getUniformLocation( this.triProgram.glProgId, 'texturingEnabled' );
+		
+		if( !this.mvpMatrixUnif )
+			this.mvpMatrixUnif = gl.getUniformLocation( this.triProgram.glProgId, 'mvpMatrix');
 		
 		//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
-		var temp = [1.0,1.0,1.0,1.0];
-		this.setColor(temp);
-		this.setAmbientAndDiffuse(temp);
-		this.setEmission(temp);
-		this.setSpecular(temp);
-		this.setShinyness(1.0);
-		CheckGLError( "glProgram::before lighting enabled " );
+		
+		this.triProgram.setVec4Uniform('color', temp);
+		this.triProgram.setVec4Uniform('ambient', temp);
+		this.triProgram.setVec4Uniform('emission', temp);
+		this.triProgram.setVec4Uniform('specular', temp);
+		this.triProgram.setFloatUniform('shinyness', 1);
+		//CheckGLError( "glProgram::before lighting enabled " );
 
 		//lighting setup
-		this.enableLighting(true);
+		this.triProgram.setFloatUniform( 'lightingEnabled', 0 );
 		
-		
-		this.mvpMatrixUnif = gl.getUniformLocation( this.triProgram.glProgId, 'mvpMatrix');
-		CheckGLError( "glProgram::end frag shader loaded " );
+
+		//CheckGLError( "glProgram::end frag shader loaded " );
 	}
 	
-	this.enableLighting = function(progId, val){
-		if(this.lightingEnb != val){
-			this.lightingEnb = val;
-			gl.uniform1f(gl.getUniformLocation(this.triProgram.glProgId, 'lightingEnb'), this.lightingEnb);}
-	}
-
-	this.setColor = function(col){
-		if( !Vect3_Cmp(this.currentColor, col) ){
-			Vect3_Copy(this.currentColor, col);
-			gl.uniform4fv(gl.getUniformLocation(this.triProgram.glProgId, 'color'), this.currentColor);}
-	}
-	this.setAmbientAndDiffuse = function(col){
-		if(!Vect3_Cmp(this.ambAndDiffuse, col)){
-			Vect3_Copy(this.ambAndDiffuse, col);
-			gl.uniform4fv(gl.getUniformLocation(this.triProgram.glProgId, 'ambient'), this.ambAndDiffuse);}
-	}
-	this.setEmission = function(col){
-		if(!Vect3_Cmp(this.emission, col)){
-			Vect3_Copy(this.emission, col);
-			gl.uniform4fv(gl.getUniformLocation(this.triProgram.glProgId, 'emission'), this.emission);}
-	}
-	this.setSpecular = function(col){
-		if(!Vect3_Cmp(this.specular, col)){
-			Vect3_Copy(this.specular, col);
-			gl.uniform4fv(gl.getUniformLocation(this.triProgram.glProgId, 'specular'), this.specular);}
-	}
-	this.setShinyness = function(expV){
-		if(this.shinyness != expV){
-			this.shinyness = expV;
-			gl.uniform1f(gl.getUniformLocation(this.triProgram.glProgId, 'shinyness'), this.shinyness);}
-	}
-
-	this.ClearLights = function(){
-		for(var i=0; i<this.maxLights; ++i)
-			gl.uniform4f(gl.getUniformLocation(this.triProgram.glProgId, 'lightColor['+i+']'), 0,0,0,0);
-		this.numLightsBounded = 0;
-	}
-	this.BindLight = function(light){
-		if(this.numLightsBounded >= this.maxLights){
-			//DPrintf("Graphics: error Max number of lights already bound.\n");
-			return;
-		}
-		this.enableLighting(true);
-		light.BindToGL(this.numLightsBounded);
-		++this.numLightsBounded;
-	}
 	
 	this.texQuadTex = null;
 	function texQuadTexReady(thisP, tex){
@@ -129,19 +88,17 @@ function TriGraphics(loadCompleteCallback){
 		uvs[5*2+0] = minUv[0]; uvs[5*2+1] = minUv[1]; //left  bottom
 		
 		
-		let progId = this.triProgram.glProgId;
-		
-		this.setColor([1,0,1]);
+		this.triProgram.setVec4Uniform('color', [1,0,1]);
 
-		attributeSetFloats( progId, "position",  3, verts );
-		CheckGLError("draw square, after position attributeSetFloats");
-		attributeSetFloats( progId, "norm",    3, verts );
-		CheckGLError("draw square, after normal attributeSetFloats");
-		attributeSetFloats( progId, "texCoord",  2, uvs );
-		CheckGLError("draw square, after texCoord attributeSetFloats");
+		this.triProgram.vertexAttribSetFloats( 'position',  3, verts );
+		//CheckGLError("draw square, after position attributeSetFloats");
+		this.triProgram.vertexAttribSetFloats( 'norm',    3, verts );
+		//CheckGLError("draw square, after normal attributeSetFloats");
+		this.triProgram.vertexAttribSetFloats( 'texCoord',  2, uvs );
+		//CheckGLError("draw square, after texCoord attributeSetFloats");
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
-		CheckGLError("draw square, after drawArrays");
-		gl.flush();
+		//CheckGLError("draw square, after drawArrays");
+		//gl.flush();
 	}
 	
 	this.triProgram = new GlProgram('frayen', null, loadCompleteCallback);

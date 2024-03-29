@@ -50,14 +50,38 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 
 		loadTextFile( thisP.fragShaderFilename, thisP.fragShaderLoaded, thisP );
 	}
-	
+	this.unifLocs = {};
 	this.setVec4Uniform = function( unifName, value ){
-		let unifLoc = gl.getUniformLocation(this.glProgId, unifName);
-		gl.uniform4fv( unifLoc, value );
+		if( this.unifLocs[unifName] == undefined )
+			this.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
+		if( this.unifLocs[unifName + 'val'] == undefined )
+			this.unifLocs[unifName + 'val'] = Vect3_NewZero();
+		if( !Vect3_Cmp( this.unifLocs[unifName + 'val'], value ) ){
+			Vect3_Copy( this.unifLocs[unifName + 'val'], value);
+			gl.uniform4fv( this.unifLocs[unifName], value );
+		}
 	}
 	this.setFloatUniform = function( unifName, value ){
-		let unifLoc = gl.getUniformLocation(this.glProgId, unifName);
-		gl.uniform1f( unifLoc, value );
+		if( this.unifLocs[unifName] == undefined )
+			this.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
+		if( this.unifLocs[unifName + 'val'] == undefined )
+			this.unifLocs[unifName + 'val'] = 0;
+		if( this.unifLocs[unifName + 'val'] != value ){
+			this.unifLocs[unifName + 'val'] = value;
+			gl.uniform1f( this.unifLocs[unifName], value );
+		}
+	}
+	
+	//used to pass vertex attribute array perameters
+	this.attribLocs = {};
+	this.vertexAttribSetFloats = function( attr_name, rsize, arr){
+		if( this.attribLocs[attr_name] == undefined )
+			this.attribLocs[attr_name] = gl.getAttribLocation(this.glProgId, attr_name);
+		
+		gl.enableVertexAttribArray(this.attribLocs[attr_name]);
+		gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+		gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.attribLocs[attr_name], rsize, gl.FLOAT, false, 0, 0);
 	}
 
 	this.readyCallbackParams = readyCallbackParams;

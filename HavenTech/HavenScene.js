@@ -24,8 +24,9 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.activeCameraIdx = -1;
 
 	//the main structure for holding scene elements
-	this.octTree = new TreeNode( [-10000, -10000, -10000], 
-								 [ 10000,  10000,  10000], null );
+	const tDim = 100;
+	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], 
+								 [ tDim,  tDim,  tDim], null );
 	//using the camera frustum only objects within view 
 	//can be drawn / simulated in high fidelity
 

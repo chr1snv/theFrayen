@@ -15,14 +15,14 @@ function IPrintf(str){
 }
 
 const enabledDebugTags = { 
-	"CheckGLError":1,
+	"CheckGLError":0,
 	
 	"mouse":0,
-	"add obj":1,
+	"add obj":0,
 	
-	"ot add":1,
-	"ot subdiv":1,
-	"ot add error":1,
+	"ot add":0,
+	"ot subdiv":0,
+	"ot add error":0,
 	"ot updt":0,
 	
 	"phys detc":0,
@@ -39,21 +39,27 @@ const enabledDebugTags = {
 };
 
 function debugTagClicked(e){
-	let statusAndName = e.target.text.split(':');
+	let selectedElm = null;
+	if( e.target.text == undefined ){
+		selectedElm = e.target.childNodes[e.target.selectedIndex];
+	}else{
+		selectedElm = e.target;
+	}
+	let statusAndName = selectedElm.text.split(':');
 	
 	let v = enabledDebugTags[ statusAndName[1] ];
 	
 	if( v == 0 ){
 		enabledDebugTags[ statusAndName[1] ] = 1;
 		statusAndName[0] = 1;
-		e.target.style="background:#003300";
+		selectedElm.style="background:#003300";
 	}
 	else{
 		enabledDebugTags[ statusAndName[1] ] = 0;
 		statusAndName[0] = 0;
-		e.target.style="background:#ffffff";
+		selectedElm.style="background:#ffffff";
 	}
-	e.target.text = statusAndName[0] + ':' + statusAndName[1];
+	selectedElm.text = statusAndName[0] + ':' + statusAndName[1];
 	
 	//persist the setting between page openings
 	document.cookie= statusAndName[1] + "=" + statusAndName[0] + "; SameSite=True;";
@@ -73,7 +79,8 @@ function CreateDebugTabsOnPage(){
 	//let c = tagRow.insertCell();
 	let keys = Object.keys(enabledDebugTags);
 	let s = document.createElement("select");
-	s.onselect = debugTagClicked;
+	s.id = "debugSelect";
+	s.onchange = debugTagClicked;
 	for( kidx in keys ){
 		let o = document.createElement('option');
 		let keyName = keys[kidx];

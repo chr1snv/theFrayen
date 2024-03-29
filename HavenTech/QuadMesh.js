@@ -61,7 +61,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.skelPositions   = [];
 
 	//the oct tree of the mesh faces (updated with mesh animations)
-	this.octTree = new TreeNode( [-10000, -10000, -10000], [10000, 10000, 10000], null );
+	const tDim = 100;
+	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
 	this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
 	this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
 	this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
@@ -187,6 +188,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.UpdateAABB = function(time) {
 		if( this.AABBUpdateTime < time ){
 			this.AABBUpdateTime = this.lastMeshUpdateTime;
+			this.AABB.UpdateMinMaxCenter( this.worldMinCorner, this.worldMaxCorner );
+			/*
 			this.AABB.minCoord[0] = this.worldMinCorner[0];
 			this.AABB.minCoord[1] = this.worldMinCorner[1];
 			this.AABB.minCoord[2] = this.worldMinCorner[2];
@@ -196,6 +199,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			this.AABB.center[0] = (this.worldMinCorner[0] + this.worldMaxCorner[0]) * floatP5;
 			this.AABB.center[1] = (this.worldMinCorner[1] + this.worldMaxCorner[1]) * floatP5;
 			this.AABB.center[2] = (this.worldMinCorner[2] + this.worldMaxCorner[2]) * floatP5;
+			*/
 		}
 	}
 
@@ -255,7 +259,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.UpdateOctTree = function(octUpdateCmpCallback){
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
-		this.octTree = new TreeNode( [-10000, -10000, -10000], [10000, 10000, 10000], null );
+		this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
 
 		this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
 		this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;

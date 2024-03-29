@@ -62,7 +62,7 @@ function EnterFullscreen(){
 			graphics.canvas.msRequestFullscreen ||
 			graphics.canvas.requestFullscreen;
 		
-		promise = graphics.canvas.requestFullscreen();
+		promise = graphics.canvas.requestFullscreen({unadjustedMovement: true,});
 		//alert("promise " + promise );
 	}
 
@@ -71,8 +71,8 @@ function EnterFullscreen(){
 //attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
 //(first person like mouse input)
 var ptrLck = null;
+var canvas = document.getElementById('frayenCanvas');
 function requestPointerLock(){
-	var canvas = document.getElementById('frayenCanvas');
 
 	//request mouse pointer lock
 	canvas.rqstPtrLck = 
@@ -88,7 +88,8 @@ function releasePointerLock(){
 	canvas.relPtrLck =
 	canvas.releasePointerCapture;
 
-	canvas.relPtrLck();
+	canvas.relPtrLck(ptrLck);
+	ptrLck = null;
 }
 
 function ExitFullscreen(){
@@ -105,7 +106,7 @@ function ExitFullscreen(){
 
 	// Attempt to unlock
 	extFullScrn();
-	extPtrLck();
+	extPtrLck(ptrLck);
 
 }
 
@@ -281,11 +282,12 @@ function MainLoop()
 	mainScene.Update( sceneTime );
 	UpdateCamera( sceneTime );
 	//drawSquare(graphics);
-	CheckGLError("before point graphics setup");
+	//CheckGLError("before point graphics setup");
 	graphics.pointGraphics.Setup();
-	CheckGLError("after point graphics setup");
+	//CheckGLError("after point graphics setup");
 	mainScene.Draw();
-	CheckGLError("after draw mainScene");
+	//console.log("frameRayHits " + totalFrameRayHits );
+	//CheckGLError("after draw mainScene");
 
 	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
 	framesSinceLastFPSOutputTime += 1;
@@ -407,7 +409,7 @@ function UpdateCamera( updateTime )
 
 	if( mDown )
 	{
-		if(ptrLck == null)
+		if(document.pointerLockElement == null)
 			requestPointerLock();
 	}
 	relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;

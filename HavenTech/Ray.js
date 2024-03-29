@@ -39,7 +39,7 @@ function Ray(origin, direction){
 	this.origin    = origin;
 	this.norm      = direction;
 	
-	this.visitedNodes = [];
+	//this.visitedNodes = [];
 
 	//keep track of the objects checked in the last node, because if
 	//they span world oct tree nodes they don't need to be checked again

@@ -24,14 +24,7 @@ function CheckGLError(where){
 return false;
 }
 
-//used to pass perameters to a shader
-function attributeSetFloats( prog, attr_name, rsize, arr){
-	var attr = gl.getAttribLocation( prog, attr_name);
-	gl.enableVertexAttribArray(attr);
-	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-	gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-	gl.vertexAttribPointer(attr, rsize, gl.FLOAT, false, 0, 0);
-}
+
 
 function Graphics( canvasIn, loadCompleteCallback ){
 	this.canvas = canvasIn;

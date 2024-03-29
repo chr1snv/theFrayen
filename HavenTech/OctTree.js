@@ -58,7 +58,7 @@ function closestLrgrPoT(n){ //used to initially set dimensions of the oct tree
 const gravityAccel = [0,9.8, 0];
 
 const MaxTreeDepth = 10;
-const minNodeSideLength = 4;
+const minNodeSideLength = 0.01;
 const MaxTreeNodeObjects = 5;
 var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
@@ -231,16 +231,16 @@ function TreeNode( minCoord, maxCoord, parent ){
 			
 		}
 		
-		if( numOvlapAxs < 3 ){ //if 3 axies overlap the objects intersect
+		//if( numOvlapAxs < 3 ){ //if 3 axies overlap the objects intersect
 			for(let ax = 0; ax < 3; ++ax ){ //insert into the axis sorted arrays
 				this.objects[ax].splice(insertIdxs[ax]+1, 0, object);
 			}
 			object.treeNodes[ this.uid.val ] = this; //link this to the object so it knows where to remove itself from later
-		}else{
-			DTPrintf( "add failed 3 axies of obj overlap obj " + object.uid.val + 
-				" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length, "ot add error", "color:red", this.depth );
-			nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
-		}
+		//}else{
+		//	DTPrintf( "add failed 3 axies of obj overlap obj " + object.uid.val + 
+		//		" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length, "ot add error", "color:red", this.depth );
+		//	nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
+		//}
 		
 		DTPrintf( "addToThisNode success obj " + object.uid.val + " " + traceAddedTo(this), "ot add", "color:green", this.depth );
 		
@@ -418,6 +418,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		}
 	}
 
+
 	//add an object to the node, if it is full - subdivide it 
 	//and place objects in the sub nodes
 	//returns num new nodes generated, (8, 0 or -1 if failed to add)
@@ -445,17 +446,20 @@ function TreeNode( minCoord, maxCoord, parent ){
 			if( this.objects[0].length >= MaxTreeNodeObjects ){ //sub divide was likely tried on earlier add and failed
 				DTPrintf( "tNId " + this.uid.val + " divide likely tried earlier num objs " + this.objects[0].length, 
 					"ot add", "color:#ff0066", this.depth );
-				nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; return; }
+				nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
+				if( addCmpCallback != undefined ) addCmpCallback(); return; }
 			if( this.objectDictionary[ object.uid.val ] != undefined ){
 				DTPrintf( "tNId " + this.uid.val + " obj " + object.uid.val + 
 					" object already added", "ot add", "color:#ff5511", this.depth );
-				nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; return;
-			}
+				nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
+				if( addCmpCallback != undefined ) addCmpCallback(); return; }
+			
 			this.addToThisNode(nLvsMDpth, object);
 			
 			if( nLvsMDpth[0] < 0 ){ //obj's overlapped
 				DTPrintf( "tNId " + this.uid.val + " obj " + object.uid.val + 
 				" addToThisNode rejected, obj's overlapped", "ot add error", "color:red", this.depth);
+				if( addCmpCallback != undefined ) addCmpCallback();
 				return;
 			}
 			
@@ -468,7 +472,10 @@ function TreeNode( minCoord, maxCoord, parent ){
 				if( this.depth+1 > MaxTreeDepth ){ //limit depth to avoid running out of memory (if a mistake causes allot of object adding/tree division)
 					DTPrintf("tNId " + this.uid.val + "max subdiv depth reached when adding obj " + object.uid.val, 
 						"ot add error", "color:orange", this.depth); 
-					nLvsMDpth[0] = -2; nLvsMDpth[1] = 0; return; //signify the max depth has been reached
+					nLvsMDpth[0] = -2; nLvsMDpth[1] = 0;  //signify the max depth has been reached
+					this.RemoveFromThisNode(object);
+					this.subNodes = [null,null,null,null,  null,null,null,null]
+					if( addCmpCallback != undefined ) addCmpCallback(); return; 
 				}
 
 				//split the node until there are only MaxTreeNodeObjects per node
@@ -479,20 +486,18 @@ function TreeNode( minCoord, maxCoord, parent ){
 				this.nNLvs = nNLvs;
 				
 				if( nNLvs[0] < 2 ){ //min node size has been reached (couldn't subdivide)
-					nLvsMDpth[0] = -3; nLvsMDpth[1] = 0;
 					DTPrintf( "tNId " + this.uid.val + "nNLvs " + nNLvs + 
 						" this.maxDepth " + this.maxDepth + 
 						" genSubNodes nNLvs[0] < 2 (min node size reached) minNodeSideLength " + minNodeSideLength + 
 						" subdiv srcCoords " + Vect3_ArrToStr( srcCoords, 4, 8) + 
 						" object uid " + object.uid.val, "ot add error", "color:red", this.depth );
-					return; 
+					nLvsMDpth[0] = -3; nLvsMDpth[1] = 0;
+					this.RemoveFromThisNode(object);
+					this.subNodes = [null,null,null,null,  null,null,null,null]
+					if( addCmpCallback != undefined ) addCmpCallback(); return;
 				}
 				
-				//remove object's association to this treeNode
-				//since it is going to be added to one or more of the subnodes
-				for( let i = 0; i < this.objects[0].length; ++i ){ 
-					delete this.objects[0][i].treeNodes[this.uid.val];
-				}
+				
 				
 				DTPrintf( "tNId " + this.uid.val + "nNLvs " + nNLvs + "  generateSubNodes success " +
 				" this.maxDepth " + this.maxDepth + " srcCoords " + srcCoords, "ot subdiv", "color:#ff4499", this.depth );
@@ -518,7 +523,6 @@ function TreeNode( minCoord, maxCoord, parent ){
 									" max " + nd.AABB.maxCoord, "ot subdiv", "color:orange", this.depth );
 							
 							
-
 							for( obUid in xObDict ){ //add the intersecting subset of objects of the 3 axies into the subnode
 								if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){
 									let nNLvsMDpth = [0,0];
@@ -538,9 +542,14 @@ function TreeNode( minCoord, maxCoord, parent ){
 											maxObjsInNde = nd.objects[0].length;
 										
 									}else{
-										DTPrintf( "subDiv AddObject failed " + x + "," + y + "," + z + 
-											" obj " + obUid + " " + 
-												nNLvsMDpth, "ot add error", "color:red", this.depth  );
+										DTPrintf( "subDiv AddObject failed - xyz subNdIdx's " + x + "," + y + "," + z + 
+												" subNdObjs " + nd.objects[0].length + " subNdDepth " + nd.depth + '\n' +
+												" ndMin " + Vect_FixedLenStr( nd.AABB.minCoord, 2, 6 ) + 
+												" ndMax " + Vect_FixedLenStr( nd.AABB.maxCoord, 2, 6 ) +
+												" objUid " + obUid + " nNLvsMDpth " + nNLvsMDpth + '\n' +
+												" obMin " + Vect_FixedLenStr( xObDict[obUid].AABB.minCoord, 2, 6 ) + 
+												" obMax " + Vect_FixedLenStr( xObDict[obUid].AABB.maxCoord, 2, 6 ) , 
+												"ot add error", "color:red", this.depth  );
 									}
 								}else{
 									xObDict[ obUid ].notAddedStr = 
@@ -607,28 +616,37 @@ function TreeNode( minCoord, maxCoord, parent ){
 							notAddedStr += "\n " + obj.notAddedStr + " \n";
 					}
 					
-					DTPrintf( "tNId " + this.uid.val + " dpth " + this.depth + "subD added objsAdded " + addedStr + 
+					DTPrintf( 
+							"tNId " + this.uid.val + " dpth " + this.depth + "subD added objsAdded " + addedStr + 
 							" all " + allObjsStr + "\n notAdded " + notAddedStr + "\n" +
-							"node min " + this.AABB.minCoord + " max " + this.AABB.maxCoord
-					, "ot add error", "color:red", this.depth );
+							"node min " + this.AABB.minCoord + " max " + this.AABB.maxCoord, 
+							"ot add error", "color:red", this.depth );
+					nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
+					this.subNodes = [null,null,null,null,  null,null,null,null]
+					this.RemoveFromThisNode(object);
 				}else{
 					DTPrintf( " trNd " + this.uid.val + " dpth " + this.depth + " all objs added " +
 						" addedLen " + addedObjs.length + " allObjLen " + allObjs.length, "ot add", "color:green", this.depth );
+				
+					//remove object's association to this treeNode
+					//since it is going to be added to one or more of the subnodes
+					for( let i = 0; i < this.objects[0].length; ++i ){
+						delete this.objects[0][i].treeNodes[this.uid.val];
+					}
+				
+					this.objects = [[],[],[]];
+					this.objectDictionary = {};
+					this.leaves = nNLvs[0] + leavesCreated; //this treeNode has become a parent add the count of generateSubNodes
+					//and any created when adding to a new subnode
+					this.maxDepth = maxNewDpth;
+
+
+					//the node was successfuly subdivided and objects distributed to sub nodes such that
+					//all nodes have less than MaxTreeNodeObjects
+					
+					//parent max depth and leaf count update is based on the nLvsMDpth values
+					nLvsMDpth[0] = nNLvs[0] + leavesCreated;
 				}
-				
-				
-				this.objects = [[],[],[]];
-				this.objectDictionary = {};
-				this.leaves = nNLvs[0] + leavesCreated; //this treeNode has become a parent add the count of generateSubNodes
-				//and any created when adding to a new subnode
-				this.maxDepth = maxNewDpth;
-
-
-				//the node was successfuly subdivided and objects distributed to sub nodes such that
-				//all nodes have less than MaxTreeNodeObjects
-				
-				//parent max depth and leaf count update is based on the nLvsMDpth values
-				nLvsMDpth[0] = nNLvs[0] + leavesCreated;
 			}
 			
 			
@@ -704,6 +722,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 	this.nextNodeRayPoint = Vect3_NewZero();
 	this.boundColor = new Float32Array([0,0,0,0.5]);
 	this.rayExitPoint = Vect3_NewZero();
+	this.rayIntersectPt = Vect3_NewZero();
 	this.Trace = function( retVal, ray, minTraceTime ){
 		//returns data from nearest object the ray intersects
 
@@ -716,7 +735,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//and traversal returns to the parent node to check it's children for
 		//the spatially adjacent node
 		
-		ray.visitedNodes.push(this);
+		//ray.visitedNodes.push(this);
 
 		//check nodes below this for a sub node
 		//var lastPointNodeIn = this.SubNode( nodeWallEntPt );
@@ -746,8 +765,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 			if( ray.lastNode == null || 
 				ray.lastNode.objectDictionary[ this.objects[0][i].uid.val ] == null ){ //don't recheck if checked last node
 				//check if the ray intersects the object
-				let rayIntersectPt = Vect3_NewZero();
-				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( rayIntersectPt, ray, minTraceTime );
+				//let rayIntersectPt = Vect3_NewZero();
+				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( this.rayIntersectPt, ray, minTraceTime );
 				if( rayObIntTime >= 0 ){
 					retVal[0] = -1;
 					this.objects[0][i].RayIntersect( retVal, ray );

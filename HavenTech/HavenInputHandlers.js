@@ -28,11 +28,15 @@ function registerInputHandlers(){
 }
 
 function pageKeyDownHandler(e){
+	//e.preventDefault();
 	var keyCode = e.keyCode;
 	//DPrintf( 'keyPressed: ' + keyCode );
 	keys[keyCode] = true;
+	if( keyCode == 27 )
+		releasePointerLock();
 }
 function pageKeyUpHandler(e){
+	//e.preventDefault();
 	var keyCode = e.keyCode;
 	//DPrintf( 'keyUp: ' + keyCode );
 	keys[keyCode] = false;
