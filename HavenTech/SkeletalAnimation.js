@@ -209,7 +209,7 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 	}
 
 
-	this.GenerateMesh = function(transformedVerts, numVerts, mesh, time){
+	this.GenerateMesh = function(transformedVerts, numVerts, mesh, time, minCoord, maxCoord){
 		//apply this transformation to the mesh vertices, generating a new set of vertex positions
 
 		//generate the transformation matrices
@@ -279,7 +279,9 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 			transformedVerts[i*graphics.vertCard]   = vertPosition[0];
 			transformedVerts[i*graphics.vertCard+1] = vertPosition[1];
 			transformedVerts[i*graphics.vertCard+2] = vertPosition[2];
+			Vect3_minMax( minCoord, maxCoord, vertPosition );
 		}
+		
 	}
 
 	this.skelAnimName = nameIn;

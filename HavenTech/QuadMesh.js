@@ -52,9 +52,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//the mesh data
 	this.faces           = [];
 	this.faceVertsCt     = 0;
-	this.vertPositions   = [];
-	this.vertNormals     = [];
+	this.vertPositions   = null;
+	this.vertNormals     = null;
 	this.vertBoneWeights = [];
+	//this.vertPositionsMin = Vect3_NewZero();
+	//this.vertPositionsMax = Vect3_NewZero();
 
 	//animation base mesh
 	this.keyedPositions  = [];
@@ -63,8 +65,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//the oct tree of the mesh faces (updated with mesh animations)
 	const tDim = 100;
 	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
-	this.worldMinCorner = new Float32Array( [  999999,  999999,  999999 ] );
-	this.worldMaxCorner = new Float32Array( [ -999999, -999999, -999999 ] );
+	this.worldMinCorner = Vect3_NewScalar( 999999 );
+	this.worldMaxCorner = Vect3_NewScalar( -999999 );
 	this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
 
 	//animation classes
@@ -86,8 +88,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//applied for world space coordinates)
 	this.UpdateTransformedVerts = function(time)
 	{
-		var updated = false;
-		var transformedVertCoords = null;
+		let updated = false;
+		let transformedVertCoords = null;
 		
 		//use the unmodified vertex coordinates from the appropriate
 		//animation type
@@ -101,9 +103,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//update the coordinates with the animation / simulation type
 		if( this.skelAnimation.isValid )
 			updated = this.skelAnimation.GenerateMesh( 
-				this.transformedVerts, numVerts, mesh, time );
-		else //there isn't a simulation use the unmodified base coordinates
+				this.transformedVerts, numVerts, mesh, time, this.worldMinCorner, this.worldMaxCorner);
+		else{ //there isn't a simulation use the unmodified base coordinates
 			this.transformedVerts = transformedVertCoords;
+		}
 		
 		return updated;
 	}
@@ -189,17 +192,6 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		if( this.AABBUpdateTime < time ){
 			this.AABBUpdateTime = this.lastMeshUpdateTime;
 			this.AABB.UpdateMinMaxCenter( this.worldMinCorner, this.worldMaxCorner );
-			/*
-			this.AABB.minCoord[0] = this.worldMinCorner[0];
-			this.AABB.minCoord[1] = this.worldMinCorner[1];
-			this.AABB.minCoord[2] = this.worldMinCorner[2];
-			this.AABB.maxCoord[0] = this.worldMaxCorner[0];
-			this.AABB.maxCoord[1] = this.worldMaxCorner[1];
-			this.AABB.maxCoord[2] = this.worldMaxCorner[2];
-			this.AABB.center[0] = (this.worldMinCorner[0] + this.worldMaxCorner[0]) * floatP5;
-			this.AABB.center[1] = (this.worldMinCorner[1] + this.worldMaxCorner[1]) * floatP5;
-			this.AABB.center[2] = (this.worldMinCorner[2] + this.worldMaxCorner[2]) * floatP5;
-			*/
 		}
 	}
 
@@ -210,15 +202,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	let uv0 = new Float32Array(2);
 	let uv1 = new Float32Array(2);
 	let uv2 = new Float32Array(2);
-	this.UpdateFaceAABBAndGenerateTriangles = function(min, max, f){
+	let minf = Vect3_NewScalar(  999999 );
+	let maxf = Vect3_NewScalar( -999999 );
+	this.UpdateFaceAABBAndGenerateTriangles = function(/*min, max,*/ f){
 		const face = this.faces[f];
 		const numFaceVerts = face.vertIdxs.length;
 		
 		this.faces[f].tris = []; //clear previously calculated triangles
 		
 		//initialized to opposite extrema to accept any value at first
-		Vect3_SetScalar( min,  999999 );
-		Vect3_SetScalar( max, -999999 );
+		Vect3_SetScalar( minf,  999999 );
+		Vect3_SetScalar( maxf, -999999 );
 		
 		for( let v = 0; v < numFaceVerts; ++v ){
 			//get the vert local position and transform it to world position
@@ -227,16 +221,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			vert[2] = this.transformedVerts[ face.vertIdxs[v]*3 + 2 ];
 			Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
 			
-			min[0] = min[0] > vert[0] ? vert[0] : min[0];
-			min[1] = min[1] > vert[1] ? vert[1] : min[1];
-			min[2] = min[2] > vert[2] ? vert[2] : min[2];
+			Vect3_minMax( minf, maxf, vert );
+			//min[0] = min[0] > vert[0] ? vert[0] : min[0];
+			//min[1] = min[1] > vert[1] ? vert[1] : min[1];
+			//min[2] = min[2] > vert[2] ? vert[2] : min[2];
 			
-			max[0] = max[0] < vert[0] ? vert[0] : max[0];
-			max[1] = max[1] < vert[1] ? vert[1] : max[1];
-			max[2] = max[2] < vert[2] ? vert[2] : max[2];
+			//max[0] = max[0] < vert[0] ? vert[0] : max[0];
+			//max[1] = max[1] < vert[1] ? vert[1] : max[1];
+			//max[2] = max[2] < vert[2] ? vert[2] : max[2];
 		}
-		this.faces[f].AABB =  new AABB( min, max );
-		this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB);
+		this.faces[f].AABB =  new AABB( minf, maxf );
+		this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
 		
 		//construct the triangles (maybe should add uv's when constructing)
 		
@@ -254,26 +249,26 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 
 	}
-	let faceMin = new Float32Array(3);
-	let faceMax = new Float32Array(3);
+	//let faceMin = new Float32Array(3);
+	//let faceMax = new Float32Array(3);
 	this.UpdateOctTree = function(octUpdateCmpCallback){
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
-		this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
+		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
 
-		this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
-		this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;
+		//this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
+		//this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;
 
 		for( var f = 0; f < this.faces.length; ++f ){
 			//get an aabb around the face and insert it into an oct tree
-			this.UpdateFaceAABBAndGenerateTriangles( faceMin, faceMax, f );
-			this.worldMinCorner[0] = Math.min( faceMin[0], this.worldMinCorner[0] );
-			this.worldMinCorner[1] = Math.min( faceMin[1], this.worldMinCorner[1] );
-			this.worldMinCorner[2] = Math.min( faceMin[2], this.worldMinCorner[2] );
+			this.UpdateFaceAABBAndGenerateTriangles( /*faceMin, faceMax,*/ f );
+			//this.worldMinCorner[0] = Math.min( faceMin[0], this.worldMinCorner[0] );
+			//this.worldMinCorner[1] = Math.min( faceMin[1], this.worldMinCorner[1] );
+			//this.worldMinCorner[2] = Math.min( faceMin[2], this.worldMinCorner[2] );
 
-			this.worldMaxCorner[0] = Math.max( faceMax[0], this.worldMaxCorner[0] );
-			this.worldMaxCorner[1] = Math.max( faceMax[1], this.worldMaxCorner[1] );
-			this.worldMaxCorner[2] = Math.max( faceMax[2], this.worldMaxCorner[2] );
+			//this.worldMaxCorner[0] = Math.max( faceMax[0], this.worldMaxCorner[0] );
+			//this.worldMaxCorner[1] = Math.max( faceMax[1], this.worldMaxCorner[1] );
+			//this.worldMaxCorner[2] = Math.max( faceMax[2], this.worldMaxCorner[2] );
 
 			let nLvsMDpth = [0, 0];
 			subDivAddDepth = 0;
@@ -287,11 +282,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	let face;
 	let tri;
 	let startNode;
-	this.GetRayIntersection = function(retVal, ray){
+	this.GetRayIntersection = function(retVal, ray, rayAabbIntPoint){
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retVal[3] = this;
-		startNode = this.octTree.SubNode( ray.origin );
+		startNode = this.octTree.SubNode( rayAabbIntPoint );
 		if( startNode )
 			startNode.Trace( retVal, ray, 0 );
 		//if( retVal[0] < 0 )
@@ -340,14 +335,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	this.meshFileLoaded = function(meshFile, thisP)
 	{	
-		var meshFileLines = meshFile.split('\n');
+		let meshFileLines = meshFile.split('\n');
+		
+		let vertIdx = 0;
 
-		var numVerts = 0; //value to check for errors
-		var faceCt = 0;
+		let numVerts = 0; //value to check for errors
+		let faceCt = 0;
 		for( var mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
 		{
-			var temp = meshFileLines[mLIdx];
-			var words = temp.split(' ');
+			let temp = meshFileLines[mLIdx];
+			let words = temp.split(' ');
 
 			//read in the mesh transformation matrix (translate, scale, rotate)
 			if( temp[0] == 'm' )
@@ -355,7 +352,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				while( ++mLIdx < meshFileLines.length )
 				{
 					temp = meshFileLines[mLIdx];
-					var words = temp.split(' ');
+					let words = temp.split(' ');
 					//read in the origin rotation and size of the mesh
 					if( temp[0] == 'x' ){
 						thisP.origin =   new Float32Array([ 
@@ -379,14 +376,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 			//read in the number of vertices
 			else if( temp[0] == 'c' && temp[1] == 'v' ){
-				numVerts = words[1];}
+				numVerts = words[1];
+				thisP.vertPositions = new Float32Array( numVerts * graphics.vertCard );
+				thisP.vertNormals = new Float32Array( numVerts * graphics.vertCard );
+			}
 
 			//read in a vertex
 			else if( temp[0] == 'v' ){
 				//read in the position
-				thisP.vertPositions.push( parseFloat(words[1]) );
-				thisP.vertPositions.push( parseFloat(words[2]) );
-				thisP.vertPositions.push( parseFloat(words[3]) );
+				let vert = Vect3_New( parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) );
+				thisP.vertPositions[vertIdx++] = vert[0];
+				thisP.vertPositions[vertIdx++] = vert[1];
+				thisP.vertPositions[vertIdx++] = vert[2];
+				Vect3_minMax( thisP.worldMinCorner, thisP.worldMaxCorner, vert ); 
 
 				//read in the normal
 				temp = meshFileLines[++mLIdx];
@@ -394,10 +396,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				if( temp[0] != 'n' ){
 					DPrintf('QuadMesh: ' + thisP.meshName +
 							', error expected vertex normal when reading mesh file');
-					return;}
-				thisP.vertNormals.push( parseFloat(words[1]) );
-				thisP.vertNormals.push( parseFloat(words[2]) );
-				thisP.vertNormals.push( parseFloat(words[3]) );
+					return;
+				}
+				thisP.vertNormals[vertIdx-3] = parseFloat(words[1]);
+				thisP.vertNormals[vertIdx-2] = parseFloat(words[2]);
+				thisP.vertNormals[vertIdx-1] = parseFloat(words[3]);
 
 				//read in the bone weights until the end of the vertex
 				var boneWeights = {};
@@ -433,18 +436,18 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 					//read in the vertex idx's of the face
 					if( temp[0] == 'v' ){
 						var numFaceVerts = 0;
-						for( var vertNumIdx = 1; 
+						for( let vertNumIdx = 1; 
 							vertNumIdx < words.length; ++vertNumIdx ){
-							var vertIdx = parseFloat(words[vertNumIdx]);
-							if( vertIdx < 0 || vertIdx > numVerts ){
+							let fvertIdx = parseFloat(words[vertNumIdx]);
+							if( fvertIdx < 0 || fvertIdx > numVerts ){
 								DPrintf( 'QuadMesh: ' + thisP.meshName +
 										', face: ' +
 										(thisP.faces.length-1).toString()  + 
-										', vertIdx: ' + vertIdx +
+										', fvertIdx: ' + fvertIdx +
 										' is out of range.' );
 								return;
 							}
-							newFace.vertIdxs.push(vertIdx);
+							newFace.vertIdxs.push(fvertIdx);
 							++numFaceVerts;
 						}
 						if(numFaceVerts == 3)

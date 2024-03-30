@@ -65,6 +65,10 @@ function debugTagClicked(e){
 	document.cookie= statusAndName[1] + "=" + statusAndName[0] + "; SameSite=True;";
 }
 
+let noOptionOnClick = false;
+if( window.navigator.userAgent.indexOf('Chrome') > 0 || window.navigator.userAgent.indexOf('Edge') )
+	noOptionOnClick = true;
+
 function CreateDebugTabsOnPage(){
 	//read the previous tag settings
 	let settingStr = document.cookie;
@@ -80,15 +84,18 @@ function CreateDebugTabsOnPage(){
 	let keys = Object.keys(enabledDebugTags);
 	let s = document.createElement("select");
 	s.id = "debugSelect";
-	s.onchange = debugTagClicked;
+	if( noOptionOnClick )
+		s.onchange = debugTagClicked;
 	for( kidx in keys ){
 		let o = document.createElement('option');
 		let keyName = keys[kidx];
 		o.text = enabledDebugTags[ keyName ] + ':' + keyName;
-		o.onclick = debugTagClicked;
-		o.ontouchstart = debugTagClicked;
-		o.onselect = debugTagClicked;
-		o.ontoggle = debugTagClicked;
+		if( !noOptionOnClick ){
+			o.onclick = debugTagClicked;
+			o.ontouchstart = debugTagClicked;
+			o.onselect = debugTagClicked;
+			o.ontoggle = debugTagClicked;
+		}
 		if( settings[keyName] == '1' ) //set previous setting
 			debugTagClicked( {'target':o } );
 		s.appendChild( o );

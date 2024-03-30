@@ -82,6 +82,18 @@ function AABB( minCorner, maxCorner ){
 		Vect3_Subtract( this.diag, this.minCoord );
 		Vect3_MultiplyScalar( this.diag, 0.5 );
 	}
+	/*
+	this.UpdateCenterDiag(){
+		//generate the center coordinate
+		Vect3_Copy( this.center, this.minCoord );
+		Vect3_Add( this.center, this.maxCoord );
+		Vect3_DivideScalar( this.center, 2 );
+		
+		Vect3_Copy( this.diag, this.maxCoord );
+		Vect3_Subtract( this.diag, this.minCoord );
+		Vect3_MultiplyScalar( this.diag, 0.5 );
+	}
+	*/
 	
 	
 	this.UpdateMinMaxCenter( minCorner, maxCorner );
@@ -102,13 +114,16 @@ function AABB( minCorner, maxCorner ){
 		const otherRange = aM - am; //the extent of the other aabb
 		const thisRange = this.maxCoord[axis] - this.minCoord[axis];
 		const rangeSum = otherRange + thisRange;
-		const maxRange = Math.max(otherRange, thisRange);
-		const pctOverlap = 1 - Math.min( 1, (totalRange - maxRange) / otherRange );
+		const minRange = Math.min(otherRange, thisRange);
+		const ovlpAmt = rangeSum - totalRange;
+		const ovlpPct = ovlpAmt / minRange;
+		//const maxRange = Math.max(otherRange, thisRange);
+		//const pctOverlap = 1 - Math.min( 1, (totalRange - maxRange) / otherRange );
 		//if( totalRange < (rangeSum - 0.00001) || touches && totalRange <= rangeSum ) //total range vs sum of two ranges
 		//	return true;
 		//console.log("%c"+am+":"+aM+" "+this.minCoord[axis]+":"+this.maxCoord[axis], "color:orange");
 		//return false;
-		return pctOverlap;
+		return ovlpPct;//pctOverlap;
 	}
 
 	//return a point and time along the ray that intersects an AABB bound or null

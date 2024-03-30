@@ -27,7 +27,9 @@
 //and also using fixed size arrays/structures where possible
 
 //slow functions, should only use these outside of program loops and pre allocate memory where possible
+function Vect3_New( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[1] = s2; v[2] = s3; return v; }
 function Vect3_NewZero() { return new Float32Array(3);}//[0,0,0]); };
+function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v;}
 function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
 function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } //use _Copy function below when possible
 
@@ -130,6 +132,16 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 	v[0] = v1[0]*v1Weight + v2[0]*v2Weight;
 	v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
 	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
+}
+
+function Vect3_minMax( m, M, v ){
+	m[0] = m[0] < v[0] ? m[0] : v[0];
+	m[1] = m[1] < v[1] ? m[1] : v[1];
+	m[2] = m[2] < v[2] ? m[2] : v[2];
+	
+	M[0] = M[0] > v[0] ? M[0] : v[0];
+	M[1] = M[1] > v[1] ? M[1] : v[1];
+	M[2] = M[2] > v[2] ? M[2] : v[2];
 }
 
 //return a string from a vector of numbers

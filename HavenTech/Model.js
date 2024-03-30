@@ -154,7 +154,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, //AABB,
 			//ray distance, normal, and color of the the ray hit
 			
 			//if( this.quadmesh != null ){
-				this.quadmesh.GetRayIntersection( retVal, ray );
+				this.quadmesh.GetRayIntersection( retVal, ray, this.aabbPoint );
 			//}
 		}
 	}

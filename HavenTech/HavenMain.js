@@ -267,6 +267,10 @@ function sceneLoaded(havenScene)
 
 let lastInputTime = -10;
 const noInputDisplayHelpOverlayTime = 3; //display help if no user input for 3 seconds
+const numTimesBtwnInputHelpOverlayReset = 2;
+const resetTimeBtwnInputHelpOverlay = 60;
+let numInputHelpOverlayTimesLeft = 2;
+let wasntShowingHelpInputOverlay = true;
 
 //the main rendering and update function called each frame
 var fpsElm = document.getElementById("fps");
@@ -296,53 +300,70 @@ function MainLoop()
 		lastSceneFPSOutputTime = sceneTime;
 		framesSinceLastFPSOutputTime = 0;
 	}
-	if( (sceneTime-lastInputTime) > noInputDisplayHelpOverlayTime ){
+	/*
+	let timeSinceShowingInputHelperOverlay = sceneTime-lastInputTime;
+	if( timeSinceShowingInputHelperOverlay > noInputDisplayHelpOverlayTime ){
 		
-		graphics.triGraphics.Setup();
+		if( timeSinceShowingInputHelperOverlay > resetTimeBtwnInputHelpOverlay )
+			numInputHelpOverlayTimesLeft = numTimesBtwnInputHelpOverlayReset;
 		
-		if (hasTouchSupport()) {
-			//console.log("Mobile device detected");
+		if(numInputHelpOverlayTimesLeft > 0 ){
 		
-			//draw quads with left of screen movement and right rotate graphics
-			
-			let transAnimTime = sceneTime%4;
-			let lrOff = 0;
-			let udOff = 0;
-			if( lrOrUdAnim ){
-				lrOff = Math.sin(sceneTime*2)*0.25;
-				if( Math.abs(lrOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
-					lrOrUdAnim = false;
-					lrOrUdChangeResetFrames = 10;
-				}
-			}else{
-				udOff = Math.sin(sceneTime*2)*0.25;
-				if( Math.abs(udOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
-					lrOrUdAnim = true;
-					lrOrUdChangeResetFrames = 10;
-				}
+			if(wasntShowingHelpInputOverlay){
+				wasntShowingHelpInputOverlay = false;
+				numInputHelpOverlayTimesLeft -= 1;
 			}
-			let cenPos    = [-0.5+lrOff, udOff];
-			let wdthHight = [ 0.5      , 0.5  ];
-			let minUv     = [   0      , 1    ];
-			let maxUv     = [ 0.5      , 0    ];
-			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
-			
-			
-			cenPos        = [ 0.5      , 0    ];
-			wdthHight     = [ 0.5      , 0.5  ];
-			minUv         = [ 0.5      , 1    ];
-			maxUv         = [ 1        , 0    ];
-			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
 		
-		} else {
-			//console.log("Desktop device detected");
-			cenPos        = [ 0        , 0    ];
-			wdthHight     = [ 2     , 1.5 ];
-			minUv         = [ 0        , 1    ];
-			maxUv         = [ 1        , 0    ];
-			graphics.triGraphics.drawScreenSpaceTexturedQuad( 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+			graphics.triGraphics.Setup();
+			
+			if (hasTouchSupport()) {
+				//console.log("Mobile device detected");
+			
+				//draw quads with left of screen movement and right rotate graphics
+				
+				let transAnimTime = sceneTime%4;
+				let lrOff = 0;
+				let udOff = 0;
+				if( lrOrUdAnim ){
+					lrOff = Math.sin(sceneTime*2)*0.25;
+					if( Math.abs(lrOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
+						lrOrUdAnim = false;
+						lrOrUdChangeResetFrames = 10;
+					}
+				}else{
+					udOff = Math.sin(sceneTime*2)*0.25;
+					if( Math.abs(udOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
+						lrOrUdAnim = true;
+						lrOrUdChangeResetFrames = 10;
+					}
+				}
+				let cenPos    = [-0.5+lrOff, udOff];
+				let wdthHight = [ 0.5      , 0.5  ];
+				let minUv     = [   0      , 1    ];
+				let maxUv     = [ 0.5      , 0    ];
+				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				
+				
+				cenPos        = [ 0.5      , 0    ];
+				wdthHight     = [ 0.5      , 0.5  ];
+				minUv         = [ 0.5      , 1    ];
+				maxUv         = [ 1        , 0    ];
+				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+			
+			} else {
+				//console.log("Desktop device detected");
+				cenPos        = [ 0        , 0    ];
+				wdthHight     = [ 2     , 1.5 ];
+				minUv         = [ 0        , 1    ];
+				maxUv         = [ 1        , 0    ];
+				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+			}
+			
 		}
+	}else{
+		wasntShowingHelpInputOverlay = true;
 	}
+	*/
 	//graphics.Flush();
 }
 
@@ -426,7 +447,7 @@ function UpdateCamera( updateTime )
 	
 	if( Vect3_LengthSquared( camRotUpdate ) > 0.0001 || 
 		Vect3_LengthSquared( camPositionUpdate ) > 0.0001 )
-		lastInputTime = updateTime;
+		lastInputTime = sceneTime;
 
 	//send the updates to the camera
 	mainScene.cameras[mainScene.activeCameraIdx].
