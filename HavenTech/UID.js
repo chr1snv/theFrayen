@@ -4,8 +4,9 @@
 
 
 const uidLen = 100000; // 5 (pow of 10) num integer digits in a uid
+let uidIdx = 100000;
 function NewUID(){
-		return { val: Math.floor(Math.random()*uidLen) };
+		return { val: uidIdx++ }; //Math.floor(Math.random()*uidLen) };
 }
 
 function AddUIDs(u1, u2){

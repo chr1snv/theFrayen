@@ -255,6 +255,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//update the oct tree of faces for the current time
 		//to minimize number of triangle ray intersection tests
 		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
+		this.octTree.name = this.meshName + " quadMesh";
 
 		//this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
 		//this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;

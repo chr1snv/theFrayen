@@ -23,6 +23,8 @@ const enabledDebugTags = {
 	"ot add":0,
 	"ot subdiv":0,
 	"ot add error":0,
+	"ot add success":0,
+	
 	"ot updt":0,
 	
 	"phys detc":0,

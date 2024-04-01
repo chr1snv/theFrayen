@@ -195,6 +195,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//}
 		
 		let isCocentric = false;
+		let cocenDist = 0;
+		let cocenObj = null;
 		let numOvlapAxs = 0;
 		let insertIdxs = [-1,-1,-1]; 
 		for(let ax = 0; ax < 3; ++ax ){ //insertion sort the min edge of the objects
@@ -221,16 +223,24 @@ function TreeNode( minCoord, maxCoord, parent ){
 				let ovlapPct = AABBsOverlap(this.objects[ax][cmpIdx].AABB, object.AABB);
 				if( ovlapPct > 0 ){
 					numOvlapAxs += 1;
-					if(Vect3_Distance( this.objects[ax][cmpIdx].AABB.center, object.AABB.center ) < minNodeSideLength )
+					let cenDist = Vect3_Distance( this.objects[ax][cmpIdx].AABB.center, object.AABB.center );
+					if( cenDist < minNodeSideLength ){
 						isCocentric = true;
+						cocenDist = cenDist;
+						cocenObj = this.objects[ax][cmpIdx];
+					}
 				}
 				//check the object before the new object if present
 				if( cmpIdx-1 >= 0 ){
 					let prevObjOvlapPct = AABBsOverlap(this.objects[ax][cmpIdx-1].AABB, object.AABB);
 					if( prevObjOvlapPct > 0 ){
 						numOvlapAxs += 1;
-						if( Vect3_Distance( this.objects[ax][cmpIdx-1].AABB.center, object.AABB.center ) < minNodeSideLength )
+						let cenDist = Vect3_Distance( this.objects[ax][cmpIdx-1].AABB.center, object.AABB.center );
+						if( cenDist < minNodeSideLength ){
 							isCocentric = true;
+							cocenDist = cenDist;
+							cocenObj = this.objects[ax][cmpIdx];
+						}
 					}
 				}
 			}
@@ -244,8 +254,12 @@ function TreeNode( minCoord, maxCoord, parent ){
 			}
 			object.treeNodes[ this.uid.val ] = this; //link this to the object so it knows where to remove itself from later
 		}else{
-			DTPrintf( "add failed 3 axies of obj overlap obj " + object.uid.val + 
-				" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length, "ot add error", "color:red", this.depth );
+			DTPrintf( "add failed otName " + this.root.name + " obj concentiric overlap obj " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + " objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) +
+				" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length + " cocenDist " + cocenDist + "\n" +
+				"cocenObjUid " + cocenObj.uid.val +
+				" cocenObjMin " + Vect_FixedLenStr( cocenObj.AABB.minCoord, 2, 6 ) + 
+				" cocenObjMax " + Vect_FixedLenStr( cocenObj.AABB.maxCoord, 2, 6 )
+				, "ot add error", "color:red", this.depth );
 			nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
 		}
 		
@@ -464,7 +478,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			this.addToThisNode(nLvsMDpth, object);
 			
 			if( nLvsMDpth[0] < 0 ){ //obj's overlapped
-				DTPrintf( "tNId " + this.uid.val + " obj " + object.uid.val + 
+				DTPrintf( "tNId " + this.uid.val + " tName '" + this.root.name + "' obj " + object.uid.val + 
 				" addToThisNode rejected, obj's overlapped", "ot add error", "color:red", this.depth);
 				if( addCmpCallback != undefined ) addCmpCallback();
 				return;
@@ -477,12 +491,19 @@ function TreeNode( minCoord, maxCoord, parent ){
 				//only leaf nodes should contain objects to avoid overlap ambiguity 
 				//and so rays only need check leaves while traversing
 				if( this.depth+1 > MaxTreeDepth ){ //limit depth to avoid running out of memory (if a mistake causes allot of object adding/tree division)
-					DTPrintf("tNId " + this.uid.val + "max subdiv depth reached when adding obj " + object.uid.val +
-							" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) + 
+					let objDimStr = "";
+					for( let i = 0; i < this.objects[0].length; ++i ){
+						objDimStr += "obj " + this.objects[0][i].uid.val + " min " + Vect_FixedLenStr( this.objects[0][i].AABB.minCoord, 2, 6 ) + " max " + Vect_FixedLenStr( this.objects[0][i].AABB.maxCoord, 2, 6 ) + " \n";
+					}
+					DTPrintf("tNId " + this.uid.val + " " + this.root.name + " max subdiv depth reached when adding obj " + object.uid.val +
+							" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) +
 							" ndMax " + Vect_FixedLenStr( this.AABB.maxCoord, 2, 6 ) +
-							" objUid " + obUid + " nNLvsMDpth " + nNLvsMDpth + '\n' +
-							" obMin " + Vect_FixedLenStr( xObDict[obUid].AABB.minCoord, 2, 6 ) + 
-							" obMax " + Vect_FixedLenStr( xObDict[obUid].AABB.maxCoord, 2, 6 )
+							" nLvsMDpth " + nLvsMDpth + '\n' +
+							" obMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) +
+							" obMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) +
+							" numObjs " + this.objects[0].length +
+							" depth " + this.depth + "\n" +
+							objDimStr
 							, "ot add error", "color:orange", this.depth); 
 					nLvsMDpth[0] = -2; nLvsMDpth[1] = 0;  //signify the max depth has been reached
 					this.RemoveFromThisNode(object);
@@ -514,6 +535,11 @@ function TreeNode( minCoord, maxCoord, parent ){
 				DTPrintf( "tNId " + this.uid.val + "nNLvs " + nNLvs + "  generateSubNodes success " +
 				" this.maxDepth " + this.maxDepth + " srcCoords " + srcCoords, "ot subdiv", "color:#ff4499", this.depth );
 				
+				//reset the debugging subNdsOvlapd dictionary for the objects
+				for( let i = 0; i < this.objects[0].length; ++i )
+					this.objects[0].subNdsOvlapd = {};
+				object.subNdsOvlapd = {};
+				
 				let objsAdded = {};
 				let leavesCreated = 0;
 				let maxNewDpth = this.maxDepth;
@@ -526,7 +552,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 						for(let x = 0; x < nNLvs[1][0]; ++x){
 							let xObDict = this.subNdObjDictForAxs(0, x, nNLvs[1][0], srcCoords);
 							
-							let nd = this.subNodes[x+y*2+z*4]; //get the sub node
+							let subNdIdx = x+y*2+z*4;
+							let nd = this.subNodes[subNdIdx]; //get the sub node
 							DTPrintf("\n"+
 								"z " + z + " " + Object.keys(zObDict) + "\n" +
 								"y " + y + " " + Object.keys(yObDict) + "\n" +
@@ -534,12 +561,33 @@ function TreeNode( minCoord, maxCoord, parent ){
 								"subnd " + nd.uid.val + " dpth" + nd.depth + " min " + nd.AABB.minCoord + 
 									" max " + nd.AABB.maxCoord, "ot subdiv", "color:orange", this.depth );
 							
+							/*
+							let obsShouldAddToNode = {};
+							for( let i = 0; i < this.objects[0].length; ++i ){
+								let ovlapVal = AABBsOverlap( nd.AABB, this.objects[0][i].AABB );
+								if( ovlapVal > 0 ){
+									if( obsShouldAddToNode[ this.objects[0][i].uid.val ] == undefined )
+										obsShouldAddToNode[ this.objects[0][i].uid.val ] = "";
+									obsShouldAddToNode[ this.objects[0][i].uid.val ] += subNdIdx + " ";
+								}
+							}
+							*/
 							
-							for( obUid in xObDict ){ //add the intersecting subset of objects of the 3 axies into the subnode
-								if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){
+							
+							let objsAttemptedToAdd = {};
+							let xObDictKeys = Object.keys( xObDict );
+							for( let obUidIdx = 0; obUidIdx < xObDictKeys.length; obUidIdx++ ){
+								let obUid = xObDictKeys[obUidIdx];
+								if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){ //add the intersecting subset of objects of the 3 axies into the subnode
+									if( objsAttemptedToAdd[ obUid ] == undefined )
+										objsAttemptedToAdd[ obUid ] = "";
+									objsAttemptedToAdd[ obUid ] += subNdIdx + " ";
+									
 									let nNLvsMDpth = [0,0];
 									DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addingobject  " + obUid + 
 											" result nLvsMDpth " + nNLvsMDpth, "ot add", "color:#ae7a53", this.depth );
+									if( obUid == "100225" && nd.uid.val == 101694 )
+										DTPrintf("before obj add error ob uid 100225 nd uid 101694", "ot add error", "color:#ffffaa", this.depth);
 									nd.AddObject( nNLvsMDpth, xObDict[obUid] );
 									DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addobject  " + obUid + 
 											" result nLvsMDpth " + nNLvsMDpth, "ot add", "color:#ae4e08", this.depth );
@@ -565,13 +613,19 @@ function TreeNode( minCoord, maxCoord, parent ){
 									}
 								}else{
 									xObDict[ obUid ].notAddedStr = 
-										"not in all dicts obUid" + obUid + " axs idxs " +
-										x + "," + y + "," + z + 
+										"not in all dicts obUid " + obUid + " axs idxs " +
+										x + "," + y + "," + z + "\n" +
+										"nd minCoord " + Vect_FixedLenStr( nd.AABB.minCoord, 2, 6 ) + 
+										" nd maxCoord " + Vect_FixedLenStr( nd.AABB.maxCoord, 2, 6 ) +
 										"  in xDict " + (xObDict[ obUid ] == undefined ? 'no' : 'yes') + 
 										" in yDict " + (yObDict[ obUid ] == undefined ? 'no' : 'yes') + 
 										" in zDict " + (zObDict[obUid] == undefined ? 'no' : 'yes');
 								}
 							}
+							
+						//if( Object.keys( obsShouldAddToNode ).length != Object.keys( objsAttemptedToAdd ).length )
+						//	DTPrintf( "subNdObjDictForAxs didn't match all objs for node", "ot add error", "color:red", this.depth );
+							
 						}
 					}
 				}
@@ -629,7 +683,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 					}
 					
 					DTPrintf( 
-							"tNId " + this.uid.val + " dpth " + this.depth + "subD added objsAdded " + addedStr + 
+							"tNId " + this.uid.val + " dpth " + this.depth + " subD added objsAdded " + addedStr + 
 							" all " + allObjsStr + "\n notAdded " + notAddedStr + "\n" +
 							"node min " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) + 
 							" max " + Vect_FixedLenStr( this.AABB.maxCoord, 2, 6 ), 
@@ -664,6 +718,14 @@ function TreeNode( minCoord, maxCoord, parent ){
 			
 			
 			nLvsMDpth[1] = this.maxDepth;
+			let ndObjsStr = "";
+			for( let i = 0; i < this.objects[0].length; ++i )
+				ndObjsStr += this.objects[0][i].uid.val + " ";
+			DTPrintf( "otName " + this.root.name + " tNId " + this.uid.val + 
+				" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) + " ndMax " + Vect_FixedLenStr( this.AABB.maxCoord, 2, 6 ) +
+				" dpth " + this.depth + " nLvsMDpth " + nLvsMDpth + " ndObjs " + ndObjsStr + "\n" +
+				"objUid " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + " objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 )
+				, "ot add success", UIDToColorHexString(this.root.uid), this.depth );
 
 		}else{ //already subdivided, decide which sub nodes it should be added to
 			DTPrintf( "tNId " + this.uid.val + " dpth " + this.depth + 

@@ -41,7 +41,7 @@ return false;
 */
 
 function AABBsOverlap(a1, a2){
-	let pOvlp = [0,0,0];
+	//let pOvlp = [0,0,0];
 	return a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0 )  *
 		a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 1) *
 		a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 2);
@@ -123,7 +123,10 @@ function AABB( minCorner, maxCorner ){
 		//	return true;
 		//console.log("%c"+am+":"+aM+" "+this.minCoord[axis]+":"+this.maxCoord[axis], "color:orange");
 		//return false;
-		return ovlpPct;//pctOverlap;
+		if( ovlpPct > 0 )
+			return ovlpPct;//pctOverlap;
+		else
+			return 0;
 	}
 
 	//return a point and time along the ray that intersects an AABB bound or null
