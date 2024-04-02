@@ -40,6 +40,15 @@ def make_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
         
+def vectMin( v1, v2 ):
+	v1[0] = v1[0] if v1[0] < v2[0] else v2[0]
+	v1[1] = v1[1] if v1[1] < v2[1] else v2[1]
+	v1[2] = v1[2] if v1[2] < v2[2] else v2[2]
+def vectMax( v1, v2 ):
+	v1[0] = v1[0] if v1[0] > v2[0] else v2[0]
+	v1[1] = v1[1] if v1[1] > v2[1] else v2[1]
+	v1[2] = v1[2] if v1[2] > v2[2] else v2[2]
+        
 def AveragePts( pt1, pt2 ):
     return [ pt1[0] + pt2[0] / 2, 
              pt1[1] + pt2[1] / 2, 
@@ -239,6 +248,12 @@ def writeScene(path):
     yAxisOcupiedRegions = []
     zAxisOcupiedRegions = []
     
+    mshCt  = 0
+    lghtCt = 0
+    camCt  = 0
+    wMin = [ 9999999, 999999, 999999]
+    wMax = [-9999999,-999999,-999999]
+    
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
@@ -258,19 +273,22 @@ def writeScene(path):
         #1,000,000 * log(1,000,000) => 6,000,000
         #it would be 1,000,000 times lower frame rate
         if obj.type == 'MESH':
-            out.write( 'm %s' % (obj.name) )
+            out.write( 'm %s\n' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
-            AABB = writeModel(sceneDirectory, obj)
-            print( 'AABB %s' % AABB ) 
-            if AABB == None:
+            mAABBws = writeModel(sceneDirectory, obj) #world space aabb
+            print( 'AABB %s' % mAABBws )
+            if mAABBws == None:
                 print( 'Mesh object %s not exportable (AABB not returned)' % \
                         obj.name )
                 break
             else:
-                out.write( '  %f %f %f  %f %f %f\n' % \
-                    (AABB[0], AABB[1], AABB[2], AABB[3], AABB[4], AABB[5]) )
-                aabbMin = [ AABB[0], AABB[1], AABB[2] ]
-                aabbMax = [ AABB[3], AABB[4], AABB[5] ]
+                out.write( 'maabb %f %f %f  %f %f %f\n' % \
+                    (mAABBws[0], mAABBws[1], mAABBws[2], 
+                     mAABBws[3], mAABBws[4], mAABBws[5]) )
+                aabbMin = [ mAABBws[0], mAABBws[1], mAABBws[2] ]
+                aabbMax = [ mAABBws[3], mAABBws[4], mAABBws[5] ]
+                vectMin( wMin, aabbMin )
+                vectMax( wMax, aabbMax )
                 newObj = TreeObj(aabbMin, aabbMax, obj)
                 addSuccessful = rootNode.AddObject( newObj )
                 print( "object aabb overlap check result " + \
@@ -280,36 +298,45 @@ def writeScene(path):
                 #AddOccupiedRegion( AABB[0], AABB[3], 0 )
                 #AddOccupideRegion( AABB[1], AABB[4], 1 )
                 #AddOccupiedRegion( AABB[2], AABB[5], 2 )
-            out.write( '%f %f %f ' % \
+            out.write( 'mloc %f %f %f \n' % \
                  (obj.location[0], obj.location[1], -obj.location[2]))
-            out.write( '%f %f %f ' % \
+            out.write( 'mrot %f %f %f \n' % \
                  (obj.rotation_euler[0], \
                   obj.rotation_euler[1], -\
                   obj.rotation_euler[2]))
+            mshCt += 1
+            out.write( 'mEnd\n\n' )
         if obj.type == 'LIGHT':
         
             lampD = obj.data;
-            out.write( 'l %s ' % (obj.name))
-            out.write( '%s ' % (lampD.type))
-            out.write( '%f %f %f ' % (obj.location[0], obj.location[1], -obj.location[2]))
-            out.write( '%f %f %f ' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
-            out.write( '%f %f %f ' % (lampD.color[0], lampD.color[1], lampD.color[2]))
-            out.write( '%f\n' % (lampD.energy))
+            out.write( 'l %s\n' % (obj.name))
+            out.write( 'ltype %s \n' % (lampD.type))
+            out.write( 'lloc %f %f %f\n' % (obj.location[0], obj.location[1], -obj.location[2]))
+            out.write( 'lrot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
+            out.write( 'lcol %f %f %f\n' % (lampD.color[0], lampD.color[1], lampD.color[2]))
+            out.write( 'lenrg %f\n' % (lampD.energy))
             try:
-                out.write( '%f\n' % (lampD.spot_size)) #radians angle
+                out.write( 'lspotsz %f\n' % (lampD.spot_size)) #radians angle
             except:
                 None
+            lghtCt += 1
+            out.write( 'lEnd\n\n' )
         if obj.type == 'CAMERA':
             camData = obj.data
-            out.write( 'c %s ' % (obj.name))
-            out.write( '%f %f %f ' % (obj.location[0], obj.location[1], -obj.location[2]))
-            out.write( '%f %f %f ' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
-            out.write( '%f ' % (camData.angle))
-            out.write( '%f %f\n' % (camData.clip_start, camData.clip_end))
+            out.write( 'c %s \n' % (obj.name))
+            out.write( 'cloc %f %f %f\n' % (obj.location[0], obj.location[1], -obj.location[2]))
+            out.write( 'crot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
+            out.write( 'cang %f\n' % (camData.angle))
+            out.write( 'cstartend %f %f\n' % (camData.clip_start, camData.clip_end))
+            camCt += 1
+            out.write( 'cEnd\n\n' )
+        
         writeObjectAnimationData(sceneDirectory, obj)
     
     #write out the active camera
     out.write('ac %s\n' % sce.camera.name)
+    out.write( 'sceStats objs %i lghts %i cams %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
+    	(mshCt, lghtCt, camCt,   wMin[0], wMin[1], wMin[2],   wMax[0], wMax[1], wMax[2]) )
     #close the output file
     out.close()
     
