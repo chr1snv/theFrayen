@@ -45,11 +45,11 @@ def AveragePts( pt1, pt2 ):
              pt1[1] + pt2[1] / 2, 
              pt1[2] + pt2[2] / 2 ]
              
-def checkOverlapsInAxies( ob1Min, ob1Max, ob2Min, ob2Max ):
+def ObjsOverlapInAllAxies( ob1Min, ob1Max, ob2Min, ob2Max ):
      axisOverlaps = [False, False, False]
-     for( axis in range(3) ):
-        if( ob2Min[axis] < ob1Min[axis] and ob1Min[axis] < ob2Max[axis] ||
-            ob2Min[axis] < ob1Max[axis] and ob1Max[axis] < ob2Max[axis] ||
+     for axis in range(3):
+        if( ob2Min[axis] < ob1Min[axis] and ob1Min[axis] < ob2Max[axis] or \
+            ob2Min[axis] < ob1Max[axis] and ob1Max[axis] < ob2Max[axis] or \
             ob1Min[axis] < ob2Min[axis] and ob2Min[axis] < ob1Max[axis] ):
             axisOverlaps[axis] = True
      if( axisOverlaps[0] and axisOverlaps[1] and axisOverlaps[2] ):
@@ -77,7 +77,7 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
         return self.objects[0].aabbMin[self.axis]
     
     #check if there are overlaps with already added objects
-    #if not check if should subdivide ( max objects added to node)
+    #if not check if should subdivide ( max objects added to node )
     def AddObject( self, obj ):
         #first try to add the object to this node's object list
         prCyan( "addObject " + str(obj.obj.name) + " node num objects " + str(len(self.objects)) )
@@ -87,16 +87,22 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
                 #take the midpoint of the object in the array and object, and
                 #insert based on the midpoint and check that there isn't
                 #an overlap in all three axies
-                prYellow( "if the array object min is greater than the new object max (new obj before)" )
-                if self.objects[i].aabbMin[self.axis] > obj.aabbMax[self.axis]:
-                    prYellow( "check if the previous array object is present" )
+                prYellow( "is the array object mid is greater \
+                            than the new object mid (new obj before)" )
+                if self.objects[i].aabbMid[self.axis] > obj.aabbMid[self.axis]:
+                    if not checkOverlapsInAxies(
+                        self.objects[ i ].aabbMin, self.objects[ i ].aabbMax,
+                        self.obj.aabbMin,          self.obj.aabbMax ):
+                        return False
+                    prYellow( "is the previous array object present?" )
                     if i-1 > 0:
-                        prYellow( "check the object below is less than the object" )
-                        if self.objects[ i-1 ].aabbMax[self.axis] > obj.aabbMin[self.axis]:
-                            prRed("the object overlaps in this axis")
-                            return False #the object overlaps (check that it
-                            #does not overlap in the other 2 axies)
-                            checkOverlapsInAxies( 
+                        prYellow( "does the object below overlap?" )
+                        if not checkOverlapsInAxies( 
+                            self.objects[ i - 1].aabbMin,
+                            self.objects[ i - 1].aabbMin, 
+                            obj.aabbMin, 
+                            obj.aabbMax ):
+                                return False
                     prGreen( "insert location found " + str(i) + 
                            " no object below or no overlap" )
                     self.objects.insert( i, obj )
@@ -177,9 +183,9 @@ class TreeObj():
         self.aabbMin = aabbMin
         self.aabbMax = aabbMax
         self.obj = obj
-        self.aabbMid = [ ( aabbMin[0] + aabbMax[0] ) / 2,
-                         ( [aabbMin[0] + aabbMax[0] ) / 2,
-                         ( [aabbMin[0] + aabbMax[0] ) / 2 ]
+        self.aabbMid = [ ( aabbMin[0] + aabbMax[0] ) / 2, \
+                         ( aabbMin[0] + aabbMax[0] ) / 2, \
+                         ( aabbMin[0] + aabbMax[0] ) / 2 ]
 
 #if large objects ( enviroment / scenery / buildings ) have objects inside
 #of them, it may be helpful to automatically seperate them into convex parts
@@ -194,15 +200,18 @@ def writeScene(path):
     assetDirectory, filename = os.path.split(path)
 
     #get the scene name
-    directoryParts = bpy.data.filepath.split('/')
+    print( "assetDirectory %s filename %s" % ( assetDirectory, filename ) )
+    directoryParts = assetDirectory.split('/')
     directory = ""
     for i in range(len(directoryParts)-1):
         directory += '/' + directoryParts[i]
     #directory = bpy.context.space_data.params.directory
-    sceneName = directoryParts[-1].split('.')[0]#bpy.context.space_data.params.filename.split('.')[0]
+    sceneName = filename.split('.')[0]#bpy.context.space_data.params.filename.split('.')[0]
     if(sceneName == ""):
         sceneName = "NoName"
     sceneFileName = assetDirectory+"/scenes/"+sceneName+".hvtScene"
+    
+    print( "sceneFileName %s" % (sceneFileName) )
 
     #make a directory structure for the scene
     sceneDirectory = assetDirectory+"/scenes/"+sceneName
