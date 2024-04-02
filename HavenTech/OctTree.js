@@ -58,8 +58,8 @@ function closestLrgrPoT(n){ //used to initially set dimensions of the oct tree
 const gravityAccel = [0,9.8, 0];
 
 const MaxTreeDepth = 10;
-const minNodeSideLength = 0.001;
-const MaxTreeNodeObjects = 5;
+const minNodeSideLength = 0.01;
+const MaxTreeNodeObjects = 10;
 var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
 function TreeNode( minCoord, maxCoord, parent ){

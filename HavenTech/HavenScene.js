@@ -197,7 +197,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				var words = temp.split(' ');
 				var modelName = words[1];
 				var modelMeshName = modelName;
-				/*
+				
 				var AABBVecs = [ [ parseFloat(words[3]), 
 						           parseFloat(words[4]), 
 						           parseFloat(words[5]) ],  //min
@@ -219,11 +219,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				var mAABB = null;
 				if( nanValue == false )
 					mAABB = new AABB( AABBMin, AABBMax );
-				*/
+				
 				thisSceneP.pendingModelsAdded++; //compared in check if is loaded
 				//to check if all models have finished loading
 				newMdl    = new Model( modelName, modelMeshName, 
-						        thisSceneP.sceneName, /*mAABB,*/ thisSceneP,
+						        thisSceneP.sceneName, mAABB, thisSceneP,
 				function( model, havenScenePointer ){ //modelLoadedCallback
 					model.Update( 0 ); //update to generate AABB
 					model.AddToOctTree( havenScenePointer.octTree,

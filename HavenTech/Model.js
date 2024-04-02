@@ -4,7 +4,7 @@
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
-function Model( nameIn, meshNameIn, sceneNameIn, //AABB, 
+function Model( nameIn, meshNameIn, sceneNameIn, AABB, 
 					modelLoadedParameters, modelLoadedCallback=null )
 {
 	//get the quadMesh transformationMatrix
