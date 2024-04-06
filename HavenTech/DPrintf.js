@@ -20,10 +20,14 @@ const enabledDebugTags = {
 	"mouse":0,
 	"add obj":0,
 	
-	"ot add":0,
-	"ot subdiv":0,
+	
+	"ot add":0,	
 	"ot add error":0,
 	"ot add success":0,
+	
+	"ot subdiv":0,
+	"ot subdiv success":0,
+	
 	
 	"ot updt":0,
 	

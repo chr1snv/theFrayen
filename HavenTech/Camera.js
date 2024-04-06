@@ -196,6 +196,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//apply the change in rotation
 		this.userRotation[0] += rotationDelta[0];
 		this.userRotation[1] += rotationDelta[1];
+		this.userRotation[2] += rotationDelta[2];
 		
 		if( rotation != undefined ) //may be defunct
 		    Vect3_Copy( this.rotation, rotation );
@@ -341,11 +342,11 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				ray.lastNode = null;
 				
 				//get the closest intersection point and pixel color
-				startNode = octTreeRoot.SubNode( ray.origin );
-				if(startNode){
-					startNode.Trace( dist_norm_color, ray, float0 );
-					updateHierarchyView(startNode);
-				}
+				//startNode = octTreeRoot.SubNode( ray.origin );
+				//if(startNode){
+					octTreeRoot.Trace( dist_norm_color, ray, float0 );
+					updateHierarchyView(octTreeRoot);
+				//}
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
 					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];

@@ -300,7 +300,7 @@ function MainLoop()
 		lastSceneFPSOutputTime = sceneTime;
 		framesSinceLastFPSOutputTime = 0;
 	}
-	/*
+	
 	let timeSinceShowingInputHelperOverlay = sceneTime-lastInputTime;
 	if( timeSinceShowingInputHelperOverlay > noInputDisplayHelpOverlayTime ){
 		
@@ -363,7 +363,7 @@ function MainLoop()
 	}else{
 		wasntShowingHelpInputOverlay = true;
 	}
-	*/
+	
 	//graphics.Flush();
 }
 
@@ -407,10 +407,16 @@ let relMx;
 let relMy;
 let camRotUpdate = new Float32Array(3);
 
+let camLoc = Vect3_NewZero();
+let camRot = Vect3_NewZero();
+let lastUpdateCameraTime = 0;
+let updateCameraTimeDelta = 0;
 function UpdateCamera( updateTime )
 {
 	if( mainScene.cameras.length < 1 )
 		return;
+		
+	updateCameraTimeDelta = updateTime - lastUpdateCameraTime;
 
 	//generate the position update
 	camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
@@ -425,11 +431,11 @@ function UpdateCamera( updateTime )
 
 		camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
 		camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
-
+		
+	
 	//generate the rotation update
-
-	if( mDown )
-	{
+	
+	if( mDown ){
 		if(document.pointerLockElement == null)
 			requestPointerLock();
 	}
@@ -440,16 +446,31 @@ function UpdateCamera( updateTime )
 	mX += touch.lookDelta[0]*touchLookSenValue;
 	mY += touch.lookDelta[1]*touchLookSenValue;
 
-	camRotUpdate[0] = -mY*Math.PI/180;
-	camRotUpdate[1] = -mX*Math.PI/180;
+	camRotUpdate[0] = mX*Math.PI/180;
+	camRotUpdate[1] = mY*Math.PI/180;
 	camRotUpdate[2] = 0;
 	mCoordDelta.x = mCoordDelta.y = 0;
 	
-	if( Vect3_LengthSquared( camRotUpdate ) > 0.0001 || 
-		Vect3_LengthSquared( camPositionUpdate ) > 0.0001 )
+	if( keys[keyCodes.KEY_Q] == true )
+		camRotUpdate[2] -= moveAmt*3*updateCameraTimeDelta;
+	if( keys[keyCodes.KEY_E] == true )
+		camRotUpdate[2] += moveAmt*3*updateCameraTimeDelta;
+	
+	
+	let cam = mainScene.cameras[mainScene.activeCameraIdx];
+	
+	if( Vect3_LengthSquared( camRotUpdate ) > 0.000001 || 
+		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){
 		lastInputTime = sceneTime;
+		//update the camera position / orientation text
+		cam.getLocation(camLoc);
+		cam.getRotation(camRot);
+		document.getElementById("orientationText").childNodes[1].textContent =
+			"with camera " + Vect_FixedLenStr( camLoc, 2, 6 ) + " location " + 
+							 Vect_FixedLenStr( camRot, 2, 6 ) + " rotation";
+	}
 
 	//send the updates to the camera
-	mainScene.cameras[mainScene.activeCameraIdx].
-		UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
+	cam.UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
+	lastUpdateCameraTime = updateTime;
 }

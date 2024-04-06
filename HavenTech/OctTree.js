@@ -694,25 +694,58 @@ function TreeNode( minCoord, maxCoord, parent ){
 				}else{
 					DTPrintf( " trNd " + this.uid.val + " dpth " + this.depth + " all objs added " +
 						" addedLen " + addedObjs.length + " allObjLen " + allObjs.length, "ot add", "color:green", this.depth );
-				
-					//remove object's association to this treeNode
-					//since it is going to be added to one or more of the subnodes
-					for( let i = 0; i < this.objects[0].length; ++i ){
-						delete this.objects[0][i].treeNodes[this.uid.val];
-					}
-				
-					this.objects = [[],[],[]];
-					this.objectDictionary = {};
-					this.leaves = nNLvs[0] + leavesCreated; //this treeNode has become a parent add the count of generateSubNodes
-					//and any created when adding to a new subnode
-					this.maxDepth = maxNewDpth;
-
-
-					//the node was successfuly subdivided and objects distributed to sub nodes such that
-					//all nodes have less than MaxTreeNodeObjects
 					
-					//parent max depth and leaf count update is based on the nLvsMDpth values
-					nLvsMDpth[0] = nNLvs[0] + leavesCreated;
+					//check that at least one node didn't get all the objects
+					let minNumObjsInASubNode = MaxTreeNodeObjects;
+					let maxNumObjsInASubNode = 0;
+					for( let i = 0; i < this.subNodes.length; ++i ){
+						if( this.subNodes[i] != null ){
+							let subNdObjs = this.subNodes[i].objects[0].length;
+							if( subNdObjs < minNumObjsInASubNode )
+								minNumObjsInASubNode = subNdObjs;
+							if( subNdObjs > maxNumObjsInASubNode )
+								maxNumObjsInASubNode = subNdObjs;
+						}
+					}
+					
+					if( minNumObjsInASubNode == maxNumObjsInASubNode ){
+					
+						DTPrintf( 
+							"tNId " + this.uid.val + " dpth " + this.depth + " failed to seperate objects during subdivision " + 
+							" minInSubNd " + minNumObjsInASubNode + " maxInASubNd " + maxNumObjsInASubNode
+							, "ot add error", "color:red", this.depth );
+						nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
+						this.subNodes = [null,null,null,null,  null,null,null,null];
+						this.RemoveFromThisNode(object);
+						
+					}else{
+					
+						//subdivision success
+						DTPrintf( " oTName '" + this.root.name + "' subdiv success " + 
+							" minInSubNd " + minNumObjsInASubNode + 
+							" maxInASubNd " + maxNumObjsInASubNode + " numSubNds " + nNLvs + " thisDepth " + this.depth, "ot subdiv success", "color:green", this.depth );
+				
+						//remove object's association to this treeNode
+						//since it is going to be added to one or more of the subnodes
+						for( let i = 0; i < this.objects[0].length; ++i ){
+							delete this.objects[0][i].treeNodes[this.uid.val];
+						}
+						
+						this.objects = [[],[],[]];
+						this.objectDictionary = {};
+						this.leaves = nNLvs[0] + leavesCreated; //this treeNode has become a parent add the count of generateSubNodes
+						//and any created when adding to a new subnode
+						this.maxDepth = maxNewDpth;
+
+
+						//the node was successfuly subdivided and objects distributed to sub nodes such that
+						//all nodes have less than MaxTreeNodeObjects
+						
+						//parent max depth and leaf count update is based on the nLvsMDpth values
+						nLvsMDpth[0] = nNLvs[0] + leavesCreated;
+						
+					}
+					
 				}
 			}
 			

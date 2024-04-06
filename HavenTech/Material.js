@@ -23,6 +23,7 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 	this.alpha = 1.0;
 	this.normalMix = -1.0;
 	this.specularMix = -1.0;
+	this.specRoughness = 1;
 	this.emitMix = -1.0;
 	this.diffuseTextureAlpha = false;
 
@@ -49,31 +50,31 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 			materialReadyCallback( thisP, readyCallbackParams );
 		}else{
 			//read in the file contents
-			var materialFileLines = materialFile.split('\n');
-			for( var i = 0; i < materialFileLines.length; ++i ){
-				var temp = materialFileLines[i].split(' ');
-				if(temp[0] == 'd'){ //read in diffuse color
+			let materialFileLines = materialFile.split('\n');
+			for( let i = 0; i < materialFileLines.length; ++i ){
+				let temp = materialFileLines[i].split(' ');
+				temp[0] = temp[0].split('\t')[0];
+				if(temp[0] == 'difCol'){ //read in diffuse color
+					Vect3_parse( thisP.diffuseCol, temp, 1 );
+					/*
 					thisP.diffuseCol = [ parseFloat( temp[1] ),
 										parseFloat( temp[2] ),
 										parseFloat( temp[3] ) ];
-					thisP.diffuseMix =	parseFloat( temp[4] );
+					*/
+					//thisP.diffuseMix =	parseFloat( temp[4] );
 				}
-				if(temp[0] == 's' && temp[1] != 'h'){ //read in specular color
-					thisP.specularCol		= [ temp[1], temp[2], temp[3] ];
-					thisP.specularMix		=	parseFloat( temp[4] );
-					thisP.specularHardness =	parseFloat( temp[5] );
+				if( temp[0] == 'specMixHrd' ){ //read in specular color
+					thisP.specularMix		=	parseFloat( temp[1] );
+					thisP.specRoughness		=	parseFloat( temp[2] );
 				}
-				if(temp[0] == 's' && temp[1] == 'h'){ //read in specular color
-					thisP.isShadeless = temp[3] == 'true' ? true : false;
-				}
-				if(temp[0] == 'a'){ // read in alpha amount
+				if(temp[0] == 'alph'){ // read in alpha amount
 					thisP.alpha = parseFloat( temp[1] );
 				}
-				if(temp[0] == 'l'){ // read in emit amount
+				if(temp[0] == 'lumCol'){ // read in emit amount
 					thisP.emitAmount = parseFloat( temp[1] );
 				}
 
-				if(temp[0] == 't'){ //read in texture information
+				if(temp[0] == 'tex'){ //read in texture information
 
 					//keep track of the type of texture this one is
 					var isDiffuse = false;
@@ -81,21 +82,21 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 					var isEmit = false;
 					while(++i < materialFileLines.length){
 						temp = materialFileLines[i].split(' ');
-						if(temp[0] == 'd' && temp[1] == 'a')
+						if(temp[0] == 'difTexAisAlpha')
 							thisP.diffuseTextureAlpha = true;
-						else if(temp[0] == 'd'){ // the texture is diffuse type
+						else if(temp[0] == 'difTex'){ // the texture is diffuse type
 							thisP.diffuseMix = parseFloat( temp[1] );
 							isDiffuse = true;
 						}
-						if(temp[0] == 'n'){ // the texture is normal type
+						if(temp[0] == 'normTex'){ // the texture is normal type
 							thisP.normalMix = parseFloat( temp[1] );
 							isNormal = true;
 						}
-						if(temp[0] == 'l'){ // the texture is emit type
+						if(temp[0] == 'lumTex'){ // the texture is emit type
 							thisP.emitMix = parseFloat( temp[1] );
 							isEmit = true;
 						}
-						if(temp[0] == 'f'){ //read in the texture file name
+						if(temp[0] == 'fileName'){ //read in the texture file name
 							var textureName = temp[1];
 							//ask the graphics instance to load the corresponding texture file
 							//graphics.GetTexture(textureName, this.sceneName);
@@ -148,7 +149,7 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 		this.specularCol = [ 1.0, 1.0, 1.0 ];
 		
 		//calculate the material file filename
-		var filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtShd";
+		var filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtMat";
 
 		//open the material file
 		loadTextFile(filename, this.materialTextLoaded, this);
@@ -175,7 +176,7 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 			color[0] = this.diffuseCol[0];
 			color[1] = this.diffuseCol[1];
 			color[2] = this.diffuseCol[2];
-			color[3] = this.diffuseCol[3];
+			color[3] = this.diffuseMix;
 		}
 	}
 

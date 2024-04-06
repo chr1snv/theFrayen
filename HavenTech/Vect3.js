@@ -144,6 +144,19 @@ function Vect3_minMax( m, M, v ){
 	M[2] = M[2] > v[2] ? M[2] : v[2];
 }
 
+function Vect3_parse( v, lnPrts, sIdx ){
+	v[0] = lnPrts[sIdx];
+	v[1] = lnPrts[sIdx+1];
+	v[2] = lnPrts[sIdx+2];
+}
+function Vect3_containsNaN( v ) {
+	for( let i = 0; i < v.length; ++i ){
+		if( v[i] != v[i] )
+		    return true;
+	}
+	return false;
+}
+
 //return a string from a vector of numbers
 //make each entry of the vector have 
 function Vect_FixedLenStr( v, numDecimalPlaces, len ){

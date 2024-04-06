@@ -179,7 +179,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.sceneGraph = null;
 
 	this.overlaps = [0,0,0];
-	//this.AABB = AABB;
+	this.AABB = AABB;
 
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;

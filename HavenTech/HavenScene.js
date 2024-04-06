@@ -25,9 +25,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 	//the main structure for holding scene elements
 	const tDim = 100;
-	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], 
-								 [ tDim,  tDim,  tDim], null );
-	this.octTree.name = sceneNameIn + " scene";
+	this.octTree = null;
+
 	//using the camera frustum only objects within view 
 	//can be drawn / simulated in high fidelity
 
@@ -183,125 +182,149 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	}
 
 	//called to read from text file models, lights, and cameras in the scene
-	this.parseSceneTextFile = function( thisSceneP )
+	this.parseSceneTextFile = function( textFileLines )
 	{
+	
+		let sceneAABBDimTxt = textFileLines[textFileLines.length-2].split(' ');
+		let sceneMin = Vect3_New( 
+			parseFloat( sceneAABBDimTxt[1] ), 
+			parseFloat( sceneAABBDimTxt[2] ), 
+			parseFloat( sceneAABBDimTxt[3] ) );
+		let sceneMax = Vect3_New( 
+			parseFloat( sceneAABBDimTxt[5] ), 
+			parseFloat( sceneAABBDimTxt[6] ), 
+			parseFloat( sceneAABBDimTxt[7] ) );
+		this.octTree = new TreeNode( sceneMin, sceneMax, null );
+		this.octTree.name = this.sceneName + " scene";
 		
-		for( let i = 0; i<thisSceneP.textFileLines.length; ++i )
+		let sceneObjLghtCamCtTxt = textFileLines[textFileLines.length-3].split(' ');
+		let numObjs = parseInt( sceneObjLghtCamCtTxt[2] );
+		let numLghts = parseInt( sceneObjLghtCamCtTxt[4] );
+		let numCams = parseInt( sceneObjLghtCamCtTxt[6] );
+		
+		
+		let mdlName = '';
+		let mdlMeshName = '';
+		let mAABB = null;
+		let mdlAABBmin = Vect3_NewZero();
+		let mdlAABBmax = Vect3_NewZero();
+		let mdlLoc = Vect3_NewZero();
+		let mdlRot = Vect3_NewZero();
+		let lcol = Vect3_NewZero();
+		let lenrg = 0;
+		let lspotsz = 0;
+		
+		let camAng = 0;
+		let camStart = 0;
+		let camEnd = 0;
+		
+		for( let i = 0; i<textFileLines.length; ++i )
 		{
-			statusElm.innerHTML = "Parsing " + (i+1) + "/" + thisSceneP.textFileLines.length;
-			var temp = thisSceneP.textFileLines[i];
+			statusElm.innerHTML = "Parsing " + (i+1) + "/" + textFileLines.length;
+			let txtLineParts = textFileLines[i].split( ' ' );
 
-			if(temp[0] == 'm') //this is a model to be read in 
+			if(txtLineParts[0] == 'm' ){ //this is a model to be read in 
 			//(load the model and then append it to the scenegraph)
-			{
-				var words = temp.split(' ');
-				var modelName = words[1];
-				var modelMeshName = modelName;
+				mdlName = txtLineParts[1];
+				mdlMeshName = mdlName;
+			}else if( txtLineParts[0] == 'maabb' ){
+				Vect3_parse( mdlAABBmin, txtLineParts, 3 );
+				Vect3_parse( mdlAABBmax, txtLineParts, 7 );
 				
-				var AABBVecs = [ [ parseFloat(words[3]), 
-						           parseFloat(words[4]), 
-						           parseFloat(words[5]) ],  //min
-						         [ parseFloat(words[7]), 
-						           parseFloat(words[8]), 
-						           parseFloat(words[9]) ] ] //max;
 				//try to read in an AABB from the model description line
 				//if there aren't values set the not a number flag
-				var nanValue = false;
-				for( var vecIdx = 0; vecIdx < 2; ++vecIdx ){
-					var aabbVec = AABBVecs[vecIdx];
-					for( var a = 0; a < aabbVec.length; ++a ){
-						if( aabbVec[a] != aabbVec[a] ){
-						    nanValue = true;
-						    break;
-						}
-					}
-				}
-				var mAABB = null;
-				if( nanValue == false )
-					mAABB = new AABB( AABBMin, AABBMax );
 				
-				thisSceneP.pendingModelsAdded++; //compared in check if is loaded
+				if( !Vect3_containsNaN( mdlAABBmin ) && Vect3_containsNaN( mdlAABBmax ) )
+					mAABB = new AABB( mdlAABBmin, mdlAABBmax );
+					
+			}else if( txtLineParts[0] == 'mloc' ){
+				Vect3_parse( mdlLoc, txtLineParts, 1 );
+			}else if( txtLineParts[0] == 'mrot' ){
+				Vect3_parse( mdlRot, txtLineParts, 1 );
+			}else if( txtLineParts[0] == 'mEnd' ){
+				
+				this.pendingModelsAdded++; //compared in check if is loaded
 				//to check if all models have finished loading
-				newMdl    = new Model( modelName, modelMeshName, 
-						        thisSceneP.sceneName, mAABB, thisSceneP,
+				newMdl    = new Model( mdlName, mdlMeshName, 
+						        this.sceneName, mAABB, this,
 				function( model, havenScenePointer ){ //modelLoadedCallback
 					model.Update( 0 ); //update to generate AABB
 					model.AddToOctTree( havenScenePointer.octTree,
 						function(){
-						    statusElm.innerHTML = "Loading " + thisSceneP.pendingModelsAdded + " Models";
-						    thisSceneP.pendingModelsAdded-=1;
-						    thisSceneP.checkIfIsLoaded();
+						    statusElm.innerHTML = "Loading " + havenScenePointer.pendingModelsAdded + " Models";
+						    havenScenePointer.pendingModelsAdded-=1;
+						    havenScenePointer.checkIfIsLoaded();
 						} );
 				}
 				 );
 				
 			}
+			
+			
+			
 			//lights and cameras are simple to load can be loaded synchronously 
 			//as they don't require loading additional files
 			//(info is one line in the text file)
 			//this is a light to be read in
-			if(temp[0] == "l")
-			{
-				var words = temp.split(' ');
-				
-				var lampName  = words[1];
-				var lightType = parseInt(words[2]);
-				var pos       = [ parseFloat(words[3]),  
-						          parseFloat(words[4]),  
-						          parseFloat(words[5]) ];
-				var rot       = [ parseFloat(words[6]),  
-						          parseFloat(words[7]),  
-						          parseFloat(words[8]) ];
-				var col       = [ parseFloat(words[9]),  
-						          parseFloat(words[10]), 
-						          parseFloat(words[11]) ];
-				var intensity = parseFloat(words[12]);
-				var coneAngle = parseFloat(words[13]);
-				thisSceneP.lights.push( new Light(lampName, thisSceneP.sceneName, 
-						col, intensity, lightType, pos, rot, coneAngle) );
+			else if(txtLineParts[0] == "l"){
+				mdlName = txtLineParts[1];
+			}else if( txtLineParts[0] == 'ltype' ){
+				lampType = txtLineParts[1];
+			}else if( txtLineParts[0] == 'lloc' ){
+				Vect3_parse(mdlLoc, txtLineParts, 1);
+			}else if( txtLineParts[0] == 'lrot' ){
+				Vect3_parse(mdlRot, txtLineParts, 1);
+			}else if( txtLineParts[0] == 'lcol' ){
+				Vect3_parse(lcol, txtLineParts, 1);
+			}else if( txtLineParts[0] == 'lenrg' ){
+				lenrg = parseFloat( txtLineParts[1] )
+			}else if( txtLineParts[0] == 'lspotsz'){
+				lspotsz = parseFloat( txtLineParts[1] )
+			}else if( txtLineParts[0] == 'lEnd' ){
+				this.lights.push( new Light(mdlName, this.sceneName, 
+						lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz) );
 			}
+			
 			//this is a camera to be read in
-			if(temp[0] == 'c')
+			else if(txtLineParts[0] == 'c')
 			{
-				var words		= temp.split(' ');
-				var cameraName	= words[1];
-				var pos			= [ parseFloat(words[2]), 
-									parseFloat(words[3]),  
-									parseFloat(words[4]) ];
-				var rot			= [ parseFloat(words[5]), 
-									parseFloat(words[6]),  
-									parseFloat(words[7]) ];
-				var angle		=	parseFloat(words[8]);
-				var clipStart	=	parseFloat(words[9]);
-				var clipEnd		=	parseFloat(words[10]);
-				thisSceneP.cameras.push( new Camera(cameraName, 
-				thisSceneP.sceneName, angle, clipStart, clipEnd, pos, rot));
+				mdlName	= txtLineParts[1];
+			}else if( txtLineParts[0] == 'cloc' ){
+				Vect3_parse( mdlLoc, txtLineParts, 1 );
+			}else if( txtLineParts[0] == 'crot' ){
+				Vect3_parse( mdlRot, txtLineParts, 1 );
+			}else if( txtLineParts[0] == 'cang' ){
+				camAng = parseFloat( txtLineParts[1] );
+			}else if( txtLineParts[0] == 'cstartend' ){
+				camStart = parseFloat( txtLineParts[1] );
+				camEnd = parseFloat( txtLineParts[2] );
+			}else if( txtLineParts[0] == 'cEnd' ){
+				this.cameras.push( new Camera( mdlName, 
+				this.sceneName, camAng, camStart, camEnd, mdlLoc, mdlRot));
 			}
 			//this is the name of the active camera to be read in
-			if(temp[0] == 'a' && temp[1] == 'c')
+			else if( txtLineParts[0] == 'ac' )
 			{
-				var words = temp.split(' ');
-				thisSceneP.activeCamera = words[1];
+				this.activeCamera = txtLineParts[1];
 				//look up and set its index
-				for(var j=0; j<thisSceneP.cameras.length; ++j)
-				{
-					if(thisSceneP.cameras[j].cameraName == thisSceneP.activeCamera)
-						thisSceneP.activeCameraIdx = j;
+				for(let j=0; j<this.cameras.length; ++j){
+					if(this.cameras[j].cameraName == this.activeCamera)
+						this.activeCameraIdx = j;
 				}
 			}
 		}
-		thisSceneP.Update(0.0); //init animated objs
-		thisSceneP.isValid = true;
-		thisSceneP.checkIfIsLoaded();
+		this.Update(0.0); //init animated objs
+		this.isValid = true;
+		this.checkIfIsLoaded();
 	}
 
 	this.textFileLoadedCallback = function(txtFile, thisP) 
 	//called after scene description text file has been fetched
 	{
-		thisP.textFileLines = txtFile.split("\n");
+		let textFileLines = txtFile.split("\n");
 		
 		//begin loading the scene from text file
-		thisP.parseSceneTextFile( thisP );
+		thisP.parseSceneTextFile( textFileLines );
 	}
 
 	//constructor functionality begin asynchronous fetch of scene description

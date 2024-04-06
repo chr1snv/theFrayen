@@ -541,12 +541,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		var matFileLines = matFile.split('\n');
 
 		for( var matIdx in matFileLines ){
-			var temp = matFileLines[matIdx];
-			if( temp[0] == 's' ){ //name of a material
-				var words = temp.split(' ');
-				thisP.materialNames.push(words[1]);
+			var temp = matFileLines[matIdx].split(' ');
+			if( temp[0] == 'mat' ){ //name of a material
+				thisP.materialNames.push(temp[1]);
 				//preload the material
-				graphics.GetMaterial( words[1], thisP.sceneName, 
+				graphics.GetMaterial( temp[1], thisP.sceneName, 
 				[thisP, thisP.materialNames.length-1], thisP.materialReady );
 			}
 		}
