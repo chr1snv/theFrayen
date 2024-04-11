@@ -7,6 +7,17 @@ import bpy, bpy_extras.node_shader_utils
 import os, math, shutil, sys
 from mathutils import Vector
 
+def vec3NewScalar( s ):
+	return Vector([ s, s, s ])
+def vec3Min( v1, v2 ):
+	v1[0] = v1[0] if v1[0] < v2[0] else v2[0]
+	v1[1] = v1[1] if v1[1] < v2[1] else v2[1]
+	v1[2] = v1[2] if v1[2] < v2[2] else v2[2]
+def vec3Max( v1, v2 ):
+	v1[0] = v1[0] if v1[0] > v2[0] else v2[0]
+	v1[1] = v1[1] if v1[1] > v2[1] else v2[1]
+	v1[2] = v1[2] if v1[2] > v2[2] else v2[2]
+
 def popupMenu(message):
     bpy.context.window_manager.popup_menu(lambda self, \
     context: self.layout.label(text=message), title='Error', icon='ERROR' )
@@ -28,7 +39,7 @@ def writeModel(assetDirectory, ob):
 
     #----write the mesh file----
     #---------------------------
-    AABB = writeMesh(assetDirectory, ob)
+    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob)
 
     #----write the mesh materials file----
     #-------------------------------------
@@ -43,10 +54,10 @@ def writeModel(assetDirectory, ob):
     writeAnim(assetDirectory, ob)
     
     #apply object location, rotation and scale to AABB
-    AABBmin = ob.matrix_world @ Vector((AABB[0], AABB[1], AABB[2]))
-    AABBmax = ob.matrix_world @ Vector((AABB[3], AABB[4], AABB[5]))
+    AABBmin = ob.matrix_world @ AABBMin
+    AABBmax = ob.matrix_world @ AABBMax
     
-    return [AABBmin[0], AABBmin[1], AABBmin[2], AABBmax[0], AABBmax[1], AABBmax[2]]
+    return [AABBmin, AABBmax]
 
 def writeMeshMaterials(assetDirectory, ob):
     """Write a materials file, and a haven tech material file for each of the
@@ -229,13 +240,9 @@ def writeMesh(assetDirectory, ob):
     out.write( '\n' )
 
     #keep track of the min and max corners of the AABB
-    minX = sys.float_info.max
-    minY = sys.float_info.max
-    minZ = sys.float_info.max
+    minV = vec3NewScalar( sys.float_info.max )
      
-    maxX = sys.float_info.min
-    maxY = sys.float_info.min
-    maxZ = sys.float_info.min
+    maxV = vec3NewScalar( sys.float_info.min )
 
     #write the verticies (position, normal, texture coordinate, and bone weight)
     numVerts = len(mesh.vertices)
@@ -243,20 +250,10 @@ def writeMesh(assetDirectory, ob):
     out.write( '\n' )
     for i in range(numVerts):
         vert = mesh.vertices[i]  #verts[i]
-        if vert.co.x > maxX :
-            maxX = vert.co.x
-        if vert.co.y > maxY :
-            maxY = vert.co.y
-        if vert.co.z > maxZ :
-            maxZ = vert.co.z
-        if vert.co.x < minX :
-            minX = vert.co.x
-        if vert.co.y < minY :
-            minY = vert.co.y
-        if vert.co.z < minZ :
-            minZ = vert.co.z
-        out.write( 'v %f %f %f\n' % (vert.co.x, vert.co.z, -vert.co.y) )
-        out.write( 'n %f %f %f\n' % (vert.normal.x, vert.normal.z, -vert.normal.y) )
+        vec3Max( maxV, vert.co )
+        vec3Min( minV, vert.co )
+        out.write( 'v %f %f %f\n' % (vert.co.x, vert.co.y, vert.co.z) )
+        out.write( 'n %f %f %f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
         #normalize the bone weights
         boneWeights = []
         boneWeightTotal = 0.0
@@ -302,7 +299,7 @@ def writeMesh(assetDirectory, ob):
     out.write('\n')
     out.close()
     
-    return [ minX, minY, minZ, maxX, maxY, maxZ ]
+    return [ minV, maxV ]
     
 def writeObjectAnimationData(assetDirectory, obj):
         

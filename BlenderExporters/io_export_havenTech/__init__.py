@@ -42,21 +42,12 @@ def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
 def prLightGray(skk): print("\033[97m {}\033[00m" .format(skk))
 def prBlack(skk): print("\033[98m {}\033[00m" .format(skk))
 
-from functions_hvtmdl import writeModel, writeObjectAnimationData
+from functions_hvtmdl import writeModel, writeObjectAnimationData, vec3Min, vec3Max, vec3NewScalar
 
 #directory creation helper function
 def make_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
-        
-def vectMin( v1, v2 ):
-	v1[0] = v1[0] if v1[0] < v2[0] else v2[0]
-	v1[1] = v1[1] if v1[1] < v2[1] else v2[1]
-	v1[2] = v1[2] if v1[2] < v2[2] else v2[2]
-def vectMax( v1, v2 ):
-	v1[0] = v1[0] if v1[0] > v2[0] else v2[0]
-	v1[1] = v1[1] if v1[1] > v2[1] else v2[1]
-	v1[2] = v1[2] if v1[2] > v2[2] else v2[2]
         
 def AveragePts( pt1, pt2 ):
     return [ pt1[0] + pt2[0] / 2, 
@@ -262,8 +253,8 @@ def writeScene(path):
     mshCt  = 0
     lghtCt = 0
     camCt  = 0
-    wMin = [ 9999999, 999999, 999999]
-    wMax = [-9999999,-999999,-999999]
+    wMin = vec3NewScalar(  9999999 )
+    wMax = vec3NewScalar( -9999999 )
     
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
@@ -295,12 +286,12 @@ def writeScene(path):
                 break
             else:
                 out.write( 'maabb %f %f %f  %f %f %f\n' % \
-                    (mAABBws[0], mAABBws[1], mAABBws[2], 
-                     mAABBws[3], mAABBws[4], mAABBws[5]) )
-                aabbMin = [ mAABBws[0], mAABBws[1], mAABBws[2] ]
-                aabbMax = [ mAABBws[3], mAABBws[4], mAABBws[5] ]
-                vectMin( wMin, aabbMin )
-                vectMax( wMax, aabbMax )
+                    (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
+                     mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
+                aabbMin = mAABBws[0]
+                aabbMax = mAABBws[1]
+                vec3Min( wMin, aabbMin )
+                vec3Max( wMax, aabbMax )
                 newObj = TreeObj(aabbMin, aabbMax, obj)
                 addSuccessful = rootNode.AddObject( newObj )
                 print( "object aabb overlap check result " + \
@@ -311,10 +302,10 @@ def writeScene(path):
                 #AddOccupideRegion( AABB[1], AABB[4], 1 )
                 #AddOccupiedRegion( AABB[2], AABB[5], 2 )
             out.write( 'mloc %f %f %f \n' % \
-                 (obj.location[0], obj.location[1], -obj.location[2]))
+                 (obj.location[0], obj.location[1], obj.location[2]))
             out.write( 'mrot %f %f %f \n' % \
                  (obj.rotation_euler[0], \
-                  obj.rotation_euler[1], -\
+                  obj.rotation_euler[1], \
                   obj.rotation_euler[2]))
             mshCt += 1
             out.write( 'mEnd\n\n' )
@@ -322,8 +313,8 @@ def writeScene(path):
             lampD = obj.data;
             out.write( 'l %s\n' % (obj.name))
             out.write( 'ltype %s \n' % (lampD.type))
-            out.write( 'lloc %f %f %f\n' % (obj.location[0], obj.location[1], -obj.location[2]))
-            out.write( 'lrot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
+            out.write( 'lloc %f %f %f\n' % (obj.location[0], obj.location[1], obj.location[2]))
+            out.write( 'lrot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]))
             out.write( 'lcol %f %f %f\n' % (lampD.color[0], lampD.color[1], lampD.color[2]))
             out.write( 'lenrg %f\n' % (lampD.energy))
             try:
@@ -335,8 +326,8 @@ def writeScene(path):
         if obj.type == 'CAMERA':
             out.write( 'c %s \n' % (obj.name))
             print(" camera %s" % (obj.name) )
-            out.write( 'cloc %f %f %f\n' % (obj.location[0], obj.location[1], -obj.location[2]))
-            out.write( 'crot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], -obj.rotation_euler[2]))
+            out.write( 'cloc %f %f %f\n' % (obj.location[0], obj.location[1], obj.location[2]))
+            out.write( 'crot %f %f %f\n' % (obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]))
             camData = obj.data
             out.write( 'cang %f\n' % (camData.angle))
             out.write( 'cstartend %f %f\n' % (camData.clip_start, camData.clip_end))
