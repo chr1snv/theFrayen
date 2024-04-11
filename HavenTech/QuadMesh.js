@@ -15,12 +15,12 @@ class Face { //part of mesh stored in mesh octTree
 		this.treeNodes  = {};
 	}
 	GetAABB(){ return this.AABB; }
-	RayIntersect( ret, ray ){ 
+	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[3] is the quadmesh for getmaterialcolor
 		for(let i = 0; i < this.tris.length; ++i ){
-			ret[0] = this.tris[i].RayTriangleIntersection( ret[1], ray );
-			if( ret[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
+			retDisNormCol[0] = this.tris[i].RayTriangleIntersection( retDisNormCol[1], ray );
+			if( retDisNormCol[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
 				this.tris[i].UVCoordOfPoint( uvCoord, this.tris[i].pointL );
-				ret[3].GetMaterialColorAtUVCoord( ret[2], uvCoord, this.materialID );
+				retDisNormCol[3].GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
 				return;}
 		}
 	}
@@ -283,13 +283,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	let face;
 	let tri;
 	let startNode;
-	this.GetRayIntersection = function(retVal, ray, rayAabbIntPoint){
+	this.GetRayIntersection = function(retDisNormCol, ray, rayAabbIntPoint){
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
-		retVal[3] = this;
+		retDisNormCol[3] = this;
 		startNode = this.octTree.SubNode( rayAabbIntPoint );
 		if( startNode )
-			startNode.Trace( retVal, ray, 0 );
+			startNode.Trace( retDisNormCol, ray, 0 );
 		//if( retVal[0] < 0 )
 		//	this.octTree.Trace( retVal, ray, 0 );
 /*
@@ -315,6 +315,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
+		/*
+		color[0] = uv[0];
+		color[1] = uv[1];
+		color[2] = 0;
+		color[3] = 1;
+		return;// [uv[0], uv[1], 0, 1]; 
+		*/
 		//method from rasterization was to asynchronously load the material
 		//and bind it, impractical for query based rays where each ray
 		//may reach a different material

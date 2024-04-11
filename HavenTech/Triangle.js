@@ -132,8 +132,8 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//triangle space z (cross product) triangle space x -> triangle space y )
 
 		rayNormLZ =  ray.norm[0]*this.triZW[0]+ray.norm[1]*this.triZW[1]+ray.norm[2]*this.triZW[2];
-		if( rayNormLZ > 0 ) //backface culling (triangles not towards ray)
-			return -1;
+		//if( rayNormLZ > 0 ) //backface culling (triangles not towards ray)
+		//	return -1;
 
 		//get the vector to the ray start from the triangle origin
 		triToRayOriW[0] = ray.origin[0] - this.v1W[0];
@@ -235,17 +235,19 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//that scatter the light conserving energy
 
 		//DPrintf( "rayD " + rayDistToPtWL + " triZ " + this.triZW );
-		retZW[0] = this.triZW[0];
+		retZW[0] = this.triZW[0];  //copy the normal to return
 		retZW[1] = this.triZW[1];
 		retZW[2] = this.triZW[2];
 		return rayDistToPtWL;//[ this.rayDistToPtWL, this.triZW, this.pointL ];
 	}
 
+	let vNormL = new Float32Array(3); 
 	let vDiff = new Float32Array(3);
 	let v1Dist;
 	let v2Dist;
 	let v3Dist;
-	let totalDistInv;
+	let maxContrib;
+	let totalCoordContrib;
 	let v1UvAmt;
 	let v2UvAmt;
 	let u3UvAmt;
@@ -253,29 +255,15 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//calculate the uv coordinates of the intersection point
 		//by interpolating between given uv coordinates of verticies
 		//based on how far the point is to each vertex in local triangle space
-		vDiff[0] = this.v1L[0] - lpoint[0];
-		vDiff[1] = this.v1L[1] - lpoint[1];
-		vDiff[2] = this.v1L[2] - lpoint[2];
-		v1Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
-
-		vDiff[0] = this.v2L_e1L[0] - lpoint[0];
-		vDiff[1] = this.v2L_e1L[1] - lpoint[1];
-		vDiff[2] = this.v2L_e1L[2] - lpoint[2];
-		v2Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
-
-		vDiff[0] = this.v3L_e2L[0] - lpoint[0];
-		vDiff[1] = this.v3L_e2L[1] - lpoint[1];
-		vDiff[2] = this.v3L_e2L[2] - lpoint[2];
-		v3Dist   = Math.sqrt( vDiff[0]*vDiff[0] + vDiff[1]*vDiff[1] + vDiff[2]*vDiff[2] );
-
-		totalDistInv = float1/(v1Dist + v2Dist + v3Dist); //get the total distance
-		//to normalize the contribution from each vertex
-		v1UvAmt = v1Dist * totalDistInv; //how much each vertex contributes
-		v2UvAmt = v2Dist * totalDistInv;
-		v3UvAmt = v3Dist * totalDistInv;
-		//the interpolated uv value is the normalized sum of contributions
-		uv[0] = this.u1[0] * v1UvAmt + this.u2[0] * v2UvAmt + this.u3[0] * v3UvAmt;
-		uv[1] = this.u1[1] * v1UvAmt + this.u2[1] * v2UvAmt + this.u3[1] * v3UvAmt;
+		
+		vNormL[0] = lpoint[0] / this.v2L_e1L[0];
+		vNormL[1] = lpoint[1] / this.v3L_e2L[1];
+		//closer to y = 1 is v3's uv
+		//y = 0 is x lerp between v1 and 2
+		//max x at y is y val
+		Vect_LERP( uv, this.u2, this.u1, (1-vNormL[0])/(vNormL[1]) );
+		Vect_LERP( uv, uv,  this.u3, (1-vNormL[1]) );
+		
 	}
 
 }

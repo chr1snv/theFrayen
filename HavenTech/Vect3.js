@@ -133,6 +133,12 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 	v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
 	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
+function Vect_LERP( v, v1, v2, v2W ){
+	const v1W = 1.0-v2W;
+	for( let i = 0; i < v1.length; ++i){
+		v[i] = v1[i] * v1W + v2[i]*v2W;
+	}
+}
 
 function Vect3_minMax( m, M, v ){
 	m[0] = m[0] < v[0] ? m[0] : v[0];

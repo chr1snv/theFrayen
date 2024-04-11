@@ -133,12 +133,12 @@ function debugToggle(){
 
 let settingsButtonElm = document.getElementById('showSettings');
 let settingsTableElm = document.getElementById('settingsTable');
-let orientationTextDiv = document.getElementById('orientationText');
+let orientationTextDiv = document.getElementById('orientationTextDiv');
 function showHideSettings(){
 	if( settingsTableElm.style.display == "none" ){
 		settingsTableElm.style.display="contents";
 		settingsButtonElm.innerHTML = "V Settings";
-		orientationTextDiv.style.display="contents";
+		orientationTextDiv.style.display="inline-block";
 	}else{
 		orientationTextDiv.style.display="none";
 		settingsTableElm.style.display="none";
@@ -407,6 +407,9 @@ let relMx;
 let relMy;
 let camRotUpdate = new Float32Array(3);
 
+let camLocDiv = document.getElementById("camLoc");
+let camRotDiv = document.getElementById("camRot");
+
 let camLoc = Vect3_NewZero();
 let camRot = Vect3_NewZero();
 let lastUpdateCameraTime = 0;
@@ -446,15 +449,15 @@ function UpdateCamera( updateTime )
 	mX += touch.lookDelta[0]*touchLookSenValue;
 	mY += touch.lookDelta[1]*touchLookSenValue;
 
-	camRotUpdate[0] = mX*Math.PI/180;
-	camRotUpdate[1] = mY*Math.PI/180;
-	camRotUpdate[2] = 0;
+	camRotUpdate[0] = -mY*Math.PI/180;
+	camRotUpdate[1] = 0;
+	camRotUpdate[2] = -mX*Math.PI/180;
 	mCoordDelta.x = mCoordDelta.y = 0;
 	
 	if( keys[keyCodes.KEY_Q] == true )
-		camRotUpdate[2] -= moveAmt*3*updateCameraTimeDelta;
+		camRotUpdate[1] -= moveAmt*3*updateCameraTimeDelta;
 	if( keys[keyCodes.KEY_E] == true )
-		camRotUpdate[2] += moveAmt*3*updateCameraTimeDelta;
+		camRotUpdate[1] += moveAmt*3*updateCameraTimeDelta;
 	
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
@@ -465,9 +468,8 @@ function UpdateCamera( updateTime )
 		//update the camera position / orientation text
 		cam.getLocation(camLoc);
 		cam.getRotation(camRot);
-		document.getElementById("orientationText").childNodes[1].textContent =
-			"with camera " + Vect_FixedLenStr( camLoc, 2, 6 ) + " location " + 
-							 Vect_FixedLenStr( camRot, 2, 6 ) + " rotation";
+		camLocDiv.textContent = Vect_FixedLenStr( camLoc, 2, 6 );
+		camRotDiv.textContent = Vect_FixedLenStr( camRot, 2, 6 );
 	}
 
 	//send the updates to the camera

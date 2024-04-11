@@ -876,8 +876,9 @@ function TreeNode( minCoord, maxCoord, parent ){
 				//let rayIntersectPt = Vect3_NewZero();
 				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( this.rayIntersectPt, ray, minTraceTime );
 				if( rayObIntTime >= 0 ){
+					ray.PointAtTime( this.rayIntersectPt, rayObIntTime+0.0001);
 					retVal[0] = -1;
-					this.objects[0][i].RayIntersect( retVal, ray );
+					this.objects[0][i].RayIntersect( retVal, ray, this.rayIntersectPt );
 					if( retVal[0] > 0 ){
 						this.rayHitsPerFrame++;
 						totalFrameRayHits++;

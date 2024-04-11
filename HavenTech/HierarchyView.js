@@ -328,7 +328,7 @@ function PrintHierarchy( on, nodeName, parn, obSumCnts = undefined ){
 		}else{
 			tr = document.createElement('tr');
 			td = document.createElement('td');
-			td.innerText = minMaxToCSide(on.objects[0][i].AABB) + ":" + vFxLenStr( on.objects[0][i].AABB.minCoord, 2, 3 ) + ":" + Vect_FixedLenStr(on.objects[0][i].AABB.maxCoord, 2, 3 );
+			td.innerText = minMaxToCSide(on.objects[0][i].AABB) + ":" + Vect_FixedLenStr( on.objects[0][i].AABB.minCoord, 2, 3 ) + ":" + Vect_FixedLenStr(on.objects[0][i].AABB.maxCoord, 2, 3 );
 			objSummary.innerText += " " + minMaxToCSide(on.objects[0][i].AABB);
 			tr.appendChild( td );
 			c.appendChild( tr );
