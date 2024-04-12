@@ -831,6 +831,9 @@ function TreeNode( minCoord, maxCoord, parent ){
 	this.boundColor = new Float32Array([0,0,0,0.5]);
 	this.rayExitPoint = Vect3_NewZero();
 	this.rayIntersectPt = Vect3_NewZero();
+	let closestIntTime = Number.MAX_VALUE;
+	let closestRayIntPt = Vect3_NewZero();
+	let closestObjIdx = -1
 	this.Trace = function( retVal, ray, minTraceTime ){
 		//returns data from nearest object the ray intersects
 
@@ -868,6 +871,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 
 
 		//first check if any objects in this node intersect with the ray
+		closestIntTime = Number.MAX_VALUE;
 		for( let i = 0; i < this.objects[0].length; ++i ){
 			//loop through the objects (if one isn't yet loaded, it is ignored)
 			if( ray.lastNode == null || 
@@ -875,16 +879,25 @@ function TreeNode( minCoord, maxCoord, parent ){
 				//check if the ray intersects the object
 				//let rayIntersectPt = Vect3_NewZero();
 				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( this.rayIntersectPt, ray, minTraceTime );
-				if( rayObIntTime >= 0 ){
-					ray.PointAtTime( this.rayIntersectPt, rayObIntTime+0.0001);
-					retVal[0] = -1;
-					this.objects[0][i].RayIntersect( retVal, ray, this.rayIntersectPt );
-					if( retVal[0] > 0 ){
-						this.rayHitsPerFrame++;
-						totalFrameRayHits++;
-						return;
-					} //return the result from the object
+				if( rayObIntTime >= 0 && rayObIntTime < closestIntTime ){
+					closestIntTime = rayObIntTime;
+					closestObjIdx = i;
+					Vect3_Copy( closestRayIntPt, this.rayIntersectPt );
 				}
+			}
+		}
+		if( closestIntTime < Number.MAX_VALUE ){
+			ray.PointAtTime( closestRayIntPt, closestIntTime+0.0001);
+			retVal[0] = -1;
+			this.objects[0][closestObjIdx].RayIntersect( retVal, ray, closestRayIntPt );
+			if( retVal[0] > 0 ){
+				this.rayHitsPerFrame++;
+				totalFrameRayHits++;
+				return;
+			} //return the result from the object
+			else{
+				if( this.root.name[0] != "u" )
+					DTPrintf("closest int time obj missed", "trace error");
 			}
 		}
 
