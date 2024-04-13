@@ -146,21 +146,13 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//this.aabbPoint = new Float32Array(3);
 	//let aabbTime = 0;
 	this.RayIntersect = function(retVal, ray, aabbPoint){
-	/*
-		aabbTime = this.quadmesh.AABB.RayIntersects( this.aabbPoint, ray, 0 );
-		if( aabbTime > 0 ){
-			//ray.PointAtTime( this.aabbPoint, aabbTime + 0.001 );
-			//since the ray intersects the aabb, check faces 
-			//of the mesh if the ray intersects, if it does, return the
-			//ray distance, normal, and color of the the ray hit
-			
-			//if( this.quadmesh != null ){
-			*/
-				this.quadmesh.GetRayIntersection( retVal, ray, aabbPoint );
-			//}
-		//}else{
-		//	DTPrintf("not passing model inner RayIntersectTest", "ot traceError" );
-		//}
+		
+		//since the ray intersects the aabb, check faces 
+		//of the mesh if the ray intersects, if it does, return the
+		//ray distance, normal, and color of the the ray hit
+		
+		this.quadmesh.GetRayIntersection( retVal, ray, aabbPoint );
+		
 	}
 	
 	this.PrintHierarchy = function(name, par){

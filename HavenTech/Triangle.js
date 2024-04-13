@@ -132,8 +132,8 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//triangle space z (cross product) triangle space x -> triangle space y )
 
 		rayNormLZ =  ray.norm[0]*this.triZW[0]+ray.norm[1]*this.triZW[1]+ray.norm[2]*this.triZW[2];
-		//if( rayNormLZ > 0 ) //backface culling (triangles not towards ray)
-		//	return -1;
+		if( rayNormLZ < 0 ) //backface culling (triangles not towards ray)
+			return -1;
 
 		//get the vector to the ray start from the triangle origin
 		triToRayOriW[0] = ray.origin[0] - this.v1W[0];

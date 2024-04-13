@@ -895,10 +895,10 @@ function TreeNode( minCoord, maxCoord, parent ){
 				totalFrameRayHits++;
 				return;
 			} //return the result from the object
-			else{
-				if( this.root.name[0] != "u" )
-					DTPrintf("closest int time obj missed", "trace error");
-			}
+			//else{
+			//	if( this.root.name[0] != "u" )
+			//		DTPrintf("closest int time obj missed", "trace error");
+			//}
 		}
 
 		//get a point along the ray inside the next node

@@ -287,41 +287,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retDisNormCol[3] = this;
-		startNode = this.octTree.SubNode( rayAabbIntPoint );
-		if( startNode )
-			startNode.Trace( retDisNormCol, ray, 0 );
-		//if( retVal[0] < 0 )
-		//	this.octTree.Trace( retVal, ray, 0 );
-/*
-		//check all faces of the mesh if the ray intersects
-		for( let f = 0; f < this.faces.length; ++f ){
-			//each face should have 3 or 4 verticies
-			face = this.faces[f];
-			for( let t = 0; t < face.tris.length; ++t ){
-				tri = face.tris[t];
-				//let pointL = new Float32Array(3);
-				retVal[0] = tri.RayTriangleIntersection( retVal[1], ray );
-				if( retVal[0] > 0 ){
-					//the ray intersects the triangle, find the uv coordinate
-					//retVal[2] = this.materials[face.materialID].diffuseCol;
-					tri.UVCoordOfPoint( uvCoord, tri.pointL );
-					this.GetMaterialColorAtUVCoord( retVal[2], uvCoord, face.materialID );
-					//retVal[1] = tri.triZW;
-					return;
-				}
-			}
-		} //end this.faces.length loop
-*/
+		this.octTree.Trace( retDisNormCol, ray, 0 );
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
-		/*
-		color[0] = uv[0];
-		color[1] = uv[1];
-		color[2] = 0;
-		color[3] = 1;
-		return;// [uv[0], uv[1], 0, 1]; 
-		*/
 		//method from rasterization was to asynchronously load the material
 		//and bind it, impractical for query based rays where each ray
 		//may reach a different material

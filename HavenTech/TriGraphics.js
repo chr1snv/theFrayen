@@ -87,8 +87,6 @@ function TriGraphics(loadCompleteCallback){
 		uvs[4*2+0] = maxUv[0]; uvs[4*2+1] = minUv[1]; //right bottom
 		uvs[5*2+0] = minUv[0]; uvs[5*2+1] = minUv[1]; //left  bottom
 		
-		
-		this.triProgram.setVec4Uniform('color', [1,0,1]);
 
 		this.triProgram.vertexAttribSetFloats( 'position',  3, verts );
 		//CheckGLError("draw square, after position attributeSetFloats");

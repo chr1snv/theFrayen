@@ -36,6 +36,8 @@ const enabledDebugTags = {
 	"interpen":0,
 	"detc additional":0,
 	
+	"trace error":0,
+	
 	"unsubdiv":0,
 	
 	"linvel":0,
