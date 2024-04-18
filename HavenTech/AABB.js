@@ -95,8 +95,8 @@ function AABB( minCorner, maxCorner ){
 	}
 	*/
 	
-	
-	this.UpdateMinMaxCenter( minCorner, maxCorner );
+	if( minCorner != undefined )
+		this.UpdateMinMaxCenter( minCorner, maxCorner );
 	
 	
 	//am and aM are the min and max of the other aabb or object checked

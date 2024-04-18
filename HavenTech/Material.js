@@ -62,6 +62,7 @@ function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallbac
 										parseFloat( temp[3] ) ];
 					*/
 					//thisP.diffuseMix =	parseFloat( temp[4] );
+					thisP.diffuseMix = 1;
 				}
 				if( temp[0] == 'specMixHrd' ){ //read in specular color
 					thisP.specularMix		=	parseFloat( temp[1] );

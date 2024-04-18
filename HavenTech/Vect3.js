@@ -40,10 +40,17 @@ function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] =
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
 
 function Vect3_Copy(v1, v2) { v1[0] = v2[0]; v1[1] = v2[1]; v1[2] = v2[2]; }
+function Vect3_CopyFromArr(v, arr, i){ v[0] = arr[i]; v[1] = arr[i+1]; v[2] = arr[i+2]; }
 
 function Vect3_Add(v1, v2) { v1[0] += v2[0]; v1[1] += v2[1]; v1[2] += v2[2]; }
 
 function Vect3_Subtract(v1, v2) { v1[0] -= v2[0]; v1[1] -= v2[1]; v1[2] -= v2[2]; }
+function Vect3_SubFromArr(v, arr, i){ v[0] -= arr[i]; v[1] -= arr[i+1]; v[2] -= arr[i+2]; }
+function Vect3_DiffFromArr(v, v1, arr, i){ 
+	v[0] = v1[0] - arr[i];
+	v[1] = v1[1] - arr[i+1];
+	v[2] = v1[2] - arr[i+2]; 
+}
 
 function Vect3_Multiply(v1, v2) { v1[0] *= v2[0]; v1[1] *= v2[1]; v1[2] *= v2[2]; }
 
@@ -133,10 +140,16 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 	v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
 	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
-function Vect_LERP( v, v1, v2, v2W ){
+function Vect_LERP( v, vArr, v1, v2, v2W ){
 	const v1W = 1.0-v2W;
-	for( let i = 0; i < v1.length; ++i){
-		v[i] = v1[i] * v1W + v2[i]*v2W;
+	for( let i = 0; i < v.length; ++i){
+		v[i] = vArr[v1+i] * v1W + vArr[v2+i]*v2W;
+	}
+}
+function Vect_LERPAdd( v, vArr, v1, v2W ){
+	const v1W = 1.0-v2W;
+	for( let i = 0; i < v.length; ++i){
+		v[i] = v[i] * v1W + vArr[v1+i]*v2W;
 	}
 }
 
@@ -148,6 +161,15 @@ function Vect3_minMax( m, M, v ){
 	M[0] = M[0] > v[0] ? M[0] : v[0];
 	M[1] = M[1] > v[1] ? M[1] : v[1];
 	M[2] = M[2] > v[2] ? M[2] : v[2];
+}
+function Vect3_minMaxFromArr( m, M, arr, i ){
+	m[0] = m[0] < arr[i+0] ? m[0] : arr[i+0];
+	m[1] = m[1] < arr[i+1] ? m[1] : arr[i+1];
+	m[2] = m[2] < arr[i+2] ? m[2] : arr[i+2];
+	
+	M[0] = M[0] > arr[i+0] ? M[0] : arr[i+0];
+	M[1] = M[1] > arr[i+1] ? M[1] : arr[i+1];
+	M[2] = M[2] > arr[i+2] ? M[2] : arr[i+2];
 }
 
 function Vect3_parse( v, lnPrts, sIdx ){

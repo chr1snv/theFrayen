@@ -7,20 +7,24 @@ class Face { //part of mesh stored in mesh octTree
 	constructor(){
 		this.uid        = NewUID( );
 		this.materialID = 0;
-		this.uvs        = [];
-		this.vertIdxs   = [];
-		this.tris       = [];
-		this.AABB       = null;
+		this.uvs        = new Array(4*2);
+		this.vertIdxs   = new Array(4).fill(-1);
+		this.triIdxs    = new Array(2).fill(-1);
+		this.AABB       = new AABB();
 		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
 		this.treeNodes  = {};
 	}
 	GetAABB(){ return this.AABB; }
-	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[3] is the quadmesh for getmaterialcolor
-		for(let i = 0; i < this.tris.length; ++i ){
-			retDisNormCol[0] = this.tris[i].RayTriangleIntersection( retDisNormCol[1], ray );
+	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
+		for( let i = 0; i < this.triIdxs.length; ++i ){
+			if( this.triIdxs[i] == -1 )
+				break;
+			let qMesh = retDisNormCol[3];
+			let tri = qMesh.tris[this.triIdxs[i]];
+			retDisNormCol[0] = tri.RayTriangleIntersection( retDisNormCol[1], ray, qMesh.transformedVerts, this.vertIdxs[i*2] );
 			if( retDisNormCol[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
-				this.tris[i].UVCoordOfPoint( uvCoord, this.tris[i].pointL );
-				retDisNormCol[3].GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
+				tri.UVCoordOfPoint( uvCoord, tri.pointL, this );
+				qMesh.GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
 				return;}
 		}
 	}
@@ -50,6 +54,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.materials         = [];
 
 	//the mesh data
+	this.tris            = [];
 	this.faces           = [];
 	this.faceVertsCt     = 0;
 	this.vertPositions   = null;
@@ -195,82 +200,50 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		}
 	}
 
-	//generate world space triangles from a face index
-	//the world position verts of the face
-	let vertVect3s = [ new Float32Array(3), new Float32Array(3), new Float32Array(3), new Float32Array(3) ];
-	let vert = new Float32Array(3);
-	let uv0 = new Float32Array(2);
-	let uv1 = new Float32Array(2);
-	let uv2 = new Float32Array(2);
+	//generate local space triangles from a face index
+	let vertIdxs = new Array(4);
+	let uvIdxs = new Array(4);
+	//let uv0 = new Float32Array(2);
+	//let uv1 = new Float32Array(2);
+	//let uv2 = new Float32Array(2);
 	let minf = Vect3_NewScalar(  999999 );
 	let maxf = Vect3_NewScalar( -999999 );
-	this.UpdateFaceAABBAndGenerateTriangles = function(/*min, max,*/ f){
+	this.UpdateFaceAABBAndTriangles = function( f ){
 		const face = this.faces[f];
 		const numFaceVerts = face.vertIdxs.length;
-		
-		this.faces[f].tris = []; //clear previously calculated triangles
 		
 		//initialized to opposite extrema to accept any value at first
 		Vect3_SetScalar( minf,  999999 );
 		Vect3_SetScalar( maxf, -999999 );
 		
 		for( let v = 0; v < numFaceVerts; ++v ){
-			//get the vert local position and transform it to world position
-			vert[0] = this.transformedVerts[ face.vertIdxs[v]*3 + 0 ];
-			vert[1] = this.transformedVerts[ face.vertIdxs[v]*3 + 1 ];
-			vert[2] = this.transformedVerts[ face.vertIdxs[v]*3 + 2 ];
-			Matrix_Multiply_Vect3( vertVect3s[v], this.toWorldMatrix, vert);
-			
-			Vect3_minMax( minf, maxf, vert );
-			//min[0] = min[0] > vert[0] ? vert[0] : min[0];
-			//min[1] = min[1] > vert[1] ? vert[1] : min[1];
-			//min[2] = min[2] > vert[2] ? vert[2] : min[2];
-			
-			//max[0] = max[0] < vert[0] ? vert[0] : max[0];
-			//max[1] = max[1] < vert[1] ? vert[1] : max[1];
-			//max[2] = max[2] < vert[2] ? vert[2] : max[2];
+			Vect3_minMaxFromArr( minf, maxf, this.transformedVerts, face.vertIdxs[v]*vertCard );
 		}
-		this.faces[f].AABB =  new AABB( minf, maxf );
-		this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
+		face.AABB.UpdateMinMaxCenter( minf, maxf );
+		//this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
 		
-		//construct the triangles (maybe should add uv's when constructing)
-		
-		uv0[0] = face.uvs[0*2+0]; uv0[1] = face.uvs[0*2+1];
-		uv1[0] = face.uvs[1*2+0]; uv1[1] = face.uvs[1*2+1];
-		uv2[0] = face.uvs[2*2+0]; uv2[1] = face.uvs[2*2+1];
-		face.tris.push( 
-		 new Triangle( vertVect3s[0], vertVect3s[1], vertVect3s[2], uv0, uv1, uv2 ) );
-		if( numFaceVerts > 3 ){ //if face is a quad generate second triangle
-			uv0[0] = face.uvs[2*2+0]; uv0[1] = face.uvs[2*2+1];
-			uv1[0] = face.uvs[3*2+0]; uv1[1] = face.uvs[3*2+1];
-			uv2[0] = face.uvs[0*2+0]; uv2[1] = face.uvs[0*2+1];
-			face.tris.push( 
-			new Triangle( vertVect3s[2], vertVect3s[3], vertVect3s[0], uv0, uv1, uv2 ) );
+		//re-setup the triangles local space verts
+		for( let t = 0; t < face.triIdxs.length; ++t){
+			if( face.triIdxs[t] < 0)
+				break;
+			let tri = this.tris[face.triIdxs[t]];
+			tri.Setup( t, face, this.transformedVerts );
 		}
 
 	}
 	//let faceMin = new Float32Array(3);
 	//let faceMax = new Float32Array(3);
 	this.UpdateOctTree = function(octUpdateCmpCallback){
-		//update the oct tree of faces for the current time
-		//to minimize number of triangle ray intersection tests
+		//update the local space oct tree of faces for the current time
+		//to minimize triangle ray intersection tests
 		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
 		this.octTree.name = this.meshName + " quadMesh";
-
-		//this.worldMinCorner[0]=999999;this.worldMinCorner[1]=999999;this.worldMinCorner[2]=999999;
-		//this.worldMaxCorner[0]=-999999;this.worldMaxCorner[1]=-999999;this.worldMaxCorner[2]=-999999;
-
-		for( var f = 0; f < this.faces.length; ++f ){
+		
+		
+		for( let f = 0; f < this.faces.length; ++f ){
 			//get an aabb around the face and insert it into an oct tree
-			this.UpdateFaceAABBAndGenerateTriangles( /*faceMin, faceMax,*/ f );
-			//this.worldMinCorner[0] = Math.min( faceMin[0], this.worldMinCorner[0] );
-			//this.worldMinCorner[1] = Math.min( faceMin[1], this.worldMinCorner[1] );
-			//this.worldMinCorner[2] = Math.min( faceMin[2], this.worldMinCorner[2] );
-
-			//this.worldMaxCorner[0] = Math.max( faceMax[0], this.worldMaxCorner[0] );
-			//this.worldMaxCorner[1] = Math.max( faceMax[1], this.worldMaxCorner[1] );
-			//this.worldMaxCorner[2] = Math.max( faceMax[2], this.worldMaxCorner[2] );
-
+			this.UpdateFaceAABBAndTriangles( f );
+			
 			let nLvsMDpth = [0, 0];
 			subDivAddDepth = 0;
 			this.octTree.AddObject(nLvsMDpth, this.faces[f]);
@@ -280,10 +253,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	//called during ray trace rendering
 	//returns the ray distance, surface normal, and color at the intersection pt
-	let face;
-	let tri;
-	let startNode;
-	this.GetRayIntersection = function(retDisNormCol, ray, rayAabbIntPoint){
+	//let face;
+	//let tri;
+	//let startNode;
+	this.GetRayIntersection = function( retDisNormCol, ray ){
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retDisNormCol[3] = this;
@@ -314,14 +287,31 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	{	
 		let meshFileLines = meshFile.split('\n');
 		
-		let vertIdx = 0;
-
+		
 		let numVerts = 0; //value to check for errors
 		let faceCt = 0;
-		for( var mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
+		let triCt = 0;
+		
+		let vertIdx = 0;
+		let fIdx = 0;
+		let tIdx = 0;
+		
+		let temp = meshFileLines[meshFileLines.length-2];
+		let words = temp.split(' ');
+		if( temp[0] == 'c' && temp[1] == 't' ){
+			triCt = words[1];
+			thisP.tris = new Array(triCt);
+			for( let i = 0; i < triCt; ++i )
+				thisP.tris[i] = new Triangle();
+		}else{
+			DTPrintf("error parsing tri count " + thisP.meshName, "quadM parse error");
+			return;
+		}
+		
+		for( let mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
 		{
-			let temp = meshFileLines[mLIdx];
-			let words = temp.split(' ');
+			temp = meshFileLines[mLIdx];
+			words = temp.split(' ');
 
 			//read in the mesh transformation matrix (translate, scale, rotate)
 			if( temp[0] == 'm' )
@@ -354,8 +344,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			//read in the number of vertices
 			else if( temp[0] == 'c' && temp[1] == 'v' ){
 				numVerts = words[1];
-				thisP.vertPositions = new Float32Array( numVerts * graphics.vertCard );
-				thisP.vertNormals = new Float32Array( numVerts * graphics.vertCard );
+				thisP.vertPositions = new Float32Array( numVerts * vertCard );
+				thisP.vertNormals = new Float32Array( numVerts * vertCard );
 			}
 
 			//read in a vertex
@@ -380,13 +370,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				thisP.vertNormals[vertIdx-1] = parseFloat(words[3]);
 
 				//read in the bone weights until the end of the vertex
-				var boneWeights = {};
+				let boneWeights = {};
 				while( ++mLIdx < meshFileLines.length ){
 					temp = meshFileLines[mLIdx];
 					words = temp.split(' ');
 					if( temp[0] == 'w' ){
-						var boneName = words[1];
-						var boneWeight = parseFloat(words[2]);
+						let boneName = words[1];
+						let boneWeight = parseFloat(words[2]);
 						boneWeights[boneName] = boneWeight;}
 					else if( temp[0] == 'e')
 						break; //done reading the vertex
@@ -397,11 +387,14 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			//read in the number of faces
 			else if( temp[0] == 'c' && temp[1] == 'f' ){
 				faceCt = words[1];
+				thisP.faces = new Array(faceCt);
+				for( let i = 0; i < faceCt; ++i )
+					thisP.faces[i] = new Face();
 			}
-
+			
 			//read in a face
 			else if( temp[0] == 'f' ){
-				var newFace = new Face();
+				let newFace = thisP.faces[fIdx++];
 				while( ++mLIdx < meshFileLines.length ){
 					temp = meshFileLines[mLIdx];
 					words = temp.split(' ');
@@ -412,9 +405,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 					//read in the vertex idx's of the face
 					if( temp[0] == 'v' ){
-						var numFaceVerts = 0;
-						for( let vertNumIdx = 1; 
-							vertNumIdx < words.length; ++vertNumIdx ){
+						let numFaceVerts = words.length - 1;
+						for( let vertNumIdx = 1;
+								vertNumIdx < words.length; ++vertNumIdx ){
 							let fvertIdx = parseFloat(words[vertNumIdx]);
 							if( fvertIdx < 0 || fvertIdx > numVerts ){
 								DPrintf( 'QuadMesh: ' + thisP.meshName +
@@ -424,14 +417,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 										' is out of range.' );
 								return;
 							}
-							newFace.vertIdxs.push(fvertIdx);
-							++numFaceVerts;
+							newFace.vertIdxs[vertNumIdx-1] = fvertIdx;
 						}
-						if(numFaceVerts == 3)
+						if(numFaceVerts == 3){
 							thisP.faceVertsCt += 3;
-						else if(numFaceVerts == 4)
+							thisP.tris[tIdx].Setup( 0, thisP.faces[fIdx-1], thisP.vertPositions );
+							newFace.triIdxs[0] = tIdx++;
+						}
+						else if(numFaceVerts == 4){
 							thisP.faceVertsCt += 6; //since will have to tesselate
-						else{
+							thisP.tris[tIdx].Setup( 0, thisP.faces[fIdx-1], thisP.vertPositions );
+							newFace.triIdxs[0] = tIdx++;
+							thisP.tris[tIdx].Setup( 1, thisP.faces[fIdx-1], thisP.vertPositions );
+							newFace.triIdxs[1] = tIdx++;
+						}else{
 							DPrintf( 'QuadMesh: ' + thisP.meshName + 
 									'reading face: ' +
 									(thisP.faces.length-1).toString()  +
@@ -443,13 +442,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 					//read in the face texture coords
 					if( temp[0] == 'u' ){
-						for( var uvIdx = 1; uvIdx < words.length; uvIdx += 2 ){
-							var u = parseFloat(words[uvIdx]);
-							var v = parseFloat(words[uvIdx+1]);
+						for( let wuvIdx = 1; wuvIdx < words.length; wuvIdx += 2 ){
+							let u = parseFloat(words[wuvIdx]);
+							let v = parseFloat(words[wuvIdx+1]);
 							//v = 1.0 - v; 
 							// flip the texture vertically if necessay
-							newFace.uvs.push(u);
-							newFace.uvs.push(v);
+							newFace.uvs[wuvIdx-1]   = u; //parse idx is +1
+							newFace.uvs[wuvIdx] = v;
 						}
 					}
 
@@ -462,12 +461,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 									' uv\'s, but got: ' + newFace.uvs.length/2 );
 							//return;
 						}
-						thisP.faces.push(newFace);
 						break;
 					}
 				}
 			}
 		}
+		
 
 		if( !(Math.abs(thisP.vertPositions.length - numVerts*3) < 0.01) )
 			DPrintf("Quadmesh: verts read mismatch\n");
@@ -478,8 +477,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 		//copy the normals and verticies into a float32 array 
 		//for compatibility with gl
-		thisP.vertPostions = new Float32Array(thisP.vertPositions);
-		thisP.vertNormals  = new Float32Array(thisP.vertNormals);
+		//thisP.vertPostions = new Float32Array(thisP.vertPositions);
+		//thisP.vertNormals  = new Float32Array(thisP.vertNormals);
 
 		//initialize the animation
 		if( thisP.ipoAnimation.isValid || 

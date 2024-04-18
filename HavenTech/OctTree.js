@@ -830,11 +830,26 @@ function TreeNode( minCoord, maxCoord, parent ){
 	this.nextNodeRayPoint = Vect3_NewZero();
 	this.boundColor = new Float32Array([0,0,0,0.5]);
 	this.rayExitPoint = Vect3_NewZero();
-	this.rayIntersectPt = Vect3_NewZero();
-	let closestIntTime = Number.MAX_VALUE;
-	let closestRayIntPt = Vect3_NewZero();
-	let closestObjIdx = -1
-	this.Trace = function( retVal, ray, minTraceTime ){
+	let rayIntPt = Vect3_NewZero();
+	function RayAABBIntrs(){
+		this.intTime = Number.MAX_VALUE;
+		//this.intPt = Vect3_NewZero();
+		this.objIdx = -1;
+	}
+	function compRAIntr( a, b ){
+		return a.intTime > b.intTime;
+	}
+	let objInts = new Array(MaxTreeNodeObjects);
+	for( let i = 0; i < MaxTreeNodeObjects; ++i )
+		objInts[i] = new RayAABBIntrs();
+	function resetObjInts(){
+		for( let i = 0; i < MaxTreeNodeObjects; ++i )
+			objInts[i].intTime = Number.MAX_VALUE;
+	}
+	//let closestIntTime = Number.MAX_VALUE;
+	//let closestRayIntPt = Vect3_NewZero();
+	let closestObjIdx = 0;
+	this.Trace = function( retDisNormCol, ray, minTraceTime ){
 		//returns data from nearest object the ray intersects
 
 		if( !this.enabled )
@@ -865,32 +880,40 @@ function TreeNode( minCoord, maxCoord, parent ){
 		if( rayExitStep < 0 ){ 
 			//somehow the ray started outside of this node and didn't intersect
 			//with it
-			retVal[0] = -1;
+			retDisNormCol[0] = -1;
 			return;
 		} //ray has exited the entire oct tree
 
 
 		//first check if any objects in this node intersect with the ray
-		closestIntTime = Number.MAX_VALUE;
+		//closestIntTime = Number.MAX_VALUE;
+		resetObjInts();
 		for( let i = 0; i < this.objects[0].length; ++i ){
 			//loop through the objects (if one isn't yet loaded, it is ignored)
 			if( ray.lastNode == null || 
 				ray.lastNode.objectDictionary[ this.objects[0][i].uid.val ] == null ){ //don't recheck if checked last node
 				//check if the ray intersects the object
 				//let rayIntersectPt = Vect3_NewZero();
-				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( this.rayIntersectPt, ray, minTraceTime );
-				if( rayObIntTime >= 0 && rayObIntTime < closestIntTime ){
-					closestIntTime = rayObIntTime;
-					closestObjIdx = i;
-					Vect3_Copy( closestRayIntPt, this.rayIntersectPt );
+				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( rayIntPt, ray, minTraceTime );
+				if( rayObIntTime >= 0 ){
+					objInts[i].intTime = rayObIntTime;
+					objInts[i].objIdx = i;
 				}
 			}
 		}
-		if( closestIntTime < Number.MAX_VALUE ){
-			ray.PointAtTime( closestRayIntPt, closestIntTime+0.0001);
-			retVal[0] = -1;
-			this.objects[0][closestObjIdx].RayIntersect( retVal, ray, closestRayIntPt );
-			if( retVal[0] > 0 ){
+		//sort the object aabb intersections by ray time 
+		//(if there are aabb overlaps and the order of the objects
+		//inside them are different than the closest aab surfaces to the ray
+		//may also need to get multiple RayIntersect results and sort them)
+		objInts.sort( compRAIntr );
+		
+		for( closestObjIdx = 0; 
+			closestObjIdx < MaxTreeNodeObjects && 
+			objInts[closestObjIdx].intTime < Number.MAX_VALUE; 
+			++closestObjIdx ){
+			retDisNormCol[0] = -1;
+			this.objects[0][ objInts[closestObjIdx].objIdx ].RayIntersect( retDisNormCol, ray );
+			if( retDisNormCol[0] > 0 ){
 				this.rayHitsPerFrame++;
 				totalFrameRayHits++;
 				return;
@@ -916,7 +939,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			if( nextTraceNode == null ){ //go up the hierarchy and try again
 				parentNode = parentNode.parent; //up one level
 				if( parentNode == null ){
-					retVal[0] = -1;
+					retDisNormCol[0] = -1;
 					return; //the ray is outside the root node world space
 				}
 			}
@@ -929,11 +952,11 @@ function TreeNode( minCoord, maxCoord, parent ){
 			}
 
 			ray.lastNode = this;
-			return nextTraceNode.Trace( retVal, ray, rayExitStep );
+			return nextTraceNode.Trace( retDisNormCol, ray, rayExitStep );
 		}
 
 		//this shouldn't be reached because of above if parent node == null
-		retVal[0] = -1;
+		retDisNormCol[0] = -1;
 	}
 
 	//to be called when the node is filled with the max number of objects

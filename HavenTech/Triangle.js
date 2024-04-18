@@ -1,75 +1,86 @@
 
-function Triangle( p1, p2, p3, u1, u2, u3 ){
+function Triangle( ){
 	//verticies start with v
 	//edges start with e
 	//ending in W is in world space
 	//ending in L is local ( triangle ) space
-
-	//world space points/verticies of the triangle
-	this.v1W = new Float32Array(3);
-	this.v2W = new Float32Array(3);
-	this.v3W = new Float32Array(3);
-	this.v1W[0] = p1[0];this.v1W[1] = p1[1];this.v1W[2] = p1[2];
-	this.v2W[0] = p2[0];this.v2W[1] = p2[1];this.v2W[2] = p2[2];
-	this.v3W[0] = p3[0];this.v3W[1] = p3[1];this.v3W[2] = p3[2];
-	this.u1 = new Float32Array(2);
-	this.u2 = new Float32Array(2);
-	this.u3 = new Float32Array(2);
-	this.u1[0] = u1[0]; this.u1[1] = u1[1];
-	this.u2[0] = u2[0]; this.u2[1] = u2[1];
-	this.u3[0] = u3[0]; this.u3[1] = u3[1];
-
-	//calculate the world space edge vectors to generate the 
-	//world space surface normal
-	this.e1W = new Float32Array(3);
-	Vect3_Copy( this.e1W, this.v2W );
-	Vect3_Subtract( this.e1W, this.v1W ); //from vert1 to vert2
-	this.e2W = new Float32Array(3);
-	Vect3_Copy( this.e2W, this.v3W ); //from vert1 to vert3
-	Vect3_Subtract( this.e2W, this.v1W );
-	//use edge1 and edge2 to get a vector perpendicular 
-	//to the triangle surface ( the normal )
+	
+	let e1W = new Float32Array(3);
+	let e2W = new Float32Array(3);
+	
 	this.triZW = new Float32Array(3);
-	Vect3_Cross( this.triZW, this.e1W, this.e2W );
-	Vect3_Normal( this.triZW );
-
-	//generate x and y world space component vectors of the local triangle space
 	this.triXW = new Float32Array(3);
-	Vect3_Copy(this.triXW, this.e1W); //avoid e1W norm, it's used in v2L_e1L
-	Vect3_Normal( this.triXW );
 	this.triYW = new Float32Array(3);
-	Vect3_Cross( this.triYW, this.triZW, this.triXW );
-	Vect3_Normal( this.triYW );
-
-	//get vertex positions in local space for uv calculation
-	//this could be done in ray triangle intersection after it is
-	//determined that the uv coordinates should be calculated
-	//though if geometry is static and triangles are cached/kept for
-	//multiple uses it may be better to calculate them once at instantiation
-	//and keep them in memory
-	this.v1L  = new Float32Array(3);
-	this.v1L[0] = 0; this.v1L[1] = 0; this.v1L[2] = 0;
+	
+	this.v1L  = Vect3_NewZero();
 	//because v1 is defined as the triangle origin
 	//v1 in local space is 0,0,0
 	this.v2L_e1L = new Float32Array(3);
-	//this is v2 in local space and also the vector e1L (dot product coord remap)
-	this.v2L_e1L[0] = this.e1W[0]*this.triXW[0]+this.e1W[1]*this.triXW[1]+this.e1W[2]*this.triXW[2];
-	this.v2L_e1L[1] = this.e1W[0]*this.triYW[0]+this.e1W[1]*this.triYW[1]+this.e1W[2]*this.triYW[2];
-	this.v2L_e1L[2] = this.e1W[0]*this.triZW[0]+this.e1W[1]*this.triZW[1]+this.e1W[2]*this.triZW[2];
-
 	this.v3L_e2L  = new Float32Array(3);
-	//this is v3 in local space and also the vector e2L (dot product coord remap)
-	this.v3L_e2L[0] = this.e2W[0]*this.triXW[0]+this.e2W[1]*this.triXW[1]+this.e2W[2]*this.triXW[2];
-	this.v3L_e2L[1] = this.e2W[0]*this.triYW[0]+this.e2W[1]*this.triYW[1]+this.e2W[2]*this.triYW[2];
-	this.v3L_e2L[2] = this.e2W[0]*this.triZW[0]+this.e2W[1]*this.triZW[1]+this.e2W[2]*this.triZW[2];
 	this.e3L = new Float32Array(3);
-	Vect3_Copy( this.e3L, this.v3L_e2L ); //from v3Local to v2Local
-	Vect3_Subtract( this.e3L, this.v2L_e1L );
+	
+	this.i1 = 0;
+	this.i2 = 1;
+	this.i3 = 2;
+	this.Setup = function( fTriIdx, face, vertArr ){
+
+		//world space points/verticies of the triangle (i1, i2, i3)
+		if( fTriIdx == 1 ){
+			this.i1 = 2;
+			this.i2 = 3;
+			this.i3 = 0;
+		}
+		
+		//calculate the world space edge vectors to generate the 
+		//world space surface normal
+		
+		Vect3_CopyFromArr( e1W, vertArr, face.vertIdxs[this.i2]*vertCard );
+		Vect3_SubFromArr( e1W, vertArr, face.vertIdxs[this.i1]*vertCard ); //from vert1 to vert2
+		
+		Vect3_CopyFromArr( e2W, vertArr, face.vertIdxs[this.i3]*vertCard ); //from vert1 to vert3
+		Vect3_SubFromArr( e2W, vertArr, face.vertIdxs[this.i1]*vertCard );
+		//use edge1 and edge2 to get a vector perpendicular 
+		//to the triangle surface ( the normal )
+		
+		Vect3_Cross( this.triZW, e1W, e2W );
+		Vect3_Normal( this.triZW );
+
+		//generate x and y world space component vectors of the local triangle space
+		
+		Vect3_Copy(this.triXW, e1W); //avoid e1W norm, it's used in v2L_e1L
+		Vect3_Normal( this.triXW );
+		
+		Vect3_Cross( this.triYW, this.triZW, this.triXW );
+		Vect3_Normal( this.triYW );
+
+		//get vertex positions in local space for uv calculation
+		//this could be done in ray triangle intersection after it is
+		//determined that the uv coordinates should be calculated
+		//though if geometry is static and triangles are cached/kept for
+		//multiple uses it may be better to calculate them once at instantiation
+		//and keep them in memory
+		
+		
+		//this is v2 in local space and also the vector e1L (dot product coord remap)
+		this.v2L_e1L[0] = Vect3_Dot( e1W, this.triXW );
+		this.v2L_e1L[1] = Vect3_Dot( e1W, this.triYW );
+		this.v2L_e1L[2] = Vect3_Dot( e1W, this.triZW );
+
+		
+		//this is v3 in local space and also the vector e2L (dot product coord remap)
+		this.v3L_e2L[0] = Vect3_Dot( e2W, this.triXW );
+		this.v3L_e2L[1] = Vect3_Dot( e2W, this.triYW );
+		this.v3L_e2L[2] = Vect3_Dot( e2W, this.triZW );
+		
+		Vect3_Copy( this.e3L, this.v3L_e2L ); //from v3Local to v2Local
+		Vect3_Subtract( this.e3L, this.v2L_e1L );
+	
+	}
 
 	//returns the intersection point of a ray and plane ( triangle )
 	//used for finding if / where a ray intersects a triangle
 	let triToRayOriW = new Float32Array(3);
-	this.pointL       = new Float32Array(3);
+	this.pointL      = new Float32Array(3);
 	let rayOriL      = new Float32Array(3);
 	let rayNormL     = new Float32Array(3);
 	let rayNormLZ    = float0; //float 32 value
@@ -79,7 +90,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 	let e1OrthogDotL;
 	let e2OrthogDotL;
 	let e3OrthogDotL;
-	this.RayTriangleIntersection = function( retZW, ray )
+	this.RayTriangleIntersection = function( retZW, ray, vArr, v1WI )
 	{
 		//Definition of a plane - ( 2d flat surface in 3 dimensional space ) 
 		//all points on a plane have (point - planeCenter) dot planeNormal = 0 
@@ -94,24 +105,6 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//coordinate space transformation
 		//the problem is complicated/un clearly solved in world space 
 		//because it depends on where the ray is and it's direction, and the triangle 
-		//I solved it once algebraically using the system of equations for 
-		//the ray and plane (in Drawable's RayIntersectsHull)
-		//and simplifying the equations, but it took a few pages of algebra 
-		//and it's easy to make mistakes
-		//so this time using change of coordinate spaces is the intuition 
-		//to simplifying / solving for the intersection point
-		//changing the problem point of view / persepective to 
-		//the coordinate space of the plane/triangle 
-		//by normalizing the x,y,z axies of the triangle and 
-		//finding the dot product of the ray origin - triangle origin and 
-		//normal with each of the triangle component axies
-		//(setting the triangle origin to 0,0,0 and triangle normal to 0,0,1)
-		//makes the problem solvable with a single linear equation
-		//then the intersection point of the ray is where the 
-		//plane space z coordinate of the ray is zero
-		//(solve y = m x + b for 0) ->  0 = 
-		//ray direction z component * time + ray origin z
-		//time = -(ray origin z) / (ray direction z component)
 
 		//once the intersection point is found
 		//checking if the intersection point is within the bounding edges 
@@ -131,22 +124,20 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//( triangle normal -> triangle space z, v2-v1 triangle space x, 
 		//triangle space z (cross product) triangle space x -> triangle space y )
 
-		rayNormLZ =  ray.norm[0]*this.triZW[0]+ray.norm[1]*this.triZW[1]+ray.norm[2]*this.triZW[2];
-		if( rayNormLZ < 0 ) //backface culling (triangles not towards ray)
-			return -1;
+		rayNormLZ =  Vect3_Dot( ray.norm, this.triZW );
+		//if( rayNormLZ < 0 ) //backface culling (triangles not towards ray)
+		//	return -1;
 
 		//get the vector to the ray start from the triangle origin
-		triToRayOriW[0] = ray.origin[0] - this.v1W[0];
-		triToRayOriW[1] = ray.origin[1] - this.v1W[1];
-		triToRayOriW[2] = ray.origin[2] - this.v1W[2];
+		Vect3_DiffFromArr( triToRayOriW, ray.origin, vArr, v1WI*vertCard );
 
 		//use dot products to transform the ray into triangle space
-		rayOriL[0] = triToRayOriW[0]*this.triXW[0]+triToRayOriW[1]*this.triXW[1]+triToRayOriW[2]*this.triXW[2];
-		rayOriL[1] = triToRayOriW[0]*this.triYW[0]+triToRayOriW[1]*this.triYW[1]+triToRayOriW[2]*this.triYW[2];
-		rayOriL[2] = triToRayOriW[0]*this.triZW[0]+triToRayOriW[1]*this.triZW[1]+triToRayOriW[2]*this.triZW[2];
+		rayOriL[0] = Vect3_Dot( triToRayOriW, this.triXW );
+		rayOriL[1] = Vect3_Dot( triToRayOriW, this.triYW );
+		rayOriL[2] = Vect3_Dot( triToRayOriW, this.triZW );
 
-		rayNormL[0] = ray.norm[0]*this.triXW[0]+ray.norm[1]*this.triXW[1]+ray.norm[2]*this.triXW[2];
-		rayNormL[1] = ray.norm[0]*this.triYW[0]+ray.norm[1]*this.triYW[1]+ray.norm[2]*this.triYW[2];
+		rayNormL[0] = Vect3_Dot( ray.norm, this.triXW );
+		rayNormL[1] = Vect3_Dot( ray.norm, this.triYW );
 		rayNormL[2] = rayNormLZ;
 
 		//since the distance of a point above the triangle is
@@ -181,9 +172,7 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//not a valid intersection point
 
 		//the plane space intersection point is
-		this.pointL[0] = rayNormL[0] * rayDistToPtWL + rayOriL[0];
-		this.pointL[1] = rayNormL[1] * rayDistToPtWL + rayOriL[1];
-		this.pointL[2] = rayNormL[2] * rayDistToPtWL + rayOriL[2];
+		RayPointAtTime( this.pointL, rayOriL, rayNormL, rayDistToPtWL);
 		//the triangle space intersection point z coordinate should be 0
 
 		//check if the position on the plane is within the triangle edges
@@ -241,17 +230,8 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		return rayDistToPtWL;//[ this.rayDistToPtWL, this.triZW, this.pointL ];
 	}
 
-	let vNormL = new Float32Array(3); 
-	let vDiff = new Float32Array(3);
-	let v1Dist;
-	let v2Dist;
-	let v3Dist;
-	let maxContrib;
-	let totalCoordContrib;
-	let v1UvAmt;
-	let v2UvAmt;
-	let u3UvAmt;
-	this.UVCoordOfPoint = function( uv, lpoint ){
+	let vNormL = new Float32Array(3);
+	this.UVCoordOfPoint = function( uv, lpoint, face ){
 		//calculate the uv coordinates of the intersection point
 		//by interpolating between given uv coordinates of verticies
 		//based on how far the point is to each vertex in local triangle space
@@ -261,8 +241,8 @@ function Triangle( p1, p2, p3, u1, u2, u3 ){
 		//closer to y = 1 is v3's uv
 		//y = 0 is x lerp between v1 and 2
 		//max x at y is y val
-		Vect_LERP( uv, this.u2, this.u1, (1-vNormL[0])/(vNormL[1]) );
-		Vect_LERP( uv, uv,  this.u3, (1-vNormL[1]) );
+		Vect_LERP( uv, face.uvs, this.i2*uvCard, this.i1*uvCard, (1-vNormL[0])/(vNormL[1]) );
+		Vect_LERPAdd( uv, face.uvs, this.i3*uvCard, (1-vNormL[1]) );
 		
 	}
 

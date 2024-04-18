@@ -34,6 +34,11 @@ function RayRayIntersection( o1, d1, o2, d2 ){
 	return num / denom;
 }
 
+function RayPointAtTime(point, ori, norm, t){
+	point[0] = norm[0] * t + ori[0];
+	point[1] = norm[1] * t + ori[1];
+	point[2] = norm[2] * t + ori[2];
+}
 
 function Ray(origin, direction){
 	this.origin    = origin;

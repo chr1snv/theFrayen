@@ -24,7 +24,11 @@ function CheckGLError(where){
 return false;
 }
 
-
+//globally used constants
+const vertCard     = 3;
+const normCard     = 3;
+const uvCard       = 2;
+const matrixCard   = 4*4;
 
 function Graphics( canvasIn, loadCompleteCallback ){
 	this.canvas = canvasIn;
@@ -56,13 +60,6 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.colorMaterialEnb = false;
 	this.depthMaskEnb     = false;
 	this.depthTestEnb     = false;
-	
-
-	//globally used constants
-	this.vertCard     = 3;
-	this.normCard     = 3;
-	this.uvCard       = 2;
-	this.matrixCard   = 4*4;
 
 	//for clearing the color buffer
 	this.Clear = function(){
