@@ -7,6 +7,7 @@ class Face { //part of mesh stored in mesh octTree
 	constructor(){
 		this.uid        = NewUID( );
 		this.materialID = 0;
+		this.numFaceVerts = 0;
 		this.uvs        = new Array(4*2);
 		this.vertIdxs   = new Array(4).fill(-1);
 		this.triIdxs    = new Array(2).fill(-1);
@@ -210,20 +211,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	let maxf = Vect3_NewScalar( -999999 );
 	this.UpdateFaceAABBAndTriangles = function( f ){
 		const face = this.faces[f];
-		const numFaceVerts = face.vertIdxs.length;
 		
 		//initialized to opposite extrema to accept any value at first
 		Vect3_SetScalar( minf,  999999 );
 		Vect3_SetScalar( maxf, -999999 );
 		
-		for( let v = 0; v < numFaceVerts; ++v ){
+		for( let v = 0; v < face.numFaceVerts; ++v ){
 			Vect3_minMaxFromArr( minf, maxf, this.transformedVerts, face.vertIdxs[v]*vertCard );
 		}
 		face.AABB.UpdateMinMaxCenter( minf, maxf );
 		//this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
 		
 		//re-setup the triangles local space verts
-		for( let t = 0; t < face.triIdxs.length; ++t){
+		for( let t = 0; t < face.numFaceVerts/vertCard; ++t){
 			if( face.triIdxs[t] < 0)
 				break;
 			let tri = this.tris[face.triIdxs[t]];
@@ -406,8 +406,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 					//read in the vertex idx's of the face
 					if( temp[0] == 'v' ){
 						let numFaceVerts = words.length - 1;
-						for( let vertNumIdx = 1;
-								vertNumIdx < words.length; ++vertNumIdx ){
+						newFace.numFaceVerts = numFaceVerts;
+						let vertNumIdx = 1;
+						for( ; vertNumIdx < words.length; ++vertNumIdx ){
 							let fvertIdx = parseFloat(words[vertNumIdx]);
 							if( fvertIdx < 0 || fvertIdx > numVerts ){
 								DPrintf( 'QuadMesh: ' + thisP.meshName +
@@ -419,6 +420,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 							}
 							newFace.vertIdxs[vertNumIdx-1] = fvertIdx;
 						}
+						
 						if(numFaceVerts == 3){
 							thisP.faceVertsCt += 3;
 							thisP.tris[tIdx].Setup( 0, thisP.faces[fIdx-1], thisP.vertPositions );

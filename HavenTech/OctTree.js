@@ -254,16 +254,20 @@ function TreeNode( minCoord, maxCoord, parent ){
 			}
 			object.treeNodes[ this.uid.val ] = this; //link this to the object so it knows where to remove itself from later
 		}else{
-			DTPrintf( "add failed otName " + this.root.name + " obj concentiric overlap obj " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + " objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) +
+			DTPrintf( "add failed otName " + this.root.name + " obj concentiric overlap \n" +
+			"obj " + object.uid.val + "name " + object.name + 
+			" objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + 
+			" objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) + "\n" +
 				" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length + " cocenDist " + cocenDist + "\n" +
-				"cocenObjUid " + cocenObj.uid.val +
+				"cocenObjUid " + cocenObj.uid.val + " name " + cocenObj.name +
 				" cocenObjMin " + Vect_FixedLenStr( cocenObj.AABB.minCoord, 2, 6 ) + 
 				" cocenObjMax " + Vect_FixedLenStr( cocenObj.AABB.maxCoord, 2, 6 )
 				, "ot add error", "color:red", this.depth );
 			nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
 		}
 		
-		DTPrintf( "addToThisNode success obj " + object.uid.val + " " + traceAddedTo(this), "ot add", "color:green", this.depth );
+		DTPrintf( "addToThisNode success obj " + object.uid.val + " " + traceAddedTo(this), 
+		"ot add", "color:green", this.depth );
 		
 		//for quickly checking if an object is present
 		this.objectDictionary[ object.uid.val ] = object;
