@@ -98,6 +98,16 @@ function AABB( minCorner, maxCorner ){
 	if( minCorner != undefined )
 		this.UpdateMinMaxCenter( minCorner, maxCorner );
 	
+	this.ContainsPoint = function(point){
+		if( point[0] >= this.minCoord[0] && 
+			point[1] >= this.minCoord[1] && 
+			point[2] >= this.minCoord[2] && //each axis of the point is greater than those of the min coord
+			point[0] <= this.maxCoord[0] && 
+			point[1] <= this.maxCoord[1] && 
+			point[2] <= this.maxCoord[2] ) //each axis of the point is also less than those of the max coord
+			return true;
+		return false;
+	}
 	
 	//am and aM are the min and max of the other aabb or object checked
 	//along the axis for overlap

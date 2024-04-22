@@ -344,7 +344,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				//get the closest intersection point and pixel color
 				//startNode = octTreeRoot.SubNode( ray.origin );
 				//if(startNode){
-					octTreeRoot.Trace( dist_norm_color, ray, float0 );
+					octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
 					updateHierarchyView(octTreeRoot);
 				//}
 				if( dist_norm_color[0] > float0 ){

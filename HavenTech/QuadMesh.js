@@ -48,6 +48,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.rotation        = new Float32Array([0,0,0]);
 	this.origin          = new Float32Array([0,0,0]);
 	this.toWorldMatrix   = new Float32Array(4*4);
+	this.wrldToLclMat    = new Float32Array(4*4);
 	Matrix_SetIdentity( this.toWorldMatrix );
 	this.lastToWorldMatrixUpdateTime = -1;
 
@@ -73,7 +74,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
 	this.worldMinCorner = Vect3_NewScalar( 999999 );
 	this.worldMaxCorner = Vect3_NewScalar( -999999 );
-	this.AABB = new AABB( this.worldMinCorner, this.worldMaxCorner );
+	this.lclMinCorner = Vect3_NewScalar( 999999 );
+	this.lclMaxCorner = Vect3_NewScalar( -999999 );
+	this.AABB = new AABB( this.lclMinCorner, this.lclMaxCorner );
 
 	//animation classes
 	//ipo animation affects the root transformation of the quadmesh
@@ -109,7 +112,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//update the coordinates with the animation / simulation type
 		if( this.skelAnimation.isValid )
 			updated = this.skelAnimation.GenerateMesh( 
-				this.transformedVerts, numVerts, mesh, time, this.worldMinCorner, this.worldMaxCorner);
+				this.transformedVerts, numVerts, mesh, time, this.lclMinCorner, this.lclMaxCorner);
 		else{ //there isn't a simulation use the unmodified base coordinates
 			this.transformedVerts = transformedVertCoords;
 		}
@@ -118,12 +121,15 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	//update the quadmesh to world transformation
+	let tempMat = new Float32Array(4*4);
 	this.UpdateToWorldMatrix = function(time){
 		if( this.lastToWorldMatrixUpdateTime == time )
 			return false;
 		Matrix( this.toWorldMatrix, 
 				MatrixType.euler_transformation, 
 				this.scale, this.rotation, this.origin );
+		Matrix_Copy(tempMat, this.toWorldMatrix );
+		Matrix_Inverse( this.wrldToLclMat, tempMat );
 		this.lastToWorldMatrixUpdateTime = time;
 		
 		return true;
@@ -202,8 +208,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	//generate local space triangles from a face index
-	let vertIdxs = new Array(4);
-	let uvIdxs = new Array(4);
+	let tempVert = new Array(4);
+	let tempVert1 = new Array(4);
 	//let uv0 = new Float32Array(2);
 	//let uv1 = new Float32Array(2);
 	//let uv2 = new Float32Array(2);
@@ -217,7 +223,11 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		Vect3_SetScalar( maxf, -999999 );
 		
 		for( let v = 0; v < face.numFaceVerts; ++v ){
-			Vect3_minMaxFromArr( minf, maxf, this.transformedVerts, face.vertIdxs[v]*vertCard );
+			Vect3_CopyFromArr( tempVert, this.transformedVerts, face.vertIdxs[v]*vertCard );
+			Vect3_minMax( minf, maxf, tempVert );
+			Vect3_minMax( this.lclMinCorner, this.lclMaxCorner, tempVert );
+			Matrix_Multiply_Vect3( tempVert1, this.toWorldMatrix, tempVert );
+			Vect3_minMax( this.worldMinCorner, this.worldMaxCorner, tempVert1 );
 		}
 		face.AABB.UpdateMinMaxCenter( minf, maxf );
 		//this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
@@ -236,14 +246,21 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.UpdateOctTree = function(octUpdateCmpCallback){
 		//update the local space oct tree of faces for the current time
 		//to minimize triangle ray intersection tests
-		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
-		this.octTree.name = this.meshName + " quadMesh";
 		
+		Vect3_SetScalar( this.lclMinCorner  ,  999999 );
+		Vect3_SetScalar( this.lclMaxCorner  , -999999 );
+		Vect3_SetScalar( this.worldMinCorner,  999999 );
+		Vect3_SetScalar( this.worldMaxCorner, -999999 );
 		
 		for( let f = 0; f < this.faces.length; ++f ){
 			//get an aabb around the face and insert it into an oct tree
 			this.UpdateFaceAABBAndTriangles( f );
-			
+		}
+		
+		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
+		this.octTree.name = this.meshName + " quadMesh";
+		
+		for( let f = 0; f < this.faces.length; ++f ){
 			let nLvsMDpth = [0, 0];
 			subDivAddDepth = 0;
 			this.octTree.AddObject(nLvsMDpth, this.faces[f]);
@@ -256,11 +273,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//let face;
 	//let tri;
 	//let startNode;
+	let tempVec = Vect3_New();
 	this.GetRayIntersection = function( retDisNormCol, ray ){
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retDisNormCol[3] = this;
-		this.octTree.Trace( retDisNormCol, ray, 0 );
+		//Vect3_Copy( tempVec, ray.origin );
+		//Matrix_Multiply_Vect3( ray.origin, this.wrldToLclMat, tempVec );
+		//Vect3_Copy( tempVec, ray.norm );
+		//Matrix_Multiply_Vect3( ray.norm, this.wrldToLclMat, tempVec, 0 );
+		this.octTree.StartTrace( retDisNormCol, ray, 0 );
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
@@ -355,7 +377,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				thisP.vertPositions[vertIdx++] = vert[0];
 				thisP.vertPositions[vertIdx++] = vert[1];
 				thisP.vertPositions[vertIdx++] = vert[2];
-				Vect3_minMax( thisP.worldMinCorner, thisP.worldMaxCorner, vert ); 
+				Vect3_minMax( thisP.lclMinCorner, thisP.lclMaxCorner, vert ); 
 
 				//read in the normal
 				temp = meshFileLines[++mLIdx];
@@ -483,12 +505,12 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//thisP.vertNormals  = new Float32Array(thisP.vertNormals);
 
 		//initialize the animation
-		if( thisP.ipoAnimation.isValid || 
-			thisP.keyAnimation.isValid || 
-			thisP.skelAnimation.isValid ){
-			thisP.isAnimated = true;
+		//if( thisP.ipoAnimation.isValid || 
+		//	thisP.keyAnimation.isValid || 
+		//	thisP.skelAnimation.isValid ){
+		//	thisP.isAnimated = true;
 			thisP.Update(0.0);
-		}
+		//}
 
 		DPrintf('Quadmesh: ' + thisP.meshName +
 				', successfully read in faces: ' + thisP.faces.length + 

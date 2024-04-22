@@ -850,6 +850,42 @@ function TreeNode( minCoord, maxCoord, parent ){
 		for( let i = 0; i < MaxTreeNodeObjects; ++i )
 			objInts[i].intTime = Number.MAX_VALUE;
 	}
+	
+	this.StartTrace = function( retDisNormCol, ray, minTraceTime ){
+		//could be called with a ray origin inside or outside the oct tree
+		let startTraceNode = this;
+		if( !this.AABB.ContainsPoint( ray.origin ) ){
+			//the ray origin is outside the oct tree
+			
+			const rayEnterStep = this.AABB.RayIntersects( this.rayExitPoint, ray, minTraceTime );
+			if( rayEnterStep < minTraceTime ){
+				retDisNormCol[0] = -1;
+				return; //the ray didn't intersect with the oct tree
+			}
+			
+			//ray.PointAtTime( this.rayExitPoint, rayEnterStep + rayStepEpsilon );
+			
+			startTraceNode = this.SubNode( this.rayExitPoint );
+			if( !startTraceNode ){ 
+				//possibly from floating point precision at edge of a node
+				DTPrintf("null startTraceNode", "ot trace error" );
+				startTraceNode = this;
+			}
+			
+		}else{ //the ray origin is inside the oct tree
+			Vect3_Copy( this.rayExitPoint, ray.origin );
+		}
+		
+		startTraceNode = this.SubNode( this.rayExitPoint );
+		if( !startTraceNode ){ 
+			//possibly from floating point precision at edge of a node
+			DTPrintf("null startTraceNode", "ot trace error" );
+			startTraceNode = this;
+		}
+		
+		startTraceNode.Trace( retDisNormCol, ray, minTraceTime );
+	}
+	
 	//let closestIntTime = Number.MAX_VALUE;
 	//let closestRayIntPt = Vect3_NewZero();
 	let closestObjIdx = 0;
@@ -871,7 +907,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//var lastPointNodeIn = this.SubNode( nodeWallEntPt );
 		//if( lastPointNodeIn == null )
 		//    return null;
-
+		
 		//find which wall of this node the ray exits and which node it enters
 
 		//create a new ray starting in this node to avoid getting intersection

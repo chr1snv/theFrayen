@@ -50,20 +50,20 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		if( octTreeIn == null )
 			return;
 		this.RemoveFromOctTree();
-		this.octTree = octTreeIn;
+		this.octTreeAddedTo = octTreeIn;
 		let nLvsMDpth = [0,0];
-		this.octTree.AddObject(nLvsMDpth, this, addCompletedCallback);
+		this.octTreeAddedTo.AddObject(nLvsMDpth, this, addCompletedCallback);
 	}
 
 	this.RemoveFromOctTree = function( removeCompletedCallback )
 	{
-		if( this.octTree != null ){
+		if( this.octTreeAddedTo != null ){
 		
 			var OctTreeRemoveCompleted = function( thisP ){
-				thisP.octTree = null;
+				thisP.octTreeAddedTo = null;
 			}
 			
-			this.octTree.Remove( removeCompleted, this );
+			this.octTreeAddedTo.Remove( removeCompleted, this );
 		}
 	}
 

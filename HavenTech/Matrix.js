@@ -313,19 +313,28 @@ function Matrix_Inverse(ret, m){
 		multiplyRow(ret, 3, scalar);
 	}
 }
-var wInv;
+let wInv = 0;
+let retW = 0;
 const floatA = new Float32Array([0, 1, 0.5]);
 const float0 = floatA[0];
 const float1 = floatA[1];
-const floatP5 = floatA[2];
-function Matrix_Multiply_Vect3( ret, m, v){
-	//turn the vect3 into a 4d vector (set w=1) and perform the matrix
-	//multiplication on it
-	ret[0] = m[0*4+0]*v[0] + m[0*4+1]*v[1] + m[0*4+2]*v[2] + m[0*4+3];//*1.0
-	ret[1] = m[1*4+0]*v[0] + m[1*4+1]*v[1] + m[1*4+2]*v[2] + m[1*4+3];//*1.0
-	ret[2] = m[2*4+0]*v[0] + m[2*4+1]*v[1] + m[2*4+2]*v[2] + m[2*4+3];//*1.0
-
-	wInv  = float1/(m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3]);//*1.0
+//const floatP5 = floatA[2];
+function Matrix_Multiply_Vect3( ret, m, v, w=1){
+	//turn the vect3 into a 4d vector "homogoneous cordinates" using w value
+	//when multiplying
+	//vectors (i.e. normal)         set w=0 (multiply without translation)
+	//points (i.e. vertex position) set w=1 (apply translation column)
+	//and perform the matrix multiplication on it 
+	//(can also be used for perspective transformation with a non zero w value)
+	ret[0] = m[0*4+0]*v[0] + m[0*4+1]*v[1] + m[0*4+2]*v[2] + m[0*4+3]*w;
+	ret[1] = m[1*4+0]*v[0] + m[1*4+1]*v[1] + m[1*4+2]*v[2] + m[1*4+3]*w;
+	ret[2] = m[2*4+0]*v[0] + m[2*4+1]*v[1] + m[2*4+2]*v[2] + m[2*4+3]*w;
+	
+	retW   = m[3*4+0]*v[0] + m[3*4+1]*v[1] + m[3*4+2]*v[2] + m[3*4+3]*w;
+	if( retW != 0 )
+		wInv = float1/retW;
+	else
+		wInv = 1;
 
 	ret[0] = ret[0] * wInv;
 	ret[1] = ret[1] * wInv;

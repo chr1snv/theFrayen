@@ -217,7 +217,7 @@ def writeMesh(assetDirectory, ob):
 
     #check the mesh has UV's
     if not mesh.uv_layers: #.hasFaceUV():
-        print( text="Mesh: " + mesh.name + " does not have uv coordinates" )
+        print( "Mesh: " + mesh.name + " does not have uv coordinates" )
         return
 
     meshFileName = assetDirectory + "/meshes/" + ob.name + ".hvtMesh"
@@ -240,9 +240,9 @@ def writeMesh(assetDirectory, ob):
     out.write( '\n' )
 
     #keep track of the min and max corners of the AABB
-    minV = vec3NewScalar( sys.float_info.max )
+    wMinV = vec3NewScalar( sys.float_info.max )
      
-    maxV = vec3NewScalar( sys.float_info.min )
+    wMaxV = vec3NewScalar( sys.float_info.min )
 
     #write the verticies (position, normal, texture coordinate, and bone weight)
     numVerts = len(mesh.vertices)
@@ -250,8 +250,9 @@ def writeMesh(assetDirectory, ob):
     out.write( '\n' )
     for i in range(numVerts):
         vert = mesh.vertices[i]  #verts[i]
-        vec3Max( maxV, vert.co )
-        vec3Min( minV, vert.co )
+        wVert = ob.matrix_world @ vert.co
+        vec3Max( wMaxV, wVert )
+        vec3Min( wMinV, wVert )
         out.write( 'v %f %f %f\n' % (vert.co.x, vert.co.y, vert.co.z) )
         out.write( 'n %f %f %f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
         #normalize the bone weights
@@ -274,11 +275,17 @@ def writeMesh(assetDirectory, ob):
 
     #write the faces
     out.write('cf %i\n' % (len(mesh.polygons)))
+    triCt = 0
     for face in mesh.polygons:
+        fVertCt = len(face.vertices)
         if not (len(face.vertices) == 4 or len(face.vertices)==3):
             print('Error%t|Mesh: ' + mesh.name + ' not entirely quads and tris')
             out.close()
             return
+        if fVertCt == 3:
+            triCt += 1
+        else:
+            triCt += 2
         out.write('f\n')
         out.write('m %i\n' % (face.material_index)) #write the index of the face material
         out.write('v')
@@ -296,10 +303,10 @@ def writeMesh(assetDirectory, ob):
         out.write('\ne\n')
 
     #end of mesh data
-    out.write('\n')
+    out.write('ct %i\n' % (triCt))
     out.close()
     
-    return [ minV, maxV ]
+    return [ wMinV, wMaxV ]
     
 def writeObjectAnimationData(assetDirectory, obj):
         
