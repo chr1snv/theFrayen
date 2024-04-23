@@ -13,6 +13,8 @@ var incFiles = ['DPrintf.js',
 				'Curve.js',
 				'IPOAnimation.js',
 				
+				'MergeSort.js',
+				
 				'AABB.js',
 				'Ray.js',
 				'OctTree.js',

@@ -59,7 +59,7 @@ const gravityAccel = [0,9.8, 0];
 
 const MaxTreeDepth = 10;
 const minNodeSideLength = 0.01;
-const MaxTreeNodeObjects = 10;
+const MaxTreeNodeObjects = 8; //must be a power of 2 for merge sort during trace
 var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
 function TreeNode( minCoord, maxCoord, parent ){
@@ -835,20 +835,23 @@ function TreeNode( minCoord, maxCoord, parent ){
 	this.boundColor = new Float32Array([0,0,0,0.5]);
 	this.rayExitPoint = Vect3_NewZero();
 	let rayIntPt = Vect3_NewZero();
+	const MAX_INTR_TIME = Number.MAX_VALUE/10;
 	function RayAABBIntrs(){
-		this.intTime = Number.MAX_VALUE;
+		this.intTime = MAX_INTR_TIME;
 		//this.intPt = Vect3_NewZero();
 		this.objIdx = -1;
 	}
 	function compRAIntr( a, b ){
-		return a.intTime > b.intTime;
+		return a.intTime <= b.intTime;
 	}
 	let objInts = new Array(MaxTreeNodeObjects);
+	let tempObjInts = new Array(MaxTreeNodeObjects);
+	let ObjIntSwapRef = null;
 	for( let i = 0; i < MaxTreeNodeObjects; ++i )
 		objInts[i] = new RayAABBIntrs();
 	function resetObjInts(){
 		for( let i = 0; i < MaxTreeNodeObjects; ++i )
-			objInts[i].intTime = Number.MAX_VALUE;
+			objInts[i].intTime = MAX_INTR_TIME;
 	}
 	
 	this.StartTrace = function( retDisNormCol, ray, minTraceTime ){
@@ -865,12 +868,6 @@ function TreeNode( minCoord, maxCoord, parent ){
 			
 			//ray.PointAtTime( this.rayExitPoint, rayEnterStep + rayStepEpsilon );
 			
-			startTraceNode = this.SubNode( this.rayExitPoint );
-			if( !startTraceNode ){ 
-				//possibly from floating point precision at edge of a node
-				DTPrintf("null startTraceNode", "ot trace error" );
-				startTraceNode = this;
-			}
 			
 		}else{ //the ray origin is inside the oct tree
 			Vect3_Copy( this.rayExitPoint, ray.origin );
@@ -879,7 +876,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		startTraceNode = this.SubNode( this.rayExitPoint );
 		if( !startTraceNode ){ 
 			//possibly from floating point precision at edge of a node
-			DTPrintf("null startTraceNode", "ot trace error" );
+			//DTPrintf("null startTraceNode", "ot trace error" );
 			startTraceNode = this;
 		}
 		
@@ -935,7 +932,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 				//check if the ray intersects the object
 				//let rayIntersectPt = Vect3_NewZero();
 				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( rayIntPt, ray, minTraceTime );
-				if( rayObIntTime >= 0 ){
+				if( rayObIntTime >= minTraceTime ){
 					objInts[i].intTime = rayObIntTime;
 					objInts[i].objIdx = i;
 				}
@@ -945,11 +942,17 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//(if there are aabb overlaps and the order of the objects
 		//inside them are different than the closest aab surfaces to the ray
 		//may also need to get multiple RayIntersect results and sort them)
-		objInts.sort( compRAIntr );
+		//objInts = objInts.sort( compRAIntr );
+
+		if( MergeSort( objInts, tempObjInts, compRAIntr ) ){
+			ObjIntSwapRef = objInts;
+			objInts = tempObjInts;
+			tempObjInts = ObjIntSwapRef;
+		}
 		
 		for( closestObjIdx = 0; 
 			closestObjIdx < MaxTreeNodeObjects && 
-			objInts[closestObjIdx].intTime < Number.MAX_VALUE; 
+			objInts[closestObjIdx].intTime < MAX_INTR_TIME; 
 			++closestObjIdx ){
 			retDisNormCol[0] = -1;
 			this.objects[0][ objInts[closestObjIdx].objIdx ].RayIntersect( retDisNormCol, ray );

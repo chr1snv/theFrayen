@@ -1,35 +1,59 @@
+function MergeSort( arr, tempArr, cmpFunc ){
 
-	//make a temp array
-	let tempArr = new Array(objects.length);
-	//merge sort the array - writing merged values into tempArr and
-	//then back into place
-	let mergeLevels = Math.ceil(Math.log2(objects.length));
+	//merge sort the array -         e.x.(4132)
+	//start merging lists of length 1 (i.e. aItr=0 bItr=1)
+	//dstArr[dItr] is the destination of the merge (merging in place)
+	//a temp variable is used while arr[bItr] is replacing arr[aItr] values
+	//if cmpFunc( arr[aItr] arr[bItr] ) < 0
+	//
+	//e.x. start with first and last pair     (14 23)
+	//then increase iter spacing by 2x        (12 43)->(1234)
+	//(13 93 81 28)
+	//(13 39 18 28)
+	
+	let mergeLevels = Math.ceil(Math.log2(arr.length));
+	let srcArr = tempArr;
+	let dstArr = arr; //reverse because swap at start of level loop (to avoid if(l==0) )
+	let lvlLstLen = 0;
+	let dItr = 0;
+	let aItr = 0;
+	let bItr = 0;
+	let maxAItr = 0;
+	let maxBItr = 0;
 	for( let l = 0; l < mergeLevels; ++l ){ //each power of 2 level
-		let lvlStep = Math.pow(2,l);
-		let temp;
-		for( let i = 0; i < objects.length; i+=lvlStep*2 ){ //per block pair
-			let aItr = 0;
-			let bItr = 0;
-			let j = 0;
-			while( i+j < objects.length && j < lvlStep*2 ){ //merge elms in block pairs
-				if( bItr >= lvlStep ){ //if a & b >= lvlStep j will be >= lvlStep
-					tempArr[j] = sortedObjs[newAxis][i+aItr]; aItr++;
-				}else if( aItr >= lvlStep ){
-					tempArr[j] = sortedObjs[newAxis][i+lvlStep+bItr]; bItr++;
-				}else if( (i+lvlStep+bItr) >= objects.length ||
-					(sortedObjs[newAxis][i+aItr].AABB.minCoord[newAxis] <= 
-					sortedObjs[newAxis][i+lvlStep+bItr].AABB.minCoord[newAxis]) ){
-					tempArr[j] = sortedObjs[newAxis][i+aItr]; aItr++;
+		
+		//swap the source and destination arrays (clean vs dirty) for next level
+		tempArr = srcArr;
+		srcArr = dstArr;
+		dstArr = tempArr;
+		
+		lvlLstLen = Math.pow(2,l);
+		
+		for( let i = 0; i < arr.length; i+=lvlLstLen*2 ){ //per list pair
+			dItr = i;
+			aItr = i;
+			bItr = i+lvlLstLen;
+			maxAItr = i+lvlLstLen;
+			maxBItr = i+(lvlLstLen*2);
+			while( dItr < maxBItr ){ //zipper merge elms from src lists
+				if( (aItr >= maxAItr) ||
+					(bItr < maxBItr && cmpFunc( srcArr[aItr], srcArr[bItr] ) <= 0) ){
+					//b value is less than a
+					dstArr[dItr] = srcArr[bItr++];
 				}else{
-					tempArr[j] = sortedObjs[newAxis][i+lvlStep+bItr]; bItr++;
+					dstArr[dItr] = srcArr[aItr++];
 				}
-				j++;
+				++dItr;
+			
 			}
-
-			//copy merged blocks back in place
-			for( let k = 0; k < j; ++k ){
-				sortedObjs[newAxis][i+k] = tempArr[k];
-			}
-
+			
 		}
+		
 	}
+	
+	//signify if arr and temp array should be swapped on return
+	if( dstArr != arr )
+		return true;
+	return false;
+	
+}

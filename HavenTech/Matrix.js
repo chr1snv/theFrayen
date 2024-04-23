@@ -318,7 +318,7 @@ let retW = 0;
 const floatA = new Float32Array([0, 1, 0.5]);
 const float0 = floatA[0];
 const float1 = floatA[1];
-//const floatP5 = floatA[2];
+const floatP5 = floatA[2];
 function Matrix_Multiply_Vect3( ret, m, v, w=1){
 	//turn the vect3 into a 4d vector "homogoneous cordinates" using w value
 	//when multiplying

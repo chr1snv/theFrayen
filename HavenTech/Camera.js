@@ -328,25 +328,22 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 			//if ( newTime - startTime > allowedTime) //prevent slowing the browser
 			//   break;
 			for( let h = 0; h < numHorizRays; ++h ){
+				//pick a random screen space position to cast the ray from
 				screenPos[1] = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
 				screenPos[0] = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
 				//get the world space end position of the ray normal
 				Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, screenPos );
-				rayNorm[0]-=camOrigin[0];rayNorm[1]-=camOrigin[1];rayNorm[2]-=camOrigin[2];
 				//get the forward normal of the camera
-				len = rayNorm[0]*rayNorm[0]+rayNorm[1]*rayNorm[1]+rayNorm[2]*rayNorm[2];
-				rayNorm[0]/=len;rayNorm[1]/=len;rayNorm[2]/=len;
+				Vect3_Subtract( rayNorm, camOrigin );
+				Vect3_Normal( rayNorm );
 				
 				ray.origin = camOrigin;
 				ray.norm = rayNorm;
 				ray.lastNode = null;
 				
-				//get the closest intersection point and pixel color
-				//startNode = octTreeRoot.SubNode( ray.origin );
-				//if(startNode){
-					octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
-					updateHierarchyView(octTreeRoot);
-				//}
+				//get the closest intersection point and pixel color of the ray in the scene
+				octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+				updateHierarchyView(octTreeRoot); //update the debugging tree view
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
 					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];
