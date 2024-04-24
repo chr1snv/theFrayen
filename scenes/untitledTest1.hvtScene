@@ -23,3 +23,4 @@ ac Camera
 sceStats objs 1 lghts 1 cams 1
 sceAABB -1.000000 -1.000000 -1.000000  1.000000 1.000000 1.000000
 sceEnd
+

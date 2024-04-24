@@ -1,4 +1,8 @@
+//why favor merge sort instead of quicksort?
+//merge sort can be parallelized until the last merge level
+//and its memory access patterns are predictable (linear chunks vs random/data dependant)
 function MergeSort( arr, tempArr, cmpFunc ){
+
 
 	//merge sort the array -         e.x.(4132)
 	//start merging lists of length 1 (i.e. aItr=0 bItr=1)

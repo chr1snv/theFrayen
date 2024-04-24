@@ -303,7 +303,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let screenPos = new Float32Array( 3 );
 	screenPos[2] = 0;
 	let len = rayNorm[0];
-	let ray = new Ray( camOrigin, rayNorm );
+	let ray = new Ray( Vect3_New(), Vect3_New() );
 	let dist_norm_color = [0, new Float32Array(3), new Float32Array(4), null];
 	let intPt = new Float32Array(3);
 	let newTime = sceneLoadedTime;
@@ -315,7 +315,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		totalRayFrameHits = 0;
 		octTreeRoot.clearRayCtrs();
 
-		this.getLocation( camOrigin );
+		this.getLocation( camOrigin ); //shared between rays (copy per ray so doesn't get modified)
 
 		//get the camera matrices to cast and reproject previous rays
 		this.GenWorldToFromScreenSpaceMats();
@@ -337,7 +337,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				Vect3_Subtract( rayNorm, camOrigin );
 				Vect3_Normal( rayNorm );
 				
-				ray.origin = camOrigin;
+				Vect3_Copy( ray.origin, camOrigin );
 				ray.norm = rayNorm;
 				ray.lastNode = null;
 				

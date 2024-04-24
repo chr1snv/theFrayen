@@ -140,14 +140,12 @@ function AABB( minCorner, maxCorner ){
 	}
 
 	//return a point and time along the ray that intersects an AABB bound or null
-	let rayTime = [9999999, 9999999, 9999999];
-	let minRayStep = float1;
-	let maxRayStep = float1;
-	this.intersectAxis = [0, 0, 0];
+	let rayAABBIntTime = 9999999;
+	let planeRayStep = float1;
 	let numOtherAxiesWithinBounds = 0;
 	let otherAxis;
-	let rayStepPoints = [ new Float32Array(3), new Float32Array(3), new Float32Array(3) ];
-	this.RayIntersects = function( rayStepPoint, ray, minRayTime ){
+	let rayStepPoint = Vect3_NewZero();
+	this.RayIntersects = function( ray, minRayTime ){
 
 		//this code is written in long form without for loops to increase
 		//chance of the runtime compiler parallel optimizing it
@@ -178,85 +176,40 @@ function AABB( minCorner, maxCorner ){
 		//find the closest intersection time for each of the three axies
 
 		//for each of the three axies find the possible intersection time
-		rayTime[0] = 99999999; rayTime[1] = 99999999; rayTime[2] = 99999999;
+		rayAABBIntTime = 99999999;
 		//find the possible times (min and max aabb faces)
-		minRayStep = (this.minCoord[0] - ray.origin[0]) / ray.norm[0];
-		maxRayStep = (this.maxCoord[0] - ray.origin[0]) / ray.norm[0];
-		//get the closest AABB wall intersection times that are not behind the ray origin (minRayTime)
-		if( minRayStep > minRayTime && minRayStep < rayTime[0] ){ rayTime[0] = minRayStep;}
-		if( maxRayStep > minRayTime && maxRayStep < rayTime[0] ){ rayTime[0] = maxRayStep; }
-		minRayStep = (this.minCoord[1] - ray.origin[1]) / ray.norm[1];
-		maxRayStep = (this.maxCoord[1] - ray.origin[1]) / ray.norm[1];
-		if( minRayStep > minRayTime && minRayStep < rayTime[1] ){ rayTime[1] = minRayStep; }
-		if( maxRayStep > minRayTime && maxRayStep < rayTime[1] ){ rayTime[1] = maxRayStep; }
-		minRayStep = (this.minCoord[2] - ray.origin[2]) / ray.norm[2];
-		maxRayStep = (this.maxCoord[2] - ray.origin[2]) / ray.norm[2];
-		if( minRayStep > minRayTime && minRayStep < rayTime[2] ){ rayTime[2] = minRayStep; }
-		if( maxRayStep > minRayTime && maxRayStep < rayTime[2] ){ rayTime[2] = maxRayStep; }
-
-		//advance the ray to the possible intersection plane points
-		rayStepPoints[0][0] = ray.norm[0] * rayTime[0] + ray.origin[0];
-		rayStepPoints[0][1] = ray.norm[1] * rayTime[0] + ray.origin[1];
-		rayStepPoints[0][2] = ray.norm[2] * rayTime[0] + ray.origin[2];
-
-		rayStepPoints[1][0] = ray.norm[0] * rayTime[1] + ray.origin[0];
-		rayStepPoints[1][1] = ray.norm[1] * rayTime[1] + ray.origin[1];
-		rayStepPoints[1][2] = ray.norm[2] * rayTime[1] + ray.origin[2];
-		
-		rayStepPoints[2][0] = ray.norm[0] * rayTime[2] + ray.origin[0];
-		rayStepPoints[2][1] = ray.norm[1] * rayTime[2] + ray.origin[1];
-		rayStepPoints[2][2] = ray.norm[2] * rayTime[2] + ray.origin[2];
-
-		//check the orthogonal axies of the point are within the aabb bounds
-		
-		//x plane check y and z point
-		numOtherAxiesWithinBounds = 0;
-		otherAxis = 1;
-		if( rayStepPoints[0][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[0][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		otherAxis = 2;
-		if( rayStepPoints[0][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[0][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		if( numOtherAxiesWithinBounds > 1 ){//the point is inside the aabb
-			rayStepPoint[0] = rayStepPoints[0][0];
-			rayStepPoint[1] = rayStepPoints[0][1];
-			rayStepPoint[2] = rayStepPoints[0][2];
-			return rayTime[0];} //return the point and ray time
-		
-		//y plane check z and x of point
-		numOtherAxiesWithinBounds = 0;
-		otherAxis = 2;
-		if( rayStepPoints[1][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[1][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		otherAxis = 0;
-		if( rayStepPoints[1][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[1][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		if( numOtherAxiesWithinBounds > 1 ){//the point is inside the aabb
-			rayStepPoint[0] = rayStepPoints[1][0];
-			rayStepPoint[1] = rayStepPoints[1][1];
-			rayStepPoint[2] = rayStepPoints[1][2];
-			return rayTime[1];} //return the point and ray time
-		
-		//z plane check x and y of point
-		numOtherAxiesWithinBounds = 0;
-		otherAxis = 0;
-		if( rayStepPoints[2][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[2][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		otherAxis = 1;
-		if( rayStepPoints[2][otherAxis] >= this.minCoord[otherAxis]  && 
-			rayStepPoints[2][otherAxis] <= this.maxCoord[otherAxis]  )
-			numOtherAxiesWithinBounds += 1;
-		if( numOtherAxiesWithinBounds > 1 ){//the point is inside the aabb
-			rayStepPoint[0] = rayStepPoints[2][0];
-			rayStepPoint[1] = rayStepPoints[2][1];
-			rayStepPoint[2] = rayStepPoints[2][2];
-			return rayTime[2];} //return the point and ray time
-
+		for( let a = 0; a < 3; ++a ){ //each axis
+			for( let p = 0; p < 2; ++p ){ //min and max plane/face/surface for axis
+				if( p == 0 )
+					planeRayStep = (this.minCoord[a] - ray.origin[a]) / ray.norm[a];
+				else
+					planeRayStep = (this.maxCoord[a] - ray.origin[a]) / ray.norm[a];
+					
+				//get the closest AABB wall intersection time that is not behind the ray origin (minRayTime)
+				if( planeRayStep <= minRayTime )
+					continue;
+				
+			
+				//advance the ray to the possible intersection plane point
+				RayPointAtTime( rayStepPoint, ray.origin, ray.norm, planeRayStep );
+				
+				//ray step gives a point on the plane surface of axis a
+				//check that the other two axies of the rayStepPoint are within bounds
+				numOtherAxiesWithinBounds = 0
+				for( let b = 0; b < 2; ++b ){ //each other axis of the plane/surface
+					otherAxis = (a + 1 + b) % 3;
+					if( rayStepPoint[otherAxis] >= this.minCoord[otherAxis]  && 
+						rayStepPoint[otherAxis] <= this.maxCoord[otherAxis]  )
+						numOtherAxiesWithinBounds += 1;
+				}
+				if( numOtherAxiesWithinBounds > 1 ){//the point is on the aabb plane
+					if( planeRayStep < rayAABBIntTime )
+						rayAABBIntTime = planeRayStep;
+				}
+			}
+		}
+		if( rayAABBIntTime < 99999999 )
+			return rayAABBIntTime;
 		return -1; //no intersection point found don't return anything
 	}
 

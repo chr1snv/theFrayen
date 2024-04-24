@@ -833,7 +833,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 
 	this.nextNodeRayPoint = Vect3_NewZero();
 	this.boundColor = new Float32Array([0,0,0,0.5]);
-	this.rayExitPoint = Vect3_NewZero();
+	this.rayAABBIntPt = Vect3_NewZero();
 	let rayIntPt = Vect3_NewZero();
 	const MAX_INTR_TIME = Number.MAX_VALUE/10;
 	function RayAABBIntrs(){
@@ -860,24 +860,34 @@ function TreeNode( minCoord, maxCoord, parent ){
 		if( !this.AABB.ContainsPoint( ray.origin ) ){
 			//the ray origin is outside the oct tree
 			
-			const rayEnterStep = this.AABB.RayIntersects( this.rayExitPoint, ray, minTraceTime );
+			const rayEnterStep = this.AABB.RayIntersects( ray, minTraceTime );
 			if( rayEnterStep < minTraceTime ){
 				retDisNormCol[0] = -1;
 				return; //the ray didn't intersect with the oct tree
 			}
+			//Vect3_Copy( this.rayAABBIntPt, this.AABB.rayStepPoints[this.AABB.rayStepPtIntIdx] );
 			
-			//ray.PointAtTime( this.rayExitPoint, rayEnterStep + rayStepEpsilon );
-			
+			ray.PointAtTime( this.rayAABBIntPt, rayEnterStep + rayStepEpsilon );
+			if( !this.AABB.ContainsPoint( this.rayAABBIntPt ) ){
+				retDisNormCol[2] = [1,0,1,1];
+			}else{
+				retDisNormCol[2] = [1,1,0,1];
+			}
+			retDisNormCol[0] = rayEnterStep;
 			
 		}else{ //the ray origin is inside the oct tree
-			Vect3_Copy( this.rayExitPoint, ray.origin );
+			Vect3_Copy( this.rayAABBIntPt, ray.origin );
+			retDisNormCol[2] = [1,0,0,1];
+			retDisNormCol[0] = 1;
 		}
 		
-		startTraceNode = this.SubNode( this.rayExitPoint );
+		startTraceNode = this.SubNode( this.rayAABBIntPt );
 		if( !startTraceNode ){ 
 			//possibly from floating point precision at edge of a node
 			//DTPrintf("null startTraceNode", "ot trace error" );
 			startTraceNode = this;
+			retDisNormCol[0] = 1;
+			return;
 		}
 		
 		startTraceNode.Trace( retDisNormCol, ray, minTraceTime );
@@ -913,7 +923,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//increasing the wall intersection ray time by epsilon 
 		//(is done in next GetClosestIntersecting surface call)
 		//generating a new ray point (which is inside the adjacent node)
-		const rayExitStep = this.AABB.RayIntersects( this.rayExitPoint, ray, minTraceTime );
+		const rayExitStep = this.AABB.RayIntersects( ray, minTraceTime );
 		if( rayExitStep < 0 ){ 
 			//somehow the ray started outside of this node and didn't intersect
 			//with it
@@ -931,7 +941,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 				ray.lastNode.objectDictionary[ this.objects[0][i].uid.val ] == null ){ //don't recheck if checked last node
 				//check if the ray intersects the object
 				//let rayIntersectPt = Vect3_NewZero();
-				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( rayIntPt, ray, minTraceTime );
+				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( ray, minTraceTime );
 				if( rayObIntTime >= minTraceTime ){
 					objInts[i].intTime = rayObIntTime;
 					objInts[i].objIdx = i;
@@ -969,9 +979,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 
 		//get a point along the ray inside the next node
 		const rayNextNodeStep = rayExitStep + rayStepEpsilon;
-		this.nextNodeRayPoint[0] = ray.norm[0] * rayNextNodeStep + ray.origin[0];
-		this.nextNodeRayPoint[1] = ray.norm[1] * rayNextNodeStep + ray.origin[1];
-		this.nextNodeRayPoint[2] = ray.norm[2] * rayNextNodeStep + ray.origin[2];
+		RayPointAtTime( this.nextNodeRayPoint, ray.origin, ray.norm, rayNextNodeStep );
 
 		//find the next node starting at the current node and going up the tree
 		//until there is a subnode that contains the next node point
@@ -991,7 +999,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			//the ray didn't hit anything in this node
 			if( treeDebug && this.depth == Math.floor((sceneTime/2)%(this.root.maxDepth+1)) ){
 				this.boundColor[3] = debOctOpac;
-				mainScene.cameras[0].AddPoint( this.rayExitPoint, this.boundColor );
+				mainScene.cameras[0].AddPoint( this.nextNodeRayPoint, this.boundColor );
 			}
 
 			ray.lastNode = this;

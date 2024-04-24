@@ -278,10 +278,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retDisNormCol[3] = this;
-		//Vect3_Copy( tempVec, ray.origin );
-		//Matrix_Multiply_Vect3( ray.origin, this.wrldToLclMat, tempVec );
-		//Vect3_Copy( tempVec, ray.norm );
-		//Matrix_Multiply_Vect3( ray.norm, this.wrldToLclMat, tempVec, 0 );
+		Vect3_Copy( tempVec, ray.origin );
+		Matrix_Multiply_Vect3( ray.origin, this.wrldToLclMat, tempVec );
+		Vect3_Copy( tempVec, ray.norm );
+		Matrix_Multiply_Vect3( ray.norm, this.wrldToLclMat, tempVec, 0 );
 		this.octTree.StartTrace( retDisNormCol, ray, 0 );
 	}
 

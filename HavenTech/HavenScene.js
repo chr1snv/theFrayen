@@ -185,7 +185,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.parseSceneTextFile = function( textFileLines )
 	{
 	
-		let sceneAABBDimTxt = textFileLines[textFileLines.length-2].split(' ');
+		let sceneAABBDimTxt = textFileLines[textFileLines.length-3].split(' ');
 		let sceneMin = Vect3_New( 
 			parseFloat( sceneAABBDimTxt[1] ), 
 			parseFloat( sceneAABBDimTxt[2] ), 
@@ -197,7 +197,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		this.octTree = new TreeNode( sceneMin, sceneMax, null );
 		this.octTree.name = this.sceneName + " scene";
 		
-		let sceneObjLghtCamCtTxt = textFileLines[textFileLines.length-3].split(' ');
+		let sceneObjLghtCamCtTxt = textFileLines[textFileLines.length-4].split(' ');
 		let numObjs = parseInt( sceneObjLghtCamCtTxt[2] );
 		let numLghts = parseInt( sceneObjLghtCamCtTxt[4] );
 		let numCams = parseInt( sceneObjLghtCamCtTxt[6] );

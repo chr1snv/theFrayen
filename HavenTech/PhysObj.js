@@ -88,9 +88,11 @@ function PhysObj(AABB, obj, time){
 		
 		let ray = new Ray(this.AABB.center, restDir);
 		let otherObjPenPoint = new Float32Array(3);
-		otherObj.AABB.RayIntersects( otherObjPenPoint, ray, 0 );
+		let aabbintTime = otherObj.AABB.RayIntersects( ray, 0 );
+		RayPointAtTime( otherObjPenPoint, ray.origin, ray.norm, aabbIntTime );
 		let thisEntPoint = new Float32Array(3);
-		this.AABB.RayIntersects( thisEntPoint, ray, 0 );
+		aabbIntTime = this.AABB.RayIntersects( ray, 0 );
+		RayPointAtTime( thisEntPoint, ray.origin, ray.norm, aabbIntTime );
 		
 		Vect3_Copy( colisVect, thisEntPoint );
 		Vect3_Subtract( colisVect, otherObjPenPoint );
