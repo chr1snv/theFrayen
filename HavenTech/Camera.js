@@ -68,8 +68,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.cameraName = nameIn;
 	this.sceneName  = sceneNameIn;
 
-	this.position   = positionIn; //animated / set position in the map
-	this.rotation   = rotationIn;
+	this.position = Vect3_CopyNew( positionIn ); //animated / set position in the map
+	this.rotation = Vect3_CopyNew( rotationIn );
 	this.fov        = fovIn;      //the horizontal field of view
 
 	this.nearClip   = nearClipIn; //the distance to the near clip plane from the camera origin in
@@ -187,7 +187,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
 	let transformedRot = new Float32Array( 3 );
 	let infoString = "";
-	this.UpdateOrientation = function(positionDelta, rotationDelta, updateTime, rotation=null)
+	this.UpdateOrientation = function(positionDelta, rotationDelta, updateTime) //, rotation=null)
 	{
 		//Update the cameras transformation given a change in position and rotation.
 		
@@ -198,8 +198,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.userRotation[1] += rotationDelta[1];
 		this.userRotation[2] += rotationDelta[2];
 		
-		if( rotation != undefined ) //may be defunct
-		    Vect3_Copy( this.rotation, rotation );
+		//if( rotation != undefined ) //may be defunct
+		//    Vect3_Copy( this.rotation, rotation );
 
 		//get the new rotation
 		this.getRotation(rot);
