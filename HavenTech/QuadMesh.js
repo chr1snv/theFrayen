@@ -14,9 +14,15 @@ class Face { //part of mesh stored in mesh octTree
 		this.AABB       = new AABB();
 		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
 		this.treeNodes  = {};
+		this.fNum = -1;
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
+		//if( this.fNum != 6 ){
+		//	retDisNormCol[0] = retDisNormCol[4];
+		//	retDisNormCol[2] = [1,0,1,1];
+		//	return;
+		//}
 		for( let i = 0; i < this.triIdxs.length; ++i ){
 			if( this.triIdxs[i] == -1 )
 				break;
@@ -26,7 +32,12 @@ class Face { //part of mesh stored in mesh octTree
 			if( retDisNormCol[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
 				tri.UVCoordOfPoint( uvCoord, tri.pointL, this );
 				qMesh.GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
-				return;}
+				return;
+			}else{
+				//DTPrintf("didn't intersect", "trace error");
+				//retDisNormCol[0] = retDisNormCol[4];
+				retDisNormCol[2] = [0,1,1,1];
+			}
 		}
 	}
 
@@ -377,7 +388,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 				thisP.vertPositions[vertIdx++] = vert[0];
 				thisP.vertPositions[vertIdx++] = vert[1];
 				thisP.vertPositions[vertIdx++] = vert[2];
-				Vect3_minMax( thisP.lclMinCorner, thisP.lclMaxCorner, vert ); 
+				Vect3_minMax( thisP.lclMinCorner, thisP.lclMaxCorner, vert );
 
 				//read in the normal
 				temp = meshFileLines[++mLIdx];
@@ -417,6 +428,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			//read in a face
 			else if( temp[0] == 'f' ){
 				let newFace = thisP.faces[fIdx++];
+				newFace.fNum = fIdx - 1;
 				while( ++mLIdx < meshFileLines.length ){
 					temp = meshFileLines[mLIdx];
 					words = temp.split(' ');
@@ -445,14 +457,14 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 						
 						if(numFaceVerts == 3){
 							thisP.faceVertsCt += 3;
-							thisP.tris[tIdx].Setup( 0, thisP.faces[fIdx-1], thisP.vertPositions );
+							thisP.tris[tIdx].Setup( 0, newFace, thisP.vertPositions );
 							newFace.triIdxs[0] = tIdx++;
 						}
 						else if(numFaceVerts == 4){
 							thisP.faceVertsCt += 6; //since will have to tesselate
-							thisP.tris[tIdx].Setup( 0, thisP.faces[fIdx-1], thisP.vertPositions );
+							thisP.tris[tIdx].Setup( 0, newFace, thisP.vertPositions );
 							newFace.triIdxs[0] = tIdx++;
-							thisP.tris[tIdx].Setup( 1, thisP.faces[fIdx-1], thisP.vertPositions );
+							thisP.tris[tIdx].Setup( 1, newFace, thisP.vertPositions );
 							newFace.triIdxs[1] = tIdx++;
 						}else{
 							DPrintf( 'QuadMesh: ' + thisP.meshName + 

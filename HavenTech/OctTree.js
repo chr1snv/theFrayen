@@ -497,7 +497,9 @@ function TreeNode( minCoord, maxCoord, parent ){
 				if( this.depth+1 > MaxTreeDepth ){ //limit depth to avoid running out of memory (if a mistake causes allot of object adding/tree division)
 					let objDimStr = "";
 					for( let i = 0; i < this.objects[0].length; ++i ){
-						objDimStr += "obj " + this.objects[0][i].uid.val + " min " + Vect_FixedLenStr( this.objects[0][i].AABB.minCoord, 2, 6 ) + " max " + Vect_FixedLenStr( this.objects[0][i].AABB.maxCoord, 2, 6 ) + " \n";
+						objDimStr += "obj " + this.objects[0][i].uid.val + 
+							" min " + Vect_FixedLenStr( this.objects[0][i].AABB.minCoord, 2, 6 ) + 
+							" max " + Vect_FixedLenStr( this.objects[0][i].AABB.maxCoord, 2, 6 ) + " \n";
 					}
 					DTPrintf("tNId " + this.uid.val + " " + this.root.name + " max subdiv depth reached when adding obj " + object.uid.val +
 							" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) +
@@ -556,6 +558,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 						for(let x = 0; x < nNLvs[1][0]; ++x){
 							let xObDict = this.subNdObjDictForAxs(0, x, nNLvs[1][0], srcCoords);
 							
+							
 							let subNdIdx = x+y*2+z*4;
 							let nd = this.subNodes[subNdIdx]; //get the sub node
 							DTPrintf("\n"+
@@ -583,6 +586,11 @@ function TreeNode( minCoord, maxCoord, parent ){
 							for( let obUidIdx = 0; obUidIdx < xObDictKeys.length; obUidIdx++ ){
 								let obUid = xObDictKeys[obUidIdx];
 								if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){ //add the intersecting subset of objects of the 3 axies into the subnode
+									if( xObDict[obUid].fNum && xObDict[obUid].fNum == 8 )
+										DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addingobject  " + obUid + 
+											"fNum " + xObDict[obUid].fNum 
+											, "ot add dbg", "color:#ae7a53", this.depth );
+									
 									if( objsAttemptedToAdd[ obUid ] == undefined )
 										objsAttemptedToAdd[ obUid ] = "";
 									objsAttemptedToAdd[ obUid ] += subNdIdx + " ";
@@ -727,7 +735,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 						//subdivision success
 						DTPrintf( " oTName '" + this.root.name + "' subdiv success " + 
 							" minInSubNd " + minNumObjsInASubNode + 
-							" maxInASubNd " + maxNumObjsInASubNode + " numSubNds " + nNLvs + " thisDepth " + this.depth, "ot subdiv success", "color:green", this.depth );
+							" maxInASubNd " + maxNumObjsInASubNode + " numSubNds " + nNLvs + 
+							" thisDepth " + this.depth, "ot subdiv success", "color:green", this.depth );
 				
 						//remove object's association to this treeNode
 						//since it is going to be added to one or more of the subnodes
@@ -761,19 +770,32 @@ function TreeNode( minCoord, maxCoord, parent ){
 			DTPrintf( "otName " + this.root.name + " tNId " + this.uid.val + 
 				" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) + " ndMax " + Vect_FixedLenStr( this.AABB.maxCoord, 2, 6 ) +
 				" dpth " + this.depth + " nLvsMDpth " + nLvsMDpth + " ndObjs " + ndObjsStr + "\n" +
-				"objUid " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + " objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 )
+				"objUid " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + 
+				" objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 )
 				, "ot add success", UIDToColorHexString(this.root.uid), this.depth );
 
 		}else{ //already subdivided, decide which sub nodes it should be added to
 			DTPrintf( "tNId " + this.uid.val + " dpth " + this.depth + 
 				" already subdivided", "ot add", "color:#3366ff", this.depth );
+				
+			//if( object.fNum && object.fNum == 8 )
+			//	DTPrintf( "tNd uid " + this.uid.val + " dpth " + this.depth +  " addingobject  " + object + 
+			//		"fNum " + object.fNum 
+			//		, "ot add dbg", "color:#ff0053", this.depth );
 		
 			let maxNewDpth = this.maxDepth;
 			for(let i = 0; i < this.subNodes.length; ++i){
 				let subnode = this.subNodes[i];
 				if( subnode ){
-					let ovlapPct = AABBsOverlap( subnode.AABB, object.AABB );
+					//if( object.fNum && object.fNum == 8 )
+					//	DTPrintf(" ovlap calc", "ot add dbg", "color:#ff00ff", this.depth );
+					let ovlapPct = AABBOthrObjOverlap( subnode.AABB, object.AABB );
+					//if( object.fNum && object.fNum == 8 )
+					//	DTPrintf(" ovlap calc result " + ovlapPct, "ot add dbg", "color:#ff00ff", this.depth );
 					if( ovlapPct > 0 ){
+						//if( object.fNum && object.fNum == 8 )
+						//	DTPrintf( "fNum 8 ovlapPct " + ovlapPct 
+						//		, "ot add dbg", "color:#ff0053", this.depth );
 						let snNLvsMDpth = [0,0];
 						subnode.AddObject( snNLvsMDpth, object, addCmpCallback );
 						if( snNLvsMDpth[0] > 0 ) //num new leaves > 0
@@ -941,6 +963,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 				ray.lastNode.objectDictionary[ this.objects[0][i].uid.val ] == null ){ //don't recheck if checked last node
 				//check if the ray intersects the object
 				//let rayIntersectPt = Vect3_NewZero();
+				if( this.objects[0][i].fNum && this.objects[0][i].fNum == 8 )
+					DTPrintf("aabb int test with 8", "ot trace");
 				let rayObIntTime = this.objects[0][i].AABB.RayIntersects( ray, minTraceTime );
 				if( rayObIntTime >= minTraceTime ){
 					objInts[i].intTime = rayObIntTime;
@@ -965,6 +989,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			objInts[closestObjIdx].intTime < MAX_INTR_TIME; 
 			++closestObjIdx ){
 			retDisNormCol[0] = -1;
+			retDisNormCol[4] = objInts[closestObjIdx].intTime;
 			this.objects[0][ objInts[closestObjIdx].objIdx ].RayIntersect( retDisNormCol, ray );
 			if( retDisNormCol[0] > 0 ){
 				this.rayHitsPerFrame++;

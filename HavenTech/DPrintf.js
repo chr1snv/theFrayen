@@ -24,6 +24,7 @@ const enabledDebugTags = {
 	"ot add":0,	
 	"ot add error":0,
 	"ot add success":0,
+	"ot add dbg":0,
 	
 	"ot subdiv":0,
 	"ot subdiv success":0,

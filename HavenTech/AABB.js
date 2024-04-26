@@ -41,12 +41,15 @@ return false;
 */
 
 function AABBsOverlap(a1, a2){
-	//let pOvlp = [0,0,0];
-	return a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0 )  *
-		a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 1) *
-		a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 2);
-	//	return true;
-	//return false;
+	return a1.RangeOverlaps( a2.minCoord[0], a2.maxCoord[0], 0 ) *
+		   a1.RangeOverlaps( a2.minCoord[1], a2.maxCoord[1], 1 ) *
+		   a1.RangeOverlaps( a2.minCoord[2], a2.maxCoord[2], 2 );
+}
+
+function AABBOthrObjOverlap(a1, a2){
+	return a1.othrObRangeOverlapPct( a2.minCoord[0], a2.maxCoord[0], 0 ) *
+		   a1.othrObRangeOverlapPct( a2.minCoord[1], a2.maxCoord[1], 1 ) *
+		   a1.othrObRangeOverlapPct( a2.minCoord[2], a2.maxCoord[2], 2 );
 }
 
 function AABB( minCorner, maxCorner ){
@@ -127,12 +130,28 @@ function AABB( minCorner, maxCorner ){
 		const minRange = Math.min(otherRange, thisRange);
 		const ovlpAmt = rangeSum - totalRange;
 		const ovlpPct = ovlpAmt / minRange;
-		//const maxRange = Math.max(otherRange, thisRange);
-		//const pctOverlap = 1 - Math.min( 1, (totalRange - maxRange) / otherRange );
-		//if( totalRange < (rangeSum - 0.00001) || touches && totalRange <= rangeSum ) //total range vs sum of two ranges
-		//	return true;
-		//console.log("%c"+am+":"+aM+" "+this.minCoord[axis]+":"+this.maxCoord[axis], "color:orange");
-		//return false;
+		if( ovlpPct > 0 )
+			return ovlpPct;//pctOverlap;
+		else
+			return 0;
+	}
+	
+	this.othrObRangeOverlapPct = function( am, aM, axis, touches=false ){
+		//if the range overlaps the maximum spanned distance
+		//will be less than the sum of the range spans
+		let max = aM; //the max of the two maxes
+		if( this.maxCoord[axis] > aM )
+			max = this.maxCoord[axis];
+		let min = am; //the min of the two mins
+		if( this.minCoord[axis] < am )
+			min = this.minCoord[axis];
+		const totalRange = max - min; //the furthest points of the two ranges
+		const otherRange = aM - am; //the extent of the other aabb
+		const thisRange = this.maxCoord[axis] - this.minCoord[axis];
+		const rangeSum = otherRange + thisRange;
+		const minRange = Math.min(otherRange, thisRange);
+		const ovlpAmt = rangeSum - totalRange;
+		const ovlpPct = ovlpAmt / otherRange;
 		if( ovlpPct > 0 )
 			return ovlpPct;//pctOverlap;
 		else
