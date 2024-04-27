@@ -146,9 +146,16 @@ function AABB( minCorner, maxCorner ){
 		if( this.minCoord[axis] < am )
 			min = this.minCoord[axis];
 		const totalRange = max - min; //the furthest points of the two ranges
+		
 		const otherRange = aM - am; //the extent of the other aabb
+		if( otherRange < epsilon ){ //this axis of the other AABB is infitensimily small (flat)
+			if( max > aM && am > min ) 
+				return 1; //so if this AABB contains it return 1 (the other is entirely inside)
+			return 0; //otherwise it is outside, return 0 the AABB's don't overlap
+		}
+		//a fractional part (percentage) of the aabb's may overlap
 		const thisRange = this.maxCoord[axis] - this.minCoord[axis];
-		const rangeSum = otherRange + thisRange;
+		const rangeSum = otherRange + thisRange; //the smallest overall range with zero overlap
 		const minRange = Math.min(otherRange, thisRange);
 		const ovlpAmt = rangeSum - totalRange;
 		const ovlpPct = ovlpAmt / otherRange;

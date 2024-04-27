@@ -18,8 +18,8 @@ class Face { //part of mesh stored in mesh octTree
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
-		//if( this.fNum != 6 ){
-		//	retDisNormCol[0] = retDisNormCol[4];
+		//if( this.fNum != 13 ){
+		//	retDisNormCol[0] = -1;//retDisNormCol[4];
 		//	retDisNormCol[2] = [1,0,1,1];
 		//	return;
 		//}
@@ -219,8 +219,8 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	}
 
 	//generate local space triangles from a face index
-	let tempVert = new Array(4);
-	let tempVert1 = new Array(4);
+	let tempVert = new Array(3);
+	let tempVert1 = new Array(3);
 	//let uv0 = new Float32Array(2);
 	//let uv1 = new Float32Array(2);
 	//let uv2 = new Float32Array(2);
@@ -232,14 +232,17 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//initialized to opposite extrema to accept any value at first
 		Vect3_SetScalar( minf,  999999 );
 		Vect3_SetScalar( maxf, -999999 );
-		
+		//DTPrintf("updt f AABB " + f, "quadM updt");
 		for( let v = 0; v < face.numFaceVerts; ++v ){
+		
 			Vect3_CopyFromArr( tempVert, this.transformedVerts, face.vertIdxs[v]*vertCard );
+			//DTPrintf("v " + v + " " + Vect_FixedLenStr(tempVert, 4, 7), "quadM updt");
 			Vect3_minMax( minf, maxf, tempVert );
 			Vect3_minMax( this.lclMinCorner, this.lclMaxCorner, tempVert );
 			Matrix_Multiply_Vect3( tempVert1, this.toWorldMatrix, tempVert );
 			Vect3_minMax( this.worldMinCorner, this.worldMaxCorner, tempVert1 );
 		}
+		//DTPrintf("f " + f + " min " + Vect_FixedLenStr(minf, 4, 7) + " max " + Vect_FixedLenStr(maxf, 4, 7), "quadM updt");
 		face.AABB.UpdateMinMaxCenter( minf, maxf );
 		//this.faces[f].cubeSide = minMaxToCSide(this.faces[f].AABB); //for debugging (outputs name of face on 6 sided cube mesh)
 		
@@ -274,6 +277,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		for( let f = 0; f < this.faces.length; ++f ){
 			let nLvsMDpth = [0, 0];
 			subDivAddDepth = 0;
+			//DTPrintf("f " + f + " min " + 
+			//	Vect_FixedLenStr(this.faces[f].AABB.minCoord, 4, 7) + " max " + 
+			//	Vect_FixedLenStr(this.faces[f].AABB.maxCoord, 4, 7), "quadM updt");
 			this.octTree.AddObject(nLvsMDpth, this.faces[f]);
 		}
 		//octUpdateCmpCallback();

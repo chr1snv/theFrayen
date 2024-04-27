@@ -29,6 +29,8 @@ const enabledDebugTags = {
 	"ot subdiv":0,
 	"ot subdiv success":0,
 	
+	"quadM updt":0,
+	
 	
 	"ot updt":0,
 	

@@ -186,12 +186,17 @@ function Vect3_containsNaN( v ) {
 }
 
 //return a string from a vector of numbers
-//make each entry of the vector have 
+//make each entry of the vector have num decimal places, and len total characters
+//len has to be numDecimalPlaces + 2 or greater 
+//(because of - sign, 1's place digit and . character )
 function Vect_FixedLenStr( v, numDecimalPlaces, len ){
 	let retString = '';
 	let a = '';
 	for( let i = 0; i < v.length; ++i ){ //for each number in the vector
-		a = v[i].toFixed(numDecimalPlaces);
+		if( v[i] < 0 )
+			a = v[i].toFixed(numDecimalPlaces-1);
+		else
+			a = v[i].toFixed(numDecimalPlaces);
 		if(a.length > len){ //if adding the decimal places makes it longer than the string length for each number
 			//convert to truncated scientific notation
 			//a = a.slice(0, len-2);
