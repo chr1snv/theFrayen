@@ -32,13 +32,8 @@
 				<td>Scene</td>
 				<td>
 					<select id="sceneSelection" name="scene">
-						<!--<option>cubeTest</option>-->
-						<!--<option>bldgCourtyard</option>-->
 						<option>untitledTest1</option>
 						<option>blndrCoordTool</option>
-						<!--<option>penisModel</option>-->
-						<!--<option>starPlatform9</option>-->
-						<!--<option>NoName</option>-->
 					</select>
 				</td>
 				<td><button type="button" id="runSceneButton" onclick="stopAutostart()">Stop Autostart</button></td>
@@ -91,10 +86,10 @@
 				<td><input type="number" id="pointFalloff" value="0.5" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
 			</tr>
 			<tr>
-				<td>oT Div overlap penalty</td>
-				<td><input type="number" id="overlapPenalty" value="1" step=0.1; onchange="treeDivSettingChange()" style="width:4em;"></input></td>
-				<td>oT Div not half penalty</td>
-				<td><input type="number" id="halfPenalty" value="1" step=0.1; onchange="treeDivSettingChange()" style="width:4em;"></input></td>
+				<td>Camera Near View Limit</td>
+				<td><input type="number" id="camNear" value="1" step=1; onchange="camLimitChange()" style="width:4em;"></input></td>
+				<td>Camera Far View Limit</td>
+				<td><input type="number" id="camFar" value="1" step=100; onchange="camLimitChange()" style="width:4em;"></input></td>
 			</tr>
 			<tr>
 				<td><input type="checkbox" id="stepTreeDiv" onclick="stepTreeToggle()">Step Every Oct T Div</input></td>
@@ -110,17 +105,26 @@
 					<td>
 						<h4>Camera</h4>
 						<table>
-						<tr>
-							<td>location</td><td id="camLoc"></td>
-						</tr>
-						<tr>
-							<td>rotation</td><td id="camRot"></td>
-						</tr>
+							<tr>
+								<td>location</td><td id="camLoc"></td>
+							</tr>
+							<tr>
+								<td>rotation</td><td id="camRot"></td>
+							</tr>
 						</table>
 						<table>
 							<tr><td>+x right</td><td>-x left</td></tr>
 							<tr><td>+y fwd</td><td>-y back</td></tr>
 							<tr><td>+z up</td><td>-z down</td></tr>
+						</table>
+					</td>
+					<td>
+						<h4>Mouse</h4>
+						<table>
+							<tr>
+								<td>canvPos</td><td id="mouseCanvPos"></td>
+								<td>ScreenPos</td><td id="mouseScreenPos"></td>
+							</tr>
 						</table>
 					</td>
 				</tr>
