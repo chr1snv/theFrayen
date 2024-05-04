@@ -14,6 +14,8 @@ function IPrintf(str){
     console.log("info: " + str);
 }
 
+//these have to be 0 at startup
+//the document.cookie value is used to set them to 1 if set for a tag type
 const enabledDebugTags = { 
 	"CheckGLError":0,
 	
@@ -40,6 +42,7 @@ const enabledDebugTags = {
 	"detc additional":0,
 	
 	"trace error":0,
+	"trace info":0,
 	
 	"unsubdiv":0,
 	

@@ -80,28 +80,28 @@ function Matrix(){// m, type, scale, rot, translation )
 		//to do this, find a quaternion rotation that will take us from
 		// the y axis to the axis of the bone (boneAxisVector)
 		
-		var boneAxis = new Float32Array(3);
+		let boneAxis = new Float32Array(3);
 		Vect3_Copy(boneAxis, arguments[2]);
 		
 		Vect3_Subtract(boneAxis, arguments[3]);
 		Vect3_Unit(boneAxis);
 		
-		var yAxis = new Float32Array([0.0, 1.0, 0.0]);
+		let yAxis = new Float32Array([0.0, 1.0, 0.0]);
 		
 		//find the angle to rotate by (boneAxis dot yAxis)
 		let dotProduct = boneAxis[0]*yAxis[0]+boneAxis[1]*yAxis[1]+boneAxis[2]*yAxis[2];
-		var rotationAngle = Math.acos(dotProduct);
+		let rotationAngle = Math.acos(dotProduct);
 		
 		//if the bone is not parallel to the y axis
 		if(Math.abs(rotationAngle) > 0.000001 && Math.abs(rotationAngle) < 3.141592){
 			//find the axis to rotate around
-			var rotationAxis = new Float32Array(3);
+			let rotationAxis = new Float32Array(3);
 			Vect3_Cross(rotationAxis, boneAxis, yAxis);
 			Vect3_Unit(rotationAxis);
 			
 			//generate the rotation quaternion
 			//to be delt with
-			var orientationQuat = Quat_FromAxisAng(rotationAxis, rotationAngle);
+			let orientationQuat = Quat_FromAxisAng(rotationAxis, rotationAngle);
 			
 			Matrix(arguments[0], MatrixType.quat_rotate, orientationQuat);
 		}
@@ -146,10 +146,13 @@ function Matrix(){// m, type, scale, rot, translation )
 		arguments[0][2*4+2] = 1;
 	}
 	else if( arguments[1] == MatrixType.quat_rotate ){
-		var quat = arguments[2];
+		let quat = arguments[2];
 		Matrix_SetIdentity(arguments[0]);
 		if(quat[3] == 0.0)
 		    return;
+		//basis matrix computation
+		//https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#References
+		//https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
 		//make a rotation matrix from a quaternion
 		arguments[0][0*4+0] = 1 - 2*quat[1]*quat[1] - 2*quat[2]*quat[2];
 		arguments[0][0*4+1] =     2*quat[0]*quat[1] - 2*quat[2]*quat[3];
@@ -172,11 +175,11 @@ function Matrix(){// m, type, scale, rot, translation )
 	}
 	else if(arguments[1] == MatrixType.euler_rotate){
 		//var rotVect = arguments[2];
-		Matrix_SetIdentity(arguments[0]);
+		//Matrix_SetIdentity(arguments[0]);
 		//generate a rotation matrix with (xyz) ordering
 		Matrix(arguments[0], MatrixType.xRot, arguments[2][0]);
-		Matrix(tempMat1, MatrixType.zRot, arguments[2][2]);
-		Matrix(tempMat2, MatrixType.yRot, arguments[2][1]);
+		Matrix(tempMat1, MatrixType.yRot, arguments[2][1]);
+		Matrix(tempMat2, MatrixType.zRot, arguments[2][2]);
 		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
 		Matrix_Multiply(arguments[0], tempMat2, tempMat3);
 	}
@@ -202,7 +205,7 @@ function Matrix(){// m, type, scale, rot, translation )
 
 function swapRows( m, r1, r2){
 	//swap rows of a 4x4 matrix of floats
-	var temp = 0.0;
+	let temp = 0.0;
 	for(let i=0; i<4; ++i){
 		temp = m[r1*4+i];
 		m[r1*4+i] = m[r2*4+i];
@@ -404,29 +407,29 @@ function Matrix_Determinant( m, dimension, row){
 	//if recursion is still necessary, decompose into minor determinants
 	//(cross out columns and compute the sub determinants that result)
 
-	var sum = 0;
+	let sum = 0;
 
-	for(var i=0; i<dimension; ++i) //stepping through columns to cross out
+	for(let i=0; i<dimension; ++i) //stepping through columns to cross out
 	{
-		var sign = -1; //add 1 to pow from 1 to dimension
+		let sign = -1; //add 1 to pow from 1 to dimension
 		if( i % 2 == 0)
 			sign = 1;
-		var element = m[i]; //pick a column headder
+		let element = m[i]; //pick a column headder
 		if(element == 0)
 			continue; //this column wont contribute to the sum so skip it
 
 		//generate the sub matrix
-		var subDimension = dimension-1;
-		var subM = new Float32Array(subDimension*subDimension);
-		var newMatrixIDX = 0;
+		let subDimension = dimension-1;
+		let subM = new Float32Array(subDimension*subDimension);
+		let newMatrixIDX = 0;
 		//copy the full matrix into the sub matrix except for the crossed out row
-		for(var j=1; j<dimension; ++j)
-			for(var k=0; k<dimension; ++k){
+		for(let j=1; j<dimension; ++j)
+			for(let k=0; k<dimension; ++k){
 				if(k != i) //if it equaled it would be the crossed out column
 					subM[newMatrixIDX++] = m[(dimension*j)+k];
 			}
 		//calculate the determinant of the sub matrix
-		var subMDeterminant = Matrix_Determinant(subM, subDimension);
+		let subMDeterminant = Matrix_Determinant(subM, subDimension);
 
 		//add this part of the determinant to the sum
 		sum += sign * element * subMDeterminant;

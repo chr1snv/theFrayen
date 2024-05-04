@@ -27,7 +27,9 @@
 //and also using fixed size arrays/structures where possible
 
 //slow functions, should only use these outside of program loops and pre allocate memory where possible
-function Vect3_New( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[1] = s2; v[2] = s3; return v; }
+function Vect3_NewVals( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[1] = s2; v[2] = s3; return v; }
+function Vect3_New() { return new Float32Array(3);}
+//NewZero the same as New though if ported to another language / implementation need to make sure the values are initalized to zero
 function Vect3_NewZero() { return new Float32Array(3);}//[0,0,0]); };
 function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v;}
 function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
@@ -68,6 +70,12 @@ function Vect3_DivideScalar(v1, scalar) { v1[0] /= scalar; v1[1] /= scalar; v1[2
 //thumb         as the z axis (ret - result)
 //if v1 is the x axis and v2 is the y axis
 //the cross product result will be in the z direction
+//     |  i     j     k |
+//a*b =| a[0] a[1] a[2] |
+//     | b[0] b[1] b[2] |
+//on the diagonals 
+//a x b = (a1b2i + a2b0j + a0b1k) - (b1a2i + b2a0j + b0a1k)
+//      = (a1b2 - b1a2)i + (a2b0 - b2a0)j + (a0b1 - b0a1)k
 function Vect3_Cross(ret, v1, v2) {
 	ret[0] = v1[1]*v2[2] - v2[1]*v1[2];
 	ret[1] = v2[0]*v1[2] - v1[0]*v2[2];

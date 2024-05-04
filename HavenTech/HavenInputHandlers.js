@@ -86,7 +86,9 @@ function updatePosition(e) {
 }
 
 function canvasMouseMoveHandler(e){
-	//mCoords = document.getElementById('frayenCanvas').relMouseCoords(e);
+	document.getElementById('frayenCanvas').relMouseCoords(e);
+	mCoords['x'] = e.canvasX;
+	mCoords['y'] = e.canvasY;
 
 	var canvas = document.getElementById('frayenCanvas');
 
@@ -95,8 +97,8 @@ function canvasMouseMoveHandler(e){
 		//console.log('The pointer lock status is now locked');
 	} else {
 		//console.log('The pointer lock status is now unlocked');
-		if(!mDown)
-			return;
+		if(!mDown) //prevent mCoord delta from being updated without
+			return; //the mouse clicked or canvas locked
 	}
 
 	mCoordDelta.x = e.movementX;
@@ -131,7 +133,7 @@ function relMouseCoords(e){
 	e.canvasX = e.pageX - totalOffsetX;
 	e.canvasY = e.pageY - totalOffsetY;
 	
-	console.log( "eCanv \t" + e.canvasX.toFixed(2) + " : " + e.canvasY.toFixed(2) );
+	//console.log( "eCanv \t" + e.canvasX.toFixed(2) + " : " + e.canvasY.toFixed(2) );
 	
 	let dontYScale = false;
 	if(document.fullscreenElement){

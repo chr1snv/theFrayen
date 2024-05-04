@@ -895,12 +895,12 @@ function TreeNode( minCoord, maxCoord, parent ){
 			}else{
 				retDisNormCol[2] = [1,1,0,1];
 			}
-			retDisNormCol[0] = rayEnterStep;
+			//retDisNormCol[0] = rayEnterStep;
 			
 		}else{ //the ray origin is inside the oct tree
 			Vect3_Copy( this.rayAABBIntPt, ray.origin );
 			retDisNormCol[2] = [1,0,0,1];
-			retDisNormCol[0] = 1;
+			//retDisNormCol[0] = 1;
 		}
 		
 		startTraceNode = this.SubNode( this.rayAABBIntPt );
@@ -908,8 +908,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 			//possibly from floating point precision at edge of a node
 			//DTPrintf("null startTraceNode", "ot trace error" );
 			startTraceNode = this;
-			retDisNormCol[0] = 1;
-			return;
+			//retDisNormCol[0] = 1;
+			//return;
 		}
 		
 		startTraceNode.Trace( retDisNormCol, ray, minTraceTime );

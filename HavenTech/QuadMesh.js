@@ -34,7 +34,7 @@ class Face { //part of mesh stored in mesh octTree
 				qMesh.GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
 				return;
 			}else{
-				//DTPrintf("didn't intersect", "trace error");
+				DTPrintf("didn't intersect", "trace error");
 				//retDisNormCol[0] = retDisNormCol[4];
 				retDisNormCol[2] = [0,1,1,1];
 			}
@@ -390,7 +390,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			//read in a vertex
 			else if( temp[0] == 'v' ){
 				//read in the position
-				let vert = Vect3_New( parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) );
+				let vert = Vect3_NewVals( parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]) );
 				thisP.vertPositions[vertIdx++] = vert[0];
 				thisP.vertPositions[vertIdx++] = vert[1];
 				thisP.vertPositions[vertIdx++] = vert[2];

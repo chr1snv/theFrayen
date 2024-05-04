@@ -89,6 +89,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.worldToScreenSpaceMat = new Float32Array(4*4);
 	this.screenSpaceToWorldMat = new Float32Array(4*4);
 	//this.frustum;
+	
+	let tempMat    = new Float32Array(4*4); //gets inverted
 
 	//gets the xyz euler radian camera in world space rotation
 	//from either the ipo animation or assigned
@@ -123,11 +125,26 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	//world space to camera space matrix 
 	//( invert the projection matrix (camera space to screen space) * camera to world space matrix )
 	{
-		if(this.fov == 0.0) //zero deg fov, orthographic (no change in size with depth) projection assumed
+		
+		
+		//calculate the inverse position transformation matrix for the camera
+		//(the transformation matrix for the camera would be the matrix required
+		//to transform the camera to its position in the world, but we want the
+		//model view matrix to be the inverse of that, the matrix required to
+		//bring the world into the view of the camera)
+		this.genCameraToWorldMatrix();
+		Matrix_Copy( tempMat, this.camToWorldMat ); //save before inverting
+		Matrix_Inverse( this.worldToCamMat, tempMat );
+		
+		
+		//multiply the inverseTransformationMatrix by the 
+		//perspective (or othographic) matrix to get the camera projection matrix
+		if( this.fov == 0.0 ) //zero deg fov, orthographic (no change in size with depth) projection assumed
 		{
-			projectionMat = glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
-									-graphics.screenHeight, graphics.screenHeight,
-									-1, 1);
+			glOrtho( -graphics.GetScreenAspect(), graphics.GetScreenAspect(),
+					-graphics.screenHeight, graphics.screenHeight,
+					-1, 1 );
+			Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
 		}
 		else
 		{
@@ -137,33 +154,22 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				this.nearClip,				//near clip plane distance
 				this.farClip				//far clip plane distance
 											);
+			Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
 		}
 		
-		//calculate the inverse position transformation matrix for the camera
-		//(the transformation matrix for the camera would be the matrix required
-		//to transform the camera to its position in the world, but we want the
-		//model view matrix to be the inverse of that, the matrix required to
-		//bring the world into the view of the camera)
-		this.genCameraToWorldMatrix();
-		Matrix_Copy(this.camToWorldMat, camToWorldMat); //save before inverting
-		Matrix_Inverse( this.worldToCamMat, camToWorldMat );
-		
-		//multiply the inverseTransformationMatrix by the 
-		//perspective matrix to get the camera projection matrix
-		Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
-		
-		Matrix_Copy(camToWorldMat, this.worldToScreenSpaceMat);
-		Matrix_Inverse( this.screenSpaceToWorldMat, camToWorldMat );
+		//invert the cam to world matrix 
+		Matrix_Copy( tempMat, this.worldToScreenSpaceMat );
+		Matrix_Inverse( this.screenSpaceToWorldMat, tempMat );
 		
 	}
 
-	let translation     = new Float32Array(3);
-	let rot             = new Float32Array(3);
-	let transMat        = new Float32Array(4*4);
-	let invTransMat     = new Float32Array(4*4);
-	let rotMat          = new Float32Array(4*4);
+	let translation       = new Float32Array(3);
+	let rot               = new Float32Array(3);
+	let transMat          = new Float32Array(4*4);
+	let invTransMat       = new Float32Array(4*4);
+	this.camToWorldRotMat = new Float32Array(4*4);
 
-	var camToWorldMat    = new Float32Array(4*4); //gets inverted
+
 	this.genCameraToWorldMatrix = function()
 	{
 		//get the camera rotation and translation from the ipo (animation)
@@ -174,9 +180,8 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
 		//combine the translation and rotation into one matrix
 		Matrix( transMat, MatrixType.translate, translation );
-		Matrix( rotMat, MatrixType.euler_rotate, rot );
-		Matrix_Multiply( camToWorldMat, transMat, rotMat );
-		//return camToWorldMat;
+		Matrix( this.camToWorldRotMat, MatrixType.euler_rotate, rot );
+		Matrix_Multiply( this.camToWorldMat, transMat, this.camToWorldRotMat );
 	}
 
 	//update the Cameras position based on its animation
@@ -185,9 +190,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.lastUpdateTime = timeIn;
 	}
 
-	let transformedRot = new Float32Array( 3 );
+	let zLocal = Vect3_NewVals(0,1,0);
+	let tempRoll = Vect3_NewZero();
+	let worldCamRollAxis = Vect3_New();
+	let rollQuat = new Float32Array(4);
+	let rotTransPosDelta = Vect3_New();
 	let infoString = "";
-	this.UpdateOrientation = function(positionDelta, rotationDelta, updateTime) //, rotation=null)
+	this.UpdateOrientation = function( positionDelta, rotationDelta, updateTime )
 	{
 		//Update the cameras transformation given a change in position and rotation.
 		
@@ -195,21 +204,28 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		
 		//apply the change in rotation
 		this.userRotation[0] += rotationDelta[0];
-		this.userRotation[1] += rotationDelta[1];
+		//this.userRotation[1] += rotationDelta[1];
 		this.userRotation[2] += rotationDelta[2];
 		
-		//if( rotation != undefined ) //may be defunct
-		//    Vect3_Copy( this.rotation, rotation );
 
 		//get the new rotation
-		this.getRotation(rot);
+		//this.getRotation(rot);
 
-		Matrix( rotMat, MatrixType.euler_rotate, rot );
+		//Matrix( rotMat, MatrixType.euler_rotate, rot );
+		
+		//transform the z axis (forward when camera is looking straight down with 0x,0y,0z rotation)
+		Matrix_Multiply_Vect3( worldCamRollAxis, this.camToWorldRotMat, zLocal );
+		//scale the cam roll axis components by the roll amount
+		Quat_FromAxisAng( rollQuat, worldCamRollAxis, rotationDelta[1] );
+		Quat_Norm(rollQuat);
+		QuatAxisAng_ToEuler( tempRoll, rollQuat );
+		//add the roll in different axies to the camera
+		Vect3_Add( this.userRotation, tempRoll );
 
 		//apply the camera rotation to the positionDeta 
 		//to get a new position offset 
 		//transform positionDelta from camera to world space
-		Matrix_Multiply_Vect3( transformedRot, rotMat, positionDelta );
+		Matrix_Multiply_Vect3( rotTransPosDelta, this.camToWorldRotMat, positionDelta );
 
 		//    //prevent up down rotation past vertical
 		//    if (rotation[0] > 90.0)
@@ -218,18 +234,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//        rotation[0] = -90.0;
 
 		//forwards backwards left and right movement in world space
-		this.userPosition[0] += transformedRot[0];
-		this.userPosition[1] += transformedRot[1];
-		this.userPosition[2] += transformedRot[2];
-		
-		//print the camera orientation to the html page
-		//let camOrigin = [0, 0, 0];
-		//this.getLocation( camOrigin );
-		//infoString  = "pos "        + ToFixedPrecisionString( camOrigin, 2 ) + "\n";
-		//infoString += "rot "        + ToFixedPrecisionString( rot, 2 ) + "\n";
-		//infoString += "defaultPos " + ToFixedPrecisionString( this.position, 2 ) + "\n";
-		//infoString += "defaultRot " + ToFixedPrecisionString( this.rotation, 2 ) + "\n";
-		//document.getElementById( "cameraDebugText" ).innerHTML = infoString;
+		this.userPosition[0] += rotTransPosDelta[0];
+		this.userPosition[1] += rotTransPosDelta[1];
+		this.userPosition[2] += rotTransPosDelta[2];
 		
 	}
 
@@ -278,14 +285,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	//buffers of new ray intersections this frame
 	let numRaysPerFrame;
 
-	let numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
-	let numVertRays = numRaysPerFrame / numHorizRays;
+	this.numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
+	this.numVertRays = numRaysPerFrame / this.numHorizRays;
 
 	this.changeNumRaysPerFrame = function( newNumRaysPerFrame, newAccumulatedRays ){
 		numRaysPerFrame = newNumRaysPerFrame;
 
-		numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
-		numVertRays = numRaysPerFrame / numHorizRays;
+		this.numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
+		this.numVertRays = numRaysPerFrame / this.numHorizRays;
 		
 		newAccumulatedRays
 		this.numRaysToAccum = newAccumulatedRays;
@@ -310,6 +317,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	const allowedTime = 100;
 	let worldPos  = new Float32Array( 3 );
 	let startNode = null;
+	this.onlyRaysNearCursor = false;
 	this.RayTraceDraw = function( octTreeRoot ){
 	
 		totalRayFrameHits = 0;
@@ -323,14 +331,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//document.getElementById("cameraDebugText").innerHTML = 
 		//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
 		
-		for(let v = 0; v < numVertRays; ++v ){
+		for(let v = 0; v < this.numVertRays; ++v ){
 			//newTime = Date.now();
 			//if ( newTime - startTime > allowedTime) //prevent slowing the browser
 			//   break;
-			for( let h = 0; h < numHorizRays; ++h ){
+			for( let h = 0; h < this.numHorizRays; ++h ){
 				//pick a random screen space position to cast the ray from
-				screenPos[1] = (( Math.random() / numVertRays ) + ( v / numVertRays ))*2-1;
-				screenPos[0] = ((Math.random() / numHorizRays) + (h / numHorizRays))*2-1;
+				screenPos[1] = (( Math.random() / this.numVertRays ) + ( v / this.numVertRays ))*2-1;
+				screenPos[0] = ((Math.random() / this.numHorizRays ) + ( h / this.numHorizRays))*2-1;
 				//get the world space end position of the ray normal
 				Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, screenPos );
 				//get the forward normal of the camera
@@ -341,8 +349,24 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				ray.norm = rayNorm;
 				ray.lastNode = null;
 				
-				//get the closest intersection point and pixel color of the ray in the scene
-				octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+				if( !this.onlyRaysNearCursor ){
+					octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+				}else{
+					if( Math.abs(v - mScreenRayCoords[1]) < 2 && Math.abs(h - mScreenRayCoords[0]) < 2  ){
+					
+						//"trace" cause this line to be called for debug breakpointing
+						if( keys[keyCodes.KEY_T] && v == mScreenRayCoords[1] && h == mScreenRayCoords[0] )
+							DTPrintf("selected ray" + v + " " + h, "trace info" ); 
+						
+					
+						//get the closest intersection point and pixel color of the ray in the scene
+						octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+						if( keys[keyCodes.KEY_L] ) //"log" call this line for console log message printing
+							DTPrintf("v" + v + " h" + h + " dist " + dist_norm_color[0] + " pt " + dist_norm_color[2], "trace info");
+					}else{
+						dist_norm_color[0] = -1;
+					}
+				}
 				updateHierarchyView(octTreeRoot); //update the debugging tree view
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];

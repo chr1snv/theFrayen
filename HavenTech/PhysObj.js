@@ -21,7 +21,7 @@ function PhysObj(AABB, obj, time){
 	
 	this.linAccel = Vect3_NewZero();
 	this.linVel = Vect3_NewZero(); //meters/sec
-	this.rotVelQuat = Quat_Identity(); //x,y,z axis, radian rotation / sec
+	this.rotVelQuat = Quat_New_Identity( ); //x,y,z axis, radian rotation / sec
 	this.mass = 1; //kg
 	
 	this.linearMomentum = Vect3_NewZero();

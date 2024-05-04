@@ -116,13 +116,20 @@ function debOctOpacChng(elm){
 	debOctOpac = elm.value;
 }
 
-let overlapPenaltyElm = document.getElementById('overlapPenalty');
-let halfPenaltyElm = document.getElementById('halfPenalty');
-let divHalfPenalty = 1;
-let divOverlapPenalty = 1;
-function treeDivSettingChange(){
-	divHalfPenalty = Number.parseInt(halfPenaltyElm.value);
-	divOverlapPenalty = Number.parseInt(overlapPenaltyElm.value);
+let camNearElm = document.getElementById('camNear');
+let camFarElm = document.getElementById('camFar');
+function camLimitChange(){
+	if( mainScene ){
+		let cam = mainScene.cameras[mainScene.activeCameraIdx];
+		if( cam ){
+			cam.nearClip = Number.parseInt(camNearElm.value);
+			cam.farClip = Number.parseInt(camFarElm.value);
+		}
+	}
+}
+function setCamLimitInputs(cam){
+	camNearElm.value = cam.nearClip;
+	camFarElm.value = cam.farClip;
 }
 
 var treeDebug;
@@ -223,7 +230,6 @@ function loadScene()
 	var idx = sceneSelectorElm.selectedIndex;
 	var newSceneName = sceneSelectorElm.children[idx].text;
 	
-	treeDivSettingChange();
 
 	stop();
 
@@ -279,6 +285,10 @@ function sceneLoaded(havenScene)
 	statusElm.innerHTML = "Running";
 	debugToggle();
 	treeHierarchyButtonElm.style.visibility = "inherit";
+	
+	let cam = mainScene.cameras[mainScene.activeCameraIdx];
+	UpadateMousePosText();
+	UpdateCamTransText(cam);
 }
 
 let lastInputTime = -10;
@@ -369,7 +379,7 @@ function MainLoop()
 			} else {
 				//console.log("Desktop device detected");
 				cenPos        = [ 0        , 0    ];
-				wdthHight     = [ 2     , 1.5 ];
+				wdthHight     = [ 2        , 1.5  ];
 				minUv         = [ 0        , 1    ];
 				maxUv         = [ 1        , 0    ];
 				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
@@ -426,6 +436,23 @@ let camRotUpdate = new Float32Array(3);
 let camLocDiv = document.getElementById("camLoc");
 let camRotDiv = document.getElementById("camRot");
 
+let mouseLocDiv  = document.getElementById("mouseCanvPos");
+let screenPosDiv = document.getElementById("mouseScreenPos");
+
+function UpdateCamTransText(cam){
+	cam.getLocation(camLoc);
+	cam.getRotation(camRot);
+	camLocDiv.textContent = Vect_FixedLenStr( camLoc, 2, 6 );
+	camRotDiv.textContent = Vect_FixedLenStr( camRot, 2, 6 );
+}
+
+function UpadateMousePosText(){
+	mouseLocDiv.textContent = Vect_FixedLenStr( [mCoords.x, mCoords.y], 2, 6 );
+	screenPosDiv.textContent = Vect_FixedLenStr( mScreenRayCoords, 2, 6 );
+}
+
+let mScreenRayCoords = new Float32Array(2);
+
 let camLoc = Vect3_NewZero();
 let camRot = Vect3_NewZero();
 let lastUpdateCameraTime = 0;
@@ -470,6 +497,7 @@ function UpdateCamera( updateTime )
 	camRotUpdate[2] = -mX*Math.PI/180;
 	mCoordDelta.x = mCoordDelta.y = 0;
 	
+	//roll the camera around it's forward axis
 	if( keys[keyCodes.KEY_Q] == true )
 		camRotUpdate[1] -= moveAmt*3*updateCameraTimeDelta;
 	if( keys[keyCodes.KEY_E] == true )
@@ -478,14 +506,21 @@ function UpdateCamera( updateTime )
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	
+	if( keys[keyCodes.KEY_N] ) //toggle limited view of camera rays near screen position of cursor
+		cam.onlyRaysNearCursor = !cam.onlyRaysNearCursor;
+	
+	//update mouse position text
+	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*cam.numHorizRays);
+	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*cam.numVertRays);
+	UpadateMousePosText();
+	
+	
+	//update text
 	if( Vect3_LengthSquared( camRotUpdate ) > 0.000001 || 
 		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){
 		lastInputTime = sceneTime;
 		//update the camera position / orientation text
-		cam.getLocation(camLoc);
-		cam.getRotation(camRot);
-		camLocDiv.textContent = Vect_FixedLenStr( camLoc, 2, 6 );
-		camRotDiv.textContent = Vect_FixedLenStr( camRot, 2, 6 );
+		UpdateCamTransText(cam);
 	}
 
 	//send the updates to the camera

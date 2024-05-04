@@ -188,11 +188,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		while( textFileLines[ revStartIdx ].length < 1 )
 			--revStartIdx;
 		let sceneAABBDimTxt = textFileLines[revStartIdx-1].split(' ');
-		let sceneMin = Vect3_New( 
+		let sceneMin = Vect3_NewVals( 
 			parseFloat( sceneAABBDimTxt[1] ), 
 			parseFloat( sceneAABBDimTxt[2] ), 
 			parseFloat( sceneAABBDimTxt[3] ) );
-		let sceneMax = Vect3_New( 
+		let sceneMax = Vect3_NewVals( 
 			parseFloat( sceneAABBDimTxt[5] ), 
 			parseFloat( sceneAABBDimTxt[6] ), 
 			parseFloat( sceneAABBDimTxt[7] ) );
@@ -310,8 +310,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				this.activeCamera = txtLineParts[1];
 				//look up and set its index
 				for(let j=0; j<this.cameras.length; ++j){
-					if(this.cameras[j].cameraName == this.activeCamera)
+					if(this.cameras[j].cameraName == this.activeCamera){
 						this.activeCameraIdx = j;
+						setCamLimitInputs(this.cameras[j]);
+						break;
+					}
 				}
 			}
 		}
