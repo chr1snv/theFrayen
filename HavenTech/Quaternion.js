@@ -1,10 +1,15 @@
 //Quaternion.js: Functions for representing and manipulating rotation Quaternions
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
-//in 3 dimensions, an additional axis has to be introduced for rotation
-//with only euler xyz rotation axies "gimbal lock" can occur where if the
-//three rotation axies are in plane with eachother the object looses 
-//it's roll degree of freedom
+//when applying transformations in multi-dimensonal space, permultations of
+//the order of transformations have to be taken into account i.e.
+//rotate x first, then y, then z or y x z etc
+
+//also for some objects, the direction the rotation was from has to be taken account for
+
+//in 3 dimensions, an additional axis has to be introduced to prevent "gimbal lock" 
+//which can occur where if the three rotation axies are in plane with eachother 
+//then the object looses it's roll degree of freedom
 //also smooth interpolation of animation rotations, quaternions are needed
 //(linear intpolation of euler angles doesn't travel along the sphere surface
 //between the two angle/orientations equidistantly per timestep)
@@ -54,11 +59,11 @@ function Quat_FromEuler( retQuat, eulerAngles )
 	Quat_FromZRot( tempQ, eulerAngles[2] );
 	Quat_FromYRot( temp2Q, eulerAngles[1] );
 	Quat_MultQuat( temp3Q, tempQ, temp2Q ); //multiply 
-	Quat_FromXRot( tempQ, eulerAngles[0], temp );
+	Quat_FromXRot( tempQ, eulerAngles[0] );
 	Quat_MultQuat(retQuat, temp3Q, tempQ);
 }
 
-//converts a unit axis angle quaternion to a euler angles (roll, pitch, yaw)
+//converts a unit axis angle quaternion to euler angles (x-roll, y-pitch, z-yaw)
 function QuatAxisAng_ToEuler( eulerV3, q ){
 	
 	//roll (x-axis rotation)
@@ -105,8 +110,8 @@ function Quat_FromZRot( retQuat, angle ){
 	if( angle == 0 )
 		return;
 
-	ret[2] = Math.sin(angle/2.0);
-	ret[3] = Math.cos(angle/2.0);
+	retQuat[2] = Math.sin(angle/2.0);
+	retQuat[3] = Math.cos(angle/2.0);
 }
 
 function Quat_Copy( quatRet, quat2 ){
@@ -190,7 +195,7 @@ function Quat_MultVect( ret, quat1, vec3 ){
 	Quat_Conj(quatConjTemp);
 
 	//return qvq^-1
-	Quat_MultQuat( tempQMult, quat1, vect );
+	Quat_MultQuat( tempQMult, quat1, tempQvc );
 	Quat_MultQuat( ret, tempQMult, quatConjTemp );
 }
 
@@ -235,7 +240,7 @@ function Quat_Decompose(quat)
 }
 
 //return the conjugate of the quaternion
-//spatial inverse
+//spatial inverse (is also the inverse if the length is one)
 function Quat_Conj( quat ) {
 	quat[0] = -quat[0];
 	quat[1] = -quat[1];
