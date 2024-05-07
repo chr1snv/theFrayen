@@ -57,6 +57,7 @@ function Vect3_DiffFromArr(v, v1, arr, i){
 function Vect3_Multiply(v1, v2) { v1[0] *= v2[0]; v1[1] *= v2[1]; v1[2] *= v2[2]; }
 
 function Vect3_MultiplyScalar(v1, scalar) { v1[0] *= scalar; v1[1] *= scalar; v1[2] *= scalar; }
+function Vect_MultScal( v1, s ){ let l = v1.length; for( let i = 0; i < l; ++i ){ v1[i] *= s; } }
 
 function Vect3_Divide(v1, v2) { v1[0] /= v2[0]; v1[1] /= v2[1]; v1[2] /= v2[2]; }
 
@@ -93,6 +94,22 @@ function Vect3_Cross(ret, v1, v2) {
 //https://stackoverflow.com/questions/13104494/does-javascript-pass-by-reference
 function Vect3_Dot( v1, v2 ){ return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
 //can return by refrence with array objects (this is likely a slow function)
+/*
+function Vect_Dot( v1, v2 ){
+	let nElms = v1.length;
+	let accum = 0;
+	for( let i = 0; i < nElms; ++i ){
+		accum += v1[i]*v2[i];
+	}
+	return accum;
+}
+*/
+
+//"projects" v onto targ (scales targ by the dot product of targ and v )
+function Vect3_Project( targ, v ){
+	let mag = Vect3_Dot( targ, v );
+	Vect3_MultiplyScalar( targ, mag );
+}
 
 //returns the distance between the two vectors or points (assuming the vectors are distances from the same origin to two points)
 function Vect3_Distance(v1, v2) {

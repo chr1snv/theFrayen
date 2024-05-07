@@ -15,7 +15,7 @@
 //between the two angle/orientations equidistantly per timestep)
 
 //a quaternion is a hyper complex number defining its own 4th dimensional algebra
-//where i^2=j^2=k^2=ijk=-1 & commutivity is not obeyed (q1*q2 != q2*q1)
+//where i^2 = j^2 = k^2 = ijk = -1 & commutivity is not obeyed (q1*q2 != q2*q1)
 //that is:
 // ij = k = -ji
 // jk = i = -kj
@@ -50,12 +50,11 @@ function Quat_FromAxisAng( quatRet, axis, angle ){
 	quatRet[3] = Math.cos(angle/2.0);
 }
 
+//generate a rotation quaternion from a set of euler angles
 let tempQ  = new Float32Array(4);
 let temp2Q = new Float32Array(4);
 let temp3Q = new Float32Array(4);
-function Quat_FromEuler( retQuat, eulerAngles )
-{
-	//generate a rotation quaternion from a set of euler angles
+function Quat_FromEuler( retQuat, eulerAngles ){
 	Quat_FromZRot( tempQ, eulerAngles[2] );
 	Quat_FromYRot( temp2Q, eulerAngles[1] );
 	Quat_MultQuat( temp3Q, tempQ, temp2Q ); //multiply 
@@ -64,6 +63,12 @@ function Quat_FromEuler( retQuat, eulerAngles )
 }
 
 //converts a unit axis angle quaternion to euler angles (x-roll, y-pitch, z-yaw)
+//component of a quaternion rotation around an axis
+//(ignoring twist around axis)
+//find orthogonal of axis to find rotation around
+//rotate orthogonal vector using quaternion
+//project rotated vector onto the plane the normal of which is axis
+//acos of the dot product of the projected vector and original orthogonal is angle
 function QuatAxisAng_ToEuler( eulerV3, q ){
 	
 	//roll (x-axis rotation)
@@ -80,6 +85,7 @@ function QuatAxisAng_ToEuler( eulerV3, q ){
 	let siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
 	let cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
 	eulerV3[2] = Math.atan2( siny_cosp, cosy_cosp );
+	
 }
 
 //generate a rotation quaternion about the specified axis
@@ -94,7 +100,6 @@ function Quat_FromXRot( retQuat, angle ){
 	retQuat[0] = Math.sin(angle/2.0);
 	retQuat[3] = Math.cos(angle/2.0);
 }
-
 function Quat_FromYRot( retQuat, angle ){
 	Quat_Identity(retQuat);
 
@@ -142,32 +147,18 @@ function Quat_New_Identity( ){
 	return quatRet;
 }
 
-function Quat_Sub( quatRet, quat1, quat2 ){
-	quatRet[0] = quat1[0] - quat2[0];
-	quatRet[1] = quat1[1] - quat2[1];
-	quatRet[2] = quat1[2] - quat2[2];
-	quatRet[3] = quat1[3] - quat2[3];
-}
-
-//multiplying quaternions
-// p = p0 + p1i + p2j + p3k
-// pq = p3q3 - p*q + p3q + q3p + p x q
-//    = w mult - dot prod + pw*q + qw*p + p cross q
+//multiply quaternions (used to "compose"/"combine")
+// p = (p0 + p1i + p2j + p3k) * (q0 + q1i + q2j + q3k) 
+//polynomial expansion and application of the rules i2 = j2 = k2 = ijk =-1
+// ||||||pq = p3q3 - p.q + p3q + q3p + p x q||||||
+//    = w mult - p dot q + pw*q + qw*p + p cross q
 //where p x q is a vect 3 cross product
-//      p*q  a vect 3 dot product
-//    =    p[3]*q[3] 
-
-//	    - (p[0]*q[0]+p[1]*q[1]+p[2]*q[2])
-
-//	    + (p[3]*(q[0]i+q[1]j+q[2]k)
-//      + (q[3]*(p[0]i+p[1]j+p[2]k)
-
-//      + (p[1]q[2] - q[1]p[2])i + (p[2]q[0] - q[2]p[0])j + (p[0]q[1] - q[0]p[1])k
-//preform quaternion multiplication
+//      p.q  a vect 3 dot product
 let AScl  = Vect3_New();
 let BScl  = Vect3_New();
-function Quat_MultQuat( r, a, b ){
-
+function Quat_MultQuat( r, a, b ){ 
+	//requires inputs (a and b) to be distinct from output (r)
+	//becuase cross product modifies r in place while calculating
 	let d = Vect3_Dot( a, b );
 	Vect3_Copy( AScl, a );
 	Vect3_MultiplyScalar(AScl, b[3]);
@@ -177,10 +168,6 @@ function Quat_MultQuat( r, a, b ){
 	Vect3_Add( r, AScl );
 	Vect3_Add( r, BScl );
 	r[3] = a[3]*b[3] - d;
-	//r[0] = a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1];
-	//r[1] = a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0];
-	//r[2] = a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3];
-	//r[3] = a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2];
 }
 //multiply a vector by a quaternion
 let quatConjTemp = Quat_New();
@@ -198,16 +185,31 @@ function Quat_MultVect( ret, quat1, vec3 ){
 	Quat_MultQuat( tempQMult, quat1, tempQvc );
 	Quat_MultQuat( ret, tempQMult, quatConjTemp );
 }
-
+//convert the vec3 to a "pure quaternion" with w = 0
 function Quat_VecToQuat( quat, vec3 ){
 	quat[0] = vec3[0];
 	quat[1] = vec3[1];
 	quat[2] = vec3[2];
+	quat[3] = 0;
 }
 
 //preforms spherical linear interpolation between two quaternions
-function Quat_Slerp( quat1, quat2, t)
-{
+//https://allenchou.net/2014/04/game-math-quaternion-basics/#slerp
+//assumes 0 <= t <= 1
+let sQ2ClosestRecip = Quat_New();
+function Quat_Slerp( qr, q1, q2, t){
+	let angBtwn = Math.acos( Vect3_Dot( q1, q2 ) ); //inv(adjacent / hypot) => x value inverse
+	Quat_Copy( sQ2ClosestRecip, q2 );
+	if( angBtwn < 0 ){
+		Quat_Recip( sQ2ClosestRecip ); //use closer of two opposite quaternions
+	}
+	let divisor = Math.sin( angBtwn ); //opposite / hypot => y value
+	let q1Amt = Math.sin( (1-t) * angBtwn ) / divisor;
+	let q2Amt = Math.sin( t * angBtwn ) / divisor;
+	Quat_Copy( qr, q1 ); //use the return quat for scaling q1
+	Vect_MultScal( qr, q1Amt );
+	Vect_MultScal( sQ2ClosestRecip, q2Amt ); //scale/porportion q2
+	Vect_Add( qr, sQ2ClosestRecip ); //combine the 1-t and t contributions
 }
 
 //raises the quaternion to the specified real number (number with decimal point) power
@@ -223,19 +225,44 @@ function Quat_pow( quat, pow )
 	return ret;
 }
 
+//used for sterp swing, twist decomposition / interpolation
+//decompose the quaternion into twist and swing
+//https://allenchou.net/2018/05/game-math-swing-twist-interpolation-sterp/
+//https://www.euclideanspace.com/maths/geometry/rotations/for/decomposition/index.htm
+//https://en.wikipedia.org/wiki/Rodrigues'_rotation_formula
+let twTemp = Quat_New();
+let rotTwAxs = Quat_New();
+let swngAxs = Vect3_New();
+let r = Vect3_New();
+function Quat_SwingTwistDecomp( swngq_out, twq_out, q_in, twa_in ){
+	Quat_MultVect( rotTwAxs, q_in, twa_in ); //transform the twist axis in by the quaternion
+	Vect3_Cross( swngAxs, twa_in, rotTwAxs ); //get the orthogonal to the great circle route
+	//the twist axis in takes when transformed by the quaternion
+	
+	Vect3_Project( twq_out, q_in ); //projects the imaginary/rotation axis of q onto the given twist axis
+	twq_out[3] = q_in[3];
+	Quat_Norm( twq_out );
+	
+	Quat_Copy( twTemp, twq_out );
+	Quat_Recip( twTemp );
+	Quat_MultQuat( swngq_out, q_in, twTemp );
+}
+
 //decomposes the quaternion into angle, unit vector form
 //"versor" "orientation quaternion" "attitude quaternion"
-function Quat_Decompose(quat)
-{
+//https://en.wikipedia.org/wiki/Unit_vector#Right_versor
+//https://en.wikipedia.org/wiki/Polar_decomposition
+let polDecompWorkQuat = Quat_New();
+function Quat_Decompose(quat){ //unique polar decomposition
 	//copy and normalize the quaternion
-	let workQuat = Quat_NewCopy( quat );
-	Quat_Norm(workQuat);
+	Quat_Copy( polDecompWorkQuat, quat );
+	Quat_Norm(polDecompWorkQuat);
 
 	//compute the decomposed values
-	let theta = Math.acos(workQuat[3]);
-	quat[0] = workQuat[0]/Math.sin(theta);
-	quat[1] = workQuat[1]/Math.sin(theta);
-	quat[2] = workQuat[2]/Math.sin(theta);
+	let theta = Math.acos(polDecompWorkQuat[3]);
+	quat[0] = polDecompWorkQuat[0]/Math.sin(theta);
+	quat[1] = polDecompWorkQuat[1]/Math.sin(theta);
+	quat[2] = polDecompWorkQuat[2]/Math.sin(theta);
 	quat[3] = theta;
 }
 

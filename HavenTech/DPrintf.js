@@ -49,7 +49,8 @@ const enabledDebugTags = {
 	"linvel":0,
 	
 	"loop":0,
-	"consolidate":0
+	"consolidate":0,
+	"test":0,
 };
 
 function debugTagClicked(e){

@@ -15,7 +15,7 @@ function IPOAnimation(nameIn, sceneNameIn){
 
 	this.GetLocation = function(ret, time)
 	{
-		var success = false;
+		let success = false;
 		//get location
 		Vect3_Zero(ret);
 		if(this.curves.LocX){
@@ -23,43 +23,45 @@ function IPOAnimation(nameIn, sceneNameIn){
 			success = true;
 		}
 		if(this.curves.LocY){
-			ret[2] = -this.curves.LocY.GetValue(time);
+			ret[1] = this.curves.LocY.GetValue(time);
 			success = true;
 		}
 		if(this.curves.LocZ){
-			ret[1] = this.curves.LocZ.GetValue(time);
+			ret[2] = this.curves.LocZ.GetValue(time);
 			success = true;
 		}
 		return success;
 	}
+	let eulerRotTemp = Vect3_New();
 	this.GetRotation = function(rot, time){
-		var success = false;
+		let success = false;
 
 		//get rotation (blender stores it as degrees/10)
-		Vect3_Zero(rot);
+		Vect3_Zero(eulerRotTemp);
 		if(this.curves.RotX){
-			rot[0] = this.curves.RotX.GetValue(time)*Math.PI/18.0;
+			eulerRotTemp[0] = this.curves.RotX.GetValue(time)*Math.PI/18.0;
 			success = true;}
 		if(this.curves.RotY){
-			rot[2] = -this.curves.RotY.GetValue(time)*M_PI/18.0;
+			eulerRotTemp[1] = -this.curves.RotY.GetValue(time)*M_PI/18.0;
 			success = true;}
 		if(this.curves.RotZ){
-			rot[1] = this.curves.RotZ.GetValue(time)*M_PI/18.0;
+			eulerRotTemp[2] = this.curves.RotZ.GetValue(time)*M_PI/18.0;
 			success = true;}
+		Quat_FromEuler( rot, eulerRotTemp );
 		return success;
 	}
 	this.GetScale = function(scale, time){
-		var success = false;
+		let success = false;
 		//get scale
 		scale = [1,1,1];
 		if(this.curves.ScaleX){
 			scale[0] = this.curves.ScaleX.GetValue(time);
 			success = true;}
 		if(iter != this.curves.ScaleY){
-			scale[2] = this.curves.ScaleY.GetValue(time);
+			scale[1] = this.curves.ScaleY.GetValue(time);
 			success = true;}
 		if(this.curves.ScaleZ){
-			scale[1] = this.curves.ScaleZ.GetValue(time);
+			scale[2] = this.curves.ScaleZ.GetValue(time);
 			success = true;}
 		return success;
 	}
@@ -68,18 +70,18 @@ function IPOAnimation(nameIn, sceneNameIn){
 		if(!isValid)
 			return;
 
-		var location = new Array(3);
-		GetLocation(location, time);
+		let translation = Vect3_New();
+		GetLocation(translation, time);
 
-		var rot = new Array(3);
+		let rot = Quat_New();
 		GetRotation(rot, time);
 
 		//get scale
-		var scale = new Array(3);
+		let scale = Vect3_New();
 		GetScale(scale, time);
 
 		//return the corresponding matrix
-		Matrix(outMat, MatrixType.euler_transformation, scale, rot, location);
+		Matrix(outMat, MatrixType.quat_transformation, scale, rot, translation);
 	}
 
 	this.GetDuration = function(){ return duration; }

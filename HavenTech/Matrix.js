@@ -16,6 +16,10 @@ MatrixType =
 zero: 13
 }
 
+function Matrix_New(){
+	return new Float32Array(4*4);
+}
+
 //initialization helpers
 function Matrix_SetZero( m )
 {
@@ -151,7 +155,7 @@ function Matrix(){// m, type, scale, rot, translation )
 		if(quat[3] == 0.0)
 		    return;
 		//basis matrix computation
-		//https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#References
+		//https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions
 		//https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
 		//make a rotation matrix from a quaternion
 		arguments[0][0*4+0] = 1 - 2*quat[1]*quat[1] - 2*quat[2]*quat[2];

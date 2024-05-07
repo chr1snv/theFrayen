@@ -57,6 +57,7 @@ var incFiles = ['DPrintf.js',
 				//'CameraStream.js',
 				
 				'Sound.js',
+				'MathFunctionTests.js'
 				];
 var incFileIdx = 0;
 

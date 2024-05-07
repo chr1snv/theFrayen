@@ -78,29 +78,31 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.stereo     = stereoIn;
 	this.stereoIPD  = ipdCMIn;    //the ipd in centimeters
 
-	this.userPosition = new Float32Array([0,0,0]); //user input position
-	this.userRotation = new Float32Array([0,0,0]); //user input rotation
+	this.userPosition = Vect3_NewZero(); //user input position
+	this.userRotation = Quat_New_Identity(); //user input rotation
 
 	this.ipoAnimation = new IPOAnimation(nameIn, sceneNameIn); //the animation curve for the camera (constructor fetches it from url based on the name and scene name)
 	this.lastUpdateTime = 0;
 
-	this.camToWorldMat         = new Float32Array(4*4);
-	this.worldToCamMat         = new Float32Array(4*4); //view matrix
-	this.worldToScreenSpaceMat = new Float32Array(4*4);
-	this.screenSpaceToWorldMat = new Float32Array(4*4);
+	this.camToWorldMat         = Matrix_New();
+	this.worldToCamMat         = Matrix_New(); //view matrix
+	this.worldToScreenSpaceMat = Matrix_New();
+	this.screenSpaceToWorldMat = Matrix_New();
 	//this.frustum;
 	
-	let tempMat    = new Float32Array(4*4); //gets inverted
+	let tempMat    = Matrix_New(); //gets inverted
 
-	//gets the xyz euler radian camera in world space rotation
-	//from either the ipo animation or assigned
+	//gets the quaternion camera in world space rotation
+	//from either the ipo animation or assigned initial orientation
+	let rotTmp = Quat_New();
 	this.getRotation = function(rotOut) 
 	{
 		if(!this.ipoAnimation.GetRotation(rotOut, this.lastUpdateTime))
-		    Vect3_Copy(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
-		else
-		    rotOut[0] -= 90.0*(Math.PI/180.0); //urotate the ipo animation by 90 degrees (blender camera starts off looking straight down)
-		Vect3_Add(rotOut, this.userRotation);
+		    Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
+		//apply the user input rotation
+		Quat_Copy( rotTmp, rotOut );
+		Quat_MultQuat(rotOut, rotTmp, this.userRotation );
+		Quat_Norm( rotOut );
 	}
 	this.getLocation = function(locOut)
 	{
@@ -109,15 +111,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		Vect3_Add(locOut, this.userPosition);
 	}
 
-	this.getRotationMatrix = function()
+	let rotMatRotTemp = Quat_New();
+	this.getRotationMatrix = function(rotMat)
 	{
 		//get the new rotation
-		var rot            = new Float32Array( 3 );
-		this.getRotation(rot);
-
-		var rotMat         = new Float32Array( 4 * 4 );
-		Matrix( rotMat, MatrixType.euler_rotate, rot );
-		return rotMat;
+		this.getRotation(rotMatRotTemp);
+		//convert it to a 4x4 matrix
+		Matrix( rotMat, MatrixType.quat_rotate, rotMatRotTemp );
 	}
 
 	//apply the Cameras transformation
@@ -163,11 +163,11 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		
 	}
 
-	let translation       = new Float32Array(3);
-	let rot               = new Float32Array(3);
-	let transMat          = new Float32Array(4*4);
-	let invTransMat       = new Float32Array(4*4);
-	this.camToWorldRotMat = new Float32Array(4*4);
+	let translation       = Vect3_New();
+	let rot               = Quat_New();
+	let transMat          = Matrix_New();
+	let invTransMat       = Matrix_New();
+	this.camToWorldRotMat = Matrix_New();
 
 
 	this.genCameraToWorldMatrix = function()
@@ -180,7 +180,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
 		//combine the translation and rotation into one matrix
 		Matrix( transMat, MatrixType.translate, translation );
-		Matrix( this.camToWorldRotMat, MatrixType.euler_rotate, rot );
+		Matrix( this.camToWorldRotMat, MatrixType.quat_rotate, rot );
 		Matrix_Multiply( this.camToWorldMat, transMat, this.camToWorldRotMat );
 	}
 
@@ -190,48 +190,27 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.lastUpdateTime = timeIn;
 	}
 
-	let zLocal = Vect3_NewVals(0,1,0);
-	let tempRoll = Vect3_NewZero();
+
 	let worldCamRollAxis = Vect3_New();
-	let rollQuat = new Float32Array(4);
 	let rotTransPosDelta = Vect3_New();
 	let infoString = "";
+	let rotOriTmp = Quat_New();
 	this.UpdateOrientation = function( positionDelta, rotationDelta, updateTime )
 	{
 		//Update the cameras transformation given a change in position and rotation.
 		
 		this.lastUpdateTime = updateTime;
 		
-		//apply the change in rotation
-		this.userRotation[0] += rotationDelta[0];
-		//this.userRotation[1] += rotationDelta[1];
-		this.userRotation[2] += rotationDelta[2];
 		
-
-		//get the new rotation
-		//this.getRotation(rot);
-
-		//Matrix( rotMat, MatrixType.euler_rotate, rot );
-		
-		//transform the z axis (forward when camera is looking straight down with 0x,0y,0z rotation)
-		Matrix_Multiply_Vect3( worldCamRollAxis, this.camToWorldRotMat, zLocal );
-		//scale the cam roll axis components by the roll amount
-		Quat_FromAxisAng( rollQuat, worldCamRollAxis, rotationDelta[1] );
-		Quat_Norm(rollQuat);
-		QuatAxisAng_ToEuler( tempRoll, rollQuat );
-		//add the roll in different axies to the camera
-		Vect3_Add( this.userRotation, tempRoll );
+		//append the rotation / roll in different axies to the camera
+		Quat_Copy( rotOriTmp, this.userRotation );
+		Quat_MultQuat( this.userRotation, rotOriTmp, rotationDelta );
+		Quat_Norm( this.userRotation );
 
 		//apply the camera rotation to the positionDeta 
 		//to get a new position offset 
 		//transform positionDelta from camera to world space
 		Matrix_Multiply_Vect3( rotTransPosDelta, this.camToWorldRotMat, positionDelta );
-
-		//    //prevent up down rotation past vertical
-		//    if (rotation[0] > 90.0)
-		//        rotation[0] = 90.0;
-		//    if (rotation[0] < -90.0)
-		//        rotation[0] = -90.0;
 
 		//forwards backwards left and right movement in world space
 		this.userPosition[0] += rotTransPosDelta[0];

@@ -426,12 +426,13 @@ function touchSenChange(){
 
 //called from the mainloop, gets user input and updates the freelook camera
 let moveAmt = 0.2;
-let camPositionUpdate = new Float32Array( 3 );
+let camPositionUpdate = Vect3_New();
 let mY = 0;
 let mX = 0;
 let relMx;
 let relMy;
-let camRotUpdate = new Float32Array(3);
+let camRotDelEuler = Vect3_New();
+let camRotDel = Quat_New();
 
 let camLocDiv = document.getElementById("camLoc");
 let camRotDiv = document.getElementById("camRot");
@@ -439,6 +440,8 @@ let camRotDiv = document.getElementById("camRot");
 let mouseLocDiv  = document.getElementById("mouseCanvPos");
 let screenPosDiv = document.getElementById("mouseScreenPos");
 
+let camLoc = Vect3_NewZero();
+let camRot = Quat_New();
 function UpdateCamTransText(cam){
 	cam.getLocation(camLoc);
 	cam.getRotation(camRot);
@@ -453,8 +456,7 @@ function UpadateMousePosText(){
 
 let mScreenRayCoords = new Float32Array(2);
 
-let camLoc = Vect3_NewZero();
-let camRot = Vect3_NewZero();
+
 let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
 function UpdateCamera( updateTime )
@@ -492,16 +494,16 @@ function UpdateCamera( updateTime )
 	mX += touch.lookDelta[0]*touchLookSenValue;
 	mY += touch.lookDelta[1]*touchLookSenValue;
 
-	camRotUpdate[0] = -mY*Math.PI/180;
-	camRotUpdate[1] = 0;
-	camRotUpdate[2] = -mX*Math.PI/180;
+	camRotDelEuler[0] = -mY*Math.PI/180;
+	camRotDelEuler[1] = -mX*Math.PI/180;
+	camRotDelEuler[2] = 0;
 	mCoordDelta.x = mCoordDelta.y = 0;
 	
 	//roll the camera around it's forward axis
 	if( keys[keyCodes.KEY_Q] == true )
-		camRotUpdate[1] -= moveAmt*3*updateCameraTimeDelta;
+		camRotDelEuler[2] += moveAmt*9*updateCameraTimeDelta;
 	if( keys[keyCodes.KEY_E] == true )
-		camRotUpdate[1] += moveAmt*3*updateCameraTimeDelta;
+		camRotDelEuler[2] -= moveAmt*9*updateCameraTimeDelta;
 	
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
@@ -516,7 +518,7 @@ function UpdateCamera( updateTime )
 	
 	
 	//update text
-	if( Vect3_LengthSquared( camRotUpdate ) > 0.000001 || 
+	if( Vect3_LengthSquared( camRotDelEuler ) > 0.000001 || 
 		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){
 		lastInputTime = sceneTime;
 		//update the camera position / orientation text
@@ -524,6 +526,8 @@ function UpdateCamera( updateTime )
 	}
 
 	//send the updates to the camera
-	cam.UpdateOrientation( camPositionUpdate, camRotUpdate, updateTime );
+	Quat_FromEuler( camRotDel, camRotDelEuler );
+	Quat_Norm( camRotDel );
+	cam.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
 	lastUpdateCameraTime = updateTime;
 }
