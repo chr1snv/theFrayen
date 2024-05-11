@@ -18,20 +18,34 @@ class Face { //part of mesh stored in mesh octTree
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
-		//if( this.fNum != 13 ){
+		//if( this.fNum != 0  ){
 		//	retDisNormCol[0] = -1;//retDisNormCol[4];
 		//	retDisNormCol[2] = [1,0,1,1];
 		//	return;
 		//}
 		for( let i = 0; i < this.triIdxs.length; ++i ){
 			if( this.triIdxs[i] == -1 )
-				break;
+				break
 			let qMesh = retDisNormCol[3];
 			let tri = qMesh.tris[this.triIdxs[i]];
-			retDisNormCol[0] = tri.RayTriangleIntersection( retDisNormCol[1], ray, qMesh.transformedVerts, this.vertIdxs[i*2] );
+			retDisNormCol[0] = tri.RayTriangleIntersection( ray, qMesh.transformedVerts, this.vertIdxs[i*2] );
+			//Vect3_Copy( retDisNormCol[1], tri.triZW );
 			if( retDisNormCol[0] > 0 ){ //the ray intersects the triangle, find the uv coordinate
-				tri.UVCoordOfPoint( uvCoord, tri.pointL, this );
-				qMesh.GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
+				tri.UVCoordOfPoint( uvCoord, this );
+				/*
+				let tIdx = sceneTime % 3;
+				if( tIdx < 1 ){
+					retDisNormCol[2][0] = tri.pointL[0];
+					retDisNormCol[2][1] = tri.pointL[1];
+				}else if( tIdx < 2 ) {
+					retDisNormCol[2][0] = uvCoord[0];
+					retDisNormCol[2][1] = uvCoord[1];
+				}else{
+				*/
+					qMesh.GetMaterialColorAtUVCoord( retDisNormCol[2], uvCoord, this.materialID );
+				//}
+				//retDisNormCol[2][2] = 0;
+				//retDisNormCol[2][3] = 1;
 				return;
 			}else{
 				DTPrintf("didn't intersect", "trace error");

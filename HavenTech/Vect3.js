@@ -94,7 +94,7 @@ function Vect3_Cross(ret, v1, v2) {
 //https://stackoverflow.com/questions/13104494/does-javascript-pass-by-reference
 function Vect3_Dot( v1, v2 ){ return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
 //can return by refrence with array objects (this is likely a slow function)
-/*
+
 function Vect_Dot( v1, v2 ){
 	let nElms = v1.length;
 	let accum = 0;
@@ -103,7 +103,19 @@ function Vect_Dot( v1, v2 ){
 	}
 	return accum;
 }
-*/
+
+function Vect_DotProdCoordRemap( r, v, basisAxies ){
+	let numAxies = basisAxies.length;
+	let d = 0;
+	for( let i = 0; i < numAxies; ++i ){
+		d = 0;
+		for( let j = 0; j < numAxies; ++j ){
+			d += basisAxies[i][j]*v[j]; 
+		}
+		r[i] = d;
+	}
+}
+
 
 //"projects" v onto targ (scales targ by the dot product of targ and v )
 function Vect3_Project( targ, v ){
@@ -165,16 +177,24 @@ function Vect3_LERP(v, v1, v2, v2Weight){
 	v[1] = v1[1]*v1Weight + v2[1]*v2Weight;
 	v[2] = v1[2]*v1Weight + v2[2]*v2Weight;
 }
-function Vect_LERP( v, vArr, v1, v2, v2W ){
+//vector in place and vector passed by refrence
+function Vect_LERP( v1, v2, v2W){
+	const v1W = 1.0-v2W;
+	for( let i = 0; i < v1.length; ++i){
+		v1[i] = v1[i] * v1W + v2[i]*v2W;
+	}
+}
+//interpolates between two vertx array idxs
+function VectArr_LERP( v, vArr, v1, v2, v2W ){
 	const v1W = 1.0-v2W;
 	for( let i = 0; i < v.length; ++i){
 		v[i] = vArr[v1+i] * v1W + vArr[v2+i]*v2W;
 	}
 }
-function Vect_LERPAdd( v, vArr, v1, v2W ){
-	const v1W = 1.0-v2W;
+//between a vector in place and an array index
+function VectArr_PctAdd( v, vArr, v1, v2W ){
 	for( let i = 0; i < v.length; ++i){
-		v[i] = v[i] * v1W + vArr[v1+i]*v2W;
+		v[i] += vArr[v1+i]*v2W;
 	}
 }
 

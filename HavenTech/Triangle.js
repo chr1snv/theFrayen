@@ -19,6 +19,16 @@ function Triangle( ){
 	this.v3L_e2L  = new Float32Array(3);
 	this.e3L = new Float32Array(3);
 	
+	this.e1Len = 0;
+	this.e2Len = 0;
+	this.e3Len = 0;
+	this.e1e2Ang = 0; //the angle between edge 1 and 2 (for uv coordinates)
+	
+	this.e1LOrtOut = new Float32Array(2);
+	this.e2LOrtOut = new Float32Array(2);
+	this.e3LOrtOut = new Float32Array(2);
+	
+	//face vert/uv idx of verticies v1, v2, v3
 	this.i1 = 0;
 	this.i2 = 1;
 	this.i3 = 2;
@@ -42,11 +52,11 @@ function Triangle( ){
 		//use edge1 and edge2 to get a vector perpendicular 
 		//to the triangle surface ( the normal )
 		
+		//world space tri normal
 		Vect3_Cross( this.triZW, e1W, e2W );
 		Vect3_Normal( this.triZW );
 
-		//generate x and y world space component vectors of the local triangle space
-		
+		//x and y world space component vectors of the local triangle space
 		Vect3_Copy(this.triXW, e1W); //avoid e1W norm, it's used in v2L_e1L
 		Vect3_Normal( this.triXW );
 		
@@ -65,15 +75,38 @@ function Triangle( ){
 		this.v2L_e1L[0] = Vect3_Dot( e1W, this.triXW );
 		this.v2L_e1L[1] = Vect3_Dot( e1W, this.triYW );
 		this.v2L_e1L[2] = Vect3_Dot( e1W, this.triZW );
-
 		
 		//this is v3 in local space and also the vector e2L (dot product coord remap)
 		this.v3L_e2L[0] = Vect3_Dot( e2W, this.triXW );
 		this.v3L_e2L[1] = Vect3_Dot( e2W, this.triYW );
 		this.v3L_e2L[2] = Vect3_Dot( e2W, this.triZW );
 		
+		//use difference of v3L and v2L to get e3L
 		Vect3_Copy( this.e3L, this.v3L_e2L ); //from v3Local to v2Local
 		Vect3_Subtract( this.e3L, this.v2L_e1L );
+		
+		//get lengths of local edges
+		this.e1Len = Vect3_Length( this.v2L_e1L );
+		this.e2Len = Vect3_Length( this.v3L_e2L );
+		this.e3Len = Vect3_Length( this.e3L );
+		
+		//normalize edges
+		//Vect3_Normal( this.v2L_e1L );
+		//Vect3_Normal( this.v3L_e2L );
+		//Vect3_Normal( this.e3L );
+		
+		
+		//generate orthogonals of triangle edges facing outwards
+		this.e1LOrtOut[0] =  this.v2L_e1L[1];
+		this.e1LOrtOut[1] = -this.v2L_e1L[0]; //clockwise
+		
+		this.e2LOrtOut[0] = -this.v3L_e2L[1];
+		this.e2LOrtOut[1] =  this.v3L_e2L[0]; //counterclockwise
+		
+		this.e3LOrtOut[0] =  this.e3L    [1];
+		this.e3LOrtOut[1] = -this.e3L    [0]; //clockwise
+		
+		
 	
 	}
 
@@ -90,7 +123,7 @@ function Triangle( ){
 	let e1OrthogDotL;
 	let e2OrthogDotL;
 	let e3OrthogDotL;
-	this.RayTriangleIntersection = function( retZW, ray, vArr, v1WI )
+	this.RayTriangleIntersection = function( ray, vArr, v1WI )
 	{
 		//Definition of a plane - ( 2d flat surface in 3 dimensional space ) 
 		//all points on a plane have (point - planeCenter) dot planeNormal = 0 
@@ -187,22 +220,19 @@ function Triangle( ){
 		//all edge orthogonals are facing outward)
 		//or positive signifying that from the edge the direction
 		//taken to reach the point exits the bounds of the triangle
-		e1OrthogDotL =  this.v2L_e1L[1]*this.pointL[0] + 
-						-this.v2L_e1L[0]*this.pointL[1]; 
+		e1OrthogDotL =  Vect_Dot( this.e1LOrtOut, this.pointL ); 
 		//e1Orthog, the vector from v1L to v2L is rotated clockwise
 		//to face outwards from the triangle
 
-		e2OrthogDotL = -this.v3L_e2L[1]*this.pointL[0] + 
-						this.v3L_e2L[0]*this.pointL[1];
+		e2OrthogDotL = Vect_Dot( this.e2LOrtOut, this.pointL );
 		//the vector from v1L to v3L 
 		//is rotated counterclockwise to face outwards
 
-		vToPtFromV2L[0] = this.pointL[0] - this.v2L_e1L[0];
-		vToPtFromV2L[1] = this.pointL[1] - this.v2L_e1L[1];
-
-		//vector to the point from a point on edge3L (from v3L to v2L)
-		e3OrthogDotL =  this.e3L[1]*vToPtFromV2L[0] + 
-						-this.e3L[0]*vToPtFromV2L[1];
+		vToPtFromV2L[0] = this.pointL[0] - (this.v2L_e1L[0]);// * this.e1Len);
+		vToPtFromV2L[1] = this.pointL[1] - (this.v2L_e1L[1]);// * this.e1Len);
+		//vector to the point from (v2L) which is on edge3L (from v3L to v2L)
+		
+		e3OrthogDotL =  Vect_Dot( this.e3LOrtOut, vToPtFromV2L );
 		//edge 3 (from v2l to v3l)
 		//is rotated clockwise to face away from the triangle
 
@@ -215,6 +245,8 @@ function Triangle( ){
 			return -1;
 
 		//otherwise the point is on the surface of the triangle
+		//the point and tri normal are returned by accesing
+		//this.pointL and this.triZW
 		//return the triangle local point so it may/(can optionally be used)
 		// for uv space texture coordinate lookup or shading
 		//and the ray distance to the intersection point because it
@@ -223,27 +255,56 @@ function Triangle( ){
 		//though ideally those should involve additional ray intersections
 		//that scatter the light conserving energy
 
-		//DPrintf( "rayD " + rayDistToPtWL + " triZ " + this.triZW );
-		retZW[0] = this.triZW[0];  //copy the normal to return
-		retZW[1] = this.triZW[1];
-		retZW[2] = this.triZW[2];
-		return rayDistToPtWL;//[ this.rayDistToPtWL, this.triZW, this.pointL ];
+		return rayDistToPtWL;
+	}
+	
+	function minMax( m, M, i, val ){
+		m[i] = m[i] < val ? m[i] : val;
+		M[i] = M[i] > val ? M[i] : val;
 	}
 
-	let vNormL = new Float32Array(3);
-	this.UVCoordOfPoint = function( uv, lpoint, face ){
+	this.baryVertPcts = new Float32Array(3);
+	this.baryAreaSum = 0;
+	this.UVCoordOfPoint = function( uv, face ){
 		//calculate the uv coordinates of the intersection point
 		//by interpolating between given uv coordinates of verticies
-		//based on how far the point is to each vertex in local triangle space
+		//based on the barycentric coordinates of the point 
+		//(relative areas of the sub triangles with two verticies to the point)
+		//the area of a triangle is 1/2 base * height
+		//base being the length of the side between the two vertices, and height
+		//the length of the trilinear intersection with the edge
+		//(perpendicular to the edge (e1OrthogDotL, e2, etc) )
 		
-		vNormL[0] = lpoint[0] / this.v2L_e1L[0];
-		vNormL[1] = lpoint[1] / this.v3L_e2L[1];
-		//closer to y = 1 is v3's uv
-		//y = 0 is x lerp between v1 and 2
-		//max x at y is y val
-		Vect_LERP( uv, face.uvs, this.i2*uvCard, this.i1*uvCard, (1-vNormL[0])/(vNormL[1]) );
-		Vect_LERPAdd( uv, face.uvs, this.i3*uvCard, (1-vNormL[1]) );
+		//get the distance from the point to edges to the triangle (flip r1 and r2 to get trilinear coordinates)
+		this.baryVertPcts[2] = R2RayIntersection( this.v1L,     this.v2L_e1L, this.pointL, this.e1LOrtOut ) * this.e1Len * this.e1Len;
+		this.baryVertPcts[1] = R2RayIntersection( this.v1L,     this.v3L_e2L, this.pointL, this.e2LOrtOut ) * this.e2Len * this.e2Len;
+		this.baryVertPcts[0] = R2RayIntersection( this.v2L_e1L, this.e3L,     this.pointL, this.e3LOrtOut ) * this.e3Len * this.e3Len;
+		//multiply by edge length to restore length of orthogonal, then multiply by edge length for base of triangle
+		
+		//ignore 0.5 in triangle area formula because later dividing by a1+a2+a3 
+		
+		this.baryAreaSum = this.baryVertPcts[0]+this.baryVertPcts[1]+this.baryVertPcts[2];
+		
+		/*
+		this.baryVertPcts[2] /= this.baryAreaSum;
+		this.baryVertPcts[1] /= this.baryAreaSum;
+		this.baryVertPcts[0] /= this.baryAreaSum;
+		*/
+		
+		//minMax( triMinPcts, triMaxPcts, 0, this.baryVertPcts[0] / this.baryAreaSum );
+		//minMax( triMinPcts, triMaxPcts, 1, this.baryVertPcts[1] / this.baryAreaSum );
+		//minMax( triMinPcts, triMaxPcts, 2, this.baryVertPcts[2] / this.baryAreaSum );
+		
+		uv[0] = 0;//v1Pct;
+		uv[1] = 0;//v3Pct;
+		//return;
+		VectArr_PctAdd( uv, face.uvs, this.i1*uvCard, this.baryVertPcts[0] / this.baryAreaSum );
+		VectArr_PctAdd( uv, face.uvs, this.i2*uvCard, this.baryVertPcts[1] / this.baryAreaSum );
+		VectArr_PctAdd( uv, face.uvs, this.i3*uvCard, this.baryVertPcts[2] / this.baryAreaSum );
 		
 	}
 
 }
+
+//var triMinPcts = new Float32Array([999,999,999]);
+//var triMaxPcts = new Float32Array(3);

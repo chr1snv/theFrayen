@@ -327,6 +327,7 @@ const float0 = floatA[0];
 const float1 = floatA[1];
 const floatP5 = floatA[2];
 const epsilon = 0.0000001;
+function NearEpsilon( a ){ return a < epsilon && a > -epsilon; }
 function Matrix_Multiply_Vect3( ret, m, v, w=1){
 	//turn the vect3 into a 4d vector "homogoneous cordinates" using w value
 	//when multiplying

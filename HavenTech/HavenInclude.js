@@ -56,8 +56,7 @@ var incFiles = ['DPrintf.js',
 				'InertialSensors.js',
 				//'CameraStream.js',
 				
-				'Sound.js',
-				'MathFunctionTests.js'
+				'Sound.js'
 				];
 var incFileIdx = 0;
 
