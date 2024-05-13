@@ -232,8 +232,12 @@ def writeMesh(assetDirectory, ob):
     #write the mesh scale, rotation and translation
     out.write( 'm\n' )
     out.write( 's %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
-    quatRot = ob.rotation_quaternion
-    out.write( 'r %f %f %f %f\n' % (quatRot[0], quatRot[1], quatRot[2], quatRot[3])) #ob.RotX, ob.RotZ, -ob.RotY))
+    if ob.rotation_mode == 'XYZ':
+    	quatRot = ob.rotation_euler.to_quaternion()
+    elif ob.rotation_mode == 'QUATERNION':
+    	quatRot = ob.rotation_quaternion
+    print("rotation mode %s rot %s" % (ob.rotation_mode, str(quatRot)) )
+    out.write( 'r %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
     loc = ob.location
     out.write( 'x %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
     out.write( 'e\n' )

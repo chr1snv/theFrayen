@@ -293,11 +293,11 @@ def writeScene(path):
                 vec3Min( wMin, aabbMin )
                 vec3Max( wMax, aabbMax )
                 newObj = TreeObj(aabbMin, aabbMax, obj)
-                addSuccessful = rootNode.AddObject( newObj )
-                print( "object aabb overlap check result " + \
-                    str( addSuccessful ) )
-                if addSuccessful == False:
-                    break
+                #addSuccessful = rootNode.AddObject( newObj )
+                #print( "object aabb overlap check result " + \
+                #    str( addSuccessful ) )
+                #if addSuccessful == False:
+                #    break
                 #AddOccupiedRegion( AABB[0], AABB[3], 0 )
                 #AddOccupideRegion( AABB[1], AABB[4], 1 )
                 #AddOccupiedRegion( AABB[2], AABB[5], 2 )
@@ -323,6 +323,8 @@ def writeScene(path):
                 None
             lghtCt += 1
             out.write( 'lEnd\n\n' )
+            vec3Min( wMin, obj.location )
+            vec3Max( wMax, obj.location )
         if obj.type == 'CAMERA':
             out.write( 'c %s \n' % (obj.name))
             print(" camera %s" % (obj.name) )
@@ -333,15 +335,23 @@ def writeScene(path):
             out.write( 'cstartend %f %f\n' % (camData.clip_start, camData.clip_end))
             camCt += 1
             out.write( 'cEnd\n\n' )
+            vec3Min( wMin, obj.location )
+            vec3Max( wMax, obj.location )
         
         writeObjectAnimationData(sceneDirectory, obj)
+        print(" ") #console output line break between objects
     
     #write out the active camera
-    out.write('ac %s\n' % sce.camera.name)
-    out.write( 'sceStats objs %i lghts %i cams %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
+    sceCamName = str( 'ac %s\n' % sce.camera.name )
+    out.write(sceCamName)
+    print(sceCamName)
+    sceStats = str('sceStats objs %i lghts %i cams %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
     	(mshCt, lghtCt, camCt,   wMin[0], wMin[1], wMin[2],   wMax[0], wMax[1], wMax[2]) )
+    out.write( sceStats )
+    print( sceStats )
     #close the output file
     out.close()
+    
     
     #Blender.Draw.PupMenu('Success%t| Successfully wrote scene file: ' \
     #                                                           + sceneName)
