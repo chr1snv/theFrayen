@@ -249,38 +249,82 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	//if they are from static world objects or dynamicly updated models
 	//refrence - linus tech tips framerate enhancement reprojection video
 
-	this.numRaysToAccum;
+	this.numRaysToAccum = -1;
 	this.prevPixPositions;
 	this.prevRayPositions;
 	this.prevPixColors;
-	this.numRaysAccumulated;
-	this.accumIndex;
+	this.numRaysAccumulated = 0;
+	this.accumIndex = 0;
 
 	let camOrigin = new Float32Array( 3 );
 
 	var horizFov = this.fov;
 	var vertFov  = this.fov * graphics.GetScreenAspect();
 
+	this.autoRaysPerFrame = false;
+	this.minAutoRaysPerFrame = 500;
+	this.maxAutoRaysPerFrame = 5000;
+
 	//buffers of new ray intersections this frame
-	let numRaysPerFrame;
+	this.numRaysPerFrame = 5000;
 
-	this.numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
-	this.numVertRays = numRaysPerFrame / this.numHorizRays;
+	this.numHorizRays = Math.sqrt(this.numRaysPerFrame) * graphics.GetScreenAspect();
+	this.numVertRays = this.numRaysPerFrame / this.numHorizRays;
 
-	this.changeNumRaysPerFrame = function( newNumRaysPerFrame, newAccumulatedRays ){
-		numRaysPerFrame = newNumRaysPerFrame;
-
-		this.numHorizRays = Math.sqrt(numRaysPerFrame) * graphics.GetScreenAspect();
-		this.numVertRays = numRaysPerFrame / this.numHorizRays;
+	this.changeNumRaysPerFrame = function( 
+			newNumRaysPerFrame, 
+			newAccumulatedRays, 
+			minRays=this.minAutoRaysPerFrame, 
+			maxRays=this.maxAutoRaysPerFrame, 
+			autoAdjRays=this.autoRaysPerFrame 
+		){
+		this.numRaysPerFrame = newNumRaysPerFrame;
 		
-		newAccumulatedRays
-		this.numRaysToAccum = newAccumulatedRays;
-		this.prevRayPositions = new Float32Array(this.numRaysToAccum*3);
-		this.prevPixColors    = new Float32Array(this.numRaysToAccum*4);
-		this.numRaysAccumulated = 0;
-		this.accumIndex = 0;
+		this.minAutoRaysPerFrame = minRays;
+		this.maxAutoRaysPerFrame = maxRays;
+		this.autoRaysPerFrame = true;
+
+		this.numHorizRays = Math.sqrt(this.numRaysPerFrame) * graphics.GetScreenAspect();
+		this.numVertRays = this.numRaysPerFrame / this.numHorizRays;
+		
+		if( newAccumulatedRays != this.numRaysToAccum ){
+			this.numRaysToAccum = newAccumulatedRays;
+			this.prevRayPositions = new Float32Array(this.numRaysToAccum*3);
+			this.prevPixColors    = new Float32Array(this.numRaysToAccum*4);
+			this.numRaysAccumulated = 0;
+			this.accumIndex = 0;
+		}
 	}
-	this.changeNumRaysPerFrame(5000, 8000);
+	this.changeNumRaysPerFrame(5000, 8000, 500, 5000, true);
+	
+	let avgPctRaysPerFrame = 1;
+	let avgPctRaysFrameWeightIfDecrease = 0.4;
+	let avgPctRaysFrameWeightIfIncrease = 0.001;
+	this.checkShouldChangeNumRays = function(){
+		newTime = Date.now();
+		let elaspedMills = newTime - startTime;
+		if ( elaspedMills < 1 )
+			elaspedMills = 1; //prevent divide by zero
+		
+		let pctRaysInAllowedTime = allowedFrameMills/elaspedMills;
+		
+		if(pctRaysInAllowedTime < 1)
+			avgPctRaysPerFrame = (avgPctRaysPerFrame*(1-avgPctRaysFrameWeightIfDecrease))+(pctRaysInAllowedTime*avgPctRaysFrameWeightIfDecrease);
+		else
+			avgPctRaysPerFrame = (avgPctRaysPerFrame*(1-avgPctRaysFrameWeightIfIncrease))+(pctRaysInAllowedTime*avgPctRaysFrameWeightIfIncrease);
+			
+		let newNumRaysPerFrame = avgPctRaysPerFrame*0.8*this.numRaysPerFrame;
+		
+		//prevent increasing unbounded increase when looking at empty space, and too low of a limit
+		newNumRaysPerFrame = Math.min ( Math.max( newNumRaysPerFrame, this.minAutoRaysPerFrame ), this.maxAutoRaysPerFrame )
+		
+		if( Math.abs( newNumRaysPerFrame - this.numRaysPerFrame ) / this.numRaysPerFrame  > 0.3 ){
+			//newNumRaysPerFrame = numRaysPerFrame*0.98 + newNumRaysPerFrame *0.02;
+			raysPerFrameElm.value = newNumRaysPerFrame;
+			this.changeNumRaysPerFrame(newNumRaysPerFrame, this.numRaysToAccum);
+		}
+		
+	}
 
 	let numRaysIntersected = 0; //number of intersections found
 	//generate rays in a grid and perturb the positions randomly
@@ -293,11 +337,13 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let dist_norm_color = [0, new Float32Array(3), new Float32Array(4), null];
 	let intPt = new Float32Array(3);
 	let newTime = sceneLoadedTime;
-	const allowedTime = 100;
-	let worldPos  = new Float32Array( 3 );
-	let startNode = null;
+	let allowedFrameMills = 100;
 	this.onlyRaysNearCursor = false;
+	let startTime = 0;
 	this.RayTraceDraw = function( octTreeRoot ){
+	
+		startTime = Date.now();
+		allowedFrameMills = 1000/targFps;
 	
 		totalRayFrameHits = 0;
 		octTreeRoot.clearRayCtrs();
@@ -311,9 +357,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
 		
 		for(let v = 0; v < this.numVertRays; ++v ){
-			//newTime = Date.now();
-			//if ( newTime - startTime > allowedTime) //prevent slowing the browser
-			//   break;
 			for( let h = 0; h < this.numHorizRays; ++h ){
 				//pick a random screen space position to cast the ray from
 				screenPos[1] = (( Math.random() / this.numVertRays ) + ( v / this.numVertRays ))*2-1;
@@ -346,7 +389,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 						dist_norm_color[0] = -1;
 					}
 				}
-				updateHierarchyView(octTreeRoot); //update the debugging tree view
 				if( dist_norm_color[0] > float0 ){
 					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
 					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];
@@ -371,6 +413,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				}
 		 }
 		}
+		if( this.autoRaysPerFrame )
+			this.checkShouldChangeNumRays();
+		
+		updateHierarchyView(octTreeRoot); //update the debugging tree view
 		
 		//transform previous frame rays to screen space done in vertex shader
 		

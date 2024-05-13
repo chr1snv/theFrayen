@@ -910,7 +910,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			//possibly from floating point precision at edge of a node
 			//DTPrintf("null startTraceNode", "ot trace error" );
 			startTraceNode = this;
-			retDisNormCol[0] = 1;
+			//retDisNormCol[0] = 1;
 			return;
 		}
 		

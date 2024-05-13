@@ -137,6 +137,17 @@ let debugElm = document.getElementById('treeDebug');
 function debugToggle(){
 	treeDebug = debugElm.checked;
 }
+var targFps = 60;
+let targFpsElm = document.getElementById('targFps');
+function targFpsChange(){
+	targFps = targFpsElm.value;
+}
+
+let tarFpsTglElm = document.getElementById('targFpsToggle');
+function toggleTargFps(){
+	mainScene.cameras[mainScene.activeCameraIdx].autoRaysPerFrame =
+		tarFpsTglElm.checked;
+}
 
 let settingsButtonElm = document.getElementById('showSettings');
 let settingsTableElm = document.getElementById('settingsTable');
@@ -159,6 +170,7 @@ function stepTreeToggle(e){
 	
 	}
 }
+
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
@@ -217,7 +229,6 @@ function loadScene()
 	var idx = sceneSelectorElm.selectedIndex;
 	var newSceneName = sceneSelectorElm.children[idx].text;
 	
-
 	stop();
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
@@ -241,8 +252,11 @@ function ResetSettings(){
 	mouseXSen.value = 0.1; mouseYSen.value = 0.1;
 	touchMoveSen.value = 0.005; touchLookSen.value = 0.1;
 
+	targFpsElm.value = 60;
+	tarFpsTglElm.checked = true;
+	minRaysPerFrameElm.value = 500; maxRaysPerFrameElm.value = 5000;
 	raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
-	pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
+	pointSizeElm.value = 10; pointFalloffElm.value = 0.1;
 
 	fullScrCanvWidthElm.value = 1920; fullScrCanvHeightElm.value = 1080;
 	canvWidthElm.value = 640; canvHeightElm.value = 480;
@@ -265,6 +279,8 @@ function sceneLoaded(havenScene)
 	//graphics.pointGraphics.Setup();
 	mouseSenChange();
 	touchSenChange();
+	targFpsChange();
+	toggleTargFps();
 	//raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
 	raysPerFrameChange();
 	//pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
@@ -386,12 +402,20 @@ function pointSizeChange(){
 	graphics.pointGraphics.pointSize = pointSizeElm.value;
 	graphics.pointGraphics.pointFalloff = pointFalloffElm.value;
 }
-
+let minRaysPerFrameElm = document.getElementById("minRaysPerFrame");
+let maxRaysPerFrameElm = document.getElementById("maxRaysPerFrame");
 let raysPerFrameElm = document.getElementById("raysPerFrame");
 let accumulatedRaysElm = document.getElementById("accumulatedRays");
 function raysPerFrameChange(){
+	
 	mainScene.cameras[mainScene.activeCameraIdx].
-		changeNumRaysPerFrame( parseInt(raysPerFrameElm.value), parseInt(accumulatedRaysElm.value) );
+		changeNumRaysPerFrame(
+			parseInt(raysPerFrameElm.value), 
+			parseInt(accumulatedRaysElm.value),
+			parseInt(minRaysPerFrameElm.value),
+			parseInt(maxRaysPerFrameElm.value),
+			tarFpsTglElm.checked
+		);
 }
 
 let mouseXSen = document.getElementById("mouseXSen");
