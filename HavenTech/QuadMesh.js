@@ -48,9 +48,9 @@ class Face { //part of mesh stored in mesh octTree
 				//retDisNormCol[2][3] = 1;
 				return;
 			}else{
-				DTPrintf("didn't intersect", "trace error");
+				//DTPrintf("didn't intersect", "trace error");
 				//retDisNormCol[0] = retDisNormCol[4];
-				retDisNormCol[2] = [0,1,1,1];
+				//retDisNormCol[2] = [0,1,1,1];
 			}
 		}
 	}
@@ -151,7 +151,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		if( this.lastToWorldMatrixUpdateTime == time )
 			return false;
 		Matrix( this.toWorldMatrix, 
-				MatrixType.euler_transformation, 
+				MatrixType.quat_transformation, 
 				this.scale, this.rotation, this.origin );
 		Matrix_Copy(tempMat, this.toWorldMatrix );
 		Matrix_Inverse( this.wrldToLclMat, tempMat );
@@ -167,18 +167,20 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.Update = function(animationTime) {
 		//if the new update time is newer (don't update twice for the same frame)
 		if( animationTime > this.lastMeshUpdateTime ){
-
+			
+			let worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
+			
 			let vertsUpdated = this.UpdateTransformedVerts(this.lastMeshUpdateTime);
 			if( vertsUpdated || this.lastMeshUpdateTime < 0){ //than rebuild the face octTree
 				octTreeDivLogElm.innerHTML += "<br/>update " + this.meshName + "<br/>";
 				this.UpdateOctTree(); //updates world space min and max corners
 			}
-
-			let worldTransformUpdated = this.UpdateToWorldMatrix(this.lastMeshUpdateTime);
+			
+			
 			if( worldTransformUpdated || vertsUpdated || this.lastMeshUpdateTime < 0){ //then update the AABB
 				this.UpdateAABB(animationTime);
 			}
-
+			
 			this.lastMeshUpdateTime = animationTime > 0 ? animationTime : 0;
 		}
 	}
@@ -285,7 +287,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			this.UpdateFaceAABBAndTriangles( f );
 		}
 		
-		this.octTree = new TreeNode( this.worldMinCorner, this.worldMaxCorner, null );
+		this.octTree = new TreeNode( this.lclMinCorner, this.lclMaxCorner, null );
 		this.octTree.name = this.meshName + " quadMesh";
 		
 		for( let f = 0; f < this.faces.length; ++f ){
@@ -301,19 +303,16 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	//called during ray trace rendering
 	//returns the ray distance, surface normal, and color at the intersection pt
-	//let face;
-	//let tri;
-	//let startNode;
-	let tempVec = Vect3_New();
+	let tempRay = new Ray( Vect3_New(), Vect3_New() );
 	this.GetRayIntersection = function( retDisNormCol, ray ){
 		
 		//to speed up this loop, use the oct tree of faces of the mesh
 		retDisNormCol[3] = this;
-		Vect3_Copy( tempVec, ray.origin );
-		Matrix_Multiply_Vect3( ray.origin, this.wrldToLclMat, tempVec );
-		Vect3_Copy( tempVec, ray.norm );
-		Matrix_Multiply_Vect3( ray.norm, this.wrldToLclMat, tempVec, 0 );
-		this.octTree.StartTrace( retDisNormCol, ray, 0 );
+		Matrix_Multiply_Vect3( tempRay.origin, this.wrldToLclMat, ray.origin );
+		Matrix_Multiply_Vect3( tempRay.norm, this.wrldToLclMat, ray.norm, 0 );
+		tempRay.lastNode = ray.lastNode;
+		this.octTree.StartTrace( retDisNormCol, tempRay, 0 );
+		ray.lastNode = tempRay.lastNode;
 	}
 
 	this.GetMaterialColorAtUVCoord = function( color, uv, matID ){
@@ -378,18 +377,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 						thisP.origin =   new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );}
-					else if( temp[0] == 'r' ){
+							parseFloat(words[3]) ] );
+					}else if( temp[0] == 'r' ){ //quaternion vec4
 						thisP.rotation = new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );}
-					else if( temp[0] == 's' ){
+							parseFloat(words[3]),
+							parseFloat(words[4]) ] );
+					}else if( temp[0] == 's' ){
 						thisP.scale =    new Float32Array([ 
 							parseFloat(words[1]), 
 							parseFloat(words[2]), 
-							parseFloat(words[3]) ] );}
-					else if( temp[0] == 'e' ){
+							parseFloat(words[3]) ] );
+					}else if( temp[0] == 'e' ){
 						break;}
 				}
 			}

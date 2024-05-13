@@ -178,8 +178,8 @@ function Triangle( ){
 		//ray point z coordinate vs ray time the slope ( rise / run ) of the line
 		//is the z amount of the ray direction or normal in local space
 
-		if( ( rayNormL[2] < 0.0001 && rayNormL[2] > -0.0001 ) && 
-			( rayOriL[2] > 0.01 || rayOriL[2] < -0.0001 ) )
+		if( NearEpsilon(rayNormL[2]) && // ( rayNormL[2] < 0.0001 && rayNormL[2] > -0.0001 ) && 
+			NearEpsilon(rayOriL[2]) )//( rayOriL[2] > 0.01 || rayOriL[2] < -0.0001 ) )
 			return -1; //the line is parallel to the plane and 
 		//the line starts away from the surface of the plane, 
 		//it's very unlikely there is an intersection point 

@@ -890,16 +890,18 @@ function TreeNode( minCoord, maxCoord, parent ){
 			//Vect3_Copy( this.rayAABBIntPt, this.AABB.rayStepPoints[this.AABB.rayStepPtIntIdx] );
 			
 			ray.PointAtTime( this.rayAABBIntPt, rayEnterStep + rayStepEpsilon );
+			/*
 			if( !this.AABB.ContainsPoint( this.rayAABBIntPt ) ){
-				retDisNormCol[2] = [1,0,1,1];
+				//retDisNormCol[2] = [1,0,1,1];
 			}else{
-				retDisNormCol[2] = [1,1,0,1];
+				//retDisNormCol[2] = [1,1,0,1];
 			}
 			//retDisNormCol[0] = rayEnterStep;
+			*/
 			
 		}else{ //the ray origin is inside the oct tree
 			Vect3_Copy( this.rayAABBIntPt, ray.origin );
-			retDisNormCol[2] = [1,0,0,1];
+			//retDisNormCol[2] = [1,0,0,1];
 			//retDisNormCol[0] = 1;
 		}
 		
@@ -908,8 +910,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 			//possibly from floating point precision at edge of a node
 			//DTPrintf("null startTraceNode", "ot trace error" );
 			startTraceNode = this;
-			//retDisNormCol[0] = 1;
-			//return;
+			retDisNormCol[0] = 1;
+			return;
 		}
 		
 		startTraceNode.Trace( retDisNormCol, ray, minTraceTime );
@@ -979,6 +981,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//objInts = objInts.sort( compRAIntr );
 
 		if( MergeSort( objInts, tempObjInts, compRAIntr ) ){
+			//if returns true, arr and temp array should be swapped
 			ObjIntSwapRef = objInts;
 			objInts = tempObjInts;
 			tempObjInts = ObjIntSwapRef;
