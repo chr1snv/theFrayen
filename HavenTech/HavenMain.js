@@ -254,7 +254,7 @@ function ResetSettings(){
 
 	targFpsElm.value = 60;
 	tarFpsTglElm.checked = true;
-	minRaysPerFrameElm.value = 500; maxRaysPerFrameElm.value = 5000;
+	minRaysPerFrameElm.value = 50; maxRaysPerFrameElm.value = 5000;
 	raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
 	pointSizeElm.value = 10; pointFalloffElm.value = 0.1;
 
