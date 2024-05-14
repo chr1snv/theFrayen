@@ -149,7 +149,7 @@ function AABB( minCorner, maxCorner ){
 		
 		const otherRange = aM - am; //the extent of the other aabb
 		if( otherRange < epsilon ){ //this axis of the other AABB is infitensimily small (flat)
-			if( max > aM && am > min ) 
+			if( this.maxCoord[axis] >= aM && am >= this.minCoord[axis] ) 
 				return 1; //so if this AABB contains it return 1 (the other is entirely inside)
 			return 0; //otherwise it is outside, return 0 the AABB's don't overlap
 		}
