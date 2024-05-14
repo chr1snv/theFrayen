@@ -17,14 +17,14 @@ function hasTouchSupport() {
 
 function registerInputHandlers(){
 	//register the canvas mouse move callback
-	document.getElementById("frayenCanvas").onmousemove = canvasMouseMoveHandler;
-	document.getElementById("frayenCanvas").ontouchmove = canvasMouseMoveHandler;
-	document.getElementById("frayenCanvas").onmousedown = canvasMouseDownHandler;
-	document.getElementById("frayenCanvas").onmouseup   = canvasMouseUpHandler;
-	document.getElementById("frayenCanvas").onmouseout  = canvasMouseUpHandler;
+	canvas.onmousemove = canvasMouseMoveHandler;
+	canvas.ontouchmove = canvasMouseMoveHandler;
+	canvas.onmousedown = canvasMouseDownHandler;
+	canvas.onmouseup   = canvasMouseUpHandler;
+	canvas.onmouseout  = canvasMouseUpHandler;
 	//register the canvas keypress callback
-	document.onkeydown                                  = pageKeyDownHandler;
-	document.onkeyup                                    = pageKeyUpHandler;
+	document.onkeydown = pageKeyDownHandler;
+	document.onkeyup   = pageKeyUpHandler;
 }
 
 function pageKeyDownHandler(e){
@@ -54,7 +54,6 @@ function canvasMouseUpHandler(e){
 
 //https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
 function updatePosition(e) {
-	var canvas = document.getElementById('frayenCanvas');
 
 	if(document.pointerLockElement === canvas ||
 	  document.mozPointerLockElement === canvas) {
@@ -86,11 +85,9 @@ function updatePosition(e) {
 }
 
 function canvasMouseMoveHandler(e){
-	document.getElementById('frayenCanvas').relMouseCoords(e);
+	canvas.relMouseCoords(e);
 	mCoords['x'] = e.canvasX;
 	mCoords['y'] = e.canvasY;
-
-	var canvas = document.getElementById('frayenCanvas');
 
 	if(document.pointerLockElement === canvas ||
 		document.mozPointerLockElement === canvas) {

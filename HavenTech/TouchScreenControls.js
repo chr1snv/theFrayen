@@ -11,11 +11,11 @@ function TouchScreenControls(){
 	this.OnTouchStart = function(e){
 		for(let i = 0; i < e.touches.length; ++i){
 			//new touch
-			if(		  !touch.movementTouch && 
-				e.touches[i].screenX < window.screen.width * floatP5){
-				touch.movementTouch = e.touches[i];
-			}else if( !touch.lookTouch && 
-				e.touches[i].screenX > window.screen.width * floatP5){
+			canvas.relMouseCoords(e.touches[i]);
+			if( e.touches[i].canvasX < e.touches[i].target.width * floatP5){
+				if( !touch.movementTouch )
+					touch.movementTouch = e.touches[i];
+			}else if( !touch.lookTouch ){
 				touch.lookTouch = e.touches[i];
 			}
 		}
