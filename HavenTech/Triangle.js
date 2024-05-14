@@ -19,10 +19,9 @@ function Triangle( ){
 	this.v3L_e2L  = new Float32Array(3);
 	this.e3L = new Float32Array(3);
 	
-	this.e1Len = 0;
-	this.e2Len = 0;
-	this.e3Len = 0;
-	this.e1e2Ang = 0; //the angle between edge 1 and 2 (for uv coordinates)
+	this.e1LenSq = 0;
+	this.e2LenSq = 0;
+	this.e3LenSq = 0;
 	
 	this.e1LOrtOut = new Float32Array(2);
 	this.e2LOrtOut = new Float32Array(2);
@@ -86,9 +85,9 @@ function Triangle( ){
 		Vect3_Subtract( this.e3L, this.v2L_e1L );
 		
 		//get lengths of local edges
-		this.e1Len = Vect3_Length( this.v2L_e1L );
-		this.e2Len = Vect3_Length( this.v3L_e2L );
-		this.e3Len = Vect3_Length( this.e3L );
+		this.e1LenSq = Vect3_LengthSquared( this.v2L_e1L );
+		this.e2LenSq = Vect3_LengthSquared( this.v3L_e2L );
+		this.e3LenSq = Vect3_LengthSquared( this.e3L );
 		
 		//normalize edges
 		//Vect3_Normal( this.v2L_e1L );
@@ -220,28 +219,37 @@ function Triangle( ){
 		//all edge orthogonals are facing outward)
 		//or positive signifying that from the edge the direction
 		//taken to reach the point exits the bounds of the triangle
-		e1OrthogDotL =  Vect_Dot( this.e1LOrtOut, this.pointL ); 
+		//e1OrthogDotL =  Vect_Dot( this.e1LOrtOut, this.pointL ); 
 		//e1Orthog, the vector from v1L to v2L is rotated clockwise
 		//to face outwards from the triangle
 
-		e2OrthogDotL = Vect_Dot( this.e2LOrtOut, this.pointL );
+		//e2OrthogDotL = Vect_Dot( this.e2LOrtOut, this.pointL );
 		//the vector from v1L to v3L 
 		//is rotated counterclockwise to face outwards
 
-		vToPtFromV2L[0] = this.pointL[0] - (this.v2L_e1L[0]);// * this.e1Len);
-		vToPtFromV2L[1] = this.pointL[1] - (this.v2L_e1L[1]);// * this.e1Len);
+		//vToPtFromV2L[0] = this.pointL[0] - (this.v2L_e1L[0]);// * this.e1Len);
+		//vToPtFromV2L[1] = this.pointL[1] - (this.v2L_e1L[1]);// * this.e1Len);
 		//vector to the point from (v2L) which is on edge3L (from v3L to v2L)
 		
-		e3OrthogDotL =  Vect_Dot( this.e3LOrtOut, vToPtFromV2L );
+		//e3OrthogDotL =  Vect_Dot( this.e3LOrtOut, vToPtFromV2L );
 		//edge 3 (from v2l to v3l)
 		//is rotated clockwise to face away from the triangle
 
 		//if the dot products of the vectors to the intersection point
 		//are positive the point, and therefore any points along the ray 
 		//do not intersect the triangle
-		if( e1OrthogDotL > 0 ||
-			e2OrthogDotL > 0 ||
-			e3OrthogDotL > 0 )
+		//if( e1OrthogDotL > 0 ||
+		//	e2OrthogDotL > 0 ||
+		//	e3OrthogDotL > 0 )
+		//	return -1;
+			
+		this.baryVertPcts[2] = R2RayIntersection( this.v1L,     this.v2L_e1L, this.pointL, this.e1LOrtOut ) * this.e1LenSq;
+		this.baryVertPcts[1] = R2RayIntersection( this.v1L,     this.v3L_e2L, this.pointL, this.e2LOrtOut ) * this.e2LenSq;
+		this.baryVertPcts[0] = R2RayIntersection( this.v2L_e1L, this.e3L,     this.pointL, this.e3LOrtOut ) * this.e3LenSq;
+		
+		if( this.baryVertPcts[2] < 0 ||
+			this.baryVertPcts[1] < 0 ||
+			this.baryVertPcts[0] < 0 )
 			return -1;
 
 		//otherwise the point is on the surface of the triangle
@@ -258,10 +266,6 @@ function Triangle( ){
 		return rayDistToPtWL;
 	}
 	
-	function minMax( m, M, i, val ){
-		m[i] = m[i] < val ? m[i] : val;
-		M[i] = M[i] > val ? M[i] : val;
-	}
 
 	this.baryVertPcts = new Float32Array(3);
 	this.baryAreaSum = 0;
@@ -276,9 +280,9 @@ function Triangle( ){
 		//(perpendicular to the edge (e1OrthogDotL, e2, etc) )
 		
 		//get the distance from the point to edges to the triangle (flip r1 and r2 to get trilinear coordinates)
-		this.baryVertPcts[2] = R2RayIntersection( this.v1L,     this.v2L_e1L, this.pointL, this.e1LOrtOut ) * this.e1Len * this.e1Len;
-		this.baryVertPcts[1] = R2RayIntersection( this.v1L,     this.v3L_e2L, this.pointL, this.e2LOrtOut ) * this.e2Len * this.e2Len;
-		this.baryVertPcts[0] = R2RayIntersection( this.v2L_e1L, this.e3L,     this.pointL, this.e3LOrtOut ) * this.e3Len * this.e3Len;
+		//this.baryVertPcts[2] = R2RayIntersection( this.v1L,     this.v2L_e1L, this.pointL, this.e1LOrtOut ) * this.e1LenSq;
+		//this.baryVertPcts[1] = R2RayIntersection( this.v1L,     this.v3L_e2L, this.pointL, this.e2LOrtOut ) * this.e2LenSq;
+		//this.baryVertPcts[0] = R2RayIntersection( this.v2L_e1L, this.e3L,     this.pointL, this.e3LOrtOut ) * this.e3LenSq;
 		//multiply by edge length to restore length of orthogonal, then multiply by edge length for base of triangle
 		
 		//ignore 0.5 in triangle area formula because later dividing by a1+a2+a3 

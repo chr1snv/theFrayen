@@ -18,7 +18,7 @@ class Face { //part of mesh stored in mesh octTree
 	}
 	GetAABB(){ return this.AABB; }
 	RayIntersect( retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
-		//if( this.fNum != 0  ){
+		//if( this.fNum < 9  ){
 		//	retDisNormCol[0] = -1;//retDisNormCol[4];
 		//	retDisNormCol[2] = [1,0,1,1];
 		//	return;
@@ -97,10 +97,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//the oct tree of the mesh faces (updated with mesh animations)
 	const tDim = 100;
 	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
-	this.worldMinCorner = Vect3_NewScalar( 999999 );
+	this.worldMinCorner = Vect3_NewScalar(  999999 );
 	this.worldMaxCorner = Vect3_NewScalar( -999999 );
-	this.lclMinCorner = Vect3_NewScalar( 999999 );
-	this.lclMaxCorner = Vect3_NewScalar( -999999 );
+	this.lclMinCorner   = Vect3_NewScalar(  999999 );
+	this.lclMaxCorner   = Vect3_NewScalar( -999999 );
 	this.AABB = new AABB( this.lclMinCorner, this.lclMaxCorner );
 
 	//animation classes

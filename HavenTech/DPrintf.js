@@ -16,6 +16,32 @@ function IPrintf(str){
 
 //these have to be 0 at startup
 //the document.cookie value is used to set them to 1 if set for a tag type
+const Deb_Mouse 			 = 0;
+const Deb_CheckGLError 		 = 1;
+const Deb_AddObj 			 = 2;
+
+const Deb_Ot_Add			 = 3;
+const Deb_Ot_Add_Error		 = 4;
+const Deb_Ot_Add_Success	 = 5;
+const Deb_Ot_Add_Dbg		 = 6;
+const Deb_Ot_Subdiv			 = 7;
+const Deb_Ot_Subdiv_Success	 = 8;
+
+const Deb_Ot_Updt			 = 9;
+const Deb_QuadM_Updt		 = 10;
+
+const Deb_Phys_Detc			 = 11;
+const Deb_Constr_Msg		 = 12;
+const Deb_Interpen			 = 13;
+const Deb_Detc_Additional	 = 14;
+const Deb_Trace_Error		 = 15;
+const Deb_Trace_Info		 = 16;
+const Deb_Unsubdiv			 = 17;
+const Deb_Linvel			 = 18;
+const Deb_loop				 = 18;
+const Deb_consolidate		 = 18;
+const Deb_test				 = 18;
+
 const enabledDebugTags = { 
 	"CheckGLError":0,
 	

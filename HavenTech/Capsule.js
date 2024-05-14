@@ -200,7 +200,7 @@ function Capsule(){
 		
 		//intersection of two lines
 		//m1*t1+b1=m2*t2+b2
-		let othrT = RayRayIntersection( thisS, thisD, othrS, othrD ); //undefined means they do not intersect
+		let othrT = R2RayIntersection( thisS, thisD, othrS, othrD ); //undefined means they do not intersect
 		
 		if( othrT != undefined ){
 			let othrP = new Float32Array(2);

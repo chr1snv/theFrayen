@@ -38,3 +38,10 @@ function clamp01( a ){
 		return 1;
 	return a;
 }
+
+//write into arrays of min and max values 
+//given an index and value
+function minMax( m, M, i, val ){
+	m[i] = m[i] < val ? m[i] : val;
+	M[i] = M[i] > val ? M[i] : val;
+}

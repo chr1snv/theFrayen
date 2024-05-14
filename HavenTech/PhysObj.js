@@ -166,10 +166,10 @@ function PhysObj(AABB, obj, time){
 								let timeOfColis = intTime + this.lastUpdtTime;
 								this.physGraph.AddConstraint( PHYS_SURFCOLIS, timeOfColis,
 									colisNormal, colisPos, interpenD, this, oOb );
-								DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
+								//DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
 								numColis += 1;
 							}else{// inter penetration (negative colision time)
-								DTPrintf( "time " + intTime, "phys detc" );
+								//DTPrintf( "time " + intTime, "phys detc" );
 								let colisNormal = Vect3_NewZero();
 								let colisPos = Vect3_NewZero();
 								let interpenD = 0;
@@ -178,7 +178,7 @@ function PhysObj(AABB, obj, time){
 									oOb.AABB.center, oOb.linVel, oOb.radius, 0 ); //zero to get interpentation at start of frame
 								this.physGraph.AddConstraint( PHYS_INTERPEN, this.lastUpdtTime, 
 									colisNormal, colisPos, interpenD, this, oOb );
-								DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
+								//DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
 								numColis += 1;
 							}
 						}
@@ -195,7 +195,7 @@ function PhysObj(AABB, obj, time){
 		
 		let dt = time - this.lastUpdtTime;
 		
-		DTPrintf("externAccel linvel " + this.linVel + " uid " + this.uid.val, "linvel");
+		//DTPrintf("externAccel linvel " + this.linVel + " uid " + this.uid.val, "linvel");
 		
 		let numCollisions = 0;
 		
@@ -221,7 +221,7 @@ function PhysObj(AABB, obj, time){
 			
 			
 			if( numCollisions >= 1 ){
-				DTPrintf( "detect " + numCollisions + " uid " + this.uid.val, "detc additional" );
+				//DTPrintf( "detect " + numCollisions + " uid " + this.uid.val, "detc additional" );
 				//subtract the linear velocity (because it was integrated 
 				//over the entire timestep, though the colision occured before then)
 				Vect3_Subtract( this.linVel, accel );
@@ -256,7 +256,7 @@ function PhysObj(AABB, obj, time){
 	
 	this.ApplyInterpenOffset = function( time ){
 		if( !this.resting && this.physGraph && !this.interpenOffsetApplied ){
-			DTPrintf("interpen linvel " + this.linVel + " uid " + this.uid.val, "linvel");
+			//DTPrintf("interpen linvel " + this.linVel + " uid " + this.uid.val, "linvel");
 			this.physGraph.ApplyInterpenOffset(this);
 			this.interpenOffsetApplied = true;
 		}
@@ -268,7 +268,7 @@ function PhysObj(AABB, obj, time){
 	this.TransferEnergy = function( time, treeNode ){
 		if( time == this.lastTransEnergTime )
 			return;
-		DTPrintf("transEnergy linvel " + this.linVel + " uid " + this.uid.val, "linvel");
+		//DTPrintf("transEnergy linvel " + this.linVel + " uid " + this.uid.val, "linvel");
 		if( !this.resting ){
 			//dt is the timestep for integrating forces into and accelerations into position changes
 			let dt = time - this.lastUpdtTime; //time from end of last frame until end of this
@@ -364,7 +364,7 @@ function PhysObj(AABB, obj, time){
 	this.DetectAdditionalCollisions = function(time, externAccel){
 		if( time == this.lastDetectStaticTime )
 			return;
-		DTPrintf("detcAddit linvel " + this.linVel + " uid " + this.uid.val, "linvel");
+		//DTPrintf("detcAddit linvel " + this.linVel + " uid " + this.uid.val, "linvel");
 		let numCollisions = 0;
 		
 		if( !this.resting ){
@@ -398,7 +398,7 @@ function PhysObj(AABB, obj, time){
 					
 					
 					if( numCollisions >= 1 ){
-						DTPrintf( "detectAdditional " + numCollisions + " uid " + this.uid.val, "detc additional" );
+						//DTPrintf( "detectAdditional " + numCollisions + " uid " + this.uid.val, "detc additional" );
 						//subtract the extern accel 
 						//(because it was integrated over the entire timestep, 
 						//though the colision occured before then)
@@ -430,7 +430,7 @@ function PhysObj(AABB, obj, time){
 		if(time == this.lastUpdtTime) //only once per frame (avoid multiple tree node calls)
 			return;
 		let dt = time - this.lastUpdtTime;
-		DTPrintf("updt linvel " + this.linVel + " uid " + this.uid.val, "linvel" );
+		//DTPrintf("updt linvel " + this.linVel + " uid " + this.uid.val, "linvel" );
 		//if linVel is below a threshold and obj is resting dont update position
 		if( !this.resting ){
 		

@@ -63,6 +63,10 @@ function gluPerspective(fovy, aspect, zNear, zFar)
 //turns out the problem was set depth mask being passed gl.TRUE instead of true
 
 
+function NewDistNormColor(){
+	return [0, new Float32Array(3), new Float32Array(4), null];
+}
+
 function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn, stereoIn=false, ipdCMIn=3.9)
 {
 	this.cameraName = nameIn;
@@ -329,13 +333,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let numRaysIntersected = 0; //number of intersections found
 	//generate rays in a grid and perturb the positions randomly
 	//to generate the sample positions (to be tiled "bundled" when multi-threaded)
-	let rayNorm = new Float32Array( 3 );
-	let screenPos = new Float32Array( 3 );
-	screenPos[2] = 0;
+	let rayNorm = Vect3_New();
+	let screenPos = Vect3_New(); screenPos[2] = 0;
 	let len = rayNorm[0];
 	let ray = new Ray( Vect3_New(), Vect3_New() );
-	let dist_norm_color = [0, new Float32Array(3), new Float32Array(4), null];
-	let intPt = new Float32Array(3);
+	let dist_norm_color = NewDistNormColor();
+	let intPt = Vect3_New();
 	let newTime = sceneLoadedTime;
 	let allowedFrameMills = 100;
 	this.onlyRaysNearCursor = false;
@@ -375,12 +378,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 					octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
 				}else{
 					if( Math.abs(v - mScreenRayCoords[1]) < 2 && Math.abs(h - mScreenRayCoords[0]) < 2  ){
-					
+						
 						//"trace" cause this line to be called for debug breakpointing
 						if( keys[keyCodes.KEY_T] && v == mScreenRayCoords[1] && h == mScreenRayCoords[0] )
 							DTPrintf("selected ray" + v + " " + h, "trace info" ); 
 						
-					
+						
 						//get the closest intersection point and pixel color of the ray in the scene
 						octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
 						if( keys[keyCodes.KEY_L] ) //"log" call this line for console log message printing
@@ -418,16 +421,16 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		
 		updateHierarchyView(octTreeRoot); //update the debugging tree view
 		
-		//transform previous frame rays to screen space done in vertex shader
-		
-		//redraw previously calculated pixels
-		graphics.pointGraphics.drawPixels(
-			this.prevRayPositions, this.prevPixColors, 
-			this.numRaysAccumulated, this.worldToScreenSpaceMat );
-		
 		this.numRaysAccumulated += numRaysIntersected;
 		if( this.numRaysAccumulated > this.numRaysToAccum )
 			this.numRaysAccumulated = this.numRaysToAccum;
+		
+		//transform previous frame rays to screen space done in vertex shader
+		
+		//draw the newly and previously calculated pixels
+		graphics.pointGraphics.drawPixels(
+			this.prevRayPositions, this.prevPixColors, 
+			this.numRaysAccumulated, this.worldToScreenSpaceMat );
 		
 		/*    
 		//if the number of new rays in this frame is low
