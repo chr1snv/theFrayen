@@ -63,16 +63,16 @@ const MaxTreeNodeObjects = 8; //must be a power of 2 for merge sort during trace
 var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
 function TreeNode( minCoord, maxCoord, parent ){
-
+	
 	this.enabled = true; //for enab/disab using hierarchy for debugging
 	this.rayHitsPerFrame = 0;
-
+	
 	this.AABB = new AABB( minCoord, maxCoord );
 	
 	this.uid       = NewUID();
 	
 	this.parent  = parent; //link to the parent ( to allow traversing back up the tree )
-
+	
 	if( parent ){
 		this.depth = parent.depth+1;
 		this.root = parent.root;
@@ -82,53 +82,59 @@ function TreeNode( minCoord, maxCoord, parent ){
 		this.root = this;
 		this.maxDepth = 0;
 	}
-
+	
 	this.leaves = 1; //number of leaf nodes below or including this node (any new node is a leaf)
 	this.nNLvs = [0, [0,0,0]];
-
-	this.objects = [[],[],[]];  //the per axis positionally sorted objects
-	this.objectDictionary = {}; //object uids in this node for checking if an object is present
-	//(for ray traversal preventing checking objects twice (will likely be removed when
+	
+	this.objects = new Array(MaxTreeNodeObjects);  //the per tree node objects
+	this.initObjects = function(){
+		for( let i = 0; i < MaxTreeNodeObjects; ++i ){
+			this.objects[i] = null;
+		}
+		this.objInsertIdx = 0; //object uids in this node for checking if an object is present
+		this.objectDictionary = {};//(for ray traversal preventing checking objects twice (will likely be removed when
 	//objects are subdivided instead of added to multiple nodes if they span node boundries)
-
+	}
+	this.initObjects();
+	
 	this.subNodes = [null,null,null,null,  null,null,null,null];
-
+	
 	//idealy the oct treebounds are 32-64bit integers (to avoid precision loss
 	//with distance from the origin)
 	//and every node / sub division has a fill/occupancy type
 	//i.e vaccum, air, water, elemental material, etc 
 	//(for ray energy dissipation / participating media scattering )
-
+	
 	//check all objects below this node in the oct tree for collisions / physics constraints
 	//later may add count of nodes requested/updated to signify completion if asynchronus
 	//phases/steps should wait for each to complete to maintain synchronization if multithreaded/cross computer
 	this.ApplyExternAccelAndDetectCollisions = function( time ){
-		for( let i = 0; i < this.objects[0].length; ++i ) //loop through the objects
-			this.objects[0][ i ].physObj.ApplyExternAccelAndDetectCollisions(time, gravityAccel); //pass node so can check where updated from
-
+		for( let i = 0; i < this.objInsertIdx; ++i ) //loop through the objects
+				this.objects[ i ].physObj.ApplyExternAccelAndDetectCollisions(time, gravityAccel); //pass node so can check where updated from
+	
 		for( let i = 0; i < this.subNodes.length; ++i ) //recurse to sub nodes
 			if( this.subNodes[i] )
 				this.subNodes[i].ApplyExternAccelAndDetectCollisions( time );
 	}
 	this.LinkPhysGraphs = function( time ){ //combine constraint groups from each object
-		for( let i = 0; i < this.objects[0].length; ++i )
-			this.objects[0][ i ].physObj.LinkPhysGraphs(time);
+		for( let i = 0; i < this.objInsertIdx; ++i )
+			this.objects[ i ].physObj.LinkPhysGraphs(time);
 
 		for( let i = 0; i < this.subNodes.length; ++i )
 			if( this.subNodes[i] )
 				this.subNodes[i].LinkPhysGraphs( time );
 	}
 	this.AppyInterpenOffset = function( time ){ //apply interpenetration offsets for constraint groups
-		for( let i = 0; i < this.objects[0].length; ++i )
-			this.objects[0][ i ].physObj.ApplyInterpenOffset(time);
+		for( let i = 0; i < this.objInsertIdx; ++i )
+			this.objects[ i ].physObj.ApplyInterpenOffset(time);
 
 		for( let i = 0; i < this.subNodes.length; ++i )
 			if( this.subNodes[i] )
 				this.subNodes[i].AppyInterpenOffset( time );
 	}
 	this.TransferEnergy = function( time ){ //transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
-		for( let i = 0; i < this.objects[0].length; ++i )
-			this.objects[0][ i ].physObj.TransferEnergy(time, this);
+		for( let i = 0; i < this.objInsertIdx; ++i )
+			this.objects[ i ].physObj.TransferEnergy(time, this);
 
 		for( let i = 0; i < this.subNodes.length; ++i )
 			if( this.subNodes[i] )
@@ -139,8 +145,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//in which case dissipate more of their energy
 		//and only allow them to move in free directions
 		let additionalColis = 0;
-		for( let i = 0; i < this.objects[0].length; ++i )
-			additionalColis += this.objects[0][ i ].physObj.DetectAdditionalCollisions(time, gravityAccel);
+		for( let i = 0; i < this.objInsertIdx; ++i )
+			additionalColis += this.objects[ i ].physObj.DetectAdditionalCollisions(time, gravityAccel);
 
 		for( let i = 0; i < this.subNodes.length; ++i )
 			if( this.subNodes[i] )
@@ -149,9 +155,13 @@ function TreeNode( minCoord, maxCoord, parent ){
 	}
 	this.Update = function( time ){ //lineraly update object positions up to the end of the timestep
 		let numUpdated = 0;
-		for( let i = 0; i < this.objects[0].length; ++i ){
-			this.objects[0][ i ].physObj.Update(time, gravityAccel, this);
-			numUpdated += 1;
+		for( let i = 0; i < this.objInsertIdx; ++i ){
+			if( this.objects[i] ){
+				this.objects[ i ].physObj.Update(time, gravityAccel, this);
+				numUpdated += 1;
+			}else{
+				break;
+			}
 		}
 		
 		let numUpdatedInSubNodes = 0;
@@ -186,96 +196,36 @@ function TreeNode( minCoord, maxCoord, parent ){
 	}
 	
 	this.addToThisNode = function( nLvsMDpth, object ){
-
-		//if( object.AABB.minCoord[0] == 312 && object.AABB.minCoord[1] == 46 ){
-		//DTPrintf("add at obj " + 
-		//	Vect_ToFixedPrecisionString(object.AABB.minCoord,5) + " : " + 
-		//	Vect_ToFixedPrecisionString(object.AABB.maxCoord,5) + "   nd  " + 
-		//	Vect_ToFixedPrecisionString(this.AABB.minCoord,5) + " : " + Vect_ToFixedPrecisionString(this.AABB.maxCoord,5), "ot add",  "color:#ccffcc", this.depth );
-		//}
 		
 		let isCocentric = false;
 		let cocenDist = 0;
 		let cocenObj = null;
-		let numOvlapAxs = 0;
-		let insertIdxs = [-1,-1,-1]; 
-		for(let ax = 0; ax < 3; ++ax ){ //insertion sort the min edge of the objects
-			let objMin  = object.AABB.minCoord;
 		
-			let lessThanIndex = -1;
-			for( let i = 0; i < this.objects[ax].length; ++i ){
-				let aObjMin = this.objects[ax][i].AABB.minCoord;
-
-				if(  aObjMin[ax] < objMin[ax]  ){ //sort objects by obj array axis
-					lessThanIndex = i; //increment the index until an obj min is greater than the new obj min
-				}else{ break; }//because sorted, once a grtr obj is found, rest are greater
+		for( let i = 0; i < this.objInsertIdx; ++i ){
+			
+			let cenDist = Vect3_Distance( this.objects[i].AABB.center, object.AABB.center );
+			if( cenDist < minNodeSideLength ){
+				isCocentric = true;
+				cocenDist = cenDist;
+				cocenObj = this.objects[i];
+				break;
 			}
-			
-			insertIdxs[ax] = lessThanIndex;
-			
-			
-			//check if the new object overlaps with the previous or the next (if present)
-			if( this.objects[ax].length > 0 ){
-				var cmpIdx = lessThanIndex;
-				if(cmpIdx < 0)
-					cmpIdx = 0;
-				//check the first obj in the array or one to come after it
-				let ovlapPct = AABBOthrObjOverlap(this.objects[ax][cmpIdx].AABB, object.AABB);
-				if( ovlapPct > 0 ){
-					numOvlapAxs += 1;
-					let cenDist = Vect3_Distance( this.objects[ax][cmpIdx].AABB.center, object.AABB.center );
-					if( cenDist < minNodeSideLength ){
-						isCocentric = true;
-						cocenDist = cenDist;
-						cocenObj = this.objects[ax][cmpIdx];
-					}
-				}
-				//check the object before the new object if present
-				if( cmpIdx-1 >= 0 ){
-					let prevObjOvlapPct = AABBOthrObjOverlap(this.objects[ax][cmpIdx-1].AABB, object.AABB);
-					if( prevObjOvlapPct > 0 ){
-						numOvlapAxs += 1;
-						let cenDist = Vect3_Distance( this.objects[ax][cmpIdx-1].AABB.center, object.AABB.center );
-						if( cenDist < minNodeSideLength ){
-							isCocentric = true;
-							cocenDist = cenDist;
-							cocenObj = this.objects[ax][cmpIdx];
-						}
-					}
-				}
-			}
-			
 			
 		}
 		
-		if( !isCocentric /*numOvlapAxs < 3*/ ){ //if 3 axies overlap the objects intersect
-			for(let ax = 0; ax < 3; ++ax ){ //insert into the axis sorted arrays
-				this.objects[ax].splice(insertIdxs[ax]+1, 0, object);
-			}
-			object.treeNodes[ this.uid.val ] = this; //link this to the object so it knows where to remove itself from later
-		}else{
-			/*
-			DTPrintf( "add failed otName " + this.root.name + " obj concentiric overlap \n" +
-			"obj " + object.uid.val + "name " + object.name + 
-			" objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + 
-			" objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) + "\n" +
-				" node " + this.uid.val + " ndNumObjs " +  this.objects[0].length + " cocenDist " + cocenDist + "\n" +
-				"cocenObjUid " + cocenObj.uid.val + " name " + cocenObj.name +
-				" cocenObjMin " + Vect_FixedLenStr( cocenObj.AABB.minCoord, 2, 6 ) + 
-				" cocenObjMax " + Vect_FixedLenStr( cocenObj.AABB.maxCoord, 2, 6 )
-				, "ot add error", "color:red", this.depth );
-			*/
+		if( isCocentric ){
 			nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
 		}
 		
-		//DTPrintf( "addToThisNode success obj " + object.uid.val + " " + traceAddedTo(this), 
-		//"ot add", "color:green", this.depth );
+		//else ok to add object
+		this.objects[this.objInsertIdx++] = object;
+		object.treeNodes[ this.uid.val ] = this; //link this to the object so it knows where to remove itself from later
 		
-		//for quickly checking if an object is present
-		this.objectDictionary[ object.uid.val ] = object;
+		//add to obj dictionary for quickly checking if an object is present
+		this.objectDictionary[ object.uid.val ] = this.objInsertIdx-1;
 		nLvsMDpth[0] = 0; return;
 	}
-
+	
 	this.clearRayCtrs = function(){
 		this.rayHitsPerFrame = 0;
 		
@@ -286,7 +236,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 			this.MaxNode.clearRayCtrs();
 		}
 	}
-
+	
 	//given the sub node index (0 or 1) returns the objects that overlap it in the given axis
 	this.subNdObjDictForAxs = function(axs, subNdIdx, numNdAxs, srcCoords){ 
 		//get the min and max bounds for the sub node
@@ -296,16 +246,18 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//DTPrintf("subNdDict axs " + axs + " idx " + subNdIdx + 
 		//" lwr " + lowerBoundForAxs + " uppr " + upperBoundForAxs + 
 		//" srcCoords " + srcCoords, "ot subdiv", "color:#225555", this.depth);
-		for( let i = 0; i < this.objects[axs].length; ++i ){
-			let ob = this.objects[axs][i];
-			if( ob.AABB.maxCoord[axs] >= lowerBoundForAxs &&
-				ob.AABB.minCoord[axs] <= upperBoundForAxs ){ //check for opposite of the two conditions where it would be outside the node
-				obDict[ob.uid.val] = ob;
-				//if( ob.subNdsOvlapd == undefined )
-				//	ob.subNdsOvlapd = {};
-				//if( ob.subNdsOvlapd[ axs ] == undefined )
-				//	ob.subNdsOvlapd[ axs ] = {};
-				//ob.subNdsOvlapd[ axs ][ subNdIdx ] = 1;
+		for( let i = 0; i < MaxTreeNodeObjects; ++i ){
+			let ob = this.objects[i];
+			if( ob != null ){
+				if( ob.AABB.maxCoord[axs] >= lowerBoundForAxs &&
+					ob.AABB.minCoord[axs] <= upperBoundForAxs ){ //check for opposite of the two conditions where it would be outside the node
+					obDict[ob.uid.val] = ob;
+					//if( ob.subNdsOvlapd == undefined )
+					//	ob.subNdsOvlapd = {};
+					//if( ob.subNdsOvlapd[ axs ] == undefined )
+					//	ob.subNdsOvlapd[ axs ] = {};
+					//ob.subNdsOvlapd[ axs ][ subNdIdx ] = 1;
+				}
 			}
 		}
 		return obDict;
@@ -316,22 +268,24 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//then the node has been removed from the tree and don't need
 		//to update its object refrences
 		if( this.root == this || this.parent ){
-	
-			//remove from each axis
-			for( let ax = 0; ax < 3; ++ax ){
-				
-				for( let i = 0; i < this.objects[ax].length; ++i ){
-					if( this.objects[ax][i] == object ){
-						this.objects[ax].splice(i,1);
-						break;
-					}
-				}
-				
+			
+			let objIdx = this.objectDictionary[object.uid.val];
+			
+			if( this.objects[objIdx] == object ){
+				this.objects.splice(objIdx,1); //shift objects up filling space to remove 
+				//(splice returns an array with the removed element and modifies the existing array to not have the returned elements)
+				this.objects[MaxTreeNodeObjects-1] = null; //append empty space to end of 1 shorter array
+				this.objInsertIdx -= 1; //decrease the insert index
 			}
+			
+			//shift up the obj indicies in the dictionary
+			for( let i = objIdx; i < this.objInsertIdx; ++i )
+				this.objectDictionary[ this.objects[i].uid.val ] = i;
+			
 			//remove from object dictionary
 			delete this.objectDictionary[object.uid.val];
 			
-			if( this.objects[0].length < MaxTreeNodeObjects/2 ){
+			if( this.objInsertIdx < MaxTreeNodeObjects/2 ){
 				let unsubDivRes = this.TryUnsubdivide();
 				DTPrintf("unsubdivide initiating obj " + object.uid.val + 
 					" node min " + this.AABB.minCoord + " max " + this.AABB.maxCoord +
@@ -342,27 +296,6 @@ function TreeNode( minCoord, maxCoord, parent ){
 		
 	}
 	
-	/*
-	this.getUpToNObjsInAndBelowNode = function(maxNumObjs){
-		let retObjs = [];
-		for( let i = 0; i < this.objects[0].length; ++i ){
-			retObjs.push(this.objects[0][i]);
-		}
-		if( retObjs.length >= maxNumObjs )
-			return retObjs;
-		for( let i = 0; i < this.subNodes.length; ++i ){
-			let subNd = this.subNodes[i];
-			if( subNd ){
-				let subNdObjs = subNd.getUpToNObjsInAndBelowNode(maxNumObjs);
-				for( let j = 0; j < subNdObjs.length; ++j )
-					retObjs.push(subNdObjs[j]);
-				if( retObjs.length >= maxNumObjs )
-					return retObjs;
-			}
-		}
-		return retObjs;
-	}
-	*/
 	
 	this.TryUnsubdivide = function( ){ //can only be called on a leaf node
 		
@@ -395,8 +328,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 					}
 					subNdCt += 1;
 					//let subNdObjs = parSn[i].getUpToNObjsInAndBelowNode(MaxTreeNodeObjects);
-					for( let j = 0; j < parSn[i].objects[0].length; ++j ){
-						let obj = parSn[i].objects[0][j]; //add each object by uid to list of objects under the parent
+					for( let j = 0; j < parSn[i].objInsertIdx; ++j ){
+						let obj = parSn[i].objects[j]; //add each object by uid to list of objects under the parent
 						siblingSubNdObjs[ obj.uid.val ] = obj; //dictionary to avoid adjacent node duplicates
 					}
 				}
@@ -407,8 +340,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 			if( subNdCt > 0 && objUids.length < MaxTreeNodeObjects ){ //obj count is low enough for subnodes to be recombined
 				for( let i = 0; i < parSn.length; ++i){ //remove and disconnect all sibling subnodes
 					if( parSn[i] ){
-						for( let j = 0; j < parSn[i].objects[0].length; ++j ){
-							delete( parSn[i].objects[0][j].treeNodes[ parSn[i].uid.val ]); //disconnect objects from subnode
+						for( let j = 0; j < parSn[i].objInsertIdx; ++j ){
+							delete( parSn[i].objects[j].treeNodes[ parSn[i].uid.val ]); //disconnect objects from subnode
 						}
 						parSn[i].parent = null; //signify in the subnode has been unsubdivided
 						parSn[i] = null; //disconnect parent to subnode link
@@ -470,7 +403,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 		if( this.subNodes[0] == null ){ //not yet subdivided, try to add to self
 			//DTPrintf( "tNId " + this.uid.val + " dpth " + this.depth + " obj " + object.uid.val + 
 			//	" not yet subdivided", "ot add", "color:#ffff66", this.depth );
-			if( this.objects[0].length >= MaxTreeNodeObjects ){ //sub divide was likely tried on earlier add and failed
+			if( this.objInsertIdx >= MaxTreeNodeObjects ){ //sub divide was likely tried on earlier add and failed
 				//DTPrintf( "tNId " + this.uid.val + " divide likely tried earlier num objs " + this.objects[0].length, 
 				//	"ot add", "color:#ff0066", this.depth );
 				nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
@@ -490,7 +423,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 				return;
 			}
 			
-			if( this.objects[0].length >= MaxTreeNodeObjects ){ //need to try to subdivide
+			if( this.objInsertIdx >= MaxTreeNodeObjects ){ //need to try to subdivide
 				//subDivAddDepth += 1;
 				//DTPrintf( "tNId " + this.uid.val + " dpth " + this.depth + 
 				//" subdividing when adding obj " + object.uid.val, "ot add", "color:yellow", this.depth );
@@ -612,8 +545,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 										leavesCreated += nNLvsMDpth[0];
 										if( nNLvsMDpth[1] > maxNewDpth )
 											maxNewDpth = nNLvsMDpth[1];
-										if( nd.objects[0].length > maxObjsInNde )
-											maxObjsInNde = nd.objects[0].length;
+										if( nd.objInsertIdx > maxObjsInNde )
+											maxObjsInNde = nd.objInsertIdx;
 										
 									}else{
 										//DTPrintf( "subDiv AddObject failed - xyz subNdIdx's " + x + "," + y + "," + z + 
@@ -716,7 +649,7 @@ function TreeNode( minCoord, maxCoord, parent ){
 					let maxNumObjsInASubNode = 0;
 					for( let i = 0; i < this.subNodes.length; ++i ){
 						if( this.subNodes[i] != null ){
-							let subNdObjs = this.subNodes[i].objects[0].length;
+							let subNdObjs = this.subNodes[i].objInsertIdx;
 							if( subNdObjs < minNumObjsInASubNode )
 								minNumObjsInASubNode = subNdObjs;
 							if( subNdObjs > maxNumObjsInASubNode )
@@ -744,12 +677,11 @@ function TreeNode( minCoord, maxCoord, parent ){
 				
 						//remove object's association to this treeNode
 						//since it is going to be added to one or more of the subnodes
-						for( let i = 0; i < this.objects[0].length; ++i ){
-							delete this.objects[0][i].treeNodes[this.uid.val];
+						for( let i = 0; i < this.objInsertIdx; ++i ){
+							delete this.objects[i].treeNodes[this.uid.val];
 						}
 						
-						this.objects = [[],[],[]];
-						this.objectDictionary = {};
+						this.initObjects(); //clear the object array and dictionary
 						this.leaves = nNLvs[0] + leavesCreated; //this treeNode has become a parent add the count of generateSubNodes
 						//and any created when adding to a new subnode
 						this.maxDepth = maxNewDpth;
@@ -768,9 +700,9 @@ function TreeNode( minCoord, maxCoord, parent ){
 			
 			
 			nLvsMDpth[1] = this.maxDepth;
-			let ndObjsStr = "";
-			for( let i = 0; i < this.objects[0].length; ++i )
-				ndObjsStr += this.objects[0][i].uid.val + " ";
+			//let ndObjsStr = "";
+			//for( let i = 0; i < this.objects[0].length; ++i )
+			//	ndObjsStr += this.objects[0][i].uid.val + " ";
 			//DTPrintf( "otName " + this.root.name + " tNId " + this.uid.val + 
 			//	" ndMin " + Vect_FixedLenStr( this.AABB.minCoord, 2, 6 ) + " ndMax " + Vect_FixedLenStr( this.AABB.maxCoord, 2, 6 ) +
 			//	" dpth " + this.depth + " nLvsMDpth " + nLvsMDpth + " ndObjs " + ndObjsStr + "\n" +
@@ -945,17 +877,22 @@ function TreeNode( minCoord, maxCoord, parent ){
 		//small object aabb may be inside and infront of a larger object with
 		//overlapping aabb
 		bestObjInt[0] = -1;
-		for( let i = 0; i < this.objects[0].length; ++i ){
+		for( let i = 0; i < this.objInsertIdx; ++i ){
 			//loop through the objects (if one isn't yet loaded, it is ignored)
+			
+			if( this.objects[i] == null )
+				console.log("obj[ " + i + "] == null");
+			
 			if( ray.lastNode == null || 
-				ray.lastNode.objectDictionary[ this.objects[0][i].uid.val ] == null ){ //don't recheck if checked last node
+				ray.lastNode.objectDictionary[ this.objects[i].uid.val ] == null ){ //don't recheck if checked last node
 				//check if the ray intersects the object
 				//if( this.objects[0][i].fNum && this.objects[0][i].fNum == 8 )
 				//	DTPrintf("aabb int test with 8", "ot trace");
-
+				
+				
 				tempObjInt[0] = -1;
 				tempObjInt[3] = retDisNormCol[3];
-				this.objects[0][ i ].RayIntersect( tempObjInt, ray );
+				this.objects[ i ].RayIntersect( tempObjInt, ray );
 				if( tempObjInt[0] > 0 && (bestObjInt[0] == -1 || tempObjInt[0] < bestObjInt[0]) ){
 					swapObjInt = bestObjInt;
 					bestObjInt = tempObjInt;
