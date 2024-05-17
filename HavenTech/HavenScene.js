@@ -53,7 +53,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		//            nodesToDraw[i].Update(time, undefined, updateLoop);
 		//        }
 
-		this.octTree.Update(time);
+		TND_Update(this.octTree, time);
 
 		/*
 		//from before with flat array for scene

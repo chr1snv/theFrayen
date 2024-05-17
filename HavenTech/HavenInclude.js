@@ -17,7 +17,6 @@ var incFiles = ['DPrintf.js',
 				
 				'AABB.js',
 				'Ray.js',
-				'OctTree.js',
 				
 				'Math.js',
 				'Physics.js',
@@ -31,6 +30,8 @@ var incFiles = ['DPrintf.js',
 				'Light.js',
 				'Camera.js',
 				'QuadMesh.js',
+				
+				'OctTree.js',
 				
 				'GlProgram.js',
 				'Material.js',

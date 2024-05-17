@@ -296,7 +296,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 			//DTPrintf("f " + f + " min " + 
 			//	Vect_FixedLenStr(this.faces[f].AABB.minCoord, 4, 7) + " max " + 
 			//	Vect_FixedLenStr(this.faces[f].AABB.maxCoord, 4, 7), "quadM updt");
-			this.octTree.AddObject(nLvsMDpth, this.faces[f]);
+			TND_AddObject(this.octTree, nLvsMDpth, this.faces[f]);
 		}
 		//octUpdateCmpCallback();
 	}
@@ -311,7 +311,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		Matrix_Multiply_Vect3( tempRay.origin, this.wrldToLclMat, ray.origin );
 		Matrix_Multiply_Vect3( tempRay.norm, this.wrldToLclMat, ray.norm, 0 );
 		tempRay.lastNode = ray.lastNode;
-		this.octTree.StartTrace( retDisNormCol, tempRay, 0 );
+		TND_StartTrace( this.octTree, retDisNormCol, tempRay, 0 );
 		ray.lastNode = tempRay.lastNode;
 	}
 

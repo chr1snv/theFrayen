@@ -348,8 +348,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		startTime = Date.now();
 		allowedFrameMills = 1000/targFps;
 	
-		totalRayFrameHits = 0;
-		octTreeRoot.clearRayCtrs();
 
 		this.getLocation( camOrigin ); //shared between rays (copy per ray so doesn't get modified)
 
@@ -375,7 +373,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 				ray.lastNode = null;
 				
 				if( !this.onlyRaysNearCursor ){
-					octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+					TND_StartTrace( octTreeRoot, dist_norm_color, ray, float0 );
 				}else{
 					if( Math.abs(v - mScreenRayCoords[1]) < 2 && Math.abs(h - mScreenRayCoords[0]) < 2  ){
 						
@@ -385,7 +383,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 						
 						
 						//get the closest intersection point and pixel color of the ray in the scene
-						octTreeRoot.StartTrace( dist_norm_color, ray, float0 );
+						TND_StartTrace( octTreeRoot, dist_norm_color, ray, float0 );
 						if( keys[keyCodes.KEY_L] ) //"log" call this line for console log message printing
 							DTPrintf("v" + v + " h" + h + " dist " + dist_norm_color[0] + " pt " + dist_norm_color[2], "trace info");
 					}else{

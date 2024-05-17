@@ -52,7 +52,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		this.RemoveFromOctTree();
 		this.octTreeAddedTo = octTreeIn;
 		let nLvsMDpth = [0,0];
-		this.octTreeAddedTo.AddObject(nLvsMDpth, this, addCompletedCallback);
+		TND_AddObject(this.octTreeAddedTo, nLvsMDpth, this, addCompletedCallback);
 	}
 
 	this.RemoveFromOctTree = function( removeCompletedCallback )
