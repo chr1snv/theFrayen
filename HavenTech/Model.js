@@ -7,6 +7,8 @@
 function Model( nameIn, meshNameIn, sceneNameIn, AABB, 
 					modelLoadedParameters, modelLoadedCallback=null )
 {
+	
+	/*
 	//get the quadMesh transformationMatrix
 	this.generateModelMatrix = function( cbObjs, completeCallback )
 	{
@@ -39,6 +41,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 			}
 		);
 	}
+	*/
 
 	//public methods
 
@@ -59,7 +62,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	{
 		if( this.octTreeAddedTo != null ){
 		
-			var OctTreeRemoveCompleted = function( thisP ){
+			let OctTreeRemoveCompleted = function( thisP ){
 				thisP.octTreeAddedTo = null;
 			}
 			
@@ -79,7 +82,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		if( this.quadmesh == null ){
 			graphics.GetQuadMesh( this.meshName, this.sceneName, this, quadMeshLoaded );
 		}else{
-			this.quadmesh.Update( time );
+			QM_Update( this.quadmesh, time );
 			this.AABB = this.quadmesh.AABB;
 			this.lastUpdateTime = time;
 		}
@@ -108,12 +111,9 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		rotationSet = true; optTransformUpdated = true; }
 
 	//shader binding functions
-	this.GetOriginalShaderName = function( shaderNameOut, sceneNameOut )
-	{
-		var sNameArr  = 
-			graphics.GetQuadMesh( meshName, sceneName ).GetMaterialName();
-		shaderNameOut = sNameArr[0];
-		sceneNameOut  = sNameArr[1];
+	this.GetOriginalShaderName = function( shaderNameOut, sceneNameOut ){
+		shaderNameOut = this.quadMesh.materialNames[0];
+		sceneNameOut  = this.sceneName;
 	}
 	this.SetShader = function( shaderNameIn, sceneNameIn )
 	{
@@ -126,17 +126,6 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		this.AddToSceneGraph( currentSceneGraph );
 	}
 
-	this.GetOptTransform = function( retMat )
-	{
-		if( optTransformUpdated )
-			this.generateModelMatrix( this, retMat );
-		return scaleSet || rotationSet || positionSet;
-	}
-	this.DrawSkeleton = function(){ 
-		graphics.GetQuadMesh( this.meshName, this.sceneName ).DrawSkeleton(); 
-	}
-
-
 
 	//the AABB is in the quadmesh
 	//model is really for an additional transformation
@@ -145,15 +134,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 	//this.aabbPoint = new Float32Array(3);
 	//let aabbTime = 0;
-	this.RayIntersect = function(retDisNormCol, ray){
-		
-		//since the ray intersects the aabb, check faces 
-		//of the mesh if the ray intersects, if it does, return the
-		//ray distance, normal, and color of the the ray hit
-		
-		this.quadmesh.GetRayIntersection( retDisNormCol, ray );
-		
-	}
+	
 	
 	this.PrintHierarchy = function(name, par){
 		this.quadmesh.PrintHierarchy(name, par);
@@ -174,6 +155,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 	this.overlaps = [0,0,0];
 	this.AABB = AABB;
+	
+	this.otType = OT_TYPE_Model;
 
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;
@@ -187,27 +170,44 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//for runtime modification of shader
 	this.shaderName  = this.shaderScene = "";
 
-
-	this.getQuadMeshCb = function( quadMesh, cbObj )
-	//inline callback to get loaded parameters and call
-	{
-		let thisP = cbObj[1];
-		var sNameArr = quadMesh.GetMaterialName();
-		thisP.shaderName  = sNameArr[0];
-		thisP.shaderScene = sNameArr[1];
-		thisP.quadmesh = quadMesh;
-		thisP.quadmesh.Update( 0 );
-		thisP.AABB = thisP.quadmesh.AABB;
-		thisP.physObj = new PhysObj(thisP.AABB, thisP, 0);
-		//if there isn't a modelLoadedCallback callback don't try to call it
-		if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
-			cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
-	} 
-	//var thisP = this;
+ 
 	//request the quadmesh from the graphics class to get it to load it
 	graphics.GetQuadMesh( meshNameIn, sceneNameIn,
 		{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },
 		//pack parameters into object to pass to callback below
-		this.getQuadMeshCb );
+		MDL_getQuadMeshCb );
+	
+	//request the model animation
+	loadTextFile("scenes/" + this.sceneName + 
+				"/IPOs/" + this.modelName+".hvtIPO", 
+				MDL_ipoFileLoadedCallback, this);
 
 };
+
+function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call modelLoadedCallback
+	let thisP = cbObj[1];
+	thisP.shaderName = quadMesh.materialNames[0];
+	thisP.shaderScene = quadMesh.sceneName;
+	thisP.quadmesh = quadMesh;
+	QM_Update( thisP.quadmesh, 0 );
+	thisP.AABB = thisP.quadmesh.AABB;
+	thisP.physObj = new PhysObj(thisP.AABB, thisP, 0);
+	//if there isn't a modelLoadedCallback callback don't try to call it
+	if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
+		cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
+}
+
+function MDL_RayIntersect(mdl, retDisNormCol, ray){
+	
+	//since the ray intersects the aabb, check faces 
+	//of the mesh if the ray intersects, if it does, return the
+	//ray distance, normal, and color of the the ray hit
+	
+	QM_GetRayIntersection( mdl.quadmesh, retDisNormCol, ray );
+	
+}
+
+function MDL_ipoFileLoadedCallback(text, mdl){
+	let textLines = text.split('\n');
+	
+}

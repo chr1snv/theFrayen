@@ -728,6 +728,21 @@ function TND_SubNode( t, point ){
 
 }
 
+const OT_TYPE_QuadMesh = 0;
+const OT_TYPE_Face = 1;
+const OT_TYPE_Model = 2;
+
+function TND_RayIntersect( obj, tempObjInt, ray ){
+	switch( obj.otType ){
+		case OT_TYPE_QuadMesh:
+			return QM_RayIntersect( obj, tempObjInt, ray );
+		case OT_TYPE_Face:
+			return QMF_RayIntersect( obj, tempObjInt, ray );
+		case OT_TYPE_Model:
+			return MDL_RayIntersect( obj, tempObjInt, ray );
+	}
+}
+
 let rayAABBIntPt = Vect3_New();
 function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 	//could be called with a ray origin inside or outside the oct tree
@@ -899,7 +914,7 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 			
 			tempObjInt[0] = -1;
 			tempObjInt[3] = retDisNormCol[3];
-			t.objects[ i ].RayIntersect( tempObjInt, ray );
+			TND_RayIntersect( t.objects[ i ], tempObjInt, ray );
 			if( tempObjInt[0] > 0 && (bestObjInt[0] == -1 || tempObjInt[0] < bestObjInt[0]) ){
 				swapObjInt = bestObjInt;
 				bestObjInt = tempObjInt;
