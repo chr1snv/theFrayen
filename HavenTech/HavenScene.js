@@ -250,7 +250,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				newMdl    = new Model( mdlName, mdlMeshName, 
 						        this.sceneName, mAABB, this,
 				function( model, havenScenePointer ){ //modelLoadedCallback
-					model.Update( 0 ); //update to generate AABB
+					MDL_Update( model, 0 ); //update to generate AABB
 					model.AddToOctTree( havenScenePointer.octTree,
 						function(){
 						    statusElm.innerHTML = "Loading " + havenScenePointer.pendingModelsAdded + " Models";

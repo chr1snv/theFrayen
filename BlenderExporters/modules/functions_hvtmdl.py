@@ -313,14 +313,16 @@ def writeMesh(assetDirectory, ob):
     return [ wMinV, wMaxV ]
     
 def writeObjectAnimationData(assetDirectory, obj):
-        
-    #print( "writing animation curve data for " + obj.name + "\n" )
+    
+    print( "checking animation curves for " + obj.name )
     
     #check that the data we need exists (if there isn't animation for the object it won't have animData.action)
     animData = obj.animation_data
     if animData == None or animData.action == None or len(animData.action.fcurves) < 1:
+        print( "animData not found for " + obj.name )
         return
-        
+    
+    print( "animData found for " + obj.name )
     curves = obj.animation_data.nla_tracks.data.action.fcurves.items()
     
     ipoFileName = assetDirectory + "/IPOs/" + obj.name + ".hvtIPO"
@@ -330,21 +332,23 @@ def writeObjectAnimationData(assetDirectory, obj):
     writeAnimationCurves(out, curves)
     
     out.close()
+    print("animFileClosed " + ipoFileName )
     
     
 def writeAnimationCurves(outputFile, curves):
     #---write the ipo curves---
     #-------------------------------
+    print( "writeAnimationCurves" )
     for curveTuple in curves:#Ipo.getCurves():
         curve = curveTuple[1]
         writeAnimationCurveData(outputFile, curve)
 
 def writeAnimationCurveData(out, curve):
 
-    out.write('c %s\n' % (curve.data_path.replace (" ", "_")))#curve.getName()))
-    out.write('i %s\n' % (curve.keyframe_points[0].interpolation)) #write out the interpolation type of the curve
-    out.write('b\n') #indicate the start of the bezier points
-    out.write('c %i\n' % len(curve.keyframe_points))#bezierPoints)) #num bezier points
+    print("writeAnimationCurveData data_path " + curve.data_path )
+    
+    out.write('c %s %s %i\n' % (curve.data_path.replace (" ", "_"), curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
+    #curve.getName())) #interpolation type #num bezier points
     for keyframe_point in curve.keyframe_points:#bezierPoint in curve.bezierPoints:
         point = keyframe_point.co
         #knot = bezierPoint.vec[1]
@@ -354,8 +358,7 @@ def writeAnimationCurveData(out, curve):
         [handle_right_time, handle_right_value] = [keyframe_point.handle_right[0], keyframe_point.handle_right[1]]
         
         out.write('p %f %f %f %f %f %f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
-    out.write('e\n') #end of points
-    out.write('e\n') #end of curve
+    out.write('e\n') #end of points and curve
 
 
 

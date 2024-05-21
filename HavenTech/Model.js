@@ -78,81 +78,25 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		cbObj.AABB = quadMesh.AABB;
 		
 	}
-	this.Update = function( time, updateCompleteParams ){
-		if( this.quadmesh == null ){
-			graphics.GetQuadMesh( this.meshName, this.sceneName, this, quadMeshLoaded );
-		}else{
-			QM_Update( this.quadmesh, time );
-			this.AABB = this.quadmesh.AABB;
-			this.lastUpdateTime = time;
-		}
-
-	}
-	this.GetAnimationLength = function() {
-	  return graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
-
-	//draw transformation manipulation functions
-	//getters
-	this.GetPosition = function( pos )      {
-		graphics.GetQuadMesh( this.meshName, this.sceneName ).GetPosition(pos); }
-	this.GetScale    = function( scaleOut ) {
-		graphics.GetQuadMesh( this.meshName, this.sceneName ).GetScale   (scaleOut); }
-	this.GetRotation = function( rotOut )   {
-		graphics.GetQuadMesh( this.meshName, this.sceneName ).GetRotation(rotOut);   }
-	//setters
-	this.SetPosition = function( newPos ) {
-		Vect3_Copy( positionOff, newPos  );
-		positionSet = true; optTransformUpdated = true; }
-	this.SetScale    = function( scaleIn ){
-		Vect3_Copy( scaleOff   , scaleIn );
-		scaleSet    = true; optTransformUpdated = true; }
-	this.SetRotation = function( rotNew ) {
-		Vect3_Copy( rotationOff, rotNew  );
-		rotationSet = true; optTransformUpdated = true; }
-
-	//shader binding functions
-	this.GetOriginalShaderName = function( shaderNameOut, sceneNameOut ){
-		shaderNameOut = this.quadMesh.materialNames[0];
-		sceneNameOut  = this.sceneName;
-	}
-	this.SetShader = function( shaderNameIn, sceneNameIn )
-	{
-		//this function may not be used, used to change the shader
-		//on the model after it's been loaded
-		var currentSceneGraph = this.sceneGraph;
-		this.RemoveFromSceneGraph();
-		this.shaderName = shaderNameIn;
-		this.shaderScene = sceneNameIn;
-		this.AddToSceneGraph( currentSceneGraph );
-	}
-
-
-	//the AABB is in the quadmesh
+	
+	
 	//model is really for an additional transformation
 	//and scripts on an object
+		
 	
-
-	//this.aabbPoint = new Float32Array(3);
-	//let aabbTime = 0;
-	
-	
-	this.PrintHierarchy = function(name, par){
-		this.quadmesh.PrintHierarchy(name, par);
-	}
-
 	this.modelName = nameIn;
 	this.meshName = meshNameIn;
 	this.sceneName = sceneNameIn;
-
+	
 	this.uid = NewUID()
 	
 	this.physObj = null;
 	
 	this.treeNodes = {};
-
+	
 	this.modelDrawable = null;
 	this.sceneGraph = null;
-
+	
 	this.overlaps = [0,0,0];
 	this.AABB = AABB;
 	
@@ -161,7 +105,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;
 	this.optTransformUpdated;
-
+	
+	//request the model animation
+	//ipo animation affects the root transformation of the quadmesh
+	this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
+	
 	//modifiers for manipulating the mesh from its default position
 	this.scaleOff    = new Float32Array([1,1,1]);
 	this.rotationOff = new Float32Array([0,0,0]);
@@ -170,19 +118,74 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//for runtime modification of shader
 	this.shaderName  = this.shaderScene = "";
 
- 
+
 	//request the quadmesh from the graphics class to get it to load it
 	graphics.GetQuadMesh( meshNameIn, sceneNameIn,
 		{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },
 		//pack parameters into object to pass to callback below
 		MDL_getQuadMeshCb );
 	
-	//request the model animation
-	loadTextFile("scenes/" + this.sceneName + 
-				"/IPOs/" + this.modelName+".hvtIPO", 
-				MDL_ipoFileLoadedCallback, this);
+	
+	//loadTextFile("scenes/" + this.sceneName + 
+	//			"/IPOs/" + this.modelName+".hvtIPO", 
+	//			MDL_ipoFileLoadedCallback, this);
 
 };
+
+function MDL_Update( mdl, time, updateCompleteParams ){
+	if( mdl.quadmesh == null ){
+		graphics.GetQuadMesh( mdl.meshName, mdl.sceneName, mdl, quadMeshLoaded );
+	}else{
+		QM_Update( mdl.quadmesh, time );
+		mdl.AABB = mdl.quadmesh.AABB;
+		mdl.lastUpdateTime = time;
+	}
+}
+
+/*
+this.GetAnimationLength = function() {
+  return graphics.GetQuadMesh(meshName, sceneName).GetAnimationLength(); }
+
+
+//draw transformation manipulation functions
+//getters
+this.GetPosition = function( pos )      {
+	graphics.GetQuadMesh( this.meshName, this.sceneName ).GetPosition(pos); }
+this.GetScale    = function( scaleOut ) {
+	graphics.GetQuadMesh( this.meshName, this.sceneName ).GetScale   (scaleOut); }
+this.GetRotation = function( rotOut )   {
+	graphics.GetQuadMesh( this.meshName, this.sceneName ).GetRotation(rotOut);   }
+//setters
+this.SetPosition = function( newPos ) {
+	Vect3_Copy( positionOff, newPos  );
+	positionSet = true; optTransformUpdated = true; }
+this.SetScale    = function( scaleIn ){
+	Vect3_Copy( scaleOff   , scaleIn );
+	scaleSet    = true; optTransformUpdated = true; }
+this.SetRotation = function( rotNew ) {
+	Vect3_Copy( rotationOff, rotNew  );
+	rotationSet = true; optTransformUpdated = true; }
+*/
+
+function MDL_PrintHierarchy(name, par){
+	mdl.quadmesh.PrintHierarchy(name, par);
+}
+
+//shader binding functions
+function MDL_GetOriginalShaderName( mdl, shaderNameOut, sceneNameOut ){
+	shaderNameOut = mdl.quadMesh.materialNames[0];
+	sceneNameOut  = mdl.sceneName;
+}
+function MDL_SetShader( mdl, shaderNameIn, sceneNameIn )
+{
+	//this function may not be used, used to change the shader
+	//on the model after it's been loaded
+	var currentSceneGraph = mdl.sceneGraph;
+	mdl.RemoveFromSceneGraph();
+	mdl.shaderName = shaderNameIn;
+	mdl.shaderScene = sceneNameIn;
+	mdl.AddToSceneGraph( currentSceneGraph );
+}
 
 function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call modelLoadedCallback
 	let thisP = cbObj[1];
@@ -207,7 +210,40 @@ function MDL_RayIntersect(mdl, retDisNormCol, ray){
 	
 }
 
-function MDL_ipoFileLoadedCallback(text, mdl){
-	let textLines = text.split('\n');
+function incChanIdx(chanIdx){
+	chanIdx += 1;
+	if( chanIdx > 3 )
+		chanIdx = 0;
 	
 }
+
+/*
+function MDL_ipoFileLoadedCallback(text, mdl){
+	let textLines = text.split('\n');
+	let chanIdx = -1;
+	let interpolationType = -1;
+	for( let i = 0; i < textLines.length; ++i ){
+		let words = textLines[i].split(' ');
+		if( words[0] == 's' ){ //start of a ipo curve
+			if( words[1] == "location" ){
+				chanIdx = incChanIdx(chanIdx);
+				while( ++i < textLines.length ){ //iterate through the
+					words = textLines[i];
+					if( words[0] == 'e' ){ //end of curve
+						break;
+					}
+					if( words[0] == 'i' ){ //interpolation type
+						if( words[1] = 'BEZIER' ){
+							interpolationType = 0;
+						}
+					}
+					if( words[0] == 'c' )
+					
+				}
+			}else if( textLines[1] == "rotation_euler" ){
+				
+			}
+		}
+	}
+}
+*/

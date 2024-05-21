@@ -1,13 +1,36 @@
 //IPOAnimation.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
-//implementation of an animation curve from blender
+let ipoChanAxisIdx = 0;
+let lastBaseIdx = -1;
+function ipoCurveNameToIndex(channelName){
+	let baseRetIdx = -1;
+	
+	
+	if( 	 channelName == 'location' )
+		baseRetIdx = 0;
+	else if( channelName == 'rotation_euler' || channelName == 'rotation_quaternion' )
+		baseRetIdx = 3;
+	else if( channelName == 'scale' )
+		baseRetIdx = 7;
+		
+	++ipoChanAxisIdx;
+	if( lastBaseIdx != baseRetIdx )
+		ipoChanAxisIdx = 0;
+	
+	lastBaseIdx = baseRetIdx;
+	
+	return baseRetIdx + ipoChanAxisIdx;
+}
+
+//implementation of an object animation
+//made of translation, rotation, scale curves from blender
 function IPOAnimation(nameIn, sceneNameIn){
 	this.ipoName = nameIn;
 	this.sceneName = sceneNameIn;
 
 	// animation data
-	this.curves = {};
+	this.curves = new Array(3+4+3);
 
 	this.duration;
 
@@ -91,43 +114,32 @@ function IPOAnimation(nameIn, sceneNameIn){
 	{
 		if(txtFile === undefined)
 			return;
-		var textFileLines = txtFile.split('\n');
-		for(var lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
-			var temp = textFileLines[ lineNum ];
+		let textFileLines = txtFile.split('\n');
+		for(let lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
+			let temp = textFileLines[ lineNum ];
 			if(temp[0] == 'c') //this is the start of a curve
 			{
-				var words = temp.split(' ');
-				var curveName = words[1];
-				thisP.curves[curveName] = new Curve();
+				let words = temp.split(' ');
+				let curveIdx = ipoCurveNameToIndex(words[1]);
+				let curveInterpType = curveInterpTypeStrToInt(words[2]);
+				let curveNumPoints = parseInt(words[3]);
+				thisP.curves[curveIdx] = new Curve(curveInterpType, curveNumPoints);
+				
+				//read in the bezier points
 				while( ++lineNum < textFileLines.length )
 				{
 					temp = textFileLines[lineNum];
-					if(temp[0] == 'i') //this is the curve interpolation type
-					{
-						var words = temp.split(' ');
-						thisP.curves[curveName].interpolationType = parseInt(words[1]);
+					words = temp.split(' ');
+					//read in a point
+					if(temp[0] == 'p')
+						thisP.curves[curveIdx].InsertPoint(
+							[parseFloat(words[1]), parseFloat(words[2])]);
+					if(temp[0] == 'e'){
+						let tempDuration = thisP.curves[curveIdx].GetLength();
+						if(tempDuration > thisP.duration) //set the duration
+							thisP.duration = tempDuration;
+						break; // finish reading in bezier points
 					}
-					//read in the bezier points
-					if(temp[0] == 'b')
-					{
-						while( ++lineNum < textFileLines.length )
-						{
-							temp = textFileLines[lineNum];
-							words = textFileLines[lineNum];
-							//read in a point
-							if(temp[0] == 'p')
-								thisP.curves[curveName].InsertPoint(
-									parseFloat(words[1]), parseFloat(words[2]));
-							if(temp[0] == 'e'){
-								var tempDuration = thisP.curves[curveName].GetLength();
-								if(tempDuration > thisP.duration) //set the duration
-									thisP.duration = tempDuration;
-								break; // finish reading in bezier points
-							}
-						}
-					}
-					if(temp[0] == 'e')
-						break; //done reading in this curves data
 				}
 			}
 		}

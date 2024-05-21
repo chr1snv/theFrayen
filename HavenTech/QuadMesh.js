@@ -108,8 +108,6 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.otType = OT_TYPE_QuadMesh;
 
 	//animation classes
-	//ipo animation affects the root transformation of the quadmesh
-	this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
 	//keyframe animation has basis meshes and an ipo curve for each giving weight at time
 	this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
 	//skeletal animation has bones (heirarchical transformations), ipo curves for

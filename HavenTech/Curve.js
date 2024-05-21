@@ -1,11 +1,23 @@
 //Curve.js: implementation of curve
 //to request use or code/art please contact chris@itemfactorystudio.com
 
-Curve.Interpolation_Type = {CONSTANT:0, LINEAR:1, BEZIER:1}
+const Curve_Interp_Type_CONSTANT = 0;
+const Curve_Interp_Type_LINEAR   = 1;
+const Curve_Interp_Type_BEZIER   = 2;
 
-function Curve(){
-	this.interpolationType = 1;
-	this.points = [];
+function curveInterpTypeStrToInt(typeStr){
+	if( typeStr == 'CONSTANT' )
+		return Curve_Interp_Type_CONSTANT;
+	if( typeStr == 'LINEAR' )
+		return Curve_Interp_Type_LINEAR;
+	if( typeStr == 'BEZIER' )
+		return Curve_Interp_Type_BEZIER;
+}
+
+function Curve( interpType, numPoints ){
+	this.interpolationType = interpType;
+	this.points = new Array(numPoints);
+	this.pointInsertIdx = 0;
 
 	function comparePoints( p1, p2 ){
 		//compare points based on their location (time)
@@ -13,13 +25,13 @@ function Curve(){
 	}
 
 	this.InsertPoint = function( newPoint ){
-		this.points.push(newPoint);
+		this.points[this.pointInsertIdx++] = newPoint;
 		//sort points based on their location (time)
-		this.points.sort(comparePoints);
+		//this.points.sort(comparePoints);
 	}
 
 	this.RemovePoint = function( point ){
-		for(var i=0; i < this.points.length; ++i)
+		for(let i=0; i < this.points.length; ++i)
 			if( this.points[i][0] == point[0] && this.points[i][1] == point[1] ){
 				this.points.splice(i, 1);
 				return;
@@ -31,9 +43,9 @@ function Curve(){
 		//the value lies between
 
 		//set up the interval of search to initially be the entire array
-		var firstIndex = 0;
-		var endIndex = points.length-1;
-		var midIndex = endIndex / 2;
+		let firstIndex = 0;
+		let endIndex = points.length-1;
+		let midIndex = endIndex / 2;
 
 		//keep searching until the bounding points have no points between them
 		while((endIndex - firstIndex) > 1){
@@ -86,20 +98,20 @@ function Curve(){
 			return this.points[this.points.length -1][1];
 		
 		//find the two closest points to the value
-		var bounds = findBoundingPoints(value);
-		var p1 = bounds[0]; var p2 = bounds[1];
+		let bounds = findBoundingPoints(value);
+		let p1 = bounds[0]; let p2 = bounds[1];
 		
-		var intervalLength = p2[0] - p1[0];
+		let intervalLength = p2[0] - p1[0];
 		
 		//if the endpoints are the same, return one of them
-		if(intervalLength < 0.0000001)
+		if(intervalLength < epsilon)
 			return p1[0];
 		
 		//return the linear interpolation between the two points
-		var distFromFirstPoint = value - p1[0];
-		var normalizedLocation = distFromFirstPoint / intervalLength;
+		let distFromFirstPoint = value - p1[0];
+		let normalizedLocation = distFromFirstPoint / intervalLength;
 
-		var ret = p1[1]*(1.0-normalizedLocation) + p2[1]*(normalizedLocation);
+		let ret = p1[1]*(1.0-normalizedLocation) + p2[1]*(normalizedLocation);
 		return ret;
 	}
 
@@ -110,8 +122,8 @@ function Curve(){
 	}
 
 	this.ToString = function(){
-		var ret = 'Curve: String representation: ';
-		for(var i in this.points)
+		let ret = 'Curve: String representation: ';
+		for(let i in this.points)
 			ret += this.points[i][0] + ':' + this.points[i][1] + ' ';
 		return ret;
 	}
