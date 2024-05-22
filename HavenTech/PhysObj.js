@@ -494,7 +494,7 @@ function PhysObj(AABB, obj, time){
 			if(totOvlapPct < 0.99){
 				let nLvsMDpth = [0, 0];
 				subDivAddDepth = 0;
-				treeNode.root.AddObject(nLvsMDpth, this.obj);
+				TND_AddObject( treeNode.root, nLvsMDpth, this.obj );
 				if( nLvsMDpth[0] < 0 ){
 					//failed to add to the new node
 					addSuccess = false;

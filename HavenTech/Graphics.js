@@ -37,7 +37,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 	//maps used to keep track of primative graphics objects
 	this.textures        = {};
-	this.materials         = {};
+	this.materials       = {};
 	this.quadMeshes      = {};
 	this.textureRefCts   = {};
 	this.shaderRefCts    = {};

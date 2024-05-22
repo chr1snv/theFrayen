@@ -101,18 +101,18 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let rotTmp = Quat_New();
 	this.getRotation = function(rotOut) 
 	{
-		if(!this.ipoAnimation.GetRotation(rotOut, this.lastUpdateTime))
+		if(!IPOA_GetRotation( this.ipoAnimation, rotOut, this.lastUpdateTime))
 		    Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
 		//apply the user input rotation
 		Quat_Copy( rotTmp, rotOut );
-		Quat_MultQuat(rotOut, rotTmp, this.userRotation );
+		Quat_MultQuat( rotOut, rotTmp, this.userRotation );
 		Quat_Norm( rotOut );
 	}
 	this.getLocation = function(locOut)
 	{
-		if(!this.ipoAnimation.GetLocation(locOut, this.lastUpdateTime))
-		    Vect3_Copy(locOut, this.position);
-		Vect3_Add(locOut, this.userPosition);
+		if(!IPOA_GetLocation( this.ipoAnimation, locOut, this.lastUpdateTime))
+		    Vect3_Copy( locOut, this.position);
+		Vect3_Add( locOut, this.userPosition);
 	}
 
 	let rotMatRotTemp = Quat_New();

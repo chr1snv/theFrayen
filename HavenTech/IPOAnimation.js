@@ -5,21 +5,20 @@ let ipoChanAxisIdx = 0;
 let lastBaseIdx = -1;
 function ipoCurveNameToIndex(channelName){
 	let baseRetIdx = -1;
-	
-	
+
 	if( 	 channelName == 'location' )
 		baseRetIdx = 0;
 	else if( channelName == 'rotation_euler' || channelName == 'rotation_quaternion' )
 		baseRetIdx = 3;
 	else if( channelName == 'scale' )
 		baseRetIdx = 7;
-		
+
 	++ipoChanAxisIdx;
 	if( lastBaseIdx != baseRetIdx )
 		ipoChanAxisIdx = 0;
-	
+
 	lastBaseIdx = baseRetIdx;
-	
+
 	return baseRetIdx + ipoChanAxisIdx;
 }
 
@@ -31,122 +30,135 @@ function IPOAnimation(nameIn, sceneNameIn){
 
 	// animation data
 	this.curves = new Array(3+4+3);
+	
+	this.quaternionRotType = false;
 
 	this.duration;
+	
+	this.loop = true;
 
 	this.isValid = false;
 
-	this.GetLocation = function(ret, time)
-	{
-		let success = false;
-		//get location
-		Vect3_Zero(ret);
-		if(this.curves.LocX){
-			ret[0] = this.curves.LocX.GetValue(time);
-			success = true;
-		}
-		if(this.curves.LocY){
-			ret[1] = this.curves.LocY.GetValue(time);
-			success = true;
-		}
-		if(this.curves.LocZ){
-			ret[2] = this.curves.LocZ.GetValue(time);
-			success = true;
-		}
-		return success;
-	}
-	let eulerRotTemp = Vect3_New();
-	this.GetRotation = function(rot, time){
-		let success = false;
+	//constructor functionality
+	loadTextFile( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', IPOA_textFileLoaded, this );
+};
 
+function IPOA_GetLocation(ipoa, ret, time){
+	let success = false;
+	//get location from curves
+	Vect3_Zero(ret);
+	if(ipoa.curves[0]){ //x
+		ret[0] = ipoa.curves[0].GetValue(time);
+		success = true;}
+	if(ipoa.curves[1]){ //y
+		ret[1] = ipoa.curves[1].GetValue(time);
+		success = true;}
+	if(ipoa.curves.LocZ){ //z
+		ret[2] = ipoa.curves[2].GetValue(time);
+		success = true;}
+	return success;
+}
+let eulerRotTemp = Vect3_New();
+function IPOA_GetRotation(ipoa, rot, time){
+	let success = false;
+
+	if( ipoa.quaternionRotType ){
+	}else{
 		//get rotation (blender stores it as degrees/10)
 		Vect3_Zero(eulerRotTemp);
-		if(this.curves.RotX){
-			eulerRotTemp[0] = this.curves.RotX.GetValue(time)*Math.PI/18.0;
+		if(ipoa.curves[3]){ //eulr x
+			eulerRotTemp[0] = ipoa.curves[3].GetValue(time);//*Math.PI/18.0;
 			success = true;}
-		if(this.curves.RotY){
-			eulerRotTemp[1] = -this.curves.RotY.GetValue(time)*M_PI/18.0;
+		if(ipoa.curves[4]){ //eulr y
+			eulerRotTemp[1] = -ipoa.curves[4].GetValue(time);//*Math.PI/18.0;
 			success = true;}
-		if(this.curves.RotZ){
-			eulerRotTemp[2] = this.curves.RotZ.GetValue(time)*M_PI/18.0;
+		if(ipoa.curves[5]){ //eulr z
+			eulerRotTemp[2] = ipoa.curves[5].GetValue(time);//*Math.PI/18.0;
 			success = true;}
 		Quat_FromEuler( rot, eulerRotTemp );
-		return success;
 	}
-	this.GetScale = function(scale, time){
-		let success = false;
-		//get scale
-		scale = [1,1,1];
-		if(this.curves.ScaleX){
-			scale[0] = this.curves.ScaleX.GetValue(time);
-			success = true;}
-		if(iter != this.curves.ScaleY){
-			scale[1] = this.curves.ScaleY.GetValue(time);
-			success = true;}
-		if(this.curves.ScaleZ){
-			scale[2] = this.curves.ScaleZ.GetValue(time);
-			success = true;}
-		return success;
+	return success;
+}
+function IPOA_GetScale(ipoa, scale, time){
+	let success = false;
+	//get scale
+	Vect3_SetScalar(scale, 1);
+	if(ipoa.curves[7]){ //x
+		scale[0] = ipoa.curves[7].GetValue(time);
+		success = true;}
+	if(ipoa.curves[8]){ //y
+		scale[1] = ipoa.curves[8].GetValue(time);
+		success = true;}
+	if(ipoa.curves[9]){ //z
+		scale[2] = ipoa.curves[9].GetValue(time);
+		success = true;}
+	return success;
+}
+let translation = Vect3_New();
+let rot = Quat_New();
+let scale = Vect3_New();
+function IPOA_GetMatrix(ipoa, outMat, time){
+	if(!ipoa.isValid){
+		Matrix_SetIdentity(outMat);
+		return;
 	}
-
-	this.GetMatrix = function(outMat, time){
-		if(!isValid)
-			return;
-
-		let translation = Vect3_New();
-		GetLocation(translation, time);
-
-		let rot = Quat_New();
-		GetRotation(rot, time);
-
-		//get scale
-		let scale = Vect3_New();
-		GetScale(scale, time);
-
-		//return the corresponding matrix
-		Matrix(outMat, MatrixType.quat_transformation, scale, rot, translation);
-	}
-
-	this.GetDuration = function(){ return duration; }
+	let wrappedTime = time;
+	if( ipoa.loop && time > ipoa.duration )
+		wrappedTime = time % ipoa.duration;
 
 
-	this.textFileLoaded = function(txtFile, thisP)
-	{
-		if(txtFile === undefined)
-			return;
-		let textFileLines = txtFile.split('\n');
-		for(let lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
-			let temp = textFileLines[ lineNum ];
-			if(temp[0] == 'c') //this is the start of a curve
+	IPOA_GetLocation(ipoa, translation, wrappedTime);
+	IPOA_GetRotation(ipoa, rot, wrappedTime);
+	IPOA_GetScale(ipoa, scale, wrappedTime);
+
+
+	//return the corresponding matrix
+	Matrix(outMat, MatrixType.quat_transformation, scale, rot, translation);
+}
+
+function IPOA_textFileLoaded(txtFile, ipoa)
+{
+	if(txtFile === undefined)
+		return;
+	let textFileLines = txtFile.split('\n');
+	for(let lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
+		let temp = textFileLines[ lineNum ];
+		if(temp[0] == 'c') //this is the start of a curve
+		{
+			let words = temp.split(' ');
+			let curveIdx = ipoCurveNameToIndex(words[1]);
+			let curveInterpType = curveInterpTypeStrToInt(words[2]);
+			if( words[2] == 'rotation_quaternion')
+				ipoa.quaternionRotType = true;
+			let curveNumPoints = parseInt(words[3]);
+			ipoa.curves[curveIdx] = new Curve(curveInterpType, curveNumPoints);
+			
+			//read in the bezier points
+			while( ++lineNum < textFileLines.length )
 			{
-				let words = temp.split(' ');
-				let curveIdx = ipoCurveNameToIndex(words[1]);
-				let curveInterpType = curveInterpTypeStrToInt(words[2]);
-				let curveNumPoints = parseInt(words[3]);
-				thisP.curves[curveIdx] = new Curve(curveInterpType, curveNumPoints);
-				
-				//read in the bezier points
-				while( ++lineNum < textFileLines.length )
-				{
-					temp = textFileLines[lineNum];
-					words = temp.split(' ');
-					//read in a point
-					if(temp[0] == 'p')
-						thisP.curves[curveIdx].InsertPoint(
-							[parseFloat(words[1]), parseFloat(words[2])]);
-					if(temp[0] == 'e'){
-						let tempDuration = thisP.curves[curveIdx].GetLength();
-						if(tempDuration > thisP.duration) //set the duration
-							thisP.duration = tempDuration;
-						break; // finish reading in bezier points
-					}
+				temp = textFileLines[lineNum];
+				words = temp.split(' ');
+				//read in a point
+				if(temp[0] == 'p')
+					ipoa.curves[curveIdx].InsertPoint(
+						[parseFloat(words[1]), parseFloat(words[2])]);
+				if(temp[0] == 'e'){
+					let tempDuration = ipoa.curves[curveIdx].GetLength();
+					if(tempDuration > ipoa.duration) //set the duration
+						ipoa.duration = tempDuration;
+					break; // finish reading in bezier points
 				}
 			}
 		}
-		this.isValid = true;
 	}
-
-	//constructor functionality
-	loadTextFile( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', this.textFileLoaded, this );
-
-};
+	//set the animation duration to the longest of the curves
+	ipoa.duration = 0;
+	for( let i = 0; i < ipoa.curves.length; ++i ){
+		if( ipoa.curves[i] ){
+			let len = ipoa.curves[i].GetLength();
+			if( len > ipoa.duration )
+				ipoa.duration = len;
+		}
+	}
+	ipoa.isValid = true;
+}

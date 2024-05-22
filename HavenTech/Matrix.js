@@ -66,9 +66,9 @@ function Matrix(){// m, type, scale, rot, translation )
 		//var rot         = arguments[3];
 		//var translation = arguments[4];
 		//scale, rotate, then translate
-		Matrix(arguments[0],        MatrixType.scale, arguments[2]);
+		Matrix(arguments[0],        MatrixType.translate, arguments[4]);
 		Matrix(tempMat1, MatrixType.quat_rotate, arguments[3]);
-		Matrix(tempMat2, MatrixType.translate, arguments[4]);
+		Matrix(tempMat2, MatrixType.scale, arguments[2]);
 		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
 		Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
 	}

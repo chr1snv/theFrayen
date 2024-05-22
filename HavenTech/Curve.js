@@ -44,7 +44,7 @@ function Curve( interpType, numPoints ){
 
 		//set up the interval of search to initially be the entire array
 		let firstIndex = 0;
-		let endIndex = points.length-1;
+		let endIndex = this.points.length-1;
 		let midIndex = endIndex / 2;
 
 		//keep searching until the bounding points have no points between them
@@ -98,7 +98,7 @@ function Curve( interpType, numPoints ){
 			return this.points[this.points.length -1][1];
 		
 		//find the two closest points to the value
-		let bounds = findBoundingPoints(value);
+		let bounds = this.findBoundingPoints(value);
 		let p1 = bounds[0]; let p2 = bounds[1];
 		
 		let intervalLength = p2[0] - p1[0];

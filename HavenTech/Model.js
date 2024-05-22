@@ -78,38 +78,39 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		cbObj.AABB = quadMesh.AABB;
 		
 	}
-	
-	
+
+
 	//model is really for an additional transformation
 	//and scripts on an object
-		
-	
+
+	this.wrldToLclMat = Matrix_New();
+
 	this.modelName = nameIn;
 	this.meshName = meshNameIn;
 	this.sceneName = sceneNameIn;
-	
-	this.uid = NewUID()
-	
+
+	this.uid = NewUID();
+
 	this.physObj = null;
-	
+
 	this.treeNodes = {};
-	
+
 	this.modelDrawable = null;
 	this.sceneGraph = null;
-	
+
 	this.overlaps = [0,0,0];
 	this.AABB = AABB;
-	
+
 	this.otType = OT_TYPE_Model;
 
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;
 	this.optTransformUpdated;
-	
+
 	//request the model animation
 	//ipo animation affects the root transformation of the quadmesh
-	this.ipoAnimation    = new IPOAnimation(      this.meshName, this.sceneName );
-	
+	this.ipoAnimation    = new IPOAnimation( this.meshName, this.sceneName );
+
 	//modifiers for manipulating the mesh from its default position
 	this.scaleOff    = new Float32Array([1,1,1]);
 	this.rotationOff = new Float32Array([0,0,0]);
@@ -124,21 +125,23 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 		{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },
 		//pack parameters into object to pass to callback below
 		MDL_getQuadMeshCb );
-	
-	
+
+
 	//loadTextFile("scenes/" + this.sceneName + 
 	//			"/IPOs/" + this.modelName+".hvtIPO", 
 	//			MDL_ipoFileLoadedCallback, this);
 
 };
 
-function MDL_Update( mdl, time, updateCompleteParams ){
+function MDL_Update( mdl, time, treeNd ){
 	if( mdl.quadmesh == null ){
 		graphics.GetQuadMesh( mdl.meshName, mdl.sceneName, mdl, quadMeshLoaded );
 	}else{
 		QM_Update( mdl.quadmesh, time );
 		mdl.AABB = mdl.quadmesh.AABB;
 		mdl.lastUpdateTime = time;
+		IPOA_GetMatrix( mdl.ipoAnimation, mdl.wrldToLclMat, time );
+		mdl.physObj.Update(time, gravityAccel, treeNd);
 	}
 }
 
@@ -176,8 +179,7 @@ function MDL_GetOriginalShaderName( mdl, shaderNameOut, sceneNameOut ){
 	shaderNameOut = mdl.quadMesh.materialNames[0];
 	sceneNameOut  = mdl.sceneName;
 }
-function MDL_SetShader( mdl, shaderNameIn, sceneNameIn )
-{
+function MDL_SetShader( mdl, shaderNameIn, sceneNameIn ){
 	//this function may not be used, used to change the shader
 	//on the model after it's been loaded
 	var currentSceneGraph = mdl.sceneGraph;
@@ -200,21 +202,28 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 		cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
 }
 
+let mdl_tempRay = new Ray( Vect3_New(), Vect3_New() );
 function MDL_RayIntersect(mdl, retDisNormCol, ray){
-	
+
 	//since the ray intersects the aabb, check faces 
 	//of the mesh if the ray intersects, if it does, return the
 	//ray distance, normal, and color of the the ray hit
-	
-	QM_GetRayIntersection( mdl.quadmesh, retDisNormCol, ray );
-	
+
+	//apply model transformation
+	Matrix_Multiply_Vect3( mdl_tempRay.origin, mdl.wrldToLclMat, ray.origin );
+	Matrix_Multiply_Vect3( mdl_tempRay.norm, mdl.wrldToLclMat, ray.norm, 0 );
+	mdl_tempRay.lastNode = ray.lastNode;
+
+	QM_GetRayIntersection( mdl.quadmesh, retDisNormCol, mdl_tempRay );
+
 }
 
 function incChanIdx(chanIdx){
+
 	chanIdx += 1;
 	if( chanIdx > 3 )
 		chanIdx = 0;
-	
+
 }
 
 /*

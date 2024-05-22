@@ -108,9 +108,14 @@ function TND_DetectAdditionalCollisions( t, time ){
 }
 function TND_Update( t, time ){ //lineraly update object positions up to the end of the timestep
 	let numUpdated = 0;
+	let obj = null;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
-		if( t.objects[i] ){
-			t.objects[ i ].physObj.Update(time, gravityAccel, t);
+		obj = t.objects[i];
+		if( obj ){
+			switch( obj.otType ){
+				case OT_TYPE_Model:
+					MDL_Update( obj, time, t);
+			}
 			numUpdated += 1;
 		}else{
 			break;

@@ -191,14 +191,15 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//returns the ray distance, surface normal, and color at the intersection pt
 let tempRay = new Ray( Vect3_New(), Vect3_New() );
 function QM_GetRayIntersection(qm, retDisNormCol, ray ){
-	
-	//to speed up this loop, use the oct tree of faces of the mesh
+
 	retDisNormCol[3] = qm;
 	Matrix_Multiply_Vect3( tempRay.origin, qm.wrldToLclMat, ray.origin );
 	Matrix_Multiply_Vect3( tempRay.norm, qm.wrldToLclMat, ray.norm, 0 );
 	tempRay.lastNode = ray.lastNode;
+	//oct tree of faces of the mesh used to speed up ray triangle intersection tests
 	TND_StartTrace( qm.octTree, retDisNormCol, tempRay, 0 );
 	ray.lastNode = tempRay.lastNode;
+
 }
 
 let noMaterialColor = [0.5,0.2,0.7,1.0];
