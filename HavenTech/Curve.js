@@ -50,7 +50,7 @@ function Curve( interpType, numPoints ){
 		//keep searching until the bounding points have no points between them
 		while((endIndex - firstIndex) > 1){
 			//recalculate the midIndex
-			midIndex = ((endIndex-firstIndex) / 2)+firstIndex;
+			midIndex = Math.floor((endIndex-firstIndex) / 2)+firstIndex;
 
 			if( this.points[firstIndex][0] >= value ){
 				//the value is the firstPoint

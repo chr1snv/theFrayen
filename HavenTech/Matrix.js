@@ -47,32 +47,33 @@ let tempMat3 = new Float32Array(4*4);
 function Matrix(){// m, type, scale, rot, translation )
 	//var m = arguments[0];
 	//var type = arguments[1];
-	if(arguments[1] == MatrixType.identity){
+	if( arguments[1] == MatrixType.identity ){
 		Matrix_SetIdentity(arguments[0]);
 	}
-	else if(arguments[1] == MatrixType.euler_transformation ){
+	else if( arguments[1] == MatrixType.euler_transformation ){
 		//var scale       = arguments[2];
 		//var rot         = arguments[3];
 		//var translation = arguments[4];
 		//scale, rotate, then translate
-		Matrix(arguments[0],        MatrixType.scale, arguments[2]);
+		Matrix(arguments[0],    MatrixType.scale, arguments[2]);
 		Matrix(tempMat1, MatrixType.euler_rotate, arguments[3]);
-		Matrix(tempMat2, MatrixType.translate, arguments[4]);
-		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
-		Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
+		Matrix(tempMat2,    MatrixType.translate, arguments[4]);
+		Matrix_Multiply(    tempMat3, tempMat1, arguments[0]);
+		Matrix_Multiply(arguments[0], tempMat2, tempMat3    );
 	}
-	else if( arguments[1] == MatrixType.quat_transformation){
+	else if( arguments[1] == MatrixType.quat_transformation ){
 		//var scale       = arguments[2];
 		//var rot         = arguments[3];
 		//var translation = arguments[4];
 		//scale, rotate, then translate
-		Matrix(arguments[0],        MatrixType.translate, arguments[4]);
-		Matrix(tempMat1, MatrixType.quat_rotate, arguments[3]);
-		Matrix(tempMat2, MatrixType.scale, arguments[2]);
-		Matrix_Multiply(tempMat3, tempMat1, arguments[0]);
-		Matrix_Multiply(arguments[0],        tempMat2, tempMat3);
+		Matrix(arguments[0], MatrixType.scale,       arguments[2]);
+		Matrix(    tempMat2, MatrixType.quat_rotate, arguments[3]);
+		Matrix(    tempMat1, MatrixType.translate,   arguments[4]);
+		
+		Matrix_Multiply(     tempMat3, tempMat2, arguments[0]);
+		Matrix_Multiply( arguments[0], tempMat1, tempMat3    );
 	}
-	else if( arguments[1] == MatrixType.orientation){
+	else if( arguments[1] == MatrixType.orientation ){
 		//var tail = arguments[2];
 		//var head = arguments[3];
 		Matrix_SetIdentity(arguments[0]);
@@ -376,10 +377,9 @@ function Matrix_Multiply( ret, a, b ){
 	for(let i=0; i<4; ++i){          //   row of matrix a, and ret matrix
 		for(let j=0; j<4; ++j){      //column of matrix b, and ret matrix
 			let accum = 0;
-			for(let k=0; k<4; ++k){  //   row of matrix b, and column of matrix a
+			for(let k=0; k<4; ++k)  //   row of matrix b, and column of matrix a
 				accum += a[i*4+k]*b[k*4+j];
-			}
-			ret[i*4+j] = accum;
+			ret[i*4+j] = accum; //the row/column result element is row i of a dot col j of b
 		}
 	}
 }

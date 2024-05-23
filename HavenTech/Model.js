@@ -43,47 +43,11 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	}
 	*/
 
-	//public methods
-
-	//Identification / registration functions so that 
-	//the model can be drawn, interact with other objects, 
-	//and be updated when in view
-	this.AddToOctTree = function( octTreeIn, addCompletedCallback )
-	{
-		if( octTreeIn == null )
-			return;
-		this.RemoveFromOctTree();
-		this.octTreeAddedTo = octTreeIn;
-		let nLvsMDpth = [0,0];
-		TND_AddObject(this.octTreeAddedTo, nLvsMDpth, this, addCompletedCallback);
-	}
-
-	this.RemoveFromOctTree = function( removeCompletedCallback )
-	{
-		if( this.octTreeAddedTo != null ){
-		
-			let OctTreeRemoveCompleted = function( thisP ){
-				thisP.octTreeAddedTo = null;
-			}
-			
-			this.octTreeAddedTo.Remove( removeCompleted, this );
-		}
-	}
-
-	//animation functions
-	let quadMeshLoaded = function( quadMesh, cbObj ){
-		quadMesh.Update(time);
-		cbObj.lastUpdateTime = time;
-		cbObj.quadmesh = quadMesh;
-		cbObj.AABB = quadMesh.AABB;
-		
-	}
-
 
 	//model is really for an additional transformation
 	//and scripts on an object
 
-	this.wrldToLclMat = Matrix_New();
+	this.lclToWrldMat = Matrix_New();
 
 	this.modelName = nameIn;
 	this.meshName = meshNameIn;
@@ -133,15 +97,56 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 };
 
+//public methods
+
+//Identification / registration functions so that 
+//the model can be drawn, interact with other objects, 
+//and be updated when in view
+function MDL_AddToOctTree( mdl, octTreeIn, addCompletedCallback )
+{
+	if( octTreeIn == null )
+		return;
+	MDL_RemoveFromOctTree( mdl );
+	mdl.octTreeAddedTo = octTreeIn;
+	let nLvsMDpth = [0,0];
+	TND_AddObject(mdl.octTreeAddedTo, nLvsMDpth, mdl, addCompletedCallback);
+}
+
+function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
+{
+	if( mdl.octTreeAddedTo != null ){
+	
+		let OctTreeRemoveCompleted = function( thisP ){
+			thisP.octTreeAddedTo = null;
+		}
+		
+		mdl.octTreeAddedTo.Remove( removeCompleted, mdl );
+	}
+}
+
+//animation functions
+function MDL_quadMeshLoaded( quadMesh, cbObj ){
+	quadMesh.Update(time);
+	cbObj.lastUpdateTime = time;
+	cbObj.quadmesh = quadMesh;
+	cbObj.AABB = quadMesh.AABB;
+}
+
 function MDL_Update( mdl, time, treeNd ){
 	if( mdl.quadmesh == null ){
 		graphics.GetQuadMesh( mdl.meshName, mdl.sceneName, mdl, quadMeshLoaded );
 	}else{
-		QM_Update( mdl.quadmesh, time );
+		if( mdl.ipoAnimation.isValid ){
+			IPOA_GetMatrix( mdl.ipoAnimation, mdl.lclToWrldMat, time );
+			Matrix_Inverse( mdl.quadmesh.wrldToLclMat, mdl.lclToWrldMat );
+		}else{
+			QM_Update( mdl.quadmesh, time );
+		}
 		mdl.AABB = mdl.quadmesh.AABB;
-		mdl.lastUpdateTime = time;
-		IPOA_GetMatrix( mdl.ipoAnimation, mdl.wrldToLclMat, time );
+		
 		mdl.physObj.Update(time, gravityAccel, treeNd);
+		
+		mdl.lastUpdateTime = time;
 	}
 }
 
@@ -182,7 +187,7 @@ function MDL_GetOriginalShaderName( mdl, shaderNameOut, sceneNameOut ){
 function MDL_SetShader( mdl, shaderNameIn, sceneNameIn ){
 	//this function may not be used, used to change the shader
 	//on the model after it's been loaded
-	var currentSceneGraph = mdl.sceneGraph;
+	let currentSceneGraph = mdl.sceneGraph;
 	mdl.RemoveFromSceneGraph();
 	mdl.shaderName = shaderNameIn;
 	mdl.shaderScene = sceneNameIn;
@@ -202,19 +207,15 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 		cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
 }
 
-let mdl_tempRay = new Ray( Vect3_New(), Vect3_New() );
 function MDL_RayIntersect(mdl, retDisNormCol, ray){
 
 	//since the ray intersects the aabb, check faces 
 	//of the mesh if the ray intersects, if it does, return the
 	//ray distance, normal, and color of the the ray hit
 
-	//apply model transformation
-	Matrix_Multiply_Vect3( mdl_tempRay.origin, mdl.wrldToLclMat, ray.origin );
-	Matrix_Multiply_Vect3( mdl_tempRay.norm, mdl.wrldToLclMat, ray.norm, 0 );
-	mdl_tempRay.lastNode = ray.lastNode;
+	//model transformation is applied to quadmesh matrix at update time
 
-	QM_GetRayIntersection( mdl.quadmesh, retDisNormCol, mdl_tempRay );
+	QM_GetRayIntersection( mdl.quadmesh, retDisNormCol, ray );
 
 }
 
