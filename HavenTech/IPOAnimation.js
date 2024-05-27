@@ -1,7 +1,7 @@
 //IPOAnimation.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
-let ipoChanAxisIdx = 0;
+var ipoChanAxisIdx = 0;
 let lastBaseIdx = -1;
 function ipoCurveNameToIndex(channelName){
 	let baseRetIdx = -1;
@@ -18,8 +18,17 @@ function ipoCurveNameToIndex(channelName){
 		ipoChanAxisIdx = 0;
 
 	lastBaseIdx = baseRetIdx;
+	
+	let reOrderedIpoChanAxisIdx = ipoChanAxisIdx;
+	//blender exports quaternions with w as idx 0, change to xyz w ordering
+	if( channelName == 'rotation_quaternion' ){
+		if( reOrderedIpoChanAxisIdx == 0 )
+			reOrderedIpoChanAxisIdx = 3;
+		else
+			reOrderedIpoChanAxisIdx -= 1;
+	}
 
-	return baseRetIdx + ipoChanAxisIdx;
+	return baseRetIdx + reOrderedIpoChanAxisIdx;
 }
 
 //implementation of an object animation
@@ -123,7 +132,7 @@ function IPOA_textFileLoaded(txtFile, ipoa)
 	let textFileLines = txtFile.split('\n');
 	for(let lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
 		let temp = textFileLines[ lineNum ];
-		if(temp[0] == 'c') //this is the start of a curve
+		if(temp[0] == 'C') //this is the start of a curve
 		{
 			let words = temp.split(' ');
 			let curveIdx = ipoCurveNameToIndex(words[1]);
@@ -152,13 +161,19 @@ function IPOA_textFileLoaded(txtFile, ipoa)
 		}
 	}
 	//set the animation duration to the longest of the curves
-	ipoa.duration = 0;
-	for( let i = 0; i < ipoa.curves.length; ++i ){
-		if( ipoa.curves[i] ){
-			let len = ipoa.curves[i].GetLength();
-			if( len > ipoa.duration )
-				ipoa.duration = len;
+	ipoa.duration = GetLongestCurveDuration( ipoa.curves );
+
+	ipoa.isValid = true;
+}
+
+function GetLongestCurveDuration( curves ){
+	let lngstDur = 0;
+	for( let i = 0; i < curves.length; ++i ){
+		if( curves[i] ){
+			let len = curves[i].GetLength();
+			if( len > lngstDur )
+				lngstDur = len;
 		}
 	}
-	ipoa.isValid = true;
+	return lngstDur;
 }

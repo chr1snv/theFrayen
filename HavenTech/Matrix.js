@@ -43,6 +43,7 @@ function Matrix_Copy( m, m2 ){
 let tempMat1 = new Float32Array(4*4);
 let tempMat2 = new Float32Array(4*4);
 let tempMat3 = new Float32Array(4*4);
+let tempQuat = Quat_New();
 //high level euler rotation angle Transformation matrix constructor
 function Matrix(){// m, type, scale, rot, translation )
 	//var m = arguments[0];
@@ -106,9 +107,9 @@ function Matrix(){// m, type, scale, rot, translation )
 			
 			//generate the rotation quaternion
 			//to be delt with
-			let orientationQuat = Quat_FromAxisAng(rotationAxis, rotationAngle);
+			Quat_FromAxisAng(tempQuat, rotationAxis, rotationAngle);
 			
-			Matrix(arguments[0], MatrixType.quat_rotate, orientationQuat);
+			Matrix(arguments[0], MatrixType.quat_rotate, tempQuat);
 		}
 		else{ // the bone is parallel to the y axis
 			//generate a identity matrix (dont need to rotate since we

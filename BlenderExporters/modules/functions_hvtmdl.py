@@ -116,7 +116,7 @@ def writeMaterial(assetDirectory, mat):
     #open the output file
     out = open(matFileName, "w")
     
-    #print( "writeShader: %s" % (mat.name) ) 
+    #print( "writeShader: %s" % (mat.name) )
     
 
     #output the textures the Material uses
@@ -341,13 +341,14 @@ def writeAnimationCurves(outputFile, curves):
     print( "writeAnimationCurves" )
     for curveTuple in curves:#Ipo.getCurves():
         curve = curveTuple[1]
-        writeAnimationCurveData(outputFile, curve)
+        cType = curve.data_path.replace (" ", "_")
+        writeAnimationCurveData(outputFile, curve, cType)
 
-def writeAnimationCurveData(out, curve):
+def writeAnimationCurveData(out, curve, cType):
 
     print("writeAnimationCurveData data_path " + curve.data_path )
     
-    out.write('c %s %s %i\n' % (curve.data_path.replace (" ", "_"), curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
+    out.write('C %s %s %i\n' % (cType, curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
     #curve.getName())) #interpolation type #num bezier points
     for keyframe_point in curve.keyframe_points:#bezierPoint in curve.bezierPoints:
         point = keyframe_point.co
@@ -496,7 +497,10 @@ def writeAnim(assetDirectory, ob):
         tailPosition = bone.tail
         out.write( 'T %f %f %f\n' % \
             (tailPosition[0], tailPosition[1], tailPosition[2]) )
-        #out.write( 'R %f\n' % math.radians(bone.roll['BONESPACE']) )
+        #https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
+        bRot = bone.matrix.to_euler()
+        print( "R %f %f %f" % (bRot[0], bRot[1], bRot[2]) )
+        out.write( 'R %f %f %f\n' % (bRot[0], bRot[1], bRot[2]) )
 
         #write out the animation data of the bone
         writeBoneKeyframes(out, armatureObj, boneName)
@@ -512,45 +516,30 @@ def writeAnim(assetDirectory, ob):
 
 def writeBoneKeyframes(out, armature, boneName):
     #get the Ipo channel corresponding to the bone
+    print("writeBoneKeyframes\n")
+    fcurves = armature.animation_data.nla_tracks.data.action.fcurves.items()
+    curves = {}
+    for c in fcurves:
+        print("C %s" % c[1].data_path )
+        cNameParts = c[1].data_path.split('"')
+        try:
+            curves[cNameParts[1]]
+        except:
+            print("appending to curves %s\n" % (cNameParts[1]) )
+            curves[cNameParts[1]] = []
+        curves[cNameParts[1]].append(c[1])
     try:
-        boneChannel = armature.action.getChannelIpo( boneName )
+        boneChannelCurves = curves[ boneName ]
     except:
         #there are no keyframes for the bone
         print( "No keyframes for: %s" % boneName )
         return
     
     #print the keyframes for each type of motion for the bone
-    boneChannelCurves = boneChannel.getCurves()
+    cIdx = 0
     for boneCurve in boneChannelCurves:
-        printCurve(out, boneCurve)
+        outputName = ""
+        cType = boneCurve.data_path.split('"].')[1]
+        writeAnimationCurveData(out, boneCurve, cType)
 
-def printCurve(out, curve):
-    for triple in curve.getPoints():
-        #for each Bez triple, ignore its handle values (.vec[0] and .vec[2])
-        #just write out its time and value
-        type = curve.name
-        if   type == "ScaleX":
-            outputName = 'A'
-        elif type == "ScaleY":
-            outputName = 'B'
-        elif type == "ScaleZ":
-            outputName = 'C'
-        elif type == "QuatW":
-            outputName = 'W'
-        elif type == "QuatX":
-            outputName = 'J'
-        elif type == "QuatY":
-            outputName = 'K'
-        elif type == "QuatZ":
-            outputName = 'L'
-        elif type == "LocX":
-            outputName = 'X'
-        elif type == "LocY":
-            outputName = 'Y'
-        elif type == "LocZ":
-            outputName = 'Z'        
-        else:
-            outputName = type
-        out.write('%s %f %f\n' % \
-                (outputName, triple.vec[1][0], triple.vec[1][1]))
 

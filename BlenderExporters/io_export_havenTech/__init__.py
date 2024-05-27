@@ -260,6 +260,7 @@ def writeScene(path):
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
         print( "objType %s %s" % (obj.type, obj.name) )
+        writeObjAnimData = False
         #add the information for placing the object in the scene file
         #and call the corresponding exporter for each object
         #dont allow objects with the same origin/overlapping aabb because
@@ -276,6 +277,7 @@ def writeScene(path):
         #1,000,000 * log(1,000,000) => 6,000,000
         #it would be 1,000,000 times lower frame rate
         if obj.type == 'MESH':
+            writeObjAnimData = True
             out.write( 'm %s\n' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
             mAABBws = writeModel(sceneDirectory, obj) #world space aabb
@@ -310,6 +312,7 @@ def writeScene(path):
             mshCt += 1
             out.write( 'mEnd\n\n' )
         if obj.type == 'LIGHT':
+            writeObjAnimData = True
             lampD = obj.data;
             out.write( 'l %s\n' % (obj.name))
             out.write( 'ltype %s \n' % (lampD.type))
@@ -326,6 +329,7 @@ def writeScene(path):
             vec3Min( wMin, obj.location )
             vec3Max( wMax, obj.location )
         if obj.type == 'CAMERA':
+            writeObjAnimData = True
             out.write( 'c %s \n' % (obj.name))
             print(" camera %s" % (obj.name) )
             out.write( 'cloc %f %f %f\n' % (obj.location[0], obj.location[1], obj.location[2]))

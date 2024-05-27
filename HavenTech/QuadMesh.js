@@ -94,7 +94,6 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	//animation base mesh
 	this.keyedPositions  = [];
-	this.skelPositions   = [];
 
 	//the oct tree of the mesh faces (updated with mesh animations)
 	const tDim = 100;
@@ -131,15 +130,13 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		//animation type
 		if(this.keyedPositions.length != 0)
 			transformedVertCoords = this.keyedPositions; //keyframe animated positions
-		else if(this.skelPositions.length != 0)
-			transformedVertCoords = this.skelPositions;
 		else
 			transformedVertCoords = this.vertPositions;  //static vert positions
 		
 		//update the coordinates with the animation / simulation type
 		if( this.skelAnimation.isValid )
 			updated = this.skelAnimation.GenerateMesh( 
-				this.transformedVerts, numVerts, mesh, time, this.lclMinCorner, this.lclMaxCorner);
+				this.transformedVerts, this, time, this.lclMinCorner, this.lclMaxCorner);
 		else{ //there isn't a simulation use the unmodified base coordinates
 			this.transformedVerts = transformedVertCoords;
 		}
@@ -308,12 +305,14 @@ function QM_UpdateOctTree(qm, octUpdateCmpCallback){
 //update the current mesh (used by skeletal animation if present) 
 //to the current animationFrame
 function QM_Update( qm, animationTime ) {
+
+	let vertsUpdated = false;
 	//if the new update time is newer (don't update twice for the same frame)
 	if( animationTime > qm.lastMeshUpdateTime ){
 		
-		let worldTransformUpdated = qm.UpdateToWorldMatrix( qm.lastMeshUpdateTime );
+		let worldTransformUpdated = qm.UpdateToWorldMatrix( animationTime );
 		
-		let vertsUpdated = qm.UpdateTransformedVerts( qm.lastMeshUpdateTime );
+		vertsUpdated = qm.UpdateTransformedVerts( animationTime );
 		if( vertsUpdated || qm.lastMeshUpdateTime < 0){ //than rebuild the face octTree
 			octTreeDivLogElm.innerHTML += "<br/>update " + qm.meshName + "<br/>";
 			QM_UpdateOctTree(qm); //updates world space min and max corners
@@ -427,6 +426,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			numVerts = words[1];
 			thisP.vertPositions = new Float32Array( numVerts * vertCard );
 			thisP.vertNormals = new Float32Array( numVerts * vertCard );
+			thisP.transformedVerts = new Float32Array( numVerts * vertCard );
 		}
 
 		//read in a vertex
@@ -577,7 +577,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			', verts: ' + thisP.vertPositions.length/3 );
 
 	//finalize the binding between the quadMesh and the skelAnimation
-	//by setting the boneID's in the bone weights 
+	//by setting the boneID's in the bone weights
 	//based on the bone positions
 	//in the animation bone list
 	for( var i in thisP.vertBoneWeights )

@@ -150,19 +150,20 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 		}
 	}
 
+	let bone_mat_actions  = Matrix_New();
 	this.GenerateFrameTransformations = function(time){
 		//breadth first traverse the bone hierarchy and generate bone transformations
 		//for the given time
 
 		//check if the SkeletalAnimation loaded properly
-		if(!isValid)
+		if(!this.isValid)
 			return;
 
 		//setup the traversal queue
 		let boneQueue = [];
 		let hierarchyNode = new HierarchyNode();
 		Matrix(hierarchyNode.parent_mat, MatrixType.identity);
-		hierarchyNode.idx = headBoneIdx;
+		hierarchyNode.idx = this.headBoneIdx;
 		boneQueue.push(hierarchyNode);
 		
 		while(boneQueue.length > 0){
@@ -174,130 +175,139 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 			let parent_pose_mat  = currentBoneNode.parent_mat;
 
 			//get the relevant data from the bone
-			let bone_mat_head     = this.bones[currentIdx].GetHead_Mat();
-			let bone_mat          = bones[currentIdx].GetBone_Mat();
-			let bone_mat_actions  = new Float32Array(4*4);
-			bones[currentIdx].GetChan_Mat(bone_mat_actions, time);
-			//Matrix(bone_mat_actions, MatrixType::identity);
-			let bone_mat_loc_tail = bones[currentIdx].GetLocTail_Mat();
+			let bone_mat          = this.bones[currentIdx].bone_Mat;
+			let bone_mat_head     = this.bones[currentIdx].head_Mat;
+			let bone_mat_loc_tail = this.bones[currentIdx].loc_tail_Mat;
+			
+			this.bones[currentIdx].GetChan_Mat(bone_mat_actions, time);
 
 			//temporaries used for matrix multiplication
-			let tempMat1 = new Float32Array(4*4);
-			let tempMat2 = new Float32Array(4*4);
+			let tempMat1 = Matrix_New();
+			let tempMat2 = Matrix_New();
 
 			//calculate the pose matrix for this bone
-			let pose_mat = new Float32Array(4*4);
+			let pose_mat = Matrix_New();
 			Matrix_Multiply(tempMat1, bone_mat, bone_mat_actions);
 			Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
 			Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
 
 			//store this bone's pose matrix in the frameTransformation object
-			Matrix_Multiply(tempMat1, orientation, pose_mat);
-			Matrix_Copy(transformationMatricies[currentIdx], tempMat1);
+			Matrix_Multiply(this.transformationMatricies[currentIdx], this.orientation, pose_mat);
 
 			//calculate the matrix to pass to this bone's children
 			Matrix_Multiply(tempMat2, pose_mat, bone_mat_loc_tail);
 
 			//append this bones children to the traversal queue
-			for(let i=0; i<bones[currentIdx].childrenIdxs.length; ++i){
+			for(let i=0; i<this.bones[currentIdx].childrenIdxs.length; ++i){
 				let newNode = new HierarchyNode();
 				Matrix_Copy(newNode.parent_mat, tempMat2);
-				newNode.idx = bones[currentIdx].childrenIdxs[i];
+				newNode.idx = this.bones[currentIdx].childrenIdxs[i];
 				boneQueue.push(newNode);
 			}
 		}
 	}
 
-
-	this.GenerateMesh = function(transformedVerts, numVerts, mesh, time, minCoord, maxCoord){
+	
+	this.GenerateMesh = function(transformedVerts, mesh, time, minCoord, maxCoord){
 		//apply this transformation to the mesh vertices, generating a new set of vertex positions
 
+		let wrappedTime = time;
+		if( this.loop && time > this.duration )
+			wrappedTime = time % this.duration;
+			
+		if( wrappedTime == this.lastUpdateTime )
+			return false;
+
 		//generate the transformation matrices
-		this.GenerateFrameTransformations(time);
+		this.GenerateFrameTransformations(wrappedTime);
 
 		//check if the space allocated for the return is of the right size
-		if(numVerts != mesh.faceVertsCt)
+		if(transformedVerts.length != mesh.vertPositions.length)
 			return;
 
-		let meshOrientationMatrix = new Float32Array(4*4);
-		mesh.GetOrientationMatrix(meshOrientationMatrix);
-		let matrixTemp = new Float32Array(4*4);
-		Matrix_Copy(matrixTemp, meshOrientationMatrix);
-		let inverseMeshOrientationMatrix = new Float32Array(4*4);
-		Matrix_Inverse(inverseMeshOrientationMatrix, matrixTemp);
+		let meshOrientationMatrix = mesh.toWorldMatrix;
+		let inverseMeshOrientationMatrix = mesh.wrldToLclMat;
 
 		//transform each vertex
-		for(let i=0; i<mesh.faceVertsCt; ++i){
+		for(let i=0; i<mesh.vertPositions.length/vertCard; ++i){
 			//step 1, multiply by the transformation matrix of the mesh
 			//to get vertices into model space
-			let preSklPosition = new Float32Array(vertCard);
+			let preSklPosition = Vect3_New();
 			Vect3_CopyFromArr( preSklPosition, mesh.vertPositions, i*vertCard);
-			let position = new Float32Array(vertCard);
-			Matrix_Multiply(position, meshOrientationMatrix, preSklPosition);
+			let position = Vect3_New();
+			Matrix_Multiply_Vect3(position, meshOrientationMatrix, preSklPosition);
 
 			//step 2, for each bone weight, find the effect of each bone,
 			//and then average the results
-			let accumPosition = new Float32Array([0,0,0]);
+			let accumPosition = Vect3_NewZero();
 			let boneWeightAccum = 0;
 
-			let tempVect1 = new Float32Array(graphics.vertCard);
-			let tempVect2 = new Float32Array(graphics.vertCard);
-			let numBoneWeights = mesh.vertBoneWeights[i].length;
-			for(let j=0; j<numBoneWeights; ++j){
-				let boneID = mesh.vertBoneWeights[i][j].boneID;
-				if(boneID == -1) // reject invalid boneWeights
-					continue;
-				let boneWeight = mesh.vertBoneWeights[i][j].weight;
-				if(boneWeight < epsilon) //if the boneWeight is negligible
-					continue; //ignore it
-				boneWeightAccum += boneWeight;
+			let tempVect1 = Vect3_New();
+			let tempVect2 = Vect3_New();
+			let vertBWeights = mesh.vertBoneWeights[i];
+			let vertBones = Object.keys(vertBWeights);
+			let numBoneWeights = vertBones.length;
+			if( numBoneWeights > 0 ){
+				for(let j=0; j<numBoneWeights; ++j){
+					let boneID = vertBones[j];
+					let boneWeight = vertBWeights[boneID];
+					if(boneWeight < epsilon) //if the boneWeight is negligible
+						continue; //ignore it
+					boneWeightAccum += boneWeight;
 
-				//step2.1, get the matrix that transforms the vertex into
-				//the local space of the affecting bone
-				let toBoneSpaceMatrix = bones[boneID].inverseBindPose;
+					//step2.1, get the matrix that transforms the vertex into
+					//the local space of the affecting bone
+					let toBoneSpaceMatrix = this.bones[boneID].inverseBindPose;
 
-				//step2.2, get the matrix that transforms the vertex from the
-				//local space of the bone to its animated position in the world
-				let toAnimatedWorldSpaceMatrix = transformationMatricies[boneID*matrixCard];
+					//step2.2, get the matrix that transforms the vertex from the
+					//local space of the bone to its animated position in the world
+					let toAnimatedWorldSpaceMatrix = this.transformationMatricies[boneID];
 
-				//step 2.3, average the effect of the bones on the position
-				Matrix_Multiply(tempVect1,  toBoneSpaceMatrix, position);
+					//step 2.3, average the effect of the bones on the position
+					Matrix_Multiply_Vect3(tempVect1,  toBoneSpaceMatrix, position);
 
-				Matrix_Multiply(tempVect2, toAnimatedWorldSpaceMatrix, tempVect1);
-				Vect3_Multiply(tempVect2, boneWeight);
-				Vect3_Add(accumPosition, tempVect2);
+					Matrix_Multiply_Vect3(tempVect2, toAnimatedWorldSpaceMatrix, tempVect1);
+					Vect3_MultiplyScalar(tempVect2, boneWeight);
+					Vect3_Add(accumPosition, tempVect2);
+				}
+
+				//step3.1, divide the averaged changes by the accumulated bone weight
+				Vect3_MultiplyScalar(accumPosition, 1/boneWeightAccum);
+			}else{
+				Vect3_Copy(accumPosition, position);
 			}
 
-			//step3.1, divide the averaged changes by the accumulated bone weight
-			Vect3_Multiply(accumPosition, 1/boneWeightAccum);
-
-			//step 3.2, apply the inverse mesh orientation matrix to the new values
-			let vertPosition = new Float32Array(graphics.vertCard);
-			Matrix_Multiply(vertPosition, inverseMeshOrientationMatrix, accumPosition);
+			////step 3.2, apply the inverse mesh orientation matrix to the new values
+			let vertPosition = new Float32Array(vertCard);
+			Matrix_Multiply_Vect3(vertPosition, inverseMeshOrientationMatrix, accumPosition);
 
 			//step 3.3, write the new position and normal data to the morph target
-			transformedVerts[i*graphics.vertCard]   = vertPosition[0];
-			transformedVerts[i*graphics.vertCard+1] = vertPosition[1];
-			transformedVerts[i*graphics.vertCard+2] = vertPosition[2];
+			transformedVerts[i*vertCard]   = vertPosition[0];
+			transformedVerts[i*vertCard+1] = vertPosition[1];
+			transformedVerts[i*vertCard+2] = vertPosition[2];
 			Vect3_minMax( minCoord, maxCoord, vertPosition );
 		}
-		
+		this.lastUpdateTime = time;
+		return true;
 	}
 
 	this.skelAnimName = nameIn;
 	this.sceneName = sceneNameIn;
+	
+	this.lastUpdateTime = -0.5;
 
 	this.transformationMatricies = [];
 	this.isValid = false;
 	this.headBoneIdx = -1;
 	this.bones = [];
 	this.duration = 0.0;
+	this.loop = true;
 
-	this.scale       = new Float32Array([1,1,1]);
-	this.rotation    = new Float32Array([0,0,0]);
-	this.origin      = new Float32Array([0,0,0]);
-	this.orientation = new Float32Array(4*4);
-	this.inverseMatrix=new Float32Array(4*4);
+	this.scale        = Vect3_NewAllOnes();
+	this.rotation     = Vect3_NewZero();
+	this.origin       = Vect3_NewZero();
+	this.orientation  = Matrix_New();
+	this.inverseMatrix = Matrix_New();
 	Matrix_SetIdentity( this.orientation );
 
 	//open the file for reading
@@ -342,11 +352,11 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 		}
 		
 		//calculate the orientation matrix of the Animation and its inverse
-		let blenderToHaven = new Float32Array(4*4);
-		Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
-		let tempMat = new Float32Array(4*4);
-		Matrix(tempMat, MatrixType.euler_transformation, thisP.scale, thisP.rotation, thisP.origin);
-		Matrix_Multiply(thisP.orientation, blenderToHaven, tempMat);
+		//let blenderToHaven = new Float32Array(4*4);
+		//Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
+		//let tempMat = new Float32Array(4*4);
+		Matrix(thisP.orientation, MatrixType.euler_transformation, thisP.scale, thisP.rotation, thisP.origin);
+		//Matrix_Multiply(thisP.orientation, blenderToHaven, tempMat);
 		let orientationCpy = new Float32Array(4*4);
 		Matrix_Copy(orientationCpy, thisP.orientation);
 		Matrix_Inverse(thisP.inverseMatrix, orientationCpy); //destructive operation on source matrix
@@ -361,9 +371,9 @@ function SkeletalAnimation( nameIn, sceneNameIn){
 
 		//allocate the transformation matricies
 		for(let i=0; i<thisP.bones.length; ++i)
-		    thisP.transformationMatricies.push( new Float32Array(graphics.matrixCard) );
+		    thisP.transformationMatricies.push( new Float32Array(matrixCard) );
 
-		isValid = true;
+		thisP.isValid = true;
     }
     
     loadTextFile(fileName, this.skelAnimFileLoaded, this );

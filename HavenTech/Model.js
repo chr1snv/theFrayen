@@ -138,6 +138,8 @@ function MDL_Update( mdl, time, treeNd ){
 	}else{
 		if( mdl.ipoAnimation.isValid ){
 			IPOA_GetMatrix( mdl.ipoAnimation, mdl.lclToWrldMat, time );
+			//if there is an ipo animation, ignore the quadmesh animations
+			//and over write it's world to local matrix for getRayIntersection
 			Matrix_Inverse( mdl.quadmesh.wrldToLclMat, mdl.lclToWrldMat );
 		}else{
 			QM_Update( mdl.quadmesh, time );
