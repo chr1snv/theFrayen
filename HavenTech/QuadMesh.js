@@ -135,7 +135,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		
 		//update the coordinates with the animation / simulation type
 		if( this.skelAnimation.isValid )
-			updated = this.skelAnimation.GenerateMesh( 
+			updated = SkelA_GenerateMesh(this.skelAnimation, 
 				this.transformedVerts, this, time, this.lclMinCorner, this.lclMaxCorner);
 		else{ //there isn't a simulation use the unmodified base coordinates
 			this.transformedVerts = transformedVertCoords;
@@ -144,23 +144,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 		return updated;
 	}
 
-	//update the quadmesh to world transformation
-	let tempMat = new Float32Array(4*4);
-	this.UpdateToWorldMatrix = function(time){
-		if( this.lastToWorldMatrixUpdateTime == time )
-			return false;
-		Matrix( this.toWorldMatrix, 
-				MatrixType.quat_transformation, 
-				this.scale, this.rotation, this.origin );
-		Matrix_Copy(tempMat, this.toWorldMatrix );
-		Matrix_Inverse( this.wrldToLclMat, tempMat );
-		this.lastToWorldMatrixUpdateTime = time;
-		
-		return true;
 
-	}
-
-	
 
 
 	this.PrintHierarchy = function(name, par){
@@ -228,6 +212,21 @@ function QM_IsTransparent(qm, callback)
 
 //update / initialize functionality
 ///////////////////////////
+
+//update the quadmesh to world transformation
+let tempMat = new Float32Array(4*4);
+function QM_UpdateToWorldMatrix(qm, time){
+	if( qm.lastToWorldMatrixUpdateTime == time )
+		return false;
+	Matrix( qm.toWorldMatrix, 
+			MatrixType.quat_transformation, 
+			qm.scale, qm.rotation, qm.origin );
+	Matrix_Copy(tempMat, qm.toWorldMatrix );
+	Matrix_Inverse( qm.wrldToLclMat, tempMat );
+	qm.lastToWorldMatrixUpdateTime = time;
+	
+	return true;
+}
 
 
 //get the axis aligned bounding box of the mesh
@@ -310,7 +309,7 @@ function QM_Update( qm, animationTime ) {
 	//if the new update time is newer (don't update twice for the same frame)
 	if( animationTime > qm.lastMeshUpdateTime ){
 		
-		let worldTransformUpdated = qm.UpdateToWorldMatrix( animationTime );
+		let worldTransformUpdated = QM_UpdateToWorldMatrix(qm, animationTime );
 		
 		vertsUpdated = qm.UpdateTransformedVerts( animationTime );
 		if( vertsUpdated || qm.lastMeshUpdateTime < 0){ //than rebuild the face octTree
