@@ -88,27 +88,24 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 		//draw the scene
 		
-		//clear the render buffer and reset rendering state
-		//graphics.Clear();
-		//graphics.ClearDepth();
-		//graphics.ClearLights();
+		
 		
 		//after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
 		//(the state of the art polygon rasterizer in 2022)
 		//I think that because rasterization cost increases with overdraw 
 		//and as the number of polygons increases
-		//longterm a render engine based on ray tracing rays from the camera 
+		//longterm a render engine based on ray casting rays from the camera 
 		//is going to have better performance and realisim
 		//than rasterization
-		//the goal of this game / simulation engine is to mimic reality as much
-		//as possible with the best performance
-		//so I think it makes sense (and the code is going to be simpler) 
-		//with an architecture of tracing rays from the camera
-		//(conceptually initiating requests from camera)
-		//and simulating dynamics / moving objects with cpu/general purpose 
-		//compute and memory per world area
-		//the compute may / may not be syncronized between world regions, 
-		//and as objects move from one region to another they are passed
+		//the problem though is memory usage of loading all objects in the scene
+		//at full level of detail, time cost of updating octTrees for animated objects
+		//and the non local/upredicatble memory access pattern of ray casting
+		//vs scanline rasterization
+		
+		//having compute in memory per world area will make ray casting/tracing more practical, though
+		//until the hardware is commonplace, it's not practical
+		
+		//then objects can move from one region to another passed
 		//(via network / intraprocessor connections) to the memory and 
 		//simulation in the new region
 		//there are optimizations, reStir, metropolus light transport for 
@@ -122,10 +119,18 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		//of some of the tracing hopefully interactive framerates with 
 		//photorealisim and minimal noise and can be achieved
 		
-		
-		//raytracing draw call
-		this.cameras[ this.activeCameraIdx ].RayTraceDraw( 
-		 this.octTree, graphics.screenWidth/graphics.screenHeight );
+		if( rayCastDrawing ){
+			//raycasting draw call
+			CAM_RayCastDraw( this.cameras[ this.activeCameraIdx ],
+				this.octTree, graphics.screenWidth/graphics.screenHeight );
+		}else{
+		 CAM_ScanLineDraw( this.cameras[ this.activeCameraIdx ],
+				this.octTree, graphics.screenWidth/graphics.screenHeight );
+		 
+		//clear the render buffer and reset rendering state
+		//graphics.Clear();
+		//graphics.ClearDepth();
+		//graphics.ClearLights();
 		
 		/*  //old rasterization code here
 		
@@ -153,6 +158,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		*/
 		
 		//graphics.Flush();
+		}
 	}
 
 	//trace a ray from a screen point with the active camera into the scene to find

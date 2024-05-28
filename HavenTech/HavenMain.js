@@ -110,6 +110,16 @@ function ExitFullscreen(){
 
 }
 
+let rcOrSLRastButton = document.getElementById("rcOrSLRast");
+var rayCastDrawing = true;
+function RayCastOrScanLDrawing(){
+	rayCastDrawing = !rayCastDrawing;
+	if( rayCastDrawing )
+		rcOrSLRastButton.innerHTML = "RayCast Mode";
+	else
+		rcOrSLRastButton.innerHTML = "ScanLine Mode";
+}
+
 
 var debOctOpac = 1;
 function debOctOpacChng(elm){

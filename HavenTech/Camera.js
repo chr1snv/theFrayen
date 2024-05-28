@@ -260,8 +260,6 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.numRaysAccumulated = 0;
 	this.accumIndex = 0;
 
-	let camOrigin = new Float32Array( 3 );
-
 	var horizFov = this.fov;
 	var vertFov  = this.fov * graphics.GetScreenAspect();
 
@@ -304,6 +302,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let avgPctRaysPerFrame = 1;
 	let avgPctRaysFrameWeightIfDecrease = 0.4;
 	let avgPctRaysFrameWeightIfIncrease = 0.001;
+	let newTime = 0;
 	this.checkShouldChangeNumRays = function(){
 		newTime = Date.now();
 		let elaspedMills = newTime - startTime;
@@ -330,138 +329,148 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		
 	}
 
-	let numRaysIntersected = 0; //number of intersections found
-	//generate rays in a grid and perturb the positions randomly
-	//to generate the sample positions (to be tiled "bundled" when multi-threaded)
-	let rayNorm = Vect3_New();
-	let screenPos = Vect3_New(); screenPos[2] = 0;
-	let len = rayNorm[0];
-	let ray = new Ray( Vect3_New(), Vect3_New() );
-	let dist_norm_color = NewDistNormColor();
-	let intPt = Vect3_New();
-	let newTime = sceneLoadedTime;
-	let allowedFrameMills = 100;
+	
 	this.onlyRaysNearCursor = false;
-	let startTime = 0;
-	this.RayTraceDraw = function( octTreeRoot ){
-	
-		startTime = Date.now();
-		allowedFrameMills = 1000/targFps;
 	
 
-		this.getLocation( camOrigin ); //shared between rays (copy per ray so doesn't get modified)
+	
+}
 
-		//get the camera matrices to cast and reproject previous rays
-		this.GenWorldToFromScreenSpaceMats();
-		
-		//document.getElementById("cameraDebugText").innerHTML = 
-		//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
-		
-		for(let v = 0; v < this.numVertRays; ++v ){
-			for( let h = 0; h < this.numHorizRays; ++h ){
-				//pick a random screen space position to cast the ray from
-				screenPos[1] = (( Math.random() / this.numVertRays ) + ( v / this.numVertRays ))*2-1;
-				screenPos[0] = ((Math.random() / this.numHorizRays ) + ( h / this.numHorizRays))*2-1;
-				//get the world space end position of the ray normal
-				Matrix_Multiply_Vect3( rayNorm, this.screenSpaceToWorldMat, screenPos );
-				//get the forward normal of the camera
-				Vect3_Subtract( rayNorm, camOrigin );
-				Vect3_Normal( rayNorm );
-				
-				Vect3_Copy( ray.origin, camOrigin );
-				ray.norm = rayNorm;
-				ray.lastNode = null;
-				
-				if( !this.onlyRaysNearCursor ){
+let numRaysIntersected = 0; //number of intersections found
+//generate rays in a grid and perturb the positions randomly
+//to generate the sample positions (to be tiled "bundled" when multi-threaded)
+let rayNorm = Vect3_New();
+let screenPos = Vect3_New(); screenPos[2] = 0;
+let len = rayNorm[0];
+let ray = new Ray( Vect3_New(), Vect3_New() );
+let dist_norm_color = NewDistNormColor();
+let intPt = Vect3_New();
+let allowedFrameMills = 100;
+let startTime = 0;
+let camOrigin = Vect3_New();
+function CAM_RayCastDraw(cam, octTreeRoot ){
+
+	startTime = Date.now();
+	allowedFrameMills = 1000/targFps;
+
+
+	cam.getLocation( camOrigin ); //shared between rays (copy per ray so doesn't get modified)
+
+	//get the camera matrices to cast and reproject previous rays
+	cam.GenWorldToFromScreenSpaceMats();
+	
+	//document.getElementById("cameraDebugText").innerHTML = 
+	//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
+	
+	for(let v = 0; v < cam.numVertRays; ++v ){
+		for( let h = 0; h < cam.numHorizRays; ++h ){
+			//pick a random screen space position to cast the ray from
+			screenPos[1] = (( Math.random() / cam.numVertRays ) + ( v / cam.numVertRays ))*2-1;
+			screenPos[0] = ((Math.random() / cam.numHorizRays ) + ( h / cam.numHorizRays))*2-1;
+			//get the world space end position of the ray normal
+			Matrix_Multiply_Vect3( rayNorm, cam.screenSpaceToWorldMat, screenPos );
+			//get the forward normal of the camera
+			Vect3_Subtract( rayNorm, camOrigin );
+			Vect3_Normal( rayNorm );
+			
+			Vect3_Copy( ray.origin, camOrigin );
+			ray.norm = rayNorm;
+			ray.lastNode = null;
+			
+			if( !cam.onlyRaysNearCursor ){
+				TND_StartTrace( octTreeRoot, dist_norm_color, ray, float0 );
+			}else{
+				if( Math.abs(v - mScreenRayCoords[1]) < 2 && Math.abs(h - mScreenRayCoords[0]) < 2  ){
+					
+					//"trace" cause this line to be called for debug breakpointing
+					if( keys[keyCodes.KEY_T] && v == mScreenRayCoords[1] && h == mScreenRayCoords[0] )
+						DTPrintf("selected ray" + v + " " + h, "trace info" ); 
+					
+					
+					//get the closest intersection point and pixel color of the ray in the scene
 					TND_StartTrace( octTreeRoot, dist_norm_color, ray, float0 );
+					if( keys[keyCodes.KEY_L] ) //"log" call this line for console log message printing
+						DTPrintf("v" + v + " h" + h + " dist " + dist_norm_color[0] + " pt " + dist_norm_color[2], "trace info");
 				}else{
-					if( Math.abs(v - mScreenRayCoords[1]) < 2 && Math.abs(h - mScreenRayCoords[0]) < 2  ){
-						
-						//"trace" cause this line to be called for debug breakpointing
-						if( keys[keyCodes.KEY_T] && v == mScreenRayCoords[1] && h == mScreenRayCoords[0] )
-							DTPrintf("selected ray" + v + " " + h, "trace info" ); 
-						
-						
-						//get the closest intersection point and pixel color of the ray in the scene
-						TND_StartTrace( octTreeRoot, dist_norm_color, ray, float0 );
-						if( keys[keyCodes.KEY_L] ) //"log" call this line for console log message printing
-							DTPrintf("v" + v + " h" + h + " dist " + dist_norm_color[0] + " pt " + dist_norm_color[2], "trace info");
-					}else{
-						dist_norm_color[0] = -1;
-					}
+					dist_norm_color[0] = -1;
 				}
-				if( dist_norm_color[0] > float0 ){
-					intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
-					intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];
-					intPt[2] = ray.norm[2] * dist_norm_color[0] + ray.origin[2];
+			}
+			if( dist_norm_color[0] > float0 ){
+				intPt[0] = ray.norm[0] * dist_norm_color[0] + ray.origin[0];
+				intPt[1] = ray.norm[1] * dist_norm_color[0] + ray.origin[1];
+				intPt[2] = ray.norm[2] * dist_norm_color[0] + ray.origin[2];
 
-					numRaysIntersected += 1;
-
-					//save new rays to accumulation buffer
-					//store pixel worldspace position
-					this.prevRayPositions[this.accumIndex*3 + 0] = intPt[0];
-					this.prevRayPositions[this.accumIndex*3 + 1] = intPt[1];
-					this.prevRayPositions[this.accumIndex*3 + 2] = intPt[2];
-
-					this.prevPixColors[this.accumIndex*4 + 0]    = dist_norm_color[2][0];
-					this.prevPixColors[this.accumIndex*4 + 1]    = dist_norm_color[2][1];
-					this.prevPixColors[this.accumIndex*4 + 2]    = dist_norm_color[2][2];
-					this.prevPixColors[this.accumIndex*4 + 3]    = dist_norm_color[2][3];
-
-					this.accumIndex += 1;
-					if( this.accumIndex > this.numRaysToAccum )
-						this.accumIndex = 0;
-				}
-		 }
-		}
-		if( this.autoRaysPerFrame )
-			this.checkShouldChangeNumRays();
-		
-		updateHierarchyView(octTreeRoot); //update the debugging tree view
-		
-		this.numRaysAccumulated += numRaysIntersected;
-		if( this.numRaysAccumulated > this.numRaysToAccum )
-			this.numRaysAccumulated = this.numRaysToAccum;
-		
-		//transform previous frame rays to screen space done in vertex shader
-		
-		//draw the newly and previously calculated pixels
-		graphics.pointGraphics.drawPixels(
-			this.prevRayPositions, this.prevPixColors, 
-			this.numRaysAccumulated, this.worldToScreenSpaceMat );
-		
-		/*    
-		//if the number of new rays in this frame is low
-		//remove rays to avoid stale rays from cluttering view
-		var numRaysToRemove = (numRaysPerFrame - numRaysIntersected) * 0.3;
-		this.numRaysAccumulated -= numRaysToRemove;
-		if( this.numRaysAccumulated < 0 )
-			this.numRaysAccumulated = 0;
-		if( this.accumIndex > this.numRaysAccumulated )
-			this.accumIndex = 0;
-		*/
+				CAM_AddPoint(cam, intPt, dist_norm_color[2] );
+			}
+	 }
 	}
-
-
-	this.AddPoint = function(intPt, col){
-
-		//save new rays to accumulation buffer
-		//store pixel worldspace position
-		this.prevRayPositions[this.accumIndex*3 + 0] = intPt[0];
-		this.prevRayPositions[this.accumIndex*3 + 1] = intPt[1];
-		this.prevRayPositions[this.accumIndex*3 + 2] = intPt[2];
-
-		this.prevPixColors[this.accumIndex*4 + 0]    = col[0];
-		this.prevPixColors[this.accumIndex*4 + 1]    = col[1];
-		this.prevPixColors[this.accumIndex*4 + 2]    = col[2];
-		this.prevPixColors[this.accumIndex*4 + 3]    = col[3];
-
-		this.accumIndex += 1;
-		if( this.accumIndex > this.numRaysToAccum )
-			this.accumIndex = 0;
+	if( cam.autoRaysPerFrame )
+		cam.checkShouldChangeNumRays();
 	
-		this.numRaysAccumulated += 1;
-		if( this.numRaysAccumulated > this.numRaysToAccum )
-		    this.numRaysAccumulated = this.numRaysToAccum;
-	}
+	updateHierarchyView(octTreeRoot); //update the debugging tree view
+	
+	if( cam.numRaysAccumulated > cam.numRaysToAccum )
+		cam.numRaysAccumulated = cam.numRaysToAccum;
+	
+	//transform previous frame rays to screen space done in vertex shader
+	
+	//draw the newly and previously calculated pixels
+	graphics.pointGraphics.drawPixels(
+		cam.prevRayPositions, cam.prevPixColors, 
+		cam.numRaysAccumulated, cam.worldToScreenSpaceMat );
+	
+	/*    
+	//if the number of new rays in this frame is low
+	//remove rays to avoid stale rays from cluttering view
+	//(only benificial to remove samples
+	//when a camera view change causes z depth overdraw or with animated objects)
+	var numRaysToRemove = (numRaysPerFrame - numRaysIntersected) * 0.3;
+	cam.numRaysAccumulated -= numRaysToRemove;
+	if( cam.numRaysAccumulated < 0 )
+		cam.numRaysAccumulated = 0;
+	if( cam.accumIndex > cam.numRaysAccumulated )
+		cam.accumIndex = 0;
+	*/
+}
+
+//used with ray cast drawing when a new point is found
+//(also for debug drawing oct tree node bound intersections)
+function CAM_AddPoint(cam, intPt, col){
+
+	//save new rays to accumulation buffer
+	//store pixel worldspace position
+	cam.prevRayPositions[cam.accumIndex*3 + 0] = intPt[0];
+	cam.prevRayPositions[cam.accumIndex*3 + 1] = intPt[1];
+	cam.prevRayPositions[cam.accumIndex*3 + 2] = intPt[2];
+
+	cam.prevPixColors[cam.accumIndex*4 + 0]    = col[0];
+	cam.prevPixColors[cam.accumIndex*4 + 1]    = col[1];
+	cam.prevPixColors[cam.accumIndex*4 + 2]    = col[2];
+	cam.prevPixColors[cam.accumIndex*4 + 3]    = col[3];
+
+	cam.accumIndex += 1;
+	//wrap around to beginning of accum buffer when reaching the end
+	//to maximize buffered points
+	//(could further improve this with some sort of area density
+	//or time based flag for samples of animated object points
+	//though this is simpler (something more complex may only be better
+	//if it improved cached sample quality more than not doing it allows
+	//time to sample more rays per frame))
+	if( cam.accumIndex > cam.numRaysToAccum )
+		cam.accumIndex = 0;
+
+	cam.numRaysAccumulated += 1;
+	//if( cam.numRaysAccumulated > cam.numRaysToAccum )
+	//    cam.numRaysAccumulated = cam.numRaysToAccum;
+}
+
+function CAM_ScanLineDraw( cam, octTreeRoot ){
+
+	cam.getLocation( camOrigin ); 
+	//shared between rays (copy per ray so doesn't get modified)
+
+	//get the camera matrix
+	cam.GenWorldToFromScreenSpaceMats();
+	
+	
 }

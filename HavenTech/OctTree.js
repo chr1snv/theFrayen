@@ -669,7 +669,7 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 			if( subnode ){
 				//if( object.fNum && object.fNum == 10 )
 				//	DTPrintf(" ovlap calc", "ot add dbg", "color:#ff00ff", t.depth );
-				let ovlapPct = AABBOthrObjOverlap( subnode.AABB, object.AABB );
+				let ovlapPct = AABB_OthrObjOverlap( subnode.AABB.minCoord, subnode.AABB.maxCoord, object.AABB.minCoord, object.AABB.maxCoord );
 				//if( object.fNum && object.fNum == 10 )
 				//	DTPrintf(" ovlap calc result " + ovlapPct, "ot add dbg", "color:#ff00ff", t.depth );
 				if( ovlapPct > 0 ){
@@ -752,10 +752,10 @@ let rayAABBIntPt = Vect3_New();
 function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 	//could be called with a ray origin inside or outside the oct tree
 	let startTraceNode = t;
-	if( !t.AABB.ContainsPoint( ray.origin ) ){
+	if( !AABB_ContainsPoint( t.AABB, ray.origin ) ){
 		//the ray origin is outside the oct tree
 		
-		const rayEnterStep = t.AABB.RayIntersects( ray, minTraceTime );
+		const rayEnterStep = AABB_RayIntersects(t.AABB, ray, minTraceTime );
 		if( rayEnterStep < minTraceTime ){
 			retDisNormCol[0] = -1;
 			return; //the ray didn't intersect with the oct tree
@@ -764,7 +764,7 @@ function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 		
 		ray.PointAtTime( rayAABBIntPt, rayEnterStep );//+ rayStepEpsilon );
 		/*
-		if( !t.AABB.ContainsPoint( rayAABBIntPt ) ){
+		if( !AABB_ContainsPoint(t.AABB, rayAABBIntPt ) ){
 			//retDisNormCol[2] = [1,0,1,1];
 		}else{
 			//retDisNormCol[2] = [1,1,0,1];
@@ -893,7 +893,7 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 	//increasing the wall intersection ray time by epsilon 
 	//(is done in next GetClosestIntersecting surface call)
 	//generating a new ray point (which is inside the adjacent node)
-	const rayExitStep = t.AABB.RayIntersects( ray, minTraceTime );
+	const rayExitStep = AABB_RayIntersects(t.AABB, ray, minTraceTime );
 	if( rayExitStep < 0 ){ 
 		//somehow the ray started outside of this node and didn't intersect
 		//with it

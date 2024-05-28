@@ -320,7 +320,7 @@ function PhysConstraintGraph(type, AABBmin, AABBmax, colisRootObj){
 						interpenLen = 0.1;
 					
 					Vect3_MultiplyScalar( avgInterpenNorm, interpenLen );
-					ob.AABB.OffsetPos( avgInterpenNorm );
+					AABB_OffsetPos(ob.AABB, avgInterpenNorm );
 					DTPrintf( 
 					"pos offset " + Vect_ToFixedPrecisionString(avgInterpenNorm, 3) + 
 					" len " + interpenLen + "\n" +

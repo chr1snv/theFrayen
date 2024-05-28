@@ -65,7 +65,17 @@ function linePlaneIntersection( lineOrigin, lineEndpoint, planeCenter, planeNorm
    
 }
 
-function Frustum_IntersectsWithAABB(  ){
+let aabbMin = Vect3_New();
+let aabbMax = Vect3_New();
+const frusMin = Vect3_NewScalar(-1);
+const frusMax = Vect3_NewScalar(1);
+function FRUS_AABBIntersects( wrldToFrusMat, aabb ){
+	//transform the corners of the aabb into frustum space
+	//check if the range overlaps in xyz
+	Matrix_Multiply_Vect3( aabbMin, wrldToFrusMat, aabb.minCoord );
+	Matrix_Multiply_Vect3( aabbMax, wrldToFrusMat, aabb.maxCoord );
+	
+	AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
 }
 
 //a 3d 4 sided pyramid with the top removed and replaced by a plane ( camera near clip plane)
@@ -91,29 +101,29 @@ function Frustum()
     
     this.horizFov;
     this.vertFov;
+}
+
+
+//check if point falls on the inside of the 6 planes of the frustum ( near/far, top/bottom, left/right )
+function FRUS_PointInFrustum(point){
+    //near clip plane
+    if( PointOnNormalSideOfPlane(point, this.nearPlaneCenter, this.normal) &&
     
-    //check if point falls on the inside of the 6 planes of the frustum ( near/far, top/bottom, left/right )
-    this.PointInFrustum = function(point)
-    {
-            //near clip plane
-        if( PointOnNormalSideOfPlane(point, this.nearPlaneCenter, this.normal) &&
-        
-            //far clip plane
-            PointOnNormalSideOfPlane(point, this.farPlaneCenter, this.normal) &&
-        
-            //top clip plane
-            PointOnNormalSideOfPlane(point, this.topPlaneCenter, this.topPlaneNormal) &&
-        
-            //bottom clip plane
-            PointOnNormalSideOfPlane(point, this.bottomPlaneCenter, this.bottomPlaneNormal) &&
-        
-            //left clip plane
-            PointOnNormalSideOfPlane(point, this.leftPlaneCenter, this.leftPlaneNormal) &&
-        
-            //right clip plane
-            PointOnNormalSideOfPlane(point, this.rightPlaneCenter, this.rightPlaneNormal) )
-                return true;
-            
-        return false;
-    }
+        //far clip plane
+        PointOnNormalSideOfPlane(point, this.farPlaneCenter, this.normal) &&
+    
+        //top clip plane
+        PointOnNormalSideOfPlane(point, this.topPlaneCenter, this.topPlaneNormal) &&
+    
+        //bottom clip plane
+        PointOnNormalSideOfPlane(point, this.bottomPlaneCenter, this.bottomPlaneNormal) &&
+    
+        //left clip plane
+        PointOnNormalSideOfPlane(point, this.leftPlaneCenter, this.leftPlaneNormal) &&
+    
+        //right clip plane
+        PointOnNormalSideOfPlane(point, this.rightPlaneCenter, this.rightPlaneNormal) )
+            return true;
+
+    return false;
 }

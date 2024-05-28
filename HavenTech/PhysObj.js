@@ -88,10 +88,10 @@ function PhysObj(AABB, obj, time){
 		
 		let ray = new Ray(this.AABB.center, restDir);
 		let otherObjPenPoint = new Float32Array(3);
-		let aabbintTime = otherObj.AABB.RayIntersects( ray, 0 );
+		let aabbintTime = AABB_RayIntersects(otherObj.AABB, ray, 0 );
 		RayPointAtTime( otherObjPenPoint, ray.origin, ray.norm, aabbIntTime );
 		let thisEntPoint = new Float32Array(3);
-		aabbIntTime = this.AABB.RayIntersects( ray, 0 );
+		aabbIntTime = AABB_RayIntersects(this.AABB, ray, 0 );
 		RayPointAtTime( thisEntPoint, ray.origin, ray.norm, aabbIntTime );
 		
 		Vect3_Copy( colisVect, thisEntPoint );
@@ -460,7 +460,7 @@ function PhysObj(AABB, obj, time){
 				//update the position
 				let delP = Vect3_CopyNew(this.linVel);
 				Vect3_MultiplyScalar( delP, dt );
-				this.AABB.OffsetPos(delP);
+				AABB_OffsetPos(this.AABB, delP);
 				
 				//console.log( 
 				//	" linVel " + Vect_ToFixedPrecisionString( this.linVel, 5 ) + 
@@ -475,7 +475,11 @@ function PhysObj(AABB, obj, time){
 			let totOvlapPct = 0;
 			let nodesToRemoveFrom = {};
 			for( let nd in this.obj.treeNodes ){
-				let ndOvLapPct = AABBsOverlap(this.obj.treeNodes[nd].AABB, this.AABB);
+				let ndOvLapPct = AABB_OthrObjOverlap(
+							this.obj.treeNodes[nd].AABB.minCoord,
+							this.obj.treeNodes[nd].AABB.maxCoord,
+							this.AABB.minCoord,
+							this.AABB.maxCoord );
 				totOvlapPct += ndOvLapPct;
 				if( ndOvLapPct < 0.01 ){
 					//remove from the node the obj has moved out of
@@ -512,7 +516,7 @@ function PhysObj(AABB, obj, time){
 			}else{
 				if( nodesToRemoveFrom.length > 0 ){
 					//revert to previous position (and collide with the node boundry or set zero velocity)
-					this.AABB.MoveCenter(prevPosition);
+					AABB_MoveCenter(this.AABB, prevPosition);
 					Vect3_SetScalar(this.linVel, 0);
 				}
 			}
