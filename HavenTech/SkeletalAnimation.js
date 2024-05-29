@@ -1,19 +1,17 @@
 //SkeletalAnimation.js: Implementation of SkeletalAnimation
+//a heirarchical matrix transformation for animating quadMeshes
 //Author: Christopher Hoffman
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
+//small structure used in breadth first traversal of the bone tree 
 function SkelA_HierarchyNode(){
 	this.parent_mat = new Float32Array(4*4);
 	this.idx = -1; //the index of the represented bone
 };
 
 //constructor
-function SkeletalAnimation( nameIn, sceneNameIn){
+function SkeletalAnimation( nameIn, sceneNameIn ){
 
-	
-
-	//small structure used in breadth first traversal of the bone tree 
-	
 
 	/*
 
@@ -229,7 +227,11 @@ function SkelA_GenerateMesh(skelA, transformedVerts, mesh, time, minCoord, maxCo
 
 				//step2.1, get the matrix that transforms the vertex into
 				//the local space of the affecting bone
-				let toBoneSpaceMatrix = skelA.bones[boneID].inverseBindPose;
+				let toBoneSpaceMatrix = null;
+				if( skelA.bones[boneID] )
+					toBoneSpaceMatrix = skelA.bones[boneID].inverseBindPose;
+				else
+					console.log("skelA.bones " + boneID + " not found");
 
 				//step2.2, get the matrix that transforms the vertex from the
 				//local space of the bone to its animated position in the world

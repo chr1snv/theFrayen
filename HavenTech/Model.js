@@ -229,33 +229,3 @@ function incChanIdx(chanIdx){
 
 }
 
-/*
-function MDL_ipoFileLoadedCallback(text, mdl){
-	let textLines = text.split('\n');
-	let chanIdx = -1;
-	let interpolationType = -1;
-	for( let i = 0; i < textLines.length; ++i ){
-		let words = textLines[i].split(' ');
-		if( words[0] == 's' ){ //start of a ipo curve
-			if( words[1] == "location" ){
-				chanIdx = incChanIdx(chanIdx);
-				while( ++i < textLines.length ){ //iterate through the
-					words = textLines[i];
-					if( words[0] == 'e' ){ //end of curve
-						break;
-					}
-					if( words[0] == 'i' ){ //interpolation type
-						if( words[1] = 'BEZIER' ){
-							interpolationType = 0;
-						}
-					}
-					if( words[0] == 'c' )
-					
-				}
-			}else if( textLines[1] == "rotation_euler" ){
-				
-			}
-		}
-	}
-}
-*/

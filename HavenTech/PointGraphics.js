@@ -42,10 +42,12 @@ function PointGraphics(loadCompleteCallback){
 		gl.uniform1f(this.pointFalloffAttr, this.pointFalloff );
 	}
 
+	let transProjMat = Matrix_New();
 	this.drawPixels = function( float32VecPositions, float32VecColors, numPoints, projMat ){
 		//gl.bufferData( buffer type, 
 
-		gl.uniformMatrix4fv(this.projMatAttr, true, projMat, 0, 4*4 );
+		Matrix_Transpose( transProjMat, projMat );
+		gl.uniformMatrix4fv(this.projMatAttr, false, transProjMat);//, 0, 4*4 );//transpose=true requires webgl 2.0
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.pointBuffer);
 		gl.bufferData( gl.ARRAY_BUFFER, float32VecPositions, gl.STATIC_DRAW );

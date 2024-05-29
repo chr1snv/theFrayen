@@ -161,14 +161,14 @@ function toggleTargFps(){
 
 let settingsButtonElm = document.getElementById('showSettings');
 let settingsTableElm = document.getElementById('settingsTable');
-let orientationTextDiv = document.getElementById('orientationTextDiv');
+let orientationTextDivE = document.getElementById('orientationTextDiv');
 function showHideSettings(){
 	if( settingsTableElm.style.display == "none" ){
 		settingsTableElm.style.display="contents";
 		settingsButtonElm.innerHTML = "V Settings";
-		orientationTextDiv.style.display="inline-block";
+		orientationTextDivE.style.display="inline-block";
 	}else{
-		orientationTextDiv.style.display="none";
+		orientationTextDivE.style.display="none";
 		settingsTableElm.style.display="none";
 		settingsButtonElm.innerHTML = "> Settings";
 	}
@@ -259,8 +259,8 @@ function stop(){
 }
 
 function ResetSettings(){
-	mouseXSen.value = 0.1; mouseYSen.value = 0.1;
-	touchMoveSen.value = 0.005; touchLookSen.value = 0.1;
+	mouseXSenE.value = 0.1; mouseYSenE.value = 0.1;
+	touchMoveSenE.value = 0.005; touchLookSenE.value = 0.1;
 
 	targFpsElm.value = 60;
 	tarFpsTglElm.checked = true;
@@ -353,7 +353,7 @@ function MainLoop()
 				numInputHelpOverlayTimesLeft -= 1;
 			}
 		
-			graphics.triGraphics.Setup();
+			TRI_G_Setup(graphics.triGraphics);
 			
 			if (hasTouchSupport()) {
 				//console.log("Mobile device detected");
@@ -380,14 +380,14 @@ function MainLoop()
 				let wdthHight = [ 0.5      , 0.5  ];
 				let minUv     = [   0      , 1    ];
 				let maxUv     = [ 0.5      , 0    ];
-				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
 				
 				
 				cenPos        = [ 0.5      , 0    ];
 				wdthHight     = [ 0.5      , 0.5  ];
 				minUv         = [ 0.5      , 1    ];
 				maxUv         = [ 1        , 0    ];
-				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
 			
 			} else {
 				//console.log("Desktop device detected");
@@ -395,7 +395,7 @@ function MainLoop()
 				wdthHight     = [ 2        , 1.5  ];
 				minUv         = [ 0        , 1    ];
 				maxUv         = [ 1        , 0    ];
-				graphics.triGraphics.drawScreenSpaceTexturedQuad( 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
 			}
 			
 		}
@@ -428,21 +428,21 @@ function raysPerFrameChange(){
 		);
 }
 
-let mouseXSen = document.getElementById("mouseXSen");
-let mouseYSen = document.getElementById("mouseYSen");
+let mouseXSenE = document.getElementById("mouseXSen");
+let mouseYSenE = document.getElementById("mouseYSen");
 let mouseXSenValue;
 let mouseYSenValue;
 function mouseSenChange(){
-	mouseXSenValue = mouseXSen.value;
-	mouseYSenValue = mouseYSen.value;
+	mouseXSenValue = mouseXSenE.value;
+	mouseYSenValue = mouseYSenE.value;
 }
-let touchMoveSen = document.getElementById("touchMoveSen");
-let touchLookSen = document.getElementById("touchLookSen");
+let touchMoveSenE = document.getElementById("touchMoveSen");
+let touchLookSenE = document.getElementById("touchLookSen");
 let touchMoveSenValue;
 let touchLookSenValue;
 function touchSenChange(){
-	touchMoveSenValue = touchMoveSen.value;
-	touchLookSenValue = touchLookSen.value;
+	touchMoveSenValue = touchMoveSenE.value;
+	touchLookSenValue = touchLookSenE.value;
 }
 
 //called from the mainloop, gets user input and updates the freelook camera
@@ -461,13 +461,13 @@ let camRotDiv = document.getElementById("camRot");
 let mouseLocDiv  = document.getElementById("mouseCanvPos");
 let screenPosDiv = document.getElementById("mouseScreenPos");
 
-let camLoc = Vect3_NewZero();
-let camRot = Quat_New();
+let camLocV = Vect3_NewZero();
+let camRotQ = Quat_New();
 function UpdateCamTransText(cam){
-	cam.getLocation(camLoc);
-	cam.getRotation(camRot);
-	camLocDiv.textContent = Vect_FixedLenStr( camLoc, 2, 6 );
-	camRotDiv.textContent = Vect_FixedLenStr( camRot, 2, 6 );
+	cam.getLocation(camLocV);
+	cam.getRotation(camRotQ);
+	camLocDiv.textContent = Vect_FixedLenStr( camLocV, 2, 6 );
+	camRotDiv.textContent = Vect_FixedLenStr( camRotQ, 2, 6 );
 }
 
 function UpadateMousePosText(){

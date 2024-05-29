@@ -7,8 +7,7 @@
 //of the 6 planes defining the walls of the frustum (near/far clip, top/bottom, and left/right planes)
 function PointOnNormalSideOfPlane(point, center, normal){
     Vect3_Subtract( point, center );
-    var dotResult = 0;
-    Vect3_Dot( dotResult, point, normal );
+    let dotResult = Vect3_Dot( dotResult, point, normal );
     if( dotResult > 0 ) //on the positive normal side of the plane
       return true;
     return false; //on the negative normal side of the plane
@@ -69,13 +68,13 @@ let aabbMin = Vect3_New();
 let aabbMax = Vect3_New();
 const frusMin = Vect3_NewScalar(-1);
 const frusMax = Vect3_NewScalar(1);
-function FRUS_AABBIntersects( wrldToFrusMat, aabb ){
+function FRUS_AABBOverlaps( wrldToFrusMat, aabb ){
 	//transform the corners of the aabb into frustum space
 	//check if the range overlaps in xyz
 	Matrix_Multiply_Vect3( aabbMin, wrldToFrusMat, aabb.minCoord );
 	Matrix_Multiply_Vect3( aabbMax, wrldToFrusMat, aabb.maxCoord );
 	
-	AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
+	return AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
 }
 
 //a 3d 4 sided pyramid with the top removed and replaced by a plane ( camera near clip plane)

@@ -29,6 +29,7 @@ var incFiles = ['DPrintf.js',
 				
 				'Light.js',
 				'Camera.js',
+				'Frustum.js',
 				'QuadMesh.js',
 				
 				'OctTree.js',

@@ -92,7 +92,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.worldToCamMat         = Matrix_New(); //view matrix
 	this.worldToScreenSpaceMat = Matrix_New();
 	this.screenSpaceToWorldMat = Matrix_New();
-	//this.frustum;
+	this.frustum = new Frustum;
 	
 	let tempMat    = Matrix_New(); //gets inverted
 
@@ -148,7 +148,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 			glOrtho( -graphics.GetScreenAspect(), graphics.GetScreenAspect(),
 					-graphics.screenHeight, graphics.screenHeight,
 					-1, 1 );
-			Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
+			Matrix_Multiply( this.worldToScreenSpaceMat, gOM, this.worldToCamMat );
 		}
 		else
 		{
@@ -464,6 +464,9 @@ function CAM_AddPoint(cam, intPt, col){
 	//    cam.numRaysAccumulated = cam.numRaysToAccum;
 }
 
+const maxObjsToDraw = 64;
+let objList = new Array(maxObjsToDraw);
+let objListIdx = 0;
 function CAM_ScanLineDraw( cam, octTreeRoot ){
 
 	cam.getLocation( camOrigin ); 
@@ -472,5 +475,10 @@ function CAM_ScanLineDraw( cam, octTreeRoot ){
 	//get the camera matrix
 	cam.GenWorldToFromScreenSpaceMats();
 	
+	objListIdx = 0;
+	TND_GetObjectsInFrustum( octTreeRoot, cam.worldToScreenSpaceMat, objList, objListIdx );
 	
+	for( let i = 0; i < objListIdx; ++i ){
+		objList.Draw(cam.worldToScreenSpaceMat);
+	}
 }

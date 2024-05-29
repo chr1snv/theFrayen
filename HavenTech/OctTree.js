@@ -733,6 +733,14 @@ function TND_SubNode( t, point ){
 
 }
 
+function TND_GetObjectsInFrustum( t, wrldToFrusMat, retObjList, retObjListIdx ){
+	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
+		for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
+			retObjList[retObjListIdx++] = t.objects[ i ];
+	}
+	
+}
+
 const OT_TYPE_QuadMesh = 0;
 const OT_TYPE_Face = 1;
 const OT_TYPE_Model = 2;

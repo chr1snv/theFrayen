@@ -134,67 +134,221 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 //scanline functionality
 ////////////////////////
 
+//calculate per vertex normals from face averaged normals
+//calculated from vertex position coordinates
+function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
+
+    //zero the output accumulator
+    for( let i in vertNormals )
+        vertNormals[i] = 0;
+
+    //for each face generate an accumulated normal vector
+    for(let i=0; i<faces.length; ++i)
+    {
+        let numVertIdxs = faces[i].vertIdxs.length;
+        if(numVertIdxs < 3)
+            DPrintf("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
+        //newell's method
+        let normal = [0,0,0];
+        //go through all of the verticies in the face
+        for(let j=0; j<numVertIdxs; ++j)
+        {
+            //fetch 3 verticies from the face (to get two edges to compute a normal from)
+            let vIdx0 = faces[i].vertIdxs[(0+j)%numVertIdxs];
+            let vIdx1 = faces[i].vertIdxs[(1+j)%numVertIdxs];
+            let vIdx2 = faces[i].vertIdxs[(2+j)%numVertIdxs];
+            //graphics.vertCard is the cardinality of a vertex (3 x y z)
+            let v0 = [positionCoords[vIdx0*graphics.vertCard+0],
+                      positionCoords[vIdx0*graphics.vertCard+1],
+                      positionCoords[vIdx0*graphics.vertCard+2]];
+            let v1 = [positionCoords[vIdx1*graphics.vertCard+0],
+                      positionCoords[vIdx1*graphics.vertCard+1],
+                      positionCoords[vIdx1*graphics.vertCard+2]];
+            let v2 = [positionCoords[vIdx2*graphics.vertCard+0],
+                      positionCoords[vIdx2*graphics.vertCard+1],
+                      positionCoords[vIdx2*graphics.vertCard+2]];
+
+            //calculate the relative vectors (relative to the current middle vert)
+            //(vectors in the direction of the edges of the face from v1->v0 and v1->v2)
+            Vect3_Subtract(v0, v1);
+            Vect3_Subtract(v2, v1);
+            //calculate the normal (orthogonal vector to the edge vectors)
+            let crossProd = [];
+            Vect3_Cross(crossProd, v2, v0); //normal is the cross product of the relative vectors
+            Vect3_Add(normal, crossProd); //average the contribution of the sub edges of the face
+        }
+        //normalize the accumulation of normals from the edge pairs of the face 
+        Vect3_Unit(normal); //possibly optional or to be changed so that faces with more / less vertices
+        //contribute more to the per vertex normal
+
+        //accumulate the face normal back to each vertex
+        for(let j=0; j<numVertIdxs; ++j)
+        {
+            //add the new normal to it
+            let vertIdx = (faces[i].vertIdxs[j])*graphics.normCard;
+            let tempAccum = [];
+            Vect3_Copy(tempAccum, [ vertNormals[vertIdx+0],
+                                    vertNormals[vertIdx+1],
+                                    vertNormals[vertIdx+2] ]);
+            Vect3_Add(tempAccum, normal);
+            vertNormals[vertIdx+0] = tempAccum[0];
+            vertNormals[vertIdx+1] = tempAccum[1];
+            vertNormals[vertIdx+2] = tempAccum[2];
+            
+        } //end write normal data
+    } //end for each face
+
+    //normalize the accumulated face normals vectors for each  make the normals unit length (average output)
+    for(let i=0; i<positionCoords.length; ++i){
+        let idx = i*graphics.normCard;
+        let len = Vect3_Length( [ vertNormals[idx+0],
+                                  vertNormals[idx+1],
+                                  vertNormals[idx+2] ] );
+        vertNormals[idx+0] /= len;
+        vertNormals[idx+1] /= len;
+        vertNormals[idx+2] /= len;
+    }
+}
+
+//used to tesselate position coordinates
+//(convert from quad and triangle faces to only triangles
+//3 verticies per face) for rendering with webgl 
+function QM_SL_tesselateCoords( coords,
+                              faces,
+                              inputCoords ){
+	let cI = 0;
+
+	//create the vertex array
+	for(let i=0; i<faces.length; ++i){
+		let coordsSize = faces[i].vertIdxs.length;
+		if(coordsSize == 3){ //triangle
+			for(let j=0; j<faces[i].vertIdxs.length; ++j){
+				let coordIdx = (faces[i].vertIdxs[j])*graphics.vertCard;
+				coords[cI++] = inputCoords[coordIdx];
+				coords[cI++] = inputCoords[coordIdx+1];
+				coords[cI++] = inputCoords[coordIdx+2];
+			}
+		}
+		else if(coordsSize == 4) //quad. tesselate into two triangles
+		{
+			let coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+
+			coordIdx = (faces[i].vertIdxs[1])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+
+			coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+
+			coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+
+			coordIdx = (faces[i].vertIdxs[3])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+
+			coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
+			coords[cI++] = inputCoords[coordIdx];
+			coords[cI++] = inputCoords[coordIdx+1];
+			coords[cI++] = inputCoords[coordIdx+2];
+		}
+	}
+	if(cI != coords.length)
+		DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
+}
+
+function QM_SL_tesselateUVCoords( uvCoords, faces ){
+	let cI = 0;
+
+	//create the vertex index array
+	for(let i=0; i<faces.length; ++i)
+	{
+		let vertsSize = faces[i].vertIdxs.length;
+		
+		if( vertsSize == 3) //triangle
+		{
+			for(let j=0; j<3*graphics.uvCard; j+=graphics.uvCard)
+			{
+				uvCoords[cI++] = faces[i].uvs[j+0];
+				uvCoords[cI++] = faces[i].uvs[j+1];
+			}
+		}
+		else if(vertsSize == 4) //quad. tesselate into two triangles
+		{
+			uvCoords[cI++] = faces[i].uvs[0+0];
+			uvCoords[cI++] = faces[i].uvs[0+1];
+
+			uvCoords[cI++] = faces[i].uvs[1+0];
+			uvCoords[cI++] = faces[i].uvs[1+1];
+
+			uvCoords[cI++] = faces[i].uvs[2+0];
+			uvCoords[cI++] = faces[i].uvs[2+1];
+
+			uvCoords[cI++] = faces[i].uvs[2+0];
+			uvCoords[cI++] = faces[i].uvs[2+1];
+
+			uvCoords[cI++] = faces[i].uvs[3+0];
+			uvCoords[cI++] = faces[i].uvs[3+1];
+
+			uvCoords[cI++] = faces[i].uvs[0+0];
+			uvCoords[cI++] = faces[i].uvs[0+1];
+		}
+	}
+}
+
 //draw interface
 function QM_SL_Draw(qm, verts, normals, uvs){
-    //since quad meshes are a mixture of quads and tris,
-    //use the face vertex indices to tesselate the entire mesh into
-    //tris, calculate face normals, and upload to gl and draw
+	//since quad meshes are a mixture of quads and tris,
+	//use the face vertex indices to tesselate the entire mesh into
+	//tris, calculate face normals, and upload to gl and draw
 
-    if(!this.isValid)
-    {
-        DPrintf("QuadMesh::Draw: failed to draw.\n");
-        return;
-    }
+	if(!this.isValid){
+		DPrintf("QuadMesh::Draw: failed to draw.\n");
+		return;
+	}
 
-    //
-    ///Select the source of mesh vertex data
-    ////////////////////////////////////////////////////////////
+	//
+	///Assume model has been updated (source of mesh vertex data)
+	////////////////////////////////////////////////////////////
 
-    //let transformedPositions = qm.transformedVerts;
+	//let transformedPositions = qm.transformedVerts;
 
-    //
-    ///Generate the vertex position coordinates
-    ////////////////////////////////////////////////////////////
+	//
+	///Generate the vertex position coordinates
+	////////////////////////////////////////////////////////////
 
-    //tesselate the mesh
-    QM_SL_tesselateCoords(qm, verts, qm.faces, qm.transformedPositions );
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
-    let attr = gl.getAttribLocation( graphics.currentProgram, "position");
-    gl.enableVertexAttribArray(attr);
-    gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(attr, graphics.vertCard, gl.FLOAT, false, 0, 0);
+	//tesselate the mesh
+	QM_SL_tesselateCoords(qm, verts, qm.faces, qm.transformedVerts );
 
-    ////
-    //Generate the vertex normal coordinates
-    ////////////////////////////////////////////////////////////
 
-    let normCard = 3;
+	////
+	//Generate the vertex normal coordinates
+	////////////////////////////////////////////////////////////
 
-    //generate & tesselate the normal coords from the batch of verts currently being used
-    
-    let normalCoords = new Float32Array(transformedPositions.length);
-    this.GenerateNormalCoords(normalCoords, this.faces, transformedPositions);
-    this.tesselateCoords(normals, this.faces, normalCoords);
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
-    attr = gl.getAttribLocation( graphics.currentProgram, "norm");
-    gl.enableVertexAttribArray(attr);
-    gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(attr, graphics.normCard, gl.FLOAT, false, 0, 0);
-    
-    
-    ////
-    //Generate the texture coordinates (per vertex)
-    /////////////////////////////////////////////////////////////
+	//generate & tesselate the normal coords from the batch of verts currently being used
 
-    this.tesselateUVCoords(uvs, this.faces);
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, uvsBuffer);
-    attr = gl.getAttribLocation( graphics.currentProgram, "texCoord");
-    gl.enableVertexAttribArray(attr);
-    gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(attr, graphics.uvCard, gl.FLOAT, false, 0, 0);
+	let normalCoords = new Float32Array(transformedPositions.length);
+	this.GenerateNormalCoords(normals, this.faces, transformedPositions);
+	this.tesselateCoords(normals, this.faces, normalCoords);
+
+
+	////
+	//Generate the texture coordinates (per vertex)
+	/////////////////////////////////////////////////////////////
+
+	this.tesselateUVCoords(uvs, this.faces);
+
+	TRI_G_drawTriangles(graphics.triGraphics, textureName, sceneName, wrldToCamMat, verts, uvs )
+
 }
 
 

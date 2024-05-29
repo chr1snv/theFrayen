@@ -198,6 +198,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 //called to read from text file models, lights, and cameras in the scene
 function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 {
+	//read the overall scene aabb size and num objs first
 	let revStartIdx = textFileLines.length-1;
 	while( textFileLines[ revStartIdx ].length < 1 )
 		--revStartIdx;
@@ -218,7 +219,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let numLghts = parseInt( sceneObjLghtCamCtTxt[4] );
 	let numCams = parseInt( sceneObjLghtCamCtTxt[6] );
 	
-	
+	//per obj vars while parsing
 	let mdlName = '';
 	let mdlMeshName = '';
 	let mAABB = null;
@@ -226,6 +227,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let mdlAABBmax = Vect3_NewZero();
 	let mdlLoc = Vect3_NewZero();
 	let mdlRot = Vect3_NewZero();
+	
 	let lcol = Vect3_NewZero();
 	let lenrg = 0;
 	let lspotsz = 0;
@@ -234,9 +236,10 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let camStart = 0;
 	let camEnd = 0;
 	
-	for( let i = 0; i<textFileLines.length; ++i )
+	let txtNumLines = textFileLines.length;
+	for( let i = 0; i<txtNumLines; ++i )
 	{
-		statusElm.innerHTML = "Parsing " + (i+1) + "/" + textFileLines.length;
+		statusElm.innerHTML = "Parsing " + (i+1) + "/" + txtNumLines;
 		let txtLineParts = textFileLines[i].split( ' ' );
 
 		if(txtLineParts[0] == 'm' ){ //this is a model to be read in 
@@ -274,6 +277,9 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			}
 			 );
 			
+		}
+		
+		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
 		}
 		
 		
