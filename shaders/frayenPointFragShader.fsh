@@ -1,4 +1,4 @@
-#version 300 es
+//#version 300 es
 
 //precision qualifier for the shader code
 precision mediump float;
@@ -6,12 +6,12 @@ precision mediump float;
 //constant variables
 
 //variables passed from the vertex shader
-in vec3      normalVarying;
-in vec4      colorVarying;
+varying vec3      normalVarying;//in vec3      normalVarying;
+varying vec4      colorVarying;//in vec4      colorVarying;
 
-out vec4 FragColor;
+//out vec4 gl_FragColor;
 void main() {
 
-    FragColor = colorVarying;//vec4( colorVarying, 1.0 );
+    gl_FragColor = colorVarying;//vec4( colorVarying, 1.0 );
 
 }

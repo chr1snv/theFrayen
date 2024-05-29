@@ -1,4 +1,4 @@
-#version 300 es
+//#version 300 es
 
 //precision qualifier for the shader code
 precision mediump float;
@@ -17,14 +17,14 @@ uniform vec3      lightSpotConeAngle[8];
 uniform vec4      lightPos[8];
 
 //variables passed from the vertex shader
-in vec3      normalVarying;
-in vec2      texCoordVarying;
+varying vec3      normalVarying;//in vec3      normalVarying;
+varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
-out vec4 FragColor;
+//out vec4 gl_FragColor;
 void main() {
 
     //calculate the diffuse color
-    vec4 texColor            = texture( texSampler, texCoordVarying );
+    vec4 texColor            = texture2D( texSampler, texCoordVarying );
     vec4 diffuseCol          = texColor * texturingEnabled +
                                ( diffuseColor * ( 1.0-texturingEnabled ) );
 
@@ -35,7 +35,7 @@ void main() {
     
     //sum the diffuse specular and emissive components
     
-    FragColor           = diffuseCol * diffuseLightAmt +
+    gl_FragColor           = diffuseCol * diffuseLightAmt +
                           specularLightAmt * specularColor +
                           emissionColor;
 	
