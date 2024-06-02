@@ -66,13 +66,16 @@ function linePlaneIntersection( lineOrigin, lineEndpoint, planeCenter, planeNorm
 
 let aabbMin = Vect3_New();
 let aabbMax = Vect3_New();
+let tempCoord = Vect3_New();
 const frusMin = Vect3_NewScalar(-1);
 const frusMax = Vect3_NewScalar(1);
 function FRUS_AABBOverlaps( wrldToFrusMat, aabb ){
 	//transform the corners of the aabb into frustum space
 	//check if the range overlaps in xyz
-	Matrix_Multiply_Vect3( aabbMin, wrldToFrusMat, aabb.minCoord );
-	Matrix_Multiply_Vect3( aabbMax, wrldToFrusMat, aabb.maxCoord );
+	Matrix_Multiply_Vect3( tempCoord, wrldToFrusMat, aabb.minCoord );
+	Vect3_minMax( aabbMin, aabbMax, tempCoord );
+	Matrix_Multiply_Vect3( tempCoord, wrldToFrusMat, aabb.maxCoord );
+	Vect3_minMax( aabbMin, aabbMax, tempCoord );
 	
 	return AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
 }

@@ -60,7 +60,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	let normBuffer = new Float32Array(MAX_VERTS*normCard);
 	let uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
 	let bufferIdx = 0;
-	let bufferTexName = '';
+	let bufferTexName = null;
 	this.Draw = function(){
 		if(!this.isValid){
 			DTPrintf(this.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
@@ -121,7 +121,10 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				let qm = objList[i].quadmesh;
 				for(let matID = 0; matID < qm.materials.length; ++matID ){
 					bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat(qm, vertBuffer, normBuffer, uvBuffer, bufferIdx, qm.materials[matID]);
-					bufferTexName = qm.materials[matID].texture.texName;
+					if( qm.materials[matID].texture )
+						bufferTexName = qm.materials[matID].texture.texName;
+					else
+						bufferTexName = null;
 				}
 			}
 			TRI_G_Setup(graphics.triGraphics);

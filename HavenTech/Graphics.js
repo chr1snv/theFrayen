@@ -184,14 +184,14 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 	//gl.viewport(0, 0, this.screenWidth, this.screenHeight);
 
-	gl.enable(gl.CULL_FACE);
-	gl.cullFace(gl.BACK);
+	//gl.enable(gl.CULL_FACE);
+	//gl.cullFace(gl.BACK);
 
-	//this.enableDepthTest(true); //calls gl.enable(gl.DEPTH_TEST)
+	this.enableDepthTest(true); //calls gl.enable(gl.DEPTH_TEST)
 
 	//enable depth testing
-	//this.enableDepthMask(true); //calls gl.depthMask(gl.TRUE)
-	//gl.depthFunc(gl.LESS);
+	this.enableDepthMask(true); //calls gl.depthMask(gl.TRUE)
+	gl.depthFunc(gl.LESS);
 	
 	//enable blending (for transparent materials)
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

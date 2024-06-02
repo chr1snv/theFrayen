@@ -735,10 +735,18 @@ function TND_SubNode( t, point ){
 
 function TND_GetObjectsInFrustum( t, wrldToFrusMat, retObjList, retObjListIdx ){
 	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
-		for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
-			retObjList[retObjListIdx++] = t.objects[ i ];
-		return retObjListIdx;
+		if( t.nNLvs[1][0] < 1 ){
+			for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
+				retObjList[retObjListIdx++] = t.objects[ i ];
+		}else{
+			for( let i = 0; i < t.subNodes.length; ++i ){
+				if( t.subNodes[i] ){
+					retObjListIdx = TND_GetObjectsInFrustum(t.subNodes[i], wrldToFrusMat, retObjList, retObjListIdx );
+				}
+			}
+		}
 	}
+	return retObjListIdx;
 	
 }
 

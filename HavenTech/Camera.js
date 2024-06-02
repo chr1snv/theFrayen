@@ -177,7 +177,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.genCameraToWorldMatrix = function()
 	{
 		//get the camera rotation and translation from the ipo (animation)
-		
+
 		this.getRotation(rot);
 		this.getLocation(translation);
 
@@ -202,10 +202,10 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.UpdateOrientation = function( positionDelta, rotationDelta, updateTime )
 	{
 		//Update the cameras transformation given a change in position and rotation.
-		
+
 		this.lastUpdateTime = updateTime;
-		
-		
+
+
 		//append the rotation / roll in different axies to the camera
 		Quat_Copy( rotOriTmp, this.userRotation );
 		Quat_MultQuat( this.userRotation, rotOriTmp, rotationDelta );
@@ -220,7 +220,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		this.userPosition[0] += rotTransPosDelta[0];
 		this.userPosition[1] += rotTransPosDelta[1];
 		this.userPosition[2] += rotTransPosDelta[2];
-		
+
 	}
 
 
@@ -232,7 +232,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		var ymin = -ymax;
 		var xmin = ymin * aspect;
 		var xmax = ymax * aspect;
-		
+
 		bounds = [ [xmin, ymin, -zFar],   //bottom left
 		           [xmin, ymax, -zFar],   //top left
 		           [xmax, ymin, -zFar],   //bottom right
@@ -331,9 +331,9 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 
 	
 	this.onlyRaysNearCursor = false;
-	
 
-	
+
+
 }
 
 let numRaysIntersected = 0; //number of intersections found
@@ -358,7 +358,7 @@ function CAM_RayCastDraw(cam, octTreeRoot ){
 
 	//get the camera matrices to cast and reproject previous rays
 	cam.GenWorldToFromScreenSpaceMats();
-	
+
 	//document.getElementById("cameraDebugText").innerHTML = 
 	//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
 

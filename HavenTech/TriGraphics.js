@@ -16,6 +16,7 @@ function TriGraphics(loadCompleteCallback){
 
 
 let temp = [1.0,1.0,1.0,1.0];
+let tempZero = [ 0,0,0,1];
 function TRI_G_Setup(triG){
 
 	let progId = triG.triProgram.glProgId;
@@ -31,10 +32,10 @@ function TRI_G_Setup(triG){
 	
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 
-	triG.triProgram.setVec4Uniform('color', temp);
-	triG.triProgram.setVec4Uniform('ambient', temp);
-	triG.triProgram.setVec4Uniform('emission', temp);
-	triG.triProgram.setVec4Uniform('specular', temp);
+	triG.triProgram.setVec4Uniform('diffuseColor', temp);
+	//triG.triProgram.setVec4Uniform('ambient', temp);
+	triG.triProgram.setVec4Uniform('emissionColor', tempZero);
+	triG.triProgram.setVec4Uniform('specularColor', tempZero);
 	triG.triProgram.setFloatUniform('shinyness', 1);
 	//CheckGLError( "glProgram::before lighting enabled " );
 
@@ -53,14 +54,18 @@ function triGTexReady(triG, tex){
 // Draw a textured screenspace rectangle
 function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center, widthHeight, minUv, maxUv ){
 
-	if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-		graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
-		return;
-	}
+	if( textureName != null ){
+		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
+			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
+			return;
+		}
 
-	triG.textures[textureName].Bind();
-	
-	triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+		triG.textures[textureName].Bind();
+		
+		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+	}else{
+		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
+	}
 
 	//set the screenspace orthographic matrix
 	glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
@@ -108,14 +113,20 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 
 let transMat = Matrix_New();
 function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, uvs, bufLen ){
-	if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-		graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
-		return;
+	if( textureName != null ){
+		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
+			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
+			return;
+		}
+
+		triG.textures[textureName].Bind();
+		
+		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+	}else{
+		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
 	}
 
-	triG.textures[textureName].Bind();
-
-	triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+	
 
 	//set the screenspace orthographic matrix
 	Matrix_Transpose( transMat, wrldToCamMat );
