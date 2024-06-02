@@ -5,7 +5,7 @@ function test_quatMult(){
 	let q = Quat_New();
 	 q[0] = 1;  q[1] = -2;  q[2] = 1; q[3] = 3;
 	let q1 = Quat_New();
-	q1[0] =-1; q1[1] =  2; q1[2] = 3; q1[3] = 2; 
+	q1[0] =-1; q1[1] =  2; q1[2] = 3; q1[3] = 2;
 	let qr = Quat_New();
 	Quat_MultQuat( qr, q, q1 );
 	DTPrintf( "quat mult q" + q + " q1 " + q1 + " qr " + qr,
