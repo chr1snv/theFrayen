@@ -157,16 +157,16 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
             let vIdx0 = faces[i].vertIdxs[(0+j)%numVertIdxs];
             let vIdx1 = faces[i].vertIdxs[(1+j)%numVertIdxs];
             let vIdx2 = faces[i].vertIdxs[(2+j)%numVertIdxs];
-            //graphics.vertCard is the cardinality of a vertex (3 x y z)
-            let v0 = [positionCoords[vIdx0*graphics.vertCard+0],
-                      positionCoords[vIdx0*graphics.vertCard+1],
-                      positionCoords[vIdx0*graphics.vertCard+2]];
-            let v1 = [positionCoords[vIdx1*graphics.vertCard+0],
-                      positionCoords[vIdx1*graphics.vertCard+1],
-                      positionCoords[vIdx1*graphics.vertCard+2]];
-            let v2 = [positionCoords[vIdx2*graphics.vertCard+0],
-                      positionCoords[vIdx2*graphics.vertCard+1],
-                      positionCoords[vIdx2*graphics.vertCard+2]];
+            //vertCard is the cardinality of a vertex (3 x y z)
+            let v0 = [positionCoords[vIdx0*vertCard+0],
+                      positionCoords[vIdx0*vertCard+1],
+                      positionCoords[vIdx0*vertCard+2]];
+            let v1 = [positionCoords[vIdx1*vertCard+0],
+                      positionCoords[vIdx1*vertCard+1],
+                      positionCoords[vIdx1*vertCard+2]];
+            let v2 = [positionCoords[vIdx2*vertCard+0],
+                      positionCoords[vIdx2*vertCard+1],
+                      positionCoords[vIdx2*vertCard+2]];
 
             //calculate the relative vectors (relative to the current middle vert)
             //(vectors in the direction of the edges of the face from v1->v0 and v1->v2)
@@ -185,7 +185,7 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
         for(let j=0; j<numVertIdxs; ++j)
         {
             //add the new normal to it
-            let vertIdx = (faces[i].vertIdxs[j])*graphics.normCard;
+            let vertIdx = (faces[i].vertIdxs[j])*normCard;
             let tempAccum = [];
             Vect3_Copy(tempAccum, [ vertNormals[vertIdx+0],
                                     vertNormals[vertIdx+1],
@@ -200,7 +200,7 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
 
     //normalize the accumulated face normals vectors for each  make the normals unit length (average output)
     for(let i=0; i<positionCoords.length; ++i){
-        let idx = i*graphics.normCard;
+        let idx = i*normCard;
         let len = Vect3_Length( [ vertNormals[idx+0],
                                   vertNormals[idx+1],
                                   vertNormals[idx+2] ] );
@@ -214,16 +214,16 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
 //(convert from quad and triangle faces to only triangles
 //3 verticies per face) for rendering with webgl 
 function QM_SL_tesselateCoords( coords,
-                              faces,
-                              inputCoords ){
-	let cI = 0;
+                                faces,
+                                inputCoords, startIdx ){
+	let cI = startIdx*vertCard;
 
 	//create the vertex array
 	for(let i=0; i<faces.length; ++i){
 		let coordsSize = faces[i].vertIdxs.length;
 		if(coordsSize == 3){ //triangle
 			for(let j=0; j<faces[i].vertIdxs.length; ++j){
-				let coordIdx = (faces[i].vertIdxs[j])*graphics.vertCard;
+				let coordIdx = (faces[i].vertIdxs[j])*vertCard;
 				coords[cI++] = inputCoords[coordIdx];
 				coords[cI++] = inputCoords[coordIdx+1];
 				coords[cI++] = inputCoords[coordIdx+2];
@@ -231,43 +231,44 @@ function QM_SL_tesselateCoords( coords,
 		}
 		else if(coordsSize == 4) //quad. tesselate into two triangles
 		{
-			let coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
+			let coordIdx = (faces[i].vertIdxs[0])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 
-			coordIdx = (faces[i].vertIdxs[1])*graphics.vertCard;
+			coordIdx = (faces[i].vertIdxs[1])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 
-			coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
+			coordIdx = (faces[i].vertIdxs[2])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 
-			coordIdx = (faces[i].vertIdxs[2])*graphics.vertCard;
+			coordIdx = (faces[i].vertIdxs[2])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 
-			coordIdx = (faces[i].vertIdxs[3])*graphics.vertCard;
+			coordIdx = (faces[i].vertIdxs[3])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 
-			coordIdx = (faces[i].vertIdxs[0])*graphics.vertCard;
+			coordIdx = (faces[i].vertIdxs[0])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
 			coords[cI++] = inputCoords[coordIdx+1];
 			coords[cI++] = inputCoords[coordIdx+2];
 		}
 	}
-	if(cI != coords.length)
-		DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
+	//if(cI != coords.length)
+	//	DPrintf("GenerateCoords: unexpected number of vertCoords generated.\n");
+	return cI/vertCard; //return the number of coordinates
 }
 
-function QM_SL_tesselateUVCoords( uvCoords, faces ){
-	let cI = 0;
+function QM_SL_tesselateUVCoords( uvCoords, faces, startIdx ){
+	let cI = startIdx*uvCard;
 
 	//create the vertex index array
 	for(let i=0; i<faces.length; ++i)
@@ -276,7 +277,7 @@ function QM_SL_tesselateUVCoords( uvCoords, faces ){
 		
 		if( vertsSize == 3) //triangle
 		{
-			for(let j=0; j<3*graphics.uvCard; j+=graphics.uvCard)
+			for(let j=0; j<3*uvCard; j+=uvCard)
 			{
 				uvCoords[cI++] = faces[i].uvs[j+0];
 				uvCoords[cI++] = faces[i].uvs[j+1];
@@ -284,34 +285,37 @@ function QM_SL_tesselateUVCoords( uvCoords, faces ){
 		}
 		else if(vertsSize == 4) //quad. tesselate into two triangles
 		{
-			uvCoords[cI++] = faces[i].uvs[0+0];
-			uvCoords[cI++] = faces[i].uvs[0+1];
+			uvCoords[cI++] = faces[i].uvs[0*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[0*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[1+0];
-			uvCoords[cI++] = faces[i].uvs[1+1];
+			uvCoords[cI++] = faces[i].uvs[1*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[1*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[2+0];
-			uvCoords[cI++] = faces[i].uvs[2+1];
+			uvCoords[cI++] = faces[i].uvs[2*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[2*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[2+0];
-			uvCoords[cI++] = faces[i].uvs[2+1];
+			uvCoords[cI++] = faces[i].uvs[2*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[2*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[3+0];
-			uvCoords[cI++] = faces[i].uvs[3+1];
+			uvCoords[cI++] = faces[i].uvs[3*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[3*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[0+0];
-			uvCoords[cI++] = faces[i].uvs[0+1];
+			uvCoords[cI++] = faces[i].uvs[0*uvCard+0];
+			uvCoords[cI++] = faces[i].uvs[0*uvCard+1];
 		}
 	}
+	return cI/uvCard;
 }
 
 //draw interface
-function QM_SL_Draw(qm, verts, normals, uvs){
+function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, verts, normals, uvs, bufferIdx, mat){
 	//since quad meshes are a mixture of quads and tris,
 	//use the face vertex indices to tesselate the entire mesh into
-	//tris, calculate face normals, and upload to gl and draw
+	//tris, calculate face normals, upload to gl and draw
 
-	if(!this.isValid){
+	let retBufferIdx = bufferIdx;
+
+	if(!qm.isValid){
 		DPrintf("QuadMesh::Draw: failed to draw.\n");
 		return;
 	}
@@ -327,7 +331,7 @@ function QM_SL_Draw(qm, verts, normals, uvs){
 	////////////////////////////////////////////////////////////
 
 	//tesselate the mesh
-	QM_SL_tesselateCoords(qm, verts, qm.faces, qm.transformedVerts );
+	retBufferIdx = QM_SL_tesselateCoords( verts, qm.faces, qm.transformedVerts, bufferIdx );
 
 
 	////
@@ -336,19 +340,19 @@ function QM_SL_Draw(qm, verts, normals, uvs){
 
 	//generate & tesselate the normal coords from the batch of verts currently being used
 
-	let normalCoords = new Float32Array(transformedPositions.length);
-	this.GenerateNormalCoords(normals, this.faces, transformedPositions);
-	this.tesselateCoords(normals, this.faces, normalCoords);
+	//let normalCoords = new Float32Array(transformedPositions.length);
+	//this.GenerateNormalCoords(normals, this.faces, transformedPositions);
+	//this.tesselateCoords(normals, this.faces, normalCoords);
+	//QM_SL_GenerateNormalCoords(normals, this.faces, normalCoords);
 
 
 	////
 	//Generate the texture coordinates (per vertex)
 	/////////////////////////////////////////////////////////////
 
-	this.tesselateUVCoords(uvs, this.faces);
+	QM_SL_tesselateUVCoords(uvs, qm.faces, bufferIdx);
 
-	TRI_G_drawTriangles(graphics.triGraphics, textureName, sceneName, wrldToCamMat, verts, uvs )
-
+	return retBufferIdx;
 }
 
 

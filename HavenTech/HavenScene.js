@@ -46,48 +46,33 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	//(animated objects within the field of view, or area's with 
 	//dynamic events occuring) to minimize compute / power required
 	//because parts of the scene may be on seperate nodes/comp should be parallelized
-	this.Update = function( time )
-	{
-
-		//    for( var i=0; i<nodesToDraw; ++i ){
-		//            nodesToDraw[i].Update(time, undefined, updateLoop);
-		//        }
+	this.Update = function( time ){
 
 		TND_Update(this.octTree, time);
 
-		/*
-		//from before with flat array for scene
-		//now updated by oct tree for parallelisim / distributive computing
-		var c = 0;
-		var thisP = this;
-		//update the models, lights and cameras
-		for( var m = 0; m < thisP.models.length; ++m ){
-			thisP.models[m].Update( time );
-		}
-		for( var l = 0; l < this.lights.length; ++l ){
-			this.lights[l].Update(time);
-		}
-		while(c < this.cameras.length){
-			this.cameras[c++].Update(time);
-			return;
-		}
-		*/
 	}
-	this.Draw = function()
-	{
-		if(!this.isValid)
-		{
+	
+	const maxObjsToDraw = 64;
+	let objList = new Array(maxObjsToDraw);
+	let objListIdx = 0;
+	const MAX_VERTS = 65536;
+	let vertBuffer = new Float32Array(MAX_VERTS*vertCard);
+	let normBuffer = new Float32Array(MAX_VERTS*normCard);
+	let uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
+	let bufferIdx = 0;
+	let bufferTexName = '';
+	this.Draw = function(){
+		if(!this.isValid){
 			DTPrintf(this.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
 			return;
 		}
-		if(this.activeCameraIdx == -1)
-		{
-			DTPrintf( this.sceneName + ' was asked to draw but has no active camera', 'havenScene: ', 'orange');
+		if(this.activeCameraIdx == -1){
+			DTPrintf( this.sceneName + ' was asked to draw but has no active camera', 
+				'havenScene: ', 'orange');
 			return;
 		}
 
 		//draw the scene
-		
 		
 		
 		//after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
@@ -124,9 +109,24 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 			CAM_RayCastDraw( this.cameras[ this.activeCameraIdx ],
 				this.octTree, graphics.screenWidth/graphics.screenHeight );
 		}else{
-		 CAM_ScanLineDraw( this.cameras[ this.activeCameraIdx ],
-				this.octTree, graphics.screenWidth/graphics.screenHeight );
-		 
+
+			//generate the camera matrix
+			let cam = this.cameras[ this.activeCameraIdx ];
+			
+			cam.GenWorldToFromScreenSpaceMats();
+
+			objListIdx = TND_GetObjectsInFrustum( this.octTree, cam.worldToScreenSpaceMat, objList, 0 );
+			bufferIdx = 0;
+			for( let i = 0; i < objListIdx; ++i ){
+				let qm = objList[i].quadmesh;
+				for(let matID = 0; matID < qm.materials.length; ++matID ){
+					bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat(qm, vertBuffer, normBuffer, uvBuffer, bufferIdx, qm.materials[matID]);
+					bufferTexName = qm.materials[matID].texture.texName;
+				}
+			}
+			TRI_G_Setup(graphics.triGraphics);
+			TRI_G_drawTriangles(graphics.triGraphics, bufferTexName, this.sceneName, cam.worldToScreenSpaceMat, vertBuffer, uvBuffer, bufferIdx );
+		
 		//clear the render buffer and reset rendering state
 		//graphics.Clear();
 		//graphics.ClearDepth();
@@ -228,6 +228,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let mdlLoc = Vect3_NewZero();
 	let mdlRot = Vect3_NewZero();
 	
+	let armatureName = '';
+	
 	let lcol = Vect3_NewZero();
 	let lenrg = 0;
 	let lspotsz = 0;
@@ -280,6 +282,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}
 		
 		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
+		
 		}
 		
 		

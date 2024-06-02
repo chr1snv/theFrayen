@@ -361,7 +361,8 @@ function CAM_RayCastDraw(cam, octTreeRoot ){
 	
 	//document.getElementById("cameraDebugText").innerHTML = 
 	//	"cam pos: " + ToFixedPrecisionString( camOrigin, 1 );
-	
+
+
 	for(let v = 0; v < cam.numVertRays; ++v ){
 		for( let h = 0; h < cam.numHorizRays; ++h ){
 			//pick a random screen space position to cast the ray from
@@ -464,21 +465,14 @@ function CAM_AddPoint(cam, intPt, col){
 	//    cam.numRaysAccumulated = cam.numRaysToAccum;
 }
 
-const maxObjsToDraw = 64;
-let objList = new Array(maxObjsToDraw);
-let objListIdx = 0;
-function CAM_ScanLineDraw( cam, octTreeRoot ){
+/*
+function CAM_ScanLineObjects( cam ){
 
-	cam.getLocation( camOrigin ); 
-	//shared between rays (copy per ray so doesn't get modified)
 
-	//get the camera matrix
+	//generate the camera matrix
 	cam.GenWorldToFromScreenSpaceMats();
-	
-	objListIdx = 0;
-	TND_GetObjectsInFrustum( octTreeRoot, cam.worldToScreenSpaceMat, objList, objListIdx );
-	
-	for( let i = 0; i < objListIdx; ++i ){
-		objList.Draw(cam.worldToScreenSpaceMat);
-	}
+
+	//testCamMatricies(cam, octTreeRoot);
+
 }
+*/

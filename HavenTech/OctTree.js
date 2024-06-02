@@ -737,6 +737,7 @@ function TND_GetObjectsInFrustum( t, wrldToFrusMat, retObjList, retObjListIdx ){
 	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
 		for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
 			retObjList[retObjListIdx++] = t.objects[ i ];
+		return retObjListIdx;
 	}
 	
 }

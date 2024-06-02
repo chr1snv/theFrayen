@@ -184,8 +184,8 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 	//gl.viewport(0, 0, this.screenWidth, this.screenHeight);
 
-	//gl.enable(gl.CULL_FACE);
-	//gl.cullFace(gl.BACK);
+	gl.enable(gl.CULL_FACE);
+	gl.cullFace(gl.BACK);
 
 	//this.enableDepthTest(true); //calls gl.enable(gl.DEPTH_TEST)
 
