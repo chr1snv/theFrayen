@@ -5,10 +5,36 @@
 //that make up an enviroment (area) in a haven tech game
 //they may be layered as with a menu or ui placed on top of a scene
 
-//haven scene handles loading (saving to be added) from a text file
-//and updating per frame the objects in it
+//haven scene handles 
 
-//drawing is handled by scene graphs 
+//loading (saving to be added) from a text file
+
+//updating per frame the objects in the oct tree
+
+//drawing by
+
+//gathering objects to draw from the oct tree camera frustm intersectiom
+
+//grouping geometry to draw by 
+//	shader
+//		material
+//			transformation matrix
+//				object (level of detail may change based on distance)
+
+
+function drawBatchBuffer(){
+	let objList = new Array(maxObjsToDraw);
+	let objListIdx = 0;
+	const MAX_VERTS = 65536;
+	let vertBuffer = new Float32Array(MAX_VERTS*vertCard);
+	let normBuffer = new Float32Array(MAX_VERTS*normCard);
+	let uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
+	let bufferIdx = 0;
+	let bufferTexName = null;
+}
+
+let drawBatchBuffers = {};
+
 
 function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.sceneName = sceneNameIn;
@@ -127,6 +153,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 						bufferTexName = null;
 				}
 			}
+			if(bufferIdx > MAX_VERTS )
+				bufferIdx = MAX_VERTS;
 			TRI_G_Setup(graphics.triGraphics);
 			TRI_G_drawTriangles(graphics.triGraphics, bufferTexName, this.sceneName, cam.worldToScreenSpaceMat, vertBuffer, uvBuffer, bufferIdx );
 		

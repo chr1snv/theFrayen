@@ -75,13 +75,16 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 	//used to pass vertex attribute array perameters
 	this.attribLocs = {};
 	this.vertexAttribSetFloats = function( attr_name, rsize, arr){
-		if( this.attribLocs[attr_name] == undefined )
-			this.attribLocs[attr_name] = gl.getAttribLocation(this.glProgId, attr_name);
-		
-		gl.enableVertexAttribArray(this.attribLocs[attr_name]);
-		gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+		if( this.attribLocs[attr_name] == undefined ){
+			this.attribLocs[attr_name] = [gl.getAttribLocation(this.glProgId, attr_name), gl.createBuffer()];
+			gl.enableVertexAttribArray(this.attribLocs[attr_name][0]);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attr_name][1]);
+		}else{
+			gl.enableVertexAttribArray(this.attribLocs[attr_name][0]);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attr_name][1]);
+		}
 		gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-		gl.vertexAttribPointer(this.attribLocs[attr_name], rsize, gl.FLOAT, false, 0, 0);
+		gl.vertexAttribPointer(this.attribLocs[attr_name][0], rsize, gl.FLOAT, false, 0, 0);
 	}
 
 	this.readyCallbackParams = readyCallbackParams;
