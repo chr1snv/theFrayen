@@ -6,7 +6,7 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 {
 	this.programName = nameIn;
 	
-	this.glProgId = gl.createProgram();
+	this.glProgId = gl.createProgram();  //should also maybe gl.deleteProgram(Object program) when done using
 	
 	this.vertShaderFilename = 'shaders/' + nameIn + 'VertShader.vsh';
 	this.fragShaderFilename = 'shaders/' + nameIn + 'FragShader.fsh';
@@ -15,12 +15,12 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 	this.fragShaderLoaded = function(textFile, thisP)
 	{
 		CheckGLError( "glProgram::begin frag shader loaded " );
-		let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER); //gl.deleteShader(Object program) when done using
 		gl.shaderSource(fragmentShader, textFile);
 		gl.compileShader(fragmentShader);
 		if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
 			alert( 'fragment shader log: ' + gl.getShaderInfoLog(fragmentShader) );
-		gl.attachShader(thisP.glProgId, fragmentShader);
+		gl.attachShader(thisP.glProgId, fragmentShader); //gl.detachShader(Object program, Object shader) when done using
 		CheckGLError( "glProgram::end frag shader attached " );
 
 		gl.validateProgram(thisP.glProgId);
@@ -41,7 +41,7 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 
 	//once the vertex shader is loaded start loading the fragment shader
 	this.vertShaderLoaded = function(textFile, thisP){
-		let vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		let vertexShader = gl.createShader(gl.VERTEX_SHADER); //gl.deleteShader(Object program) when done using
 		gl.shaderSource(vertexShader, textFile);
 		gl.compileShader(vertexShader);
 		if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
@@ -76,7 +76,7 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 	this.attribLocs = {};
 	this.vertexAttribSetFloats = function( attr_name, rsize, arr){
 		if( this.attribLocs[attr_name] == undefined ){
-			this.attribLocs[attr_name] = [gl.getAttribLocation(this.glProgId, attr_name), gl.createBuffer()];
+			this.attribLocs[attr_name] = [gl.getAttribLocation(this.glProgId, attr_name), gl.createBuffer()]; //gl.deleteBuffer(Object buffer) when done using
 			gl.enableVertexAttribArray(this.attribLocs[attr_name][0]);
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attr_name][1]);
 		}else{

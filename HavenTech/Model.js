@@ -71,9 +71,6 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//this.timeUpdate;
 	this.optTransformUpdated;
 
-	//request the model animation
-	//ipo animation affects the root transformation of the quadmesh
-	this.ipoAnimation    = new IPOAnimation( this.meshName, this.sceneName );
 
 	//modifiers for manipulating the mesh from its default position
 	this.scaleOff    = new Float32Array([1,1,1]);
@@ -136,14 +133,9 @@ function MDL_Update( mdl, time, treeNd ){
 	if( mdl.quadmesh == null ){
 		graphics.GetQuadMesh( mdl.meshName, mdl.sceneName, mdl, quadMeshLoaded );
 	}else{
-		if( mdl.ipoAnimation.isValid ){
-			IPOA_GetMatrix( mdl.ipoAnimation, mdl.lclToWrldMat, time );
-			//if there is an ipo animation, ignore the quadmesh animations
-			//and over write it's world to local matrix for getRayIntersection
-			Matrix_Inverse( mdl.quadmesh.wrldToLclMat, mdl.lclToWrldMat );
-		}else{
-			QM_Update( mdl.quadmesh, time );
-		}
+		
+		QM_Update( mdl.quadmesh, time );
+		
 		mdl.AABB = mdl.quadmesh.AABB;
 		
 		mdl.physObj.Update(time, gravityAccel, treeNd);

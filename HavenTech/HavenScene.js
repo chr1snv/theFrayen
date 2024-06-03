@@ -20,20 +20,28 @@
 //		material
 //			transformation matrix
 //				object (level of detail may change based on distance)
+//					vert transform matrix (maybe a vertex shader with vert weights and bind/pose matricies would be faster than cpu skel anim transforms)
 
-
-function drawBatchBuffer(){
-	let objList = new Array(maxObjsToDraw);
-	let objListIdx = 0;
-	const MAX_VERTS = 65536;
-	let vertBuffer = new Float32Array(MAX_VERTS*vertCard);
-	let normBuffer = new Float32Array(MAX_VERTS*normCard);
-	let uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
-	let bufferIdx = 0;
-	let bufferTexName = null;
+const MAX_VERTS = 65536;
+function DrawBatchBuffer(){
+	this.vertBuffer = new Float32Array(MAX_VERTS*vertCard);
+	this.normBuffer = new Float32Array(MAX_VERTS*normCard);
+	this.uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
+	this.bufferIdx = 0;
+	this.texName = null;
+	this.toViewportMatrix = Matrix_New();
 }
 
 let drawBatchBuffers = {};
+
+function GetDrawBatchBufferForMaterial(shdrName){
+	let dbB = drawBatchBuffers[shdrName];
+	if( dbB == undefined ){
+		dbB = new DrawBatchBuffer();
+		drawBatchBuffers[shdrName] = dbB;
+	}
+	return dbB;
+}
 
 
 function HavenScene( sceneNameIn, sceneLoadedCallback ){
@@ -77,16 +85,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		TND_Update(this.octTree, time);
 
 	}
-	
+
 	const maxObjsToDraw = 64;
 	let objList = new Array(maxObjsToDraw);
 	let objListIdx = 0;
-	const MAX_VERTS = 65536;
-	let vertBuffer = new Float32Array(MAX_VERTS*vertCard);
-	let normBuffer = new Float32Array(MAX_VERTS*normCard);
-	let uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
-	let bufferIdx = 0;
-	let bufferTexName = null;
+
 	this.Draw = function(){
 		if(!this.isValid){
 			DTPrintf(this.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
@@ -137,26 +140,46 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		}else{
 
 			//generate the camera matrix
-			let cam = this.cameras[ this.activeCameraIdx ];
-			
+			let cam = this.cameras[ this.activeCameraIdx ];			
 			cam.GenWorldToFromScreenSpaceMats();
-
+			//get the objects in view
 			objListIdx = TND_GetObjectsInFrustum( this.octTree, cam.worldToScreenSpaceMat, objList, 0 );
+			
+			//update the draw batch buffers from the objects
 			bufferIdx = 0;
 			for( let i = 0; i < objListIdx; ++i ){
 				let qm = objList[i].quadmesh;
+
 				for(let matID = 0; matID < qm.materials.length; ++matID ){
-					bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat(qm, vertBuffer, normBuffer, uvBuffer, bufferIdx, qm.materials[matID]);
+
+					let drawBatch = GetDrawBatchBufferForMaterial( qm.materials[matID].uid.val*100 + i );
+					Matrix_Multiply( drawBatch.toViewportMatrix, cam.worldToScreenSpaceMat, qm.toWorldMatrix );
+
+					drawBatch.bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
+							drawBatch.vertBuffer, drawBatch.normBuffer, 
+							drawBatch.uvBuffer, drawBatch.bufferIdx, qm.materials[matID] );
+
 					if( qm.materials[matID].texture )
-						bufferTexName = qm.materials[matID].texture.texName;
+						drawBatch.texName = qm.materials[matID].texture.texName;
 					else
-						bufferTexName = null;
+						drawBatch.texName = null;
+
 				}
 			}
-			if(bufferIdx > MAX_VERTS )
-				bufferIdx = MAX_VERTS;
+
+			//draw the batch buffers
 			TRI_G_Setup(graphics.triGraphics);
-			TRI_G_drawTriangles(graphics.triGraphics, bufferTexName, this.sceneName, cam.worldToScreenSpaceMat, vertBuffer, uvBuffer, bufferIdx );
+			let dbBKeys = Object.keys( drawBatchBuffers );
+			for( let i = 0; i < dbBKeys.length; ++i ){
+				let dbB = drawBatchBuffers[dbBKeys[i]];
+				if(dbB.bufferIdx > MAX_VERTS )
+					dbB.bufferIdx = MAX_VERTS;
+				
+				TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
+					this.sceneName, dbB.toViewportMatrix, 
+					dbB.vertBuffer, dbB.uvBuffer, dbB.bufferIdx );
+				dbB.bufferIdx = 0;
+			}
 		
 		//clear the render buffer and reset rendering state
 		//graphics.Clear();

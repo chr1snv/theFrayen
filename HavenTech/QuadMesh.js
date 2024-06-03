@@ -108,11 +108,19 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	//animation classes
 	//keyframe animation has basis meshes and an ipo curve for each giving weight at time
 	this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
+	
+	
+	//request the local to world matrix animation
+	//ipo animation affects the root transformation of the quadmesh
+	this.ipoAnimation    = new IPOAnimation( this.meshName, this.sceneName );
+	
+	
 	//skeletal animation has bones (heirarchical transformations), ipo curves for
 	//properties of each transformation at time and weights for how each vertex
 	//is affected by a transformation
 	this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
-
+	
+	
 	this.lastMeshUpdateTime = -0.5;
 
 
@@ -440,9 +448,15 @@ let tempMat = new Float32Array(4*4);
 function QM_UpdateToWorldMatrix(qm, time){
 	if( qm.lastToWorldMatrixUpdateTime == time )
 		return false;
-	Matrix( qm.toWorldMatrix, 
-			MatrixType.quat_transformation, 
-			qm.scale, qm.rotation, qm.origin );
+	if( qm.ipoAnimation.isValid ){
+		IPOA_GetMatrix( qm.ipoAnimation, qm.toWorldMatrix, time );
+		//if there is an ipo animation, ignore the quadmesh animations
+		//and over write it's world to local matrix for getRayIntersection
+	}else{
+		Matrix( qm.toWorldMatrix, 
+				MatrixType.quat_transformation, 
+				qm.scale, qm.rotation, qm.origin );
+	}
 	Matrix_Copy(tempMat, qm.toWorldMatrix );
 	Matrix_Inverse( qm.wrldToLclMat, tempMat );
 	qm.lastToWorldMatrixUpdateTime = time;

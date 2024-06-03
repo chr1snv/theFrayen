@@ -13,6 +13,7 @@
 
 function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallback)
 {
+	this.uid = NewUID();
 	this.materialName = nameIn;
 	this.sceneName = sceneNameIn;
 	this.glMaterialProgramRefId = graphics.currentProgram;

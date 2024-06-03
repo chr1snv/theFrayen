@@ -37,7 +37,7 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
     
     this.Bind = function(){
     	if( !this.textureHandle ){
-		    this.textureHandle = gl.createTexture();
+		    this.textureHandle = gl.createTexture(); //gl.deleteTexture(Object texture)
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.textureHandle);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.loadedImage);
