@@ -111,7 +111,7 @@ function ExitFullscreen(){
 }
 
 let rcOrSLRastButton = document.getElementById("rcOrSLRast");
-var rayCastDrawing = true;
+var rayCastDrawing = false;
 function RayCastOrScanLDrawing(){
 	rayCastDrawing = !rayCastDrawing;
 	if( rayCastDrawing )

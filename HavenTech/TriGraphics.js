@@ -112,7 +112,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 
 
 let transMat = Matrix_New();
-function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, uvs, bufLen ){
+function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, uvs, bufLen, diffuseCol ){
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
 			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
@@ -124,6 +124,7 @@ function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, 
 		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
 	}else{
 		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
+		triG.triProgram.setVec4Uniform('diffuseColor', diffuseCol);
 	}
 
 	

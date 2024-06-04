@@ -13,7 +13,7 @@
 
 //drawing by
 
-//gathering objects to draw from the oct tree camera frustm intersectiom
+//gathering objects to draw from the oct tree camera frustrum intersection
 
 //grouping geometry to draw by 
 //	shader
@@ -29,6 +29,7 @@ function DrawBatchBuffer(){
 	this.uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
 	this.bufferIdx = 0;
 	this.texName = null;
+	this.diffuseCol = new Float32Array(4);
 	this.toViewportMatrix = Matrix_New();
 }
 
@@ -133,6 +134,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		//of some of the tracing hopefully interactive framerates with 
 		//photorealisim and minimal noise and can be achieved
 		
+		//clear the render buffer and reset rendering state
+		graphics.Clear();
+		graphics.ClearDepth();
+		//graphics.ClearLights();
+		
 		if( rayCastDrawing ){
 			//raycasting draw call
 			CAM_RayCastDraw( this.cameras[ this.activeCameraIdx ],
@@ -151,18 +157,22 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				let qm = objList[i].quadmesh;
 
 				for(let matID = 0; matID < qm.materials.length; ++matID ){
-
-					let drawBatch = GetDrawBatchBufferForMaterial( qm.materials[matID].uid.val*100 + i );
+					let material = qm.materials[matID];
+					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val*100 + i );
 					Matrix_Multiply( drawBatch.toViewportMatrix, cam.worldToScreenSpaceMat, qm.toWorldMatrix );
 
 					drawBatch.bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
 							drawBatch.vertBuffer, drawBatch.normBuffer, 
 							drawBatch.uvBuffer, drawBatch.bufferIdx, qm.materials[matID] );
 
-					if( qm.materials[matID].texture )
-						drawBatch.texName = qm.materials[matID].texture.texName;
-					else
+					//set the texture or material properties for the draw batch
+					if( material.texture ){
+						drawBatch.texName = material.texture.texName;
+					}else{
 						drawBatch.texName = null;
+						Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
+						drawBatch.diffuseCol[3] = material.diffuseMix;
+					}
 
 				}
 			}
@@ -177,14 +187,11 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				
 				TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
 					this.sceneName, dbB.toViewportMatrix, 
-					dbB.vertBuffer, dbB.uvBuffer, dbB.bufferIdx );
+					dbB.vertBuffer, dbB.uvBuffer, dbB.bufferIdx, dbB.diffuseCol );
 				dbB.bufferIdx = 0;
 			}
 		
-		//clear the render buffer and reset rendering state
-		//graphics.Clear();
-		//graphics.ClearDepth();
-		//graphics.ClearLights();
+		
 		
 		/*  //old rasterization code here
 		
@@ -336,7 +343,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}
 		
 		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
-		
+			
 		}
 		
 		

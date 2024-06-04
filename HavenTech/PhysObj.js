@@ -509,7 +509,7 @@ function PhysObj(AABB, obj, time){
 				for( nd in nodesToRemoveFrom ){
 					let tNd = this.obj.treeNodes[nd];
 					if( tNd != undefined ){
-						tNd.RemoveFromThisNode(this.obj); //node may unsubdivide during remove
+						TND_RemoveFromThisNode(tNd, this.obj); //node may unsubdivide during remove
 						delete(this.obj.treeNodes[nd]);
 					}
 				}

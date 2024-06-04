@@ -651,6 +651,8 @@ function QM_meshFileLoaded(meshFile, thisP)
 						parseFloat(words[1]), 
 						parseFloat(words[2]), 
 						parseFloat(words[3]) ] );
+				}else if( temp[0] == 'a' ){
+					thisP.armatureName = words[1];
 				}else if( temp[0] == 'e' ){
 					break;}
 			}

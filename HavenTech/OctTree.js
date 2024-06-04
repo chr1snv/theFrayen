@@ -233,7 +233,7 @@ function TND_RemoveFromThisNode( t, object ){
 		delete t.objectDictionary[object.uid.val];
 		
 		if( t.objInsertIdx < MaxTreeNodeObjects/2 ){
-			let unsubDivRes = t.TryUnsubdivide();
+			let unsubDivRes = TND_TryUnsubdivide(t);
 			DTPrintf("unsubdivide initiating obj " + object.uid.val + 
 				" node min " + t.AABB.minCoord + " max " + t.AABB.maxCoord +
 				" node depth " + t.depth + " maxDepth " + t.maxDepth + " unSubDivRes " + unsubDivRes, "unsubdiv", "#4444ff", t.depth);
