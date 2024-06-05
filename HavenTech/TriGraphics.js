@@ -99,20 +99,21 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	uvs[5*2+0] = minUv[0]; uvs[5*2+1] = minUv[1]; //left  bottom
 
 
-	triG.triProgram.vertexAttribSetFloats( 'position',  3, verts );
+	triG.triProgram.vertexAttribSetFloats( 0,  3, verts, 'position' );
 	//CheckGLError("draw square, after position attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 'norm',    3, verts );
+	triG.triProgram.vertexAttribSetFloats( 1,    3, verts, 'norm' );
 	//CheckGLError("draw square, after normal attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 'texCoord',  2, uvs );
+	triG.triProgram.vertexAttribSetFloats( 2,  2, uvs, 'texCoord' );
 	//CheckGLError("draw square, after texCoord attributeSetFloats");
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	//CheckGLError("draw square, after drawArrays");
 	//gl.flush();
 }
 
+const TRI_G_VERT_ATTRIB_UID_START = 3;
 
 let transMat = Matrix_New();
-function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, uvs, bufLen, diffuseCol ){
+function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, buf ){
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
 			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
@@ -124,7 +125,7 @@ function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, 
 		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
 	}else{
 		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
-		triG.triProgram.setVec4Uniform('diffuseColor', diffuseCol);
+		triG.triProgram.setVec4Uniform('diffuseColor', buf.diffuseCol);
 	}
 
 	
@@ -133,11 +134,16 @@ function TRI_G_drawTriangles(triG, textureName, sceneName, wrldToCamMat, verts, 
 	Matrix_Transpose( transMat, wrldToCamMat );
 	gl.uniformMatrix4fv(triG.mvpMatrixUnif, false, transMat);//, 0, 4*4 );//transpose=true requires webgl2.0
 
-	triG.triProgram.vertexAttribSetFloats( 'position',  3, verts );
-	//CheckGLError("draw square, after position attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 'norm',    3, verts );
-	//CheckGLError("draw square, after normal attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 'texCoord',  2, uvs );
-	//CheckGLError("draw square, after texCoord attributeSetFloats");
-	gl.drawArrays(gl.TRIANGLES, 0, bufLen);
+	let bufID = (buf.bufID);
+	if( buf.bufferUpdated ){
+		triG.triProgram.vertexAttribSetFloats( bufID,      3, buf.vertBuffer, 'position', buf.isAnimated );
+		triG.triProgram.vertexAttribSetFloats( bufID+1,    3, buf.vertBuffer,     'norm', buf.isAnimated );
+		triG.triProgram.vertexAttribSetFloats( bufID+2,    2, buf.uvBuffer,   'texCoord', buf.isAnimated );
+		buf.bufferUpdated = false;
+	}else{
+		triG.triProgram.vertexAttribBuffEnable( bufID ,  3, (buf.bufferIdx)*vertCard);
+		triG.triProgram.vertexAttribBuffEnable( bufID+1, 3, (buf.bufferIdx)*vertCard);
+		triG.triProgram.vertexAttribBuffEnable( bufID+2, 2, (buf.bufferIdx)*uvCard );
+	}
+	gl.drawArrays(gl.TRIANGLES, 0, buf.bufferIdx);
 }

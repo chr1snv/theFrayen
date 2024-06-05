@@ -10,7 +10,7 @@ function SkelA_HierarchyNode(){
 };
 
 //constructor
-function SkeletalAnimation( nameIn, sceneNameIn ){
+function SkeletalAnimation( nameIn, sceneNameIn, readyCallback, readyCallbackParams ){
 
 
 	/*
@@ -96,9 +96,11 @@ function SkeletalAnimation( nameIn, sceneNameIn ){
 	this.inverseMatrix = Matrix_New();
 	Matrix_SetIdentity( this.orientation );
 
+	this.loadCompCallback = readyCallback;
+	this.loadCompCbParams = readyCallbackParams;
+
 	//open the file for reading
 	let fileName = "scenes/"+this.sceneName+"/skelAnimations/"+this.skelAnimName+".hvtAnim";
-    
     loadTextFile(fileName, SkelA_AnimFileLoaded, this );
 }
 
@@ -323,7 +325,10 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 }
 
 function SkelA_AnimFileLoaded(skelAnimFile, skelA){
-	if( skelAnimFile === undefined ) return;
+	if( skelAnimFile === undefined ){ 
+		skelA.loadCompCallback(skelA, this.loadCompCbParams);
+		return;
+	}
 	let skelAnimFileLines = skelAnimFile.split('\n');
 
 	//read in the file line by line
@@ -385,4 +390,6 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	    skelA.transformationMatricies.push( new Float32Array(matrixCard) );
 
 	skelA.isValid = true;
+	
+	skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
 }

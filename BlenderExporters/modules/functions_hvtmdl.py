@@ -22,8 +22,11 @@ def popupMenu(message):
     bpy.context.window_manager.popup_menu(lambda self, \
     context: self.layout.label(text=message), title='Error', icon='ERROR' )
 
+def writeArmature(assetDirectory, ob):
+    writeArmatureAnim(assetDirectory, ob)
+
 #asset directory is the dir that contains the folders meshes, animations, ..etc.
-def writeModel(assetDirectory, ob):
+def writeModel(assetDirectory, ob, ipoFileName):
     """Write a HavenTech mesh and animation file from the current blender
     scene, returns the Axis aligned bounding box min and max vect3's for
     inital adding to the haven scene oct tree"""
@@ -36,10 +39,10 @@ def writeModel(assetDirectory, ob):
     if not ob.type == 'MESH':
         print('Error%t| Active object is not a Mesh')
         return
-
+    
     #----write the mesh file----
     #---------------------------
-    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob)
+    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, ipoFileName)
 
     #----write the mesh materials file----
     #-------------------------------------
@@ -48,10 +51,6 @@ def writeModel(assetDirectory, ob):
     #----write the keyframes file----
     #--------------------------------
     writeKeyframeMeshData(assetDirectory, ob)
-
-    #----write the anim file----
-    #---------------------------
-    writeAnim(assetDirectory, ob)
     
     #apply object location, rotation and scale to AABB
     AABBmin = ob.matrix_world @ AABBMin
@@ -202,7 +201,7 @@ def writeMaterial(assetDirectory, mat):
 
     out.close()
 
-def writeMesh(assetDirectory, ob):
+def writeMesh(assetDirectory, ob, ipoFileName):
     """Write a HavenTech mesh file from the passed in blender object"""
 
     #get the mesh data
@@ -228,8 +227,9 @@ def writeMesh(assetDirectory, ob):
     
     #open the ouput file
     out = open( meshFileName, "w" )
-
-    #write the mesh scale, rotation and translation
+    
+    
+    #write the mesh scale, rotation, translation and modifiers
     out.write( 'm\n' )
     out.write( 's %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
     if ob.rotation_mode == 'XYZ':
@@ -240,6 +240,24 @@ def writeMesh(assetDirectory, ob):
     out.write( 'r %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
     loc = ob.location
     out.write( 'x %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
+    
+    if ipoFileName != None:
+        out.write('i %s\n' % ipoFileName)
+    
+    #check if the mesh has an armature modifier
+    for modifier in ob.modifiers:
+        if modifier.type == 'ARMATURE':
+            armatureObj = modifier.object
+            #check the armature modifier does not use envelopes
+            if modifier.use_bone_envelopes:
+                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
+                return
+            #check the armature modifer uses vertex groups
+            if not modifier.use_vertex_groups:
+                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
+                return
+            out.write('a %s\n' % (armatureObj.name) )
+    
     out.write( 'e\n' )
     out.write( '\n' )
 
@@ -320,7 +338,7 @@ def writeObjectAnimationData(assetDirectory, obj):
     animData = obj.animation_data
     if animData == None or animData.action == None or len(animData.action.fcurves) < 1:
         print( "animData not found for " + obj.name )
-        return
+        return None
     
     print( "animData found for " + obj.name )
     curves = obj.animation_data.nla_tracks.data.action.fcurves.items()
@@ -334,6 +352,8 @@ def writeObjectAnimationData(assetDirectory, obj):
     out.close()
     print("animFileClosed " + ipoFileName )
     
+    return obj.name
+    
     
 def writeAnimationCurves(outputFile, curves):
     #---write the ipo curves---
@@ -346,7 +366,7 @@ def writeAnimationCurves(outputFile, curves):
 
 def writeAnimationCurveData(out, curve, cType):
 
-    print("writeAnimationCurveData data_path " + curve.data_path )
+    #print("writeAnimationCurveData data_path " + curve.data_path )
     
     out.write('C %s %s %i\n' % (cType, curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
     #curve.getName())) #interpolation type #num bezier points
@@ -430,24 +450,14 @@ def writeKeyframeMeshData(assetDirectory, ob):
     out.close()
         
 
-def writeAnim(assetDirectory, ob):
+def writeArmatureAnim(assetDirectory, ob):
     """Write a haven tech animation file from the given blender armature object"""
 
     animFileName = assetDirectory + "/skelAnimations/" + ob.name + ".hvtAnim"
 
     #look for the objects armature modifier
-    armatureObj = None
-    for modifier in ob.modifiers:
-        if modifier.type == 'ARMATURE':
-            armatureObj = modifier.object
-            #check the armature modifier does not use envelopes
-            if modifier.use_bone_envelopes:
-                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
-                return
-            #check the armature modifer uses vertex groups
-            if not modifier.use_vertex_groups:
-                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
-                return
+    armatureObj = ob
+    
 
     if armatureObj == None:
         #Blender.Draw.PupMenu('Notice%t|Object: ' + ob.name + \
@@ -477,6 +487,8 @@ def writeAnim(assetDirectory, ob):
     out.write( 'x %f %f %f\n' % \
                 (armatureObj.location.x,  armatureObj.location.y,  armatureObj.location.z))
 
+    armatureBoneCurves = genArmatureBoneCurves(armatureObj)
+
     #write each bone's rest data and animation data
     for (boneName, bone) in armature.bones.items():
         out.write( 'b\n')
@@ -503,7 +515,7 @@ def writeAnim(assetDirectory, ob):
         out.write( 'R %f %f %f\n' % (bRot[0], bRot[1], bRot[2]) )
 
         #write out the animation data of the bone
-        writeBoneKeyframes(out, armatureObj, boneName)
+        writeBoneKeyframes(out, armatureBoneCurves, boneName)
         #mark the end of the bone data
         out.write('e\n')
 
@@ -514,22 +526,26 @@ def writeAnim(assetDirectory, ob):
 ### Helper functions ###
 #----for writeAnim-----
 
-def writeBoneKeyframes(out, armature, boneName):
-    #get the Ipo channel corresponding to the bone
-    print("writeBoneKeyframes\n")
+def genArmatureBoneCurves(armature):
     fcurves = armature.animation_data.nla_tracks.data.action.fcurves.items()
     curves = {}
     for c in fcurves:
-        print("C %s" % c[1].data_path )
+        #print("C %s" % c[1].data_path )
         cNameParts = c[1].data_path.split('"')
         try:
             curves[cNameParts[1]]
         except:
-            print("appending to curves %s\n" % (cNameParts[1]) )
+            #print("appending to curves %s\n" % (cNameParts[1]) )
             curves[cNameParts[1]] = []
         curves[cNameParts[1]].append(c[1])
+    return curves
+
+def writeBoneKeyframes(out, armatureBoneCurves, boneName):
+    #get the Ipo channel corresponding to the bone
+    print("writeBoneKeyframes\n")
+    
     try:
-        boneChannelCurves = curves[ boneName ]
+        boneChannelCurves = armatureBoneCurves[ boneName ]
     except:
         #there are no keyframes for the bone
         print( "No keyframes for: %s" % boneName )

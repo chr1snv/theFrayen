@@ -33,7 +33,8 @@ function ipoCurveNameToIndex(channelName){
 
 //implementation of an object animation
 //made of translation, rotation, scale curves from blender
-function IPOAnimation(nameIn, sceneNameIn){
+function IPOAnimation(nameIn, sceneNameIn, readyCallback, readyCallbackParams){
+
 	this.ipoName = nameIn;
 	this.sceneName = sceneNameIn;
 
@@ -49,6 +50,8 @@ function IPOAnimation(nameIn, sceneNameIn){
 	this.isValid = false;
 
 	//constructor functionality
+	this.loadCompCallback = readyCallback;
+	this.loadCompCbParams = readyCallbackParams;
 	loadTextFile( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', IPOA_textFileLoaded, this );
 };
 
@@ -127,8 +130,10 @@ function IPOA_GetMatrix(ipoa, outMat, time){
 
 function IPOA_textFileLoaded(txtFile, ipoa)
 {
-	if(txtFile === undefined)
+	if(txtFile === undefined){
+		ipoa.loadCompCallback(ipoa, ipoa.loadCompCbParams);
 		return;
+	}
 	let textFileLines = txtFile.split('\n');
 	for(let lineNum = 0; lineNum < textFileLines.length; ++lineNum ){
 		let temp = textFileLines[ lineNum ];
@@ -164,6 +169,8 @@ function IPOA_textFileLoaded(txtFile, ipoa)
 	ipoa.duration = GetLongestCurveDuration( ipoa.curves );
 
 	ipoa.isValid = true;
+	
+	ipoa.loadCompCallback(ipoa, ipoa.loadCompCbParams);
 }
 
 function GetLongestCurveDuration( curves ){

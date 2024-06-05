@@ -812,7 +812,7 @@ function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 //uses best dividing point found from FindMinOverlapClosestToCenterDivPoint
 //returns the [ total numNodesCreated, num nodes per axis[x,y,z] ]
 function TND_generateSubNodes(t, srcCoords){
-	subDivAddDepth += 1;
+	//subDivAddDepth += 1;
 	//if( subDivAddDepth > 1){
 	//	DTPrintf( "potential for add error subDivAddDepth " + subDivAddDepth + 
 	//		" tNId " + this.uid.val + " dpth " + this.depth + 

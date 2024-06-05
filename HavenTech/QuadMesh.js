@@ -68,6 +68,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	this.isValid         = false; //true once loading is complete
 	this.isAnimated      = false;
+	this.hasntDrawn      = true;
+	this.componentsToLoad = 1; //the quadmesh, and each animation type key, ipo, skel, etc
+	//count as a component to asynchronously load, each time one finishes the count is decremented
+	//and if < 1 the callback for the quadmesh (as a complete object) being loaded is called
 
 	//the orientation matrix
 	this.scale           = new Float32Array([1,1,1]);
@@ -88,43 +92,38 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.vertPositions   = null;
 	this.vertNormals     = null;
 	this.vertBoneWeights = [];
-	//this.vertPositionsMin = Vect3_NewZero();
-	//this.vertPositionsMax = Vect3_NewZero();
 
 	//animation base mesh
 	this.keyedPositions  = [];
 
 	//the oct tree of the mesh faces (updated with mesh animations)
 	const tDim = 100;
-	this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
+	if( rayCastDrawing )
+		this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
 	this.worldMinCorner = Vect3_NewScalar(  999999 );
 	this.worldMaxCorner = Vect3_NewScalar( -999999 );
 	this.lclMinCorner   = Vect3_NewScalar(  999999 );
 	this.lclMaxCorner   = Vect3_NewScalar( -999999 );
 	this.AABB = new AABB( this.lclMinCorner, this.lclMaxCorner );
-	
+
 	this.otType = OT_TYPE_QuadMesh;
 
 	//animation classes
 	//keyframe animation has basis meshes and an ipo curve for each giving weight at time
 	this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
-	
-	
+
+
 	//request the local to world matrix animation
 	//ipo animation affects the root transformation of the quadmesh
-	this.ipoAnimation    = new IPOAnimation( this.meshName, this.sceneName );
-	
-	
-	//skeletal animation has bones (heirarchical transformations), ipo curves for
-	//properties of each transformation at time and weights for how each vertex
-	//is affected by a transformation
-	this.skelAnimation   = new SkeletalAnimation( this.meshName, this.sceneName );
-	
-	
+	this.ipoAnimation    = null;
+
+	//the per vertex weighted transformation heiracy animation possibly applied to multiple quadmeshes
+	this.skelAnimation = null;
+
+
 	this.lastMeshUpdateTime = -0.5;
 
 
-	
 	//geometry query function
 	//this.GetBoundingPlanes = function() { return {1:{}, 2:{} }; }
 
@@ -153,7 +152,7 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
     //for each face generate an accumulated normal vector
     for(let i=0; i<faces.length; ++i)
     {
-        let numVertIdxs = faces[i].vertIdxs.length;
+        let numVertIdxs = faces[i].numFaceVerts;
         if(numVertIdxs < 3)
             DPrintf("GenerateNormalCoords: expected 3 or more vertIdx's, got: %i", numVertIdxs);
         //newell's method
@@ -228,16 +227,16 @@ function QM_SL_tesselateCoords( coords,
 
 	//create the vertex array
 	for(let i=0; i<faces.length; ++i){
-		let coordsSize = faces[i].vertIdxs.length;
-		if(coordsSize == 3){ //triangle
-			for(let j=0; j<faces[i].vertIdxs.length; ++j){
+		let numFaceVerts = faces[i].numFaceVerts;
+		if(numFaceVerts == 3){ //triangle
+			for(let j=0; j<numFaceVerts; ++j){
 				let coordIdx = (faces[i].vertIdxs[j])*vertCard;
 				coords[cI++] = inputCoords[coordIdx];
 				coords[cI++] = inputCoords[coordIdx+1];
 				coords[cI++] = inputCoords[coordIdx+2];
 			}
 		}
-		else if(coordsSize == 4) //quad. tesselate into two triangles
+		else if(numFaceVerts == 4) //quad. tesselate into two triangles
 		{
 			let coordIdx = (faces[i].vertIdxs[0])*vertCard;
 			coords[cI++] = inputCoords[coordIdx];
@@ -281,7 +280,7 @@ function QM_SL_tesselateUVCoords( uvCoords, faces, startIdx ){
 	//create the vertex index array
 	for(let i=0; i<faces.length; ++i)
 	{
-		let vertsSize = faces[i].vertIdxs.length;
+		let vertsSize = faces[i].numFaceVerts;
 		
 		if( vertsSize == 3) //triangle
 		{
@@ -316,51 +315,63 @@ function QM_SL_tesselateUVCoords( uvCoords, faces, startIdx ){
 }
 
 //draw interface
-function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, verts, normals, uvs, bufferIdx, mat){
+function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, drawBatch, mat){
 	//since quad meshes are a mixture of quads and tris,
 	//use the face vertex indices to tesselate the entire mesh into
 	//tris, calculate face normals, upload to gl and draw
 
-	let retBufferIdx = bufferIdx;
+	let retBufferIdx = drawBatch.bufferIdx;
 
 	if(!qm.isValid){
 		DPrintf("QuadMesh::Draw: failed to draw.\n");
 		return;
 	}
+	
+	if( qm.isAnimated || drawBatch.isAnimated )
+		drawBatch.isAnimated = true;
 
-	//
-	///Assume model has been updated (source of mesh vertex data)
-	////////////////////////////////////////////////////////////
+	//update the arrays the first time and if there is a vertex modifying animation
+	if( drawBatch.bufferUpdated || qm.skelAnimation ){//|| qm.keyAnimation){
 
-	//let transformedPositions = qm.transformedVerts;
+		drawBatch.bufferUpdated = true;
 
-	//
-	///Generate the vertex position coordinates
-	////////////////////////////////////////////////////////////
+		//
+		///Assume model has been updated (source of mesh vertex data)
+		////////////////////////////////////////////////////////////
 
-	//tesselate the mesh
-	retBufferIdx = QM_SL_tesselateCoords( verts, qm.faces, qm.transformedVerts, bufferIdx );
+		//let transformedPositions = qm.transformedVerts;
 
+		//
+		///Generate the vertex position coordinates
+		////////////////////////////////////////////////////////////
 
-	////
-	//Generate the vertex normal coordinates
-	////////////////////////////////////////////////////////////
-
-	//generate & tesselate the normal coords from the batch of verts currently being used
-
-	//let normalCoords = new Float32Array(transformedPositions.length);
-	//this.GenerateNormalCoords(normals, this.faces, transformedPositions);
-	//this.tesselateCoords(normals, this.faces, normalCoords);
-	//QM_SL_GenerateNormalCoords(normals, this.faces, normalCoords);
+		//tesselate the mesh
+		QM_SL_tesselateCoords( drawBatch.vertBuffer, qm.faces, qm.transformedVerts, drawBatch.bufferIdx );
 
 
-	////
-	//Generate the texture coordinates (per vertex)
-	/////////////////////////////////////////////////////////////
+		////
+		//Generate the vertex normal coordinates
+		////////////////////////////////////////////////////////////
 
-	QM_SL_tesselateUVCoords(uvs, qm.faces, bufferIdx);
+		//generate & tesselate the normal coords from the batch of verts currently being used
 
-	return retBufferIdx;
+		//let normalCoords = new Float32Array(transformedPositions.length);
+		//this.GenerateNormalCoords(normals, this.faces, transformedPositions);
+		//this.tesselateCoords(normals, this.faces, normalCoords);
+		//QM_SL_GenerateNormalCoords(normals, this.faces, normalCoords);
+
+
+		////
+		//Generate the texture coordinates (per vertex)
+		/////////////////////////////////////////////////////////////
+
+		QM_SL_tesselateUVCoords(drawBatch.uvBuffer, qm.faces, drawBatch.bufferIdx);
+		
+		
+		qm.hasntDrawn = false;
+	}
+
+	return qm.faceVertsCt;
 }
 
 
@@ -428,7 +439,7 @@ function QM_UpdateTransformedVerts(qm, time){
 		transformedVertCoords = qm.vertPositions;  //static vert positions
 	
 	//update the coordinates with the animation / simulation type
-	if( qm.skelAnimation.isValid )
+	if( qm.skelAnimation != null )
 		updated = SkelA_GenerateMesh(qm.skelAnimation, 
 			qm.transformedVerts, qm, time, qm.lclMinCorner, qm.lclMaxCorner);
 	else{ //there isn't a simulation use the unmodified base coordinates
@@ -448,7 +459,7 @@ let tempMat = new Float32Array(4*4);
 function QM_UpdateToWorldMatrix(qm, time){
 	if( qm.lastToWorldMatrixUpdateTime == time )
 		return false;
-	if( qm.ipoAnimation.isValid ){
+	if( qm.ipoAnimation != null ){
 		IPOA_GetMatrix( qm.ipoAnimation, qm.toWorldMatrix, time );
 		//if there is an ipo animation, ignore the quadmesh animations
 		//and over write it's world to local matrix for getRayIntersection
@@ -469,6 +480,16 @@ function QM_UpdateToWorldMatrix(qm, time){
 function QM_UpdateAABB(qm, time) {
 	if( qm.AABBUpdateTime < time ){
 		qm.AABBUpdateTime = qm.lastMeshUpdateTime;
+		
+		Vect3_SetScalar( qm.worldMinCorner,  999999 );
+		Vect3_SetScalar( qm.worldMaxCorner, -999999 );
+		
+		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMinCorner);
+		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
+		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMaxCorner);
+		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
+		
+		
 		AABB_UpdateMinMaxCenter(qm.AABB, qm.worldMinCorner, qm.worldMaxCorner );
 	}
 }
@@ -491,8 +512,8 @@ function QM_UpdateFaceAABBAndTriangles( qm, f ){
 		//DTPrintf("v " + v + " " + Vect_FixedLenStr(tempVert, 4, 7), "quadM updt");
 		Vect3_minMax( minf, maxf, tempVert );
 		Vect3_minMax( qm.lclMinCorner, qm.lclMaxCorner, tempVert );
-		Matrix_Multiply_Vect3( tempVert1, qm.toWorldMatrix, tempVert );
-		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert1 );
+		//Matrix_Multiply_Vect3( tempVert1, qm.toWorldMatrix, tempVert );
+		//Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert1 );
 	}
 	//DTPrintf("f " + f + " min " + Vect_FixedLenStr(minf, 4, 7) + " max " + Vect_FixedLenStr(maxf, 4, 7), "quadM updt");
 	AABB_UpdateMinMaxCenter(face.AABB, minf, maxf );
@@ -549,8 +570,10 @@ function QM_Update( qm, animationTime ) {
 		
 		vertsUpdated = QM_UpdateTransformedVerts(qm, animationTime );
 		if( vertsUpdated || qm.lastMeshUpdateTime < 0){ //than rebuild the face octTree
-			octTreeDivLogElm.innerHTML += "<br/>update " + qm.meshName + "<br/>";
-			QM_UpdateOctTree(qm); //updates world space min and max corners
+			if( rayCastDrawing ){
+				octTreeDivLogElm.innerHTML += "<br/>update " + qm.meshName + "<br/>";
+				QM_UpdateOctTree(qm); //updates world space min and max corners
+			}
 		}
 		
 		
@@ -565,6 +588,11 @@ function QM_Update( qm, animationTime ) {
 
 //constructor functionality
 ///////////////////////////
+
+function QM_CallReadyCallbackIfLoaded(qm){
+	if( --qm.componentsToLoad < 1 )
+		qm.quadMeshReadyCallback(qm, qm.readyCallbackParameters);
+}
 
 function QM_materialReady( material, thisPAndMaterialIdx ){
 	thisPAndMaterialIdx[0].materials.splice( thisPAndMaterialIdx[1], 0, material);
@@ -596,6 +624,27 @@ function QM_matFileLoaded(matFile, thisP){
 						"/meshes/" + thisP.meshName + ".hvtMesh";
 	loadTextFile( meshFileName, QM_meshFileLoaded, thisP );
 	//when completed calls mesh file loaded above
+}
+
+function QM_ArmatureReadyCallback(armature, qm){
+	qm.skelAnimation = armature;
+	
+	//finalize the binding between the quadMesh and the skelAnimation
+	//by setting the boneID's in the bone weights
+	//based on the bone positions
+	//in the animation bone list
+	for( let i in qm.vertBoneWeights )
+		for( let boneName in qm.vertBoneWeights[i] )
+			for( let k in qm.skelAnimation.bones )
+				if(qm.skelAnimation.bones[k].boneName == boneName)
+					qm.vertBoneWeights[i][boneName].boneID = k;
+
+	QM_CallReadyCallbackIfLoaded(qm);
+}
+
+function QM_IPOAnimReadyCallback(ipoAnim, qm){
+	qm.ipoAnimation = ipoAnim;
+	QM_CallReadyCallbackIfLoaded(qm); 
 }
 
 function QM_meshFileLoaded(meshFile, thisP)
@@ -651,8 +700,14 @@ function QM_meshFileLoaded(meshFile, thisP)
 						parseFloat(words[1]), 
 						parseFloat(words[2]), 
 						parseFloat(words[3]) ] );
+				}else if( temp[0] == 'i' ){
+					graphics.GetCached(words[1], thisP.sceneName, IPOAnimation, QM_IPOAnimReadyCallback, thisP);
+					thisP.isAnimated = true;
+					thisP.componentsToLoad += 1;
 				}else if( temp[0] == 'a' ){
-					thisP.armatureName = words[1];
+					graphics.GetCached(words[1], thisP.sceneName, SkeletalAnimation, QM_ArmatureReadyCallback, thisP);
+					thisP.isAnimated = true;
+					thisP.componentsToLoad += 1;
 				}else if( temp[0] == 'e' ){
 					break;}
 			}
@@ -798,22 +853,14 @@ function QM_meshFileLoaded(meshFile, thisP)
 		thisP.isValid = true;
 
 
-	//initialize the animation
-	QM_Update( thisP, 0.0);
-	
-
 	DPrintf('Quadmesh: ' + thisP.meshName +
 			', successfully read in faces: ' + thisP.faces.length + 
 			', verts: ' + thisP.vertPositions.length/3 );
 
-	//finalize the binding between the quadMesh and the skelAnimation
-	//by setting the boneID's in the bone weights
-	//based on the bone positions
-	//in the animation bone list
-	for( let i in thisP.vertBoneWeights )
-		for( let boneName in thisP.vertBoneWeights[i] )
-			for( let k in thisP.skelAnimation.bones )
-				if(thisP.skelAnimation.bones[k].boneName == boneName)
-					thisP.vertBoneWeights[i][boneName].boneID = k;
-	thisP.quadMeshReadyCallback(thisP, thisP.readyCallbackParameters);
+	//initialize the aabb if not animated
+	if( !thisP.isAnimated ){
+		QM_UpdateAABB( thisP, 0.0);
+	}
+
+	QM_CallReadyCallbackIfLoaded(thisP);
 }

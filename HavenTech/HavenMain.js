@@ -240,22 +240,32 @@ function loadScene()
 	var newSceneName = sceneSelectorElm.children[idx].text;
 	
 	stop();
+	
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
+	
 
 	statusElm.innerHTML = "Loading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
 	runSceneButtonElm.onclick = stop;
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
+let running = false;
 function stop(){
-	if( mainLoopAnimRequestHandle ){
+	running = false;
+	//if( mainLoopAnimRequestHandle ){
 		window.cancelAnimFrame(mainLoopAnimRequestHandle);
 		mainLoopAnimRequestHandle = null;
-	}
+	//}
 	statusElm.innerHTML = "Stopped";
 	runSceneButtonElm.innerHTML = "Run";
 	runSceneButtonElm.onclick = loadScene;
+	
+	
+	CleanUpDrawBatchBuffers();
+	graphics.triGraphics.triProgram.cleanupVertexAttribBuffs();
+	delete( mainScene );
+	
 }
 
 function ResetSettings(){
@@ -302,6 +312,7 @@ function sceneLoaded(havenScene)
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	UpadateMousePosText();
 	UpdateCamTransText(cam);
+	running = true;
 }
 
 let lastInputTime = -10;
@@ -319,6 +330,9 @@ let lrOrUdAnim = false;
 let lrOrUdChangeResetFrames = 3;
 function MainLoop()
 {
+	if( !running )
+		return;
+
 	sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
 	//graphics.Clear();
 	//graphics.ClearDepth();

@@ -42,7 +42,7 @@ def prCyan(skk): print("\033[96m {}\033[00m" .format(skk))
 def prLightGray(skk): print("\033[97m {}\033[00m" .format(skk))
 def prBlack(skk): print("\033[98m {}\033[00m" .format(skk))
 
-from functions_hvtmdl import writeModel, writeObjectAnimationData, vec3Min, vec3Max, vec3NewScalar
+from functions_hvtmdl import writeModel, writeArmature, writeObjectAnimationData, vec3Min, vec3Max, vec3NewScalar
 
 #directory creation helper function
 def make_dir(directory):
@@ -260,7 +260,6 @@ def writeScene(path):
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
         print( "objType %s %s" % (obj.type, obj.name) )
-        writeObjAnimData = False
         #add the information for placing the object in the scene file
         #and call the corresponding exporter for each object
         #dont allow objects with the same origin/overlapping aabb because
@@ -276,25 +275,33 @@ def writeScene(path):
         #very slow compared to num rays * log ( num objects ) => 
         #1,000,000 * log(1,000,000) => 6,000,000
         #it would be 1,000,000 times lower frame rate
-        if obj.type == 'MESH':
-            writeObjAnimData = True
-            out.write( 'm %s\n' % (obj.name) )
+        
+        ipoFileName = writeObjectAnimationData(sceneDirectory, obj)
+        
+        if obj.type == 'MESH' or obj.type == 'ARMATURE':
+            prefixTypeLetter = 'm'
+            if obj.type == 'ARMATURE':
+                prefixTypeLetter = 'a'
+            out.write( '%s %s\n' % (prefixTypeLetter, obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
-            mAABBws = writeModel(sceneDirectory, obj) #world space aabb
-            print( 'AABB %s' % mAABBws )
-            if mAABBws == None:
-                print( 'Mesh object %s not exportable (AABB not returned)' % \
-                        obj.name )
-                break
+            if obj.type == 'ARMATURE':
+                mAABBws = writeArmature(sceneDirectory, obj)
             else:
-                out.write( 'maabb %f %f %f  %f %f %f\n' % \
-                    (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
-                     mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
-                aabbMin = mAABBws[0]
-                aabbMax = mAABBws[1]
-                vec3Min( wMin, aabbMin )
-                vec3Max( wMax, aabbMax )
-                newObj = TreeObj(aabbMin, aabbMax, obj)
+                mAABBws = writeModel(sceneDirectory, obj, ipoFileName) #world space aabb
+                print( 'AABB %s' % mAABBws )
+                if mAABBws == None:
+                    print( 'Mesh object %s not exportable (AABB not returned)' % \
+                        obj.name )
+                    break
+                else:
+                    out.write( 'baabb %f %f %f  %f %f %f\n' % \
+                        (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
+                         mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
+                    aabbMin = mAABBws[0]
+                    aabbMax = mAABBws[1]
+                    vec3Min( wMin, aabbMin )
+                    vec3Max( wMax, aabbMax )
+                    newObj = TreeObj(aabbMin, aabbMax, obj)
                 #addSuccessful = rootNode.AddObject( newObj )
                 #print( "object aabb overlap check result " + \
                 #    str( addSuccessful ) )
@@ -312,7 +319,6 @@ def writeScene(path):
             mshCt += 1
             out.write( 'mEnd\n\n' )
         if obj.type == 'LIGHT':
-            writeObjAnimData = True
             lampD = obj.data;
             out.write( 'l %s\n' % (obj.name))
             out.write( 'ltype %s \n' % (lampD.type))
@@ -329,7 +335,6 @@ def writeScene(path):
             vec3Min( wMin, obj.location )
             vec3Max( wMax, obj.location )
         if obj.type == 'CAMERA':
-            writeObjAnimData = True
             out.write( 'c %s \n' % (obj.name))
             print(" camera %s" % (obj.name) )
             out.write( 'cloc %f %f %f\n' % (obj.location[0], obj.location[1], obj.location[2]))
@@ -342,7 +347,6 @@ def writeScene(path):
             vec3Min( wMin, obj.location )
             vec3Max( wMax, obj.location )
         
-        writeObjectAnimationData(sceneDirectory, obj)
         print(" ") #console output line break between objects
     
     #write out the active camera

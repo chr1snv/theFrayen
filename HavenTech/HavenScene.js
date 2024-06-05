@@ -23,25 +23,36 @@
 //					vert transform matrix (maybe a vertex shader with vert weights and bind/pose matricies would be faster than cpu skel anim transforms)
 
 const MAX_VERTS = 65536;
-function DrawBatchBuffer(){
-	this.vertBuffer = new Float32Array(MAX_VERTS*vertCard);
-	this.normBuffer = new Float32Array(MAX_VERTS*normCard);
-	this.uvBuffer   = new Float32Array(MAX_VERTS*uvCard);
+let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
+function DrawBatchBuffer(vertCt){
+	this.bufID = nextBufID;
+	nextBufID += 3;
+	this.vertBuffer = new Float32Array(vertCt*vertCard);
+	this.normBuffer = new Float32Array(vertCt*normCard);
+	this.uvBuffer   = new Float32Array(vertCt*uvCard);
 	this.bufferIdx = 0;
+	this.bufferUpdated = true;
+	this.isAnimated = false;
 	this.texName = null;
+	
 	this.diffuseCol = new Float32Array(4);
 	this.toViewportMatrix = Matrix_New();
 }
 
 let drawBatchBuffers = {};
 
-function GetDrawBatchBufferForMaterial(shdrName){
+function GetDrawBatchBufferForMaterial(shdrName, vertCt){
 	let dbB = drawBatchBuffers[shdrName];
 	if( dbB == undefined ){
-		dbB = new DrawBatchBuffer();
+		dbB = new DrawBatchBuffer(vertCt);
 		drawBatchBuffers[shdrName] = dbB;
 	}
 	return dbB;
+}
+
+function CleanUpDrawBatchBuffers(){
+	delete( drawBatchBuffers );
+	drawBatchBuffers = {};
 }
 
 
@@ -152,26 +163,29 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 			objListIdx = TND_GetObjectsInFrustum( this.octTree, cam.worldToScreenSpaceMat, objList, 0 );
 			
 			//update the draw batch buffers from the objects
-			bufferIdx = 0;
 			for( let i = 0; i < objListIdx; ++i ){
 				let qm = objList[i].quadmesh;
 
 				for(let matID = 0; matID < qm.materials.length; ++matID ){
 					let material = qm.materials[matID];
-					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val*100 + i );
+					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val*100 + i, qm.faceVertsCt );
+					
 					Matrix_Multiply( drawBatch.toViewportMatrix, cam.worldToScreenSpaceMat, qm.toWorldMatrix );
+					
+					if( qm.hasntDrawn || qm.isAnimated ){
+						
 
-					drawBatch.bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
-							drawBatch.vertBuffer, drawBatch.normBuffer, 
-							drawBatch.uvBuffer, drawBatch.bufferIdx, qm.materials[matID] );
+						drawBatch.bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
+								drawBatch, qm.materials[matID] );
 
-					//set the texture or material properties for the draw batch
-					if( material.texture ){
-						drawBatch.texName = material.texture.texName;
-					}else{
-						drawBatch.texName = null;
-						Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
-						drawBatch.diffuseCol[3] = material.diffuseMix;
+						//set the texture or material properties for the draw batch
+						if( material.texture ){
+							drawBatch.texName = material.texture.texName;
+						}else{
+							drawBatch.texName = null;
+							Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
+							drawBatch.diffuseCol[3] = material.diffuseMix;
+						}
 					}
 
 				}
@@ -186,9 +200,9 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 					dbB.bufferIdx = MAX_VERTS;
 				
 				TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
-					this.sceneName, dbB.toViewportMatrix, 
-					dbB.vertBuffer, dbB.uvBuffer, dbB.bufferIdx, dbB.diffuseCol );
-				dbB.bufferIdx = 0;
+					this.sceneName, dbB.toViewportMatrix, dbB );
+				if( dbB.isAnimated )
+					dbB.bufferIdx = 0; //repeat refilling values
 			}
 		
 		

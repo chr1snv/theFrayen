@@ -39,6 +39,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.textures        = {};
 	this.materials       = {};
 	this.quadMeshes      = {};
+	this.cachedObjs      = {};
 	this.textureRefCts   = {};
 	this.shaderRefCts    = {};
 	this.quadMeshRefCts  = {};
@@ -168,6 +169,33 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			quadMeshReadyCallback( quadMesh, readyCallbackParameters );}
 	}
 	this.UnrefQuadMesh = function(filename, sceneName) {}
+	
+	
+	//used to cache components between scene changes, view changes, etc to avoid unnecessary http requests
+	let cachedObj;
+	this.GetCached = function(filename, sceneName, ObjConstructor, objReadyCallback, readyCallbackParameters){
+		concatName = filename + sceneName;
+		cachedObj = this.cachedObjs[concatName];
+		if(cachedObj === undefined){
+			//component is not loaded, load the new component and return it (asynchronous load)
+			this.cachedObjs[concatName] =
+				new ObjConstructor(filename, sceneName, objReadyCallback, readyCallbackParameters);
+		}else{
+			componentReadyCallback( cachedObj, readyCallbackParameters );}
+	}
+	
+	
+	let armature;
+	this.GetArmature = function(filename, sceneName, readyCallbackParameters, armatureReadyCallback){
+		concatName = filename + sceneName;
+		armature = this.armatures[concatName];
+		if(armature === undefined){
+			//armature is not loaded, load the new armature and return it (asynchronous load)
+			this.armatures[concatName] =
+				new SkeletalAnimation(filename, sceneName, armatureReadyCallback, readyCallbackParameters);
+		}else{
+			armatureReadyCallback( armature, readyCallbackParameters );}
+	}
 	
 	
 	

@@ -72,19 +72,40 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 		}
 	}
 	
+	this.cleanupVertexAttribBuffs  = function(){
+		let vertexAttribBuffKeys = Object.keys( this.attribLocs );
+		for( let i = 0; i < vertexAttribBuffKeys.length; ++i ){
+			gl.deleteBuffer( this.attribLocs[vertexAttribBuffKeys[i]][1] );
+		}
+		delete( this.attribLocs );
+		this.attribLocs = {};
+	}
+	
+	this.vertexAttribBuffEnable = function(attribInstID, rsize, len){
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attribInstID][1]);
+		//gl.bufferData(gl.ARRAY_BUFFER, len, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(this.attribLocs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
+	}
+	
 	//used to pass vertex attribute array perameters
 	this.attribLocs = {};
-	this.vertexAttribSetFloats = function( attr_name, rsize, arr){
-		if( this.attribLocs[attr_name] == undefined ){
-			this.attribLocs[attr_name] = [gl.getAttribLocation(this.glProgId, attr_name), gl.createBuffer()]; //gl.deleteBuffer(Object buffer) when done using
-			gl.enableVertexAttribArray(this.attribLocs[attr_name][0]);
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attr_name][1]);
-		}else{
-			gl.enableVertexAttribArray(this.attribLocs[attr_name][0]);
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attr_name][1]);
+	this.vertexAttribSetFloats = function( attribInstID, rsize, arr, attr_name, dynamic ){
+		if( this.attribLocs[attribInstID] == undefined ){
+			//gl.deleteBuffer(Object buffer) when done using
+			this.attribLocs[attribInstID] = [gl.getAttribLocation(this.glProgId, attr_name), gl.createBuffer()]; 
+			gl.enableVertexAttribArray(this.attribLocs[attribInstID][0]);
 		}
-		gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-		gl.vertexAttribPointer(this.attribLocs[attr_name][0], rsize, gl.FLOAT, false, 0, 0);
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attribInstID][1]);
+		
+		//if( !gl.isBuffer( this.attribLocs[attribInstID][1] ) )
+		//	console.log("failed to allocate buffer");
+		
+		if( dynamic )
+			gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
+		else
+			gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(this.attribLocs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
 	}
 
 	this.readyCallbackParams = readyCallbackParams;
