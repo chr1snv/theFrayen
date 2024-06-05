@@ -69,9 +69,9 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.isValid         = false; //true once loading is complete
 	this.isAnimated      = false;
 	this.hasntDrawn      = true;
-	this.componentsToLoad = 1; //the quadmesh, and each animation type key, ipo, skel, etc
+	this.componentsToLoad = 0; //the quadmesh, and each animation type key, ipo, skel, etc
 	//count as a component to asynchronously load, each time one finishes the count is decremented
-	//and if < 1 the callback for the quadmesh (as a complete object) being loaded is called
+	//and if == 0 the callback for the quadmesh (as a complete object) being loaded is called
 
 	//the orientation matrix
 	this.scale           = new Float32Array([1,1,1]);
@@ -585,12 +585,21 @@ function QM_Update( qm, animationTime ) {
 	}
 }
 
+function QM_Reset(qm){
+	qm.lastToWorldMatrixUpdateTime = -1;
+	qm.AABBUpdateTime = -1;
+	qm.lastMeshUpdateTime = -0.5;
+	qm.hasntDrawn = true;
+	if(qm.skelAnimation) //should be once per armature in a graphics reset function
+		qm.skelAnimation.lastUpdateTime = 0;
+}
+
 
 //constructor functionality
 ///////////////////////////
 
 function QM_CallReadyCallbackIfLoaded(qm){
-	if( --qm.componentsToLoad < 1 )
+	if( --qm.componentsToLoad == 0 )
 		qm.quadMeshReadyCallback(qm, qm.readyCallbackParameters);
 }
 
@@ -860,7 +869,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 	//initialize the aabb if not animated
 	if( !thisP.isAnimated ){
 		QM_UpdateAABB( thisP, 0.0);
+		thisP.quadMeshReadyCallback(thisP, thisP.readyCallbackParameters);
 	}
 
-	QM_CallReadyCallbackIfLoaded(thisP);
 }

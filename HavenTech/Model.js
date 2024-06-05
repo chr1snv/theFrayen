@@ -193,7 +193,7 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 	thisP.shaderName = quadMesh.materialNames[0];
 	thisP.shaderScene = quadMesh.sceneName;
 	thisP.quadmesh = quadMesh;
-	thisP.quadmesh.hasntDrawn = true;
+	QM_Reset(thisP.quadmesh);
 	QM_Update( thisP.quadmesh, 0 );
 	thisP.AABB = thisP.quadmesh.AABB;
 	thisP.physObj = new PhysObj(thisP.AABB, thisP, 0);
