@@ -181,7 +181,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			this.cachedObjs[concatName] =
 				new ObjConstructor(filename, sceneName, objReadyCallback, readyCallbackParameters);
 		}else{
-			componentReadyCallback( cachedObj, readyCallbackParameters );}
+			objReadyCallback( cachedObj, readyCallbackParameters );}
 	}
 	
 	
