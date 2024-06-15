@@ -82,10 +82,13 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 
 	//request the quadmesh from the graphics class to get it to load it
-	graphics.GetQuadMesh( meshNameIn, sceneNameIn,
-		{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback },
-		//pack parameters into object to pass to callback below
-		MDL_getQuadMeshCb );
+	if( meshNameIn == 'Cylinder' )
+		console.log('attempting to load Cylinder quadmesh\n');
+	graphics.GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
+				MDL_getQuadMeshCb,
+				{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }
+				//pack parameters into object to pass to callback above
+				 );
 
 
 	//loadTextFile("scenes/" + this.sceneName + 

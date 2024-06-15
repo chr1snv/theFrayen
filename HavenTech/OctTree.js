@@ -332,98 +332,60 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 //-2 need to subdivide though the max depth has been reached
 //-3 need to subdivided though the min node size has been reached
 //-4 already subdivided (shouldn't happen)
-function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
+function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 
 	let objAABB = object.AABB;
-	//DTPrintf( "tNId" + t.uid.val + " AddObject obj uid " + object.uid.val + 
-	//	" obj min " + Vect_ToFixedPrecisionString(objAABB.minCoord,3) + 
-	//			" :Max " + Vect_ToFixedPrecisionString(objAABB.maxCoord,3) + " :: otnId " + t.uid.val +
-	//			" otmin " + Vect_ToFixedPrecisionString(t.AABB.minCoord,3) + " :otMax " + 
-	//			Vect_ToFixedPrecisionString(t.AABB.maxCoord,3) + " otDpth " + t.depth, 
-	//				"ot add", "color:#66ccff", t.depth );
 	
+	if( t == null )
+		DPrintf("t == null objMeshName" + object.meshName);
 	//fill nodes until they are full (prevent unessecary subdividing)
 	//don't add objects if they intersect existing ones
 	//(if necessary the smaller object should be parented to the one with enclosing aabb)
 	if( t.subNodes[0] == null ){ //not yet subdivided, try to add to self
-		//DTPrintf( "tNId " + t.uid.val + " dpth " + t.depth + " obj " + object.uid.val + 
-		//	" not yet subdivided", "ot add", "color:#ffff66", t.depth );
+		
 		if( t.objInsertIdx >= MaxTreeNodeObjects ){ //sub divide was likely tried on earlier add and failed
-			//DTPrintf( "tNId " + t.uid.val + " divide likely tried earlier num objs " + t.objects[0].length, 
-			//	"ot add", "color:#ff0066", t.depth );
+			
 			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) addCmpCallback(); return; }
+			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; }
 		if( t.objectDictionary[ object.uid.val ] != undefined ){
-			//DTPrintf( "tNId " + t.uid.val + " obj " + object.uid.val + 
-			//	" object already added", "ot add", "color:#ff5511", t.depth );
+			
 			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) addCmpCallback(); return; }
+			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; }
 		
 		TND_addToThisNode(t, nLvsMDpth, object);
 		
 		if( nLvsMDpth[0] < 0 ){ //obj's overlapped
-			//DTPrintf( "tNId " + t.uid.val + " tName '" + t.root.name + "' obj " + object.uid.val + 
-			//" addToThisNode rejected, obj's overlapped", "ot add error", "color:red", t.depth);
-			if( addCmpCallback != undefined ) addCmpCallback();
+			
+			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs);
 			return;
 		}
 		
 		if( t.objInsertIdx >= MaxTreeNodeObjects ){ //need to try to subdivide
-			//subDivAddDepth += 1;
-			//DTPrintf( "tNId " + t.uid.val + " dpth " + t.depth + 
-			//" subdividing when adding obj " + object.uid.val, "ot add", "color:yellow", t.depth );
+			
 			//only leaf nodes should contain objects to avoid overlap ambiguity 
 			//and so rays only need check leaves while traversing
 			if( t.depth+1 > MaxTreeDepth ){ //limit depth to avoid running out of memory (if a mistake causes allot of object adding/tree division)
-				//let objDimStr = "";
-				//for( let i = 0; i < t.objects[0].length; ++i ){
-				//	objDimStr += "obj " + t.objects[0][i].uid.val + 
-				//		" min " + Vect_FixedLenStr( t.objects[0][i].AABB.minCoord, 2, 6 ) + 
-				//		" max " + Vect_FixedLenStr( t.objects[0][i].AABB.maxCoord, 2, 6 ) + " \n";
-				//}
-				//DTPrintf("tNId " + t.uid.val + " " + t.root.name + " max subdiv depth reached when adding obj " + object.uid.val +
-				//		" ndMin " + Vect_FixedLenStr( t.AABB.minCoord, 2, 6 ) +
-				//		" ndMax " + Vect_FixedLenStr( t.AABB.maxCoord, 2, 6 ) +
-				//		" nLvsMDpth " + nLvsMDpth + '\n' +
-				//		" obMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) +
-				//		" obMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 ) +
-				//		" numObjs " + t.objects[0].length +
-				//		" depth " + t.depth + "\n" +
-				//		objDimStr
-				//		, "ot add error", "color:orange", t.depth); 
+				
 				nLvsMDpth[0] = -2; nLvsMDpth[1] = 0;  //signify the max depth has been reached
 				TND_RemoveFromThisNode(t, object);
 				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) addCmpCallback(); return; 
+				if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; 
 			}
 
 			//split the node until there are only MaxTreeNodeObjects per node
 			
 			//attempt to create the up to 8 (2x minmin minmax and maxmin maxmax ) nodes
 			let srcCoords = [t.AABB.minCoord, Vect3_CopyNew(t.AABB.center), t.AABB.maxCoord];
-			let nNLvs = TND_generateSubNodes(t, srcCoords); //[numNodesCreated, num[x,y,z] ]
+			let numNodesCreated = TND_generateSubNodes(t, srcCoords); //[numNodesCreated, num[x,y,z] ]
 			
-			if( nNLvs < 2 ){ //min node size has been reached (couldn't subdivide)
-				//DTPrintf( "tNId " + t.uid.val + "nNLvs " + nNLvs + 
-				//	" t.maxDepth " + t.maxDepth + 
-				//	" genSubNodes nNLvs[0] < 2 (min node size reached) minNodeSideLength " + minNodeSideLength + 
-				//	" subdiv srcCoords " + Vect3_ArrToStr( srcCoords, 4, 8) + 
-				//	" object uid " + object.uid.val, "ot add error", "color:red", t.depth );
+			if( numNodesCreated < 2 ){ //min node size has been reached (couldn't subdivide)
+				
 				nLvsMDpth[0] = -3; nLvsMDpth[1] = 0;
 				TND_RemoveFromThisNode(t, object);
 				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) addCmpCallback(); return;
+				if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return;
 			}
 			
-			
-			
-			//DTPrintf( "tNId " + t.uid.val + "nNLvs " + nNLvs + "  generateSubNodes success " +
-			//" t.maxDepth " + t.maxDepth + " srcCoords " + srcCoords, "ot subdiv", "color:#ff4499", t.depth );
-			
-			//reset the debugging subNdsOvlapd dictionary for the objects
-			//for( let i = 0; i < t.objects[0].length; ++i )
-			//	t.objects[0].subNdsOvlapd = {};
-			//object.subNdsOvlapd = {};
 			
 			let objsAdded = {};
 			let leavesCreated = 0;
@@ -440,24 +402,6 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 						
 						let subNdIdx = x+y*2+z*4;
 						let nd = t.subNodes[subNdIdx]; //get the sub node
-						//DTPrintf("\n"+
-						//	"z " + z + " " + Object.keys(zObDict) + "\n" +
-						//	"y " + y + " " + Object.keys(yObDict) + "\n" +
-						//	"x " + x + " " + Object.keys(xObDict) + "\n" +
-						//	"subnd " + nd.uid.val + " dpth" + nd.depth + " min " + nd.AABB.minCoord + 
-						//		" max " + nd.AABB.maxCoord, "ot subdiv", "color:orange", t.depth );
-						
-						/*
-						let obsShouldAddToNode = {};
-						for( let i = 0; i < t.objects[0].length; ++i ){
-							let ovlapVal = AABBsOverlap( nd.AABB, t.objects[0][i].AABB );
-							if( ovlapVal > 0 ){
-								if( obsShouldAddToNode[ t.objects[0][i].uid.val ] == undefined )
-									obsShouldAddToNode[ t.objects[0][i].uid.val ] = "";
-								obsShouldAddToNode[ t.objects[0][i].uid.val ] += subNdIdx + " ";
-							}
-						}
-						*/
 						
 						
 						let objsAttemptedToAdd = {};
@@ -465,53 +409,26 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 						for( let obUidIdx = 0; obUidIdx < xObDictKeys.length; obUidIdx++ ){
 							let obUid = xObDictKeys[obUidIdx];
 							if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){ //add the intersecting subset of objects of the 3 axies into the subnode
-								//if( xObDict[obUid].fNum && xObDict[obUid].fNum == 8 )
-								//	DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addingobject  " + obUid + 
-								//		"fNum " + xObDict[obUid].fNum 
-								//		, "ot add dbg", "color:#ae7a53", t.depth );
 								
 								if( objsAttemptedToAdd[ obUid ] == undefined )
 									objsAttemptedToAdd[ obUid ] = "";
 								objsAttemptedToAdd[ obUid ] += subNdIdx + " ";
 								
 								let nNLvsMDpth = [0,0];
-								//DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addingobject  " + obUid + 
-								//		" result nLvsMDpth " + nNLvsMDpth, "ot add", "color:#ae7a53", t.depth );
-								//if( obUid == "100225" && nd.uid.val == 101694 )
-								//	DTPrintf("before obj add error ob uid 100225 nd uid 101694", "ot add error", "color:#ffffaa", t.depth);
+								
 								TND_AddObject( nd, nNLvsMDpth, xObDict[obUid] );
-								//DTPrintf( "subnd " + nd.uid.val + " dpth " + nd.depth +  " addobject  " + obUid + 
-								//		" result nLvsMDpth " + nNLvsMDpth, "ot add", "color:#ae4e08", t.depth );
+								
 								if( nNLvsMDpth[0] >= 0 ){ //added the object
 									objsAdded[obUid] = obUid;
-									//DTPrintf( "objAdded " + obUid + " subnd " + nd.uid.val + " dpth " + nd.depth, 
-									//	"ot add", "color:green", t.depth );
+									
 									leavesCreated += nNLvsMDpth[0];
 									if( nNLvsMDpth[1] > maxNewDpth )
 										maxNewDpth = nNLvsMDpth[1];
 									if( nd.objInsertIdx > maxObjsInNde )
 										maxObjsInNde = nd.objInsertIdx;
 									
-								}else{
-									//DTPrintf( "subDiv AddObject failed - xyz subNdIdx's " + x + "," + y + "," + z + 
-									//		" subNdObjs " + nd.objects[0].length + " subNdDepth " + nd.depth + '\n' +
-									//		" ndMin " + Vect_FixedLenStr( nd.AABB.minCoord, 2, 6 ) + 
-									//		" ndMax " + Vect_FixedLenStr( nd.AABB.maxCoord, 2, 6 ) +
-									//		" objUid " + obUid + " nNLvsMDpth " + nNLvsMDpth + '\n' +
-									//		" obMin " + Vect_FixedLenStr( xObDict[obUid].AABB.minCoord, 2, 6 ) + 
-									//		" obMax " + Vect_FixedLenStr( xObDict[obUid].AABB.maxCoord, 2, 6 ) , 
-									//		"ot add error", "color:red", t.depth  );
-								}
-							}else{
-								//xObDict[ obUid ].notAddedStr = 
-								//	"not in all dicts obUid " + obUid + " axs idxs " +
-								//	x + "," + y + "," + z + "\n" +
-								//	"nd minCoord " + Vect_FixedLenStr( nd.AABB.minCoord, 2, 6 ) + 
-								//	" nd maxCoord " + Vect_FixedLenStr( nd.AABB.maxCoord, 2, 6 ) +
-								//	"  in xDict " + (xObDict[ obUid ] == undefined ? 'no' : 'yes') + 
-								//	" in yDict " + (yObDict[ obUid ] == undefined ? 'no' : 'yes') + 
-								//	" in zDict " + (zObDict[obUid] == undefined ? 'no' : 'yes');
-							}
+								}//else subDiv AddObject failed
+							}//else xObDict[ obUid ].notAddedStr
 						}
 						
 					//if( Object.keys( obsShouldAddToNode ).length != Object.keys( objsAttemptedToAdd ).length )
@@ -527,67 +444,13 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 			let allObjs = t.objects[0];
 			if( addedObjs.length < allObjs.length ){
 				//the subdivision didn't work
-				/*
-				DTPrintf( "tNId " + t.uid.val + " treeNode subdivision didn't work    added:" + 
-					addedObjs.length + " of " + allObjs.length + " to have been added", 
-						"ot add error", "color:red", t.depth  );
-				//create the all objects string and 
-				//pre populate the not added objs dictionary
-				let allObjsStr = "";
-				let notAddedObjsDict = {};
-				for( let i = 0; i < allObjs.length; ++i ){
-					allObjsStr += allObjs[i].uid.val + ":";
-					notAddedObjsDict[allObjs[i].uid.val] = allObjs[i];
-				}
-				//remove added objects and create added objs string
-				let addedStr = "";
-				for( let i = 0; i < addedObjs.length; ++i ){
-					let addedUid = addedObjs[i];
-					addedStr += addedUid + ":";
-					delete(notAddedObjsDict[addedUid]);
-				}
-				//fill in not added string from not added dictionary
-				let notAddedStr = "";
-				let notAddedObjs = Object.keys(notAddedObjsDict);
-				DTPrintf("notAddedObjs " + notAddedObjs, "ot add error", "color:red", t.depth );
-				for( let i = 0; i < notAddedObjs.length; ++i ){
-					let obj     = notAddedObjsDict[ notAddedObjs[i] ];
-					let objAABB = obj.AABB;
-					notAddedStr += notAddedObjs[i] + ":m" + Vect_ToFixedPrecisionString(objAABB.minCoord,3);
-					notAddedStr += ":M" + Vect_ToFixedPrecisionString(objAABB.maxCoord,3) + 
-					" ovLp " + AABBsOverlap(objAABB, t.AABB) + "  ,\n  ";
-					
-					notAddedStr += "overlapping sub node axies ";
-					if( obj.subNdsOvlapd ){
-						let overlapingAxies = Object.keys(obj.subNdsOvlapd);
-						for( ix in overlapingAxies ){
-							let idxsForAxis = obj.subNdsOvlapd[ix];
-							if ( idxsForAxis == undefined )
-								notAddedStr += ix + ": " + "none";
-							else
-								notAddedStr += ix + ": " + Object.keys( idxsForAxis ) + "  ";
-						}
-					}else{
-						notAddedStr += " obj.subNdsOvlapd is null ";
-					}
-					if( obj.notAddedStr )
-						notAddedStr += "\n " + obj.notAddedStr + " \n";
-				}
 				
-				DTPrintf( 
-						"tNId " + t.uid.val + " dpth " + t.depth + " subD added objsAdded " + addedStr + 
-						" all " + allObjsStr + "\n notAdded " + notAddedStr + "\n" +
-						"node min " + Vect_FixedLenStr( t.AABB.minCoord, 2, 6 ) + 
-						" max " + Vect_FixedLenStr( t.AABB.maxCoord, 2, 6 ), 
-						"ot add error", "color:red", t.depth );
-				*/
 				nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
 				t.subNodes = [null,null,null,null,  null,null,null,null]
 				TND_RemoveFromThisNode(t, object);
 			}else{
-				//DTPrintf( " trNd " + t.uid.val + " dpth " + t.depth + " all objs added " +
-				//	" addedLen " + addedObjs.length + " allObjLen " + allObjs.length, "ot add", "color:green", t.depth );
 				
+				/*
 				//check that at least one node didn't get all the objects
 				let minNumObjsInASubNode = MaxTreeNodeObjects;
 				let maxNumObjsInASubNode = 0;
@@ -601,23 +464,17 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 					}
 				}
 				
+				
 				if( minNumObjsInASubNode == maxNumObjsInASubNode ){
 				
-					//DTPrintf( 
-					//	"tNId " + t.uid.val + " dpth " + t.depth + " failed to seperate objects during subdivision " + 
-					//	" minInSubNd " + minNumObjsInASubNode + " maxInASubNd " + maxNumObjsInASubNode
-					//	, "ot add error", "color:red", t.depth );
+					//" failed to seperate objects during subdivision " + "ot add error"
 					nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
 					t.subNodes = [null,null,null,null,  null,null,null,null];
 					TND_RemoveFromThisNode(t, object);
 					
 				}else{
-				
+				*/
 					//subdivision success
-					//DTPrintf( " oTName '" + t.root.name + "' subdiv success " + 
-					//	" minInSubNd " + minNumObjsInASubNode + 
-					//	" maxInASubNd " + maxNumObjsInASubNode + " numSubNds " + nNLvs + 
-					//	" thisDepth " + t.depth, "ot subdiv success", "color:green", t.depth );
 			
 					//remove object's association to this treeNode
 					//since it is going to be added to one or more of the subnodes
@@ -637,47 +494,28 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 					//parent max depth and leaf count update is based on the nLvsMDpth values
 					nLvsMDpth[0] = t.nNLvs[0] + leavesCreated;
 					
-				}
+				//}
 				
 			}
 		}
 		
 		
 		nLvsMDpth[1] = t.maxDepth;
-		//let ndObjsStr = "";
-		//for( let i = 0; i < t.objects[0].length; ++i )
-		//	ndObjsStr += t.objects[0][i].uid.val + " ";
-		//DTPrintf( "otName " + t.root.name + " tNId " + t.uid.val + 
-		//	" ndMin " + Vect_FixedLenStr( t.AABB.minCoord, 2, 6 ) + " ndMax " + Vect_FixedLenStr( t.AABB.maxCoord, 2, 6 ) +
-		//	" dpth " + t.depth + " nLvsMDpth " + nLvsMDpth + " ndObjs " + ndObjsStr + "\n" +
-		//	"objUid " + object.uid.val + " objMin " + Vect_FixedLenStr( object.AABB.minCoord, 2, 6 ) + 
-		//	" objMax " + Vect_FixedLenStr( object.AABB.maxCoord, 2, 6 )
-		//	, "ot add success", UIDToColorHexString(t.root.uid), t.depth );
+		// "ot add success"
 
 	}else{ //already subdivided, decide which sub nodes it should be added to
-		//DTPrintf( "tNId " + t.uid.val + " dpth " + t.depth + 
-		//	" already subdivided", "ot add", "color:#3366ff", t.depth );
-			
-		//if( object.fNum && object.fNum == 8 )
-		//	DTPrintf( "tNd uid " + t.uid.val + " dpth " + t.depth +  " addingobject  " + object + 
-		//		"fNum " + object.fNum 
-		//		, "ot add dbg", "color:#ff0053", t.depth );
-	
+		
 		let maxNewDpth = t.maxDepth;
 		for(let i = 0; i < t.subNodes.length; ++i){
 			let subnode = t.subNodes[i];
 			if( subnode ){
-				//if( object.fNum && object.fNum == 10 )
-				//	DTPrintf(" ovlap calc", "ot add dbg", "color:#ff00ff", t.depth );
+				
 				let ovlapPct = AABB_OthrObjOverlap( subnode.AABB.minCoord, subnode.AABB.maxCoord, object.AABB.minCoord, object.AABB.maxCoord );
-				//if( object.fNum && object.fNum == 10 )
-				//	DTPrintf(" ovlap calc result " + ovlapPct, "ot add dbg", "color:#ff00ff", t.depth );
+				
 				if( ovlapPct > 0 ){
-					//if( object.fNum && object.fNum == 10 )
-					//	DTPrintf( "fNum 8 ovlapPct " + ovlapPct 
-					//		, "ot add dbg", "color:#ff0053", t.depth );
+					
 					let snNLvsMDpth = [0,0];
-					TND_AddObject( subnode, snNLvsMDpth, object, addCmpCallback );
+					TND_AddObject( subnode, snNLvsMDpth, object, addCmpCallback, addCmpArgs );
 					if( snNLvsMDpth[0] > 0 ) //num new leaves > 0
 						nLvsMDpth[0] += snNLvsMDpth[0];
 					if( snNLvsMDpth[1] > nLvsMDpth[1] ) //max depth from add obj > maxNewDpth
@@ -694,7 +532,7 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback ){
 	}
 	
 	if( addCmpCallback != undefined )
-		addCmpCallback();
+		addCmpCallback(addCmpArgs);
 	
 }
 
@@ -880,7 +718,8 @@ function TND_generateSubNodes(t, srcCoords){
 			}
 		}
 	}
-
+	t.nNLvs[0] = numNodesCreated;
+	return numNodesCreated;
 }
 
 let nextNodeRayPoint = Vect3_NewZero();

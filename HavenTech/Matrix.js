@@ -385,6 +385,20 @@ function Matrix_Multiply( ret, a, b ){
 	}
 }
 
+function Matrix_MultToArrTransp( ret, outOff, a, b ){
+	//multiply the two 4x4 matricies together
+
+	//this loop pattern was found by writing out the multiplication term by term
+	for(let i=0; i<4; ++i){          //   row of matrix a, and ret matrix
+		for(let j=0; j<4; ++j){      //column of matrix b, and ret matrix
+			let accum = 0;
+			for(let k=0; k<4; ++k)  //   row of matrix b, and column of matrix a
+				accum += a[i*4+k]*b[k*4+j];
+			ret[ outOff + (j*4) + i ] = accum; //the row/column result element is row i of a dot col j of b
+		}
+	}
+}
+
 function Matrix_Transpose( ret, m ){
 	//read each input column and write it out as a row
 	for(let i=0; i<4; ++i)

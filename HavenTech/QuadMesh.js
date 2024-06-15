@@ -10,16 +10,16 @@ class Face { //part of mesh stored in mesh octTree
 		this.numFaceVerts = 0;
 		this.uvs        = new Array(4*2);
 		this.vertIdxs   = new Array(4).fill(-1);
-		this.triIdxs    = new Array(2).fill(-1);
+		//this.triIdxs    = new Array(2).fill(-1);
 		this.AABB       = new AABB();
 		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
-		this.treeNodes  = {};
-		this.fNum = -1;
-		this.otType = OT_TYPE_Face;
+		//this.treeNodes  = {};
+		//this.fNum = -1;
+		//this.otType = OT_TYPE_Face;
 	}
 
 }
-
+/*
 function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is the quadmesh for getmaterialcolor
 	//if( this.fNum < 9  ){
 	//	retDisNormCol[0] = -1;//retDisNormCol[4];
@@ -44,7 +44,7 @@ function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is th
 				retDisNormCol[2][0] = uvCoord[0];
 				retDisNormCol[2][1] = uvCoord[1];
 			}else{
-			*/
+			///*
 				QM_GetMaterialColorAtUVCoord( qMesh, retDisNormCol[2], uvCoord, thisP.materialID );
 			//}
 			//retDisNormCol[2][2] = 0;
@@ -57,8 +57,9 @@ function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is th
 		}
 	}
 }
+*/
 
-function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParameters)
+function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbackParameters)
 {
 	this.quadMeshReadyCallback = quadMeshReadyCallback;
 	this.readyCallbackParameters = readyCallbackParameters;
@@ -85,6 +86,10 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 	this.materialNames     = [];
 	this.materials         = [];
 
+	this.faceVertsCtForMat       = null;
+	this.faceIdxsForMatInsertIdx = null;
+	this.faceIdxsForMat          = null; //the indicies of faces for materials
+
 	//the mesh data
 	this.tris            = [];
 	this.faces           = [];
@@ -110,7 +115,7 @@ function QuadMesh(nameIn, sceneNameIn, quadMeshReadyCallback, readyCallbackParam
 
 	//animation classes
 	//keyframe animation has basis meshes and an ipo curve for each giving weight at time
-	this.keyAnimation    = new MeshKeyAnimation(  this.meshName, this.sceneName );
+	this.keyAnimation    = null; //new MeshKeyAnimation(  this.meshName, this.sceneName );
 
 
 	//request the local to world matrix animation
@@ -221,16 +226,17 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
 //(convert from quad and triangle faces to only triangles
 //3 verticies per face) for rendering with webgl 
 function QM_SL_tesselateCoords( coords,
-                                faces,
+                                faces, faceIdxs, numFaceIdxs,
                                 inputCoords, startIdx ){
 	let cI = startIdx*vertCard;
 
 	//create the vertex array
-	for(let i=0; i<faces.length; ++i){
-		let numFaceVerts = faces[i].numFaceVerts;
+	for(let i=0; i<numFaceIdxs; ++i){
+		let face = faces[faceIdxs[i]];
+		let numFaceVerts = face.numFaceVerts;
 		if(numFaceVerts == 3){ //triangle
 			for(let j=0; j<numFaceVerts; ++j){
-				let coordIdx = (faces[i].vertIdxs[j])*vertCard;
+				let coordIdx = (face.vertIdxs[j])*vertCard;
 				coords[cI++] = inputCoords[coordIdx];
 				coords[cI++] = inputCoords[coordIdx+1];
 				coords[cI++] = inputCoords[coordIdx+2];
@@ -238,35 +244,29 @@ function QM_SL_tesselateCoords( coords,
 		}
 		else if(numFaceVerts == 4) //quad. tesselate into two triangles
 		{
-			let coordIdx = (faces[i].vertIdxs[0])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			let coordIdx = (face.vertIdxs[0])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 
-			coordIdx = (faces[i].vertIdxs[1])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			coordIdx = (face.vertIdxs[1])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 
-			coordIdx = (faces[i].vertIdxs[2])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			coordIdx = (face.vertIdxs[2])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 
-			coordIdx = (faces[i].vertIdxs[2])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			coordIdx = (face.vertIdxs[2])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 
-			coordIdx = (faces[i].vertIdxs[3])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			coordIdx = (face.vertIdxs[3])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 
-			coordIdx = (faces[i].vertIdxs[0])*vertCard;
-			coords[cI++] = inputCoords[coordIdx];
-			coords[cI++] = inputCoords[coordIdx+1];
-			coords[cI++] = inputCoords[coordIdx+2];
+			coordIdx = (face.vertIdxs[0])*vertCard;
+			Vect_CopyToFromArr( coords, cI, inputCoords, coordIdx, 3 );
+			cI +=3;
 		}
 	}
 	//if(cI != coords.length)
@@ -274,66 +274,219 @@ function QM_SL_tesselateCoords( coords,
 	return cI/vertCard; //return the number of coordinates
 }
 
-function QM_SL_tesselateUVCoords( uvCoords, faces, startIdx ){
+function QM_SL_tesselateUVCoords( 
+	uvCoords, 
+	faces, faceIdxs, numFaceIdxs,
+	startIdx ){
+	
 	let cI = startIdx*uvCard;
 
 	//create the vertex index array
-	for(let i=0; i<faces.length; ++i)
+	for(let i=0; i<numFaceIdxs; ++i)
 	{
-		let vertsSize = faces[i].numFaceVerts;
+		let face = faces[faceIdxs[i]];
+		let vertsSize = face.numFaceVerts;
 		
 		if( vertsSize == 3) //triangle
 		{
 			for(let j=0; j<3*uvCard; j+=uvCard)
 			{
-				uvCoords[cI++] = faces[i].uvs[j+0];
-				uvCoords[cI++] = faces[i].uvs[j+1];
+				uvCoords[cI++] = face.uvs[j+0];
+				uvCoords[cI++] = face.uvs[j+1];
 			}
 		}
 		else if(vertsSize == 4) //quad. tesselate into two triangles
 		{
-			uvCoords[cI++] = faces[i].uvs[0*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[0*uvCard+1];
+			uvCoords[cI++] = face.uvs[0*uvCard+0];
+			uvCoords[cI++] = face.uvs[0*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[1*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[1*uvCard+1];
+			uvCoords[cI++] = face.uvs[1*uvCard+0];
+			uvCoords[cI++] = face.uvs[1*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[2*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[2*uvCard+1];
+			uvCoords[cI++] = face.uvs[2*uvCard+0];
+			uvCoords[cI++] = face.uvs[2*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[2*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[2*uvCard+1];
+			uvCoords[cI++] = face.uvs[2*uvCard+0];
+			uvCoords[cI++] = face.uvs[2*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[3*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[3*uvCard+1];
+			uvCoords[cI++] = face.uvs[3*uvCard+0];
+			uvCoords[cI++] = face.uvs[3*uvCard+1];
 
-			uvCoords[cI++] = faces[i].uvs[0*uvCard+0];
-			uvCoords[cI++] = faces[i].uvs[0*uvCard+1];
+			uvCoords[cI++] = face.uvs[0*uvCard+0];
+			uvCoords[cI++] = face.uvs[0*uvCard+1];
 		}
 	}
 	return cI/uvCard;
 }
 
+let idx1     = 0;
+let wght1    = 0;
+let idx2     = 0;
+let wght2    = 0;
+let tempIdx  = 0;
+let tempWght = 0;
+let wghtTot = 0;
+function getMostSignificantBoneIdxWghtsForVert(weights){
+
+	//init to zero idx (default identity matrix) if there are'nt weights for the vertex
+	idx1  = -1;
+	wght1 = -1;
+	idx2  = -1;
+	wght2 = -1;
+
+	wghtTot = 0;
+
+	if( weights != undefined ){
+		for( let boneIdx in weights ){
+			tempIdx = parseInt(boneIdx);
+			tempWght = weights[boneIdx];
+			if( tempWght > wght1 ){
+				//replace 1 with temp and put 1 in 2
+				wght2 = wght1;
+				idx2 = idx1;
+				wght1 = tempWght;
+				idx1 = tempIdx;
+			}else if( tempWght > wght2 ){
+				//replace 2 with temp
+				wght2 = tempWght;
+				idx2 = tempIdx;
+			}
+		}
+		
+		/*
+		//normalize weights
+		if( wght1 > 0 )
+			wghtTot += wght1;
+		if( wght2 > 0 )
+			wghtTot += wght2;
+		wght1 /= wghtTot;
+		wght2 /= wghtTot;
+		*/
+	}
+
+}
+function writeIdxWeights(bnIdxWghts, cI, matOffset){
+
+	if( idx1 < 0 ){
+		bnIdxWghts[cI++] = 0;
+		bnIdxWghts[cI++] = 1;
+	}else{
+		bnIdxWghts[cI++] = idx1 + matOffset;
+		bnIdxWghts[cI++] = wght1;
+	}
+	
+	if( idx2 < 0 ){
+		bnIdxWghts[cI++] = 0;
+		bnIdxWghts[cI++] = 1;
+	}else{
+		bnIdxWghts[cI++] = idx2 + matOffset;
+		bnIdxWghts[cI++] = wght2;
+	}
+	
+}
+function getAndCopyMostSignificantWeightsForIdx( 
+	bnIdxWghts, coordIdx, cI, 
+	vertBoneWeights, matOffset ){
+	let weights = vertBoneWeights[coordIdx];
+	getMostSignificantBoneIdxWghtsForVert(weights);
+	writeIdxWeights(bnIdxWghts, cI, matOffset );
+}
+
+function QM_SL_tesselateBoneIdxWghtCoords( 
+	bnIdxWghts, vertBoneWeights, 
+	faces, faceIdxs, numFaceIdxs,
+	startIdx, matOffset ){
+	let cI = startIdx*bnIdxWghtCard;
+
+	//tesselate the vertBoneWeights according to the face vert idxs
+	//create the vertex array
+	for(let i=0; i<numFaceIdxs; ++i){
+		let face = faces[faceIdxs[i]];
+		let numFaceVerts = face.numFaceVerts;
+		if(numFaceVerts == 3){ //triangle
+			for(let j=0; j<numFaceVerts; ++j){
+				let coordIdx = (face.vertIdxs[j]);
+				getAndCopyMostSignificantWeightsForIdx( 
+					bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+				cI += bnIdxWghtCard;
+			}
+		}
+		else if(numFaceVerts == 4) //quad. tesselate into two triangles
+		{
+			let coordIdx = (face.vertIdxs[0]);
+			getAndCopyMostSignificantWeightsForIdx(
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+
+			coordIdx = (face.vertIdxs[1]);
+			getAndCopyMostSignificantWeightsForIdx( 
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+
+			coordIdx = (face.vertIdxs[2]);
+			getAndCopyMostSignificantWeightsForIdx(
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+
+			coordIdx = (face.vertIdxs[2]);
+			getAndCopyMostSignificantWeightsForIdx( 
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+
+			coordIdx = (face.vertIdxs[3]);
+			getAndCopyMostSignificantWeightsForIdx( 
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+
+			coordIdx = (face.vertIdxs[0]);
+			getAndCopyMostSignificantWeightsForIdx( 
+				bnIdxWghts, coordIdx, cI, vertBoneWeights, matOffset );
+			cI += bnIdxWghtCard;
+		}
+	}
+	return cI/bnIdxWghtCard;
+}
+
 //draw interface
-function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, drawBatch, mat){
+function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx, subBatchBuffer ){
 	//since quad meshes are a mixture of quads and tris,
 	//use the face vertex indices to tesselate the entire mesh into
 	//tris, calculate face normals, upload to gl and draw
 
-	let retBufferIdx = drawBatch.bufferIdx;
-
 	if(!qm.isValid){
 		DPrintf("QuadMesh::Draw: failed to draw.\n");
+		//drawBatch.isValid = false;
 		return;
 	}
-	
-	if( qm.isAnimated || drawBatch.isAnimated )
-		drawBatch.isAnimated = true;
 
-	//update the arrays the first time and if there is a vertex modifying animation
-	if( drawBatch.bufferUpdated || qm.skelAnimation ){//|| qm.keyAnimation){
+
+	if( qm.isAnimated || drawBatch.isAnimated ){
+		drawBatch.isAnimated = true;
+	}
+
+
+
+	let numGenVerts = 0;
+
+	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
+	if( /*drawBatch.isAnimated ||*/ drawBatch.bufferUpdated /*|| qm.skelAnimation*/ ){//|| qm.keyAnimation){
+
+		if( qm.skelAnimation ){
+			subBatchBuffer.skelAnim = qm.skelAnimation;
+
+			////
+			//Generate the bone idx weight coordinates (per vertex)
+			/////////////////////////////////////////////////////////////
+
+			QM_SL_tesselateBoneIdxWghtCoords( 
+				drawBatch.bnIdxWghtBuffer, qm.vertBoneWeights, 
+				qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
+				startIdx, qm.skelAnimation.combinedBoneMatOffset );
+		}
 
 		drawBatch.bufferUpdated = true;
+		
+		
 
 		//
 		///Assume model has been updated (source of mesh vertex data)
@@ -345,9 +498,11 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, drawBatch, mat){
 		///Generate the vertex position coordinates
 		////////////////////////////////////////////////////////////
 
-		//tesselate the mesh
-		QM_SL_tesselateCoords( drawBatch.vertBuffer, qm.faces, qm.transformedVerts, drawBatch.bufferIdx );
-
+		//tesselate the vertex positions
+		numGenVerts = QM_SL_tesselateCoords( 
+			drawBatch.vertBuffer,
+			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
+			qm.transformedVerts, startIdx );
 
 		////
 		//Generate the vertex normal coordinates
@@ -365,19 +520,25 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat(qm, drawBatch, mat){
 		//Generate the texture coordinates (per vertex)
 		/////////////////////////////////////////////////////////////
 
-		QM_SL_tesselateUVCoords(drawBatch.uvBuffer, qm.faces, drawBatch.bufferIdx);
-		
-		
+		QM_SL_tesselateUVCoords(
+			drawBatch.uvBuffer,
+			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
+			startIdx );
+
+
 		qm.hasntDrawn = false;
+		
+		
+		drawBatch.numSubBufferUpdatesToBeValid -= 1;
 	}
 
-	return qm.faceVertsCt;
+	return numGenVerts;
 }
 
 
 //ray trace functionality
 ///////////////////////////
-
+/*
 //called during ray trace rendering
 	//returns the ray distance, surface normal, and color at the intersection pt
 let tempRay = new Ray( Vect3_New(), Vect3_New() );
@@ -419,6 +580,7 @@ function QM_IsTransparent(qm, callback)
 			cb( material.IsTransparent(), qm );
 		});
 }
+*/
 
 //update / initialize functionality
 ///////////////////////////
@@ -440,19 +602,20 @@ function QM_UpdateTransformedVerts(qm, time){
 	
 	//update the coordinates with the animation / simulation type
 	if( qm.skelAnimation != null )
-		updated = SkelA_GenerateMesh(qm.skelAnimation, 
-			qm.transformedVerts, qm, time, qm.lclMinCorner, qm.lclMaxCorner);
-	else{ //there isn't a simulation use the unmodified base coordinates
-		qm.transformedVerts = transformedVertCoords;
-	}
+		updated = SkelA_GenerateMesh(qm.skelAnimation, qm, time );
+	
+	//if there are skel anim transforms, they occur in the vertex shader
+	qm.transformedVerts = transformedVertCoords;
+	
 	
 	return updated;
 }
 
-
+/*
 function QM_PrintHierarchy(qm, name, par){
 	qm.octTree.PrintHierarchy(name, par);
 }
+*/
 
 //update the quadmesh to world transformation
 let tempMat = new Float32Array(4*4);
@@ -475,25 +638,25 @@ function QM_UpdateToWorldMatrix(qm, time){
 	return true;
 }
 
-
+let tempVert = Vect3_New();
 //get the axis aligned bounding box of the mesh
 function QM_UpdateAABB(qm, time) {
 	if( qm.AABBUpdateTime < time ){
 		qm.AABBUpdateTime = qm.lastMeshUpdateTime;
-		
+
 		Vect3_SetScalar( qm.worldMinCorner,  999999 );
 		Vect3_SetScalar( qm.worldMaxCorner, -999999 );
-		
+
 		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMinCorner);
 		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
 		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMaxCorner);
 		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
-		
-		
+
+
 		AABB_UpdateMinMaxCenter(qm.AABB, qm.worldMinCorner, qm.worldMaxCorner );
 	}
 }
-
+/*
 //generate local space triangles from a face index
 let tempVert = new Array(3);
 let tempVert1 = new Array(3);
@@ -501,13 +664,13 @@ let minf = Vect3_NewScalar(  999999 );
 let maxf = Vect3_NewScalar( -999999 );
 function QM_UpdateFaceAABBAndTriangles( qm, f ){
 	const face = qm.faces[f];
-	
+
 	//initialized to opposite extrema to accept any value at first
 	Vect3_SetScalar( minf,  999999 );
 	Vect3_SetScalar( maxf, -999999 );
 	//DTPrintf("updt f AABB " + f, "quadM updt");
 	for( let v = 0; v < face.numFaceVerts; ++v ){
-	
+
 		Vect3_CopyFromArr( tempVert, qm.transformedVerts, face.vertIdxs[v]*vertCard );
 		//DTPrintf("v " + v + " " + Vect_FixedLenStr(tempVert, 4, 7), "quadM updt");
 		Vect3_minMax( minf, maxf, tempVert );
@@ -556,6 +719,7 @@ function QM_UpdateOctTree(qm, octUpdateCmpCallback){
 	}
 	//octUpdateCmpCallback();
 }
+*/
 
 //using the MeshKeyAnimation
 //update the current mesh (used by skeletal animation if present) 
@@ -605,39 +769,63 @@ function QM_CallReadyCallbackIfLoaded(qm){
 
 function QM_materialReady( material, thisPAndMaterialIdx ){
 	thisPAndMaterialIdx[0].materials.splice( thisPAndMaterialIdx[1], 0, material);
+	
+	if( --thisPAndMaterialIdx[0].materialsToLoad == 0 ){
+		//read in the mesh file
+		let meshFileName = "scenes/"  + thisPAndMaterialIdx[0].sceneName + 
+							"/meshes/" + thisPAndMaterialIdx[0].meshName + ".hvtMesh";
+		loadTextFile( meshFileName, QM_meshFileLoaded, thisPAndMaterialIdx[0] );
+	}
 }
 
 function QM_matFileLoaded(matFile, thisP){
 	let matFileLines = matFile.split('\n');
 
+
 	for( let matIdx in matFileLines ){
 		let temp = matFileLines[matIdx].split(' ');
+		if( temp[0] == 'n' ){
+			thisP.materialsToLoad = parseInt(temp[1]);
+		}
 		if( temp[0] == 'mat' ){ //name of a material
-			thisP.materialNames.push(temp[1]);
+			let matNameString = temp[1];
+			for( let i = 2; i < temp.length; ++i )
+				matNameString += ' ' + temp[i];
+			thisP.materialNames.push(matNameString);
 			//preload the material
-			graphics.GetMaterial( temp[1], thisP.sceneName, 
-			[thisP, thisP.materialNames.length-1], QM_materialReady );
+			graphics.GetCached( matNameString, thisP.sceneName, Material, null,
+			QM_materialReady, [thisP, thisP.materialNames.length-1] );
 		}
 	}
-	if( thisP.materialNames.length < 1 ){
+	let numMaterials = thisP.materialNames.length;
+	if( numMaterials < 1 ){
 		DPrintf('QuadMesh: ' + thisP.meshName + 
 			', failed to read any materials, loading default material');
 		thisP.materialNames.push("default");
+		thisP.materialsToLoad = 1;
+		numMaterials = 1;
 		//preload the material
-		graphics.GetMaterial( "default", thisP.sceneName,
-		[thisP, thisP.materialNames.length-1], QM_materialReady );
+		graphics.GetCached( 'default', 'default', Material, null,
+		QM_materialReady, [thisP, numMaterials-1] );
 	}
 
-	//read in the mesh file
-	let meshFileName = "scenes/"  + thisP.sceneName + 
-						"/meshes/" + thisP.meshName + ".hvtMesh";
-	loadTextFile( meshFileName, QM_meshFileLoaded, thisP );
+	thisP.faceIdxsForMatInsertIdx = new Array(numMaterials);
+	thisP.faceVertsCtForMat = new Array( numMaterials );
+	for(let i = 0; i < numMaterials; ++i ){
+		thisP.faceIdxsForMatInsertIdx[i] = 0;
+		thisP.faceVertsCtForMat[i] = 0;
+	}
+	thisP.faceIdxsForMat = new Array( numMaterials );
+
+
+
 	//when completed calls mesh file loaded above
 }
 
 function QM_ArmatureReadyCallback(armature, qm){
 	qm.skelAnimation = armature;
 	
+	/* //now done in blender exporter
 	//finalize the binding between the quadMesh and the skelAnimation
 	//by setting the boneID's in the bone weights
 	//based on the bone positions
@@ -647,13 +835,19 @@ function QM_ArmatureReadyCallback(armature, qm){
 			for( let k in qm.skelAnimation.bones )
 				if(qm.skelAnimation.bones[k].boneName == boneName)
 					qm.vertBoneWeights[i][boneName].boneID = k;
+	*/
 
+	QM_CallReadyCallbackIfLoaded(qm);
+}
+
+function QM_QM_MeshKeyAnimReadyCallback(meshKeyAnim, qm){
+	qm.meshKeyAnim = meshKeyAnim;
 	QM_CallReadyCallbackIfLoaded(qm);
 }
 
 function QM_IPOAnimReadyCallback(ipoAnim, qm){
 	qm.ipoAnimation = ipoAnim;
-	QM_CallReadyCallbackIfLoaded(qm); 
+	QM_CallReadyCallbackIfLoaded(qm);
 }
 
 function QM_meshFileLoaded(meshFile, thisP)
@@ -668,13 +862,19 @@ function QM_meshFileLoaded(meshFile, thisP)
 	let fIdx = 0;
 	let tIdx = 0;
 	
+	let ipoAnimName = '';
+	let meshKeyAnimName = '';
+	let skelAnimName = '';
+	
+	thisP.componentsToLoad = 1;
+	
 	let temp = meshFileLines[meshFileLines.length-2];
 	let words = temp.split(' ');
 	if( temp[0] == 'c' && temp[1] == 't' ){
 		triCt = words[1];
-		thisP.tris = new Array(triCt);
-		for( let i = 0; i < triCt; ++i )
-			thisP.tris[i] = new Triangle();
+		//thisP.tris = new Array(triCt);
+		//for( let i = 0; i < triCt; ++i )
+		//	thisP.tris[i] = new Triangle();
 	}else{
 		DTPrintf("error parsing tri count " + thisP.meshName, "quadM parse error");
 		return;
@@ -710,17 +910,30 @@ function QM_meshFileLoaded(meshFile, thisP)
 						parseFloat(words[2]), 
 						parseFloat(words[3]) ] );
 				}else if( temp[0] == 'i' ){
-					graphics.GetCached(words[1], thisP.sceneName, IPOAnimation, QM_IPOAnimReadyCallback, thisP);
+					ipoAnimName = words[1];
+					thisP.isAnimated = true;
+					thisP.componentsToLoad += 1; //need full count of async components to load before loading them
+				}else if( temp[0] == 'm' ){
+					meshKeyAnimName = words[1];
 					thisP.isAnimated = true;
 					thisP.componentsToLoad += 1;
 				}else if( temp[0] == 'a' ){
-					graphics.GetCached(words[1], thisP.sceneName, SkeletalAnimation, QM_ArmatureReadyCallback, thisP);
+					skelAnimName = words[1];
 					thisP.isAnimated = true;
 					thisP.componentsToLoad += 1;
 				}else if( temp[0] == 'e' ){
-					break;}
+					if( ipoAnimName != '' )
+						graphics.GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
+					if( meshKeyAnimName != '' )
+						graphics.GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
+					if( skelAnimName != '' )
+						graphics.GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
+					break;
+				}
 			}
 		}
+		
+		
 
 		//read in the number of vertices
 		else if( temp[0] == 'c' && temp[1] == 'v' ){
@@ -729,6 +942,9 @@ function QM_meshFileLoaded(meshFile, thisP)
 			thisP.vertPositions = new Float32Array( numVerts * vertCard );
 			thisP.vertNormals = new Float32Array( numVerts * vertCard );
 			thisP.transformedVerts = new Float32Array( numVerts * vertCard );
+			thisP.vertBoneWeights = new Array( numVerts );
+			for( let i = 0; i < numVerts; ++i )
+				thisP.vertBoneWeights[i] = {};
 		}
 
 		//read in a vertex
@@ -753,39 +969,44 @@ function QM_meshFileLoaded(meshFile, thisP)
 			thisP.vertNormals[vertIdx-1] = parseFloat(words[3]);
 
 			//read in the bone weights until the end of the vertex
-			let boneWeights = {};
 			while( ++mLIdx < meshFileLines.length ){
 				temp = meshFileLines[mLIdx];
 				words = temp.split(' ');
 				if( temp[0] == 'w' ){
-					let boneName = words[1];
+					let boneIdx = parseInt(words[1]);
 					let boneWeight = parseFloat(words[2]);
-					boneWeights[boneName] = boneWeight;}
-				else if( temp[0] == 'e')
+					let idx = Math.floor((vertIdx-1)/vertCard);
+					thisP.vertBoneWeights[idx][boneIdx] = boneWeight;
+				}else if( temp[0] == 'e')
 					break; //done reading the vertex
 			}
-			thisP.vertBoneWeights.push(boneWeights);
 		}
 
 		//read in the number of faces
 		else if( temp[0] == 'c' && temp[1] == 'f' ){
-			faceCt = words[1];
+			faceCt = parseInt(words[1]);
 			thisP.faces = new Array(faceCt);
 			for( let i = 0; i < faceCt; ++i )
 				thisP.faces[i] = new Face();
+			for( let i = 0; i < thisP.materials.length; ++i )
+				thisP.faceIdxsForMat[i] = new Array( faceCt );
 		}
 		
 		//read in a face
 		else if( temp[0] == 'f' ){
 			let newFace = thisP.faces[fIdx++];
-			newFace.fNum = fIdx - 1;
+			//newFace.fNum = fIdx - 1;
 			while( ++mLIdx < meshFileLines.length ){
 				temp = meshFileLines[mLIdx];
 				words = temp.split(' ');
 
 				//read in the material id of the face
-				if( temp[0] == 'm' )
+				if( temp[0] == 'm' ){
 					newFace.materialID = parseInt(words[1]);
+					let insertIdx = thisP.faceIdxsForMatInsertIdx[newFace.materialID];
+					thisP.faceIdxsForMat[newFace.materialID][insertIdx++] = fIdx-1;
+					thisP.faceIdxsForMatInsertIdx[newFace.materialID] = insertIdx;
+				}
 
 				//read in the vertex idx's of the face
 				if( temp[0] == 'v' ){
@@ -806,16 +1027,18 @@ function QM_meshFileLoaded(meshFile, thisP)
 					}
 					
 					if(numFaceVerts == 3){
+						thisP.faceVertsCtForMat[newFace.materialID] += 3;
 						thisP.faceVertsCt += 3;
-						TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
-						newFace.triIdxs[0] = tIdx++;
+						//TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
+						//newFace.triIdxs[0] = tIdx++;
 					}
 					else if(numFaceVerts == 4){
+						thisP.faceVertsCtForMat[newFace.materialID] += 6;
 						thisP.faceVertsCt += 6; //since will have to tesselate
-						TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
-						newFace.triIdxs[0] = tIdx++;
-						TRI_Setup(thisP.tris[tIdx], 1, newFace, thisP.vertPositions );
-						newFace.triIdxs[1] = tIdx++;
+						//TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
+						//newFace.triIdxs[0] = tIdx++;
+						//TRI_Setup(thisP.tris[tIdx], 1, newFace, thisP.vertPositions );
+						//newFace.triIdxs[1] = tIdx++;
 					}else{
 						DPrintf( 'QuadMesh: ' + thisP.meshName + 
 								'reading face: ' +
@@ -840,12 +1063,12 @@ function QM_meshFileLoaded(meshFile, thisP)
 
 				//end of face data
 				if( temp[0] == 'e' ){
-					if( !(newFace.uvs.length/2 >= newFace.vertIdxs.length) ){
+					if( !(newFace.uvs.length/2 >= newFace.numFaceVerts) ){
 						DPrintf( 'QuadMesh: ' + thisP.meshName + 
 								'reading face: ' + thisP.faces.length  + 
-								', expected: ' + newFace.vertIdxs.length + 
+								', expected: ' +  newFace.numFaceVerts + 
 								' uv\'s, but got: ' + newFace.uvs.length/2 );
-						//return;
+						return;
 					}
 					break;
 				}
@@ -867,9 +1090,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			', verts: ' + thisP.vertPositions.length/3 );
 
 	//initialize the aabb if not animated
-	if( !thisP.isAnimated ){
-		QM_UpdateAABB( thisP, 0.0);
-		thisP.quadMeshReadyCallback(thisP, thisP.readyCallbackParameters);
-	}
+	QM_UpdateAABB( thisP, 0.0);
+	QM_CallReadyCallbackIfLoaded(thisP);
 
 }

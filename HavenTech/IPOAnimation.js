@@ -33,7 +33,7 @@ function ipoCurveNameToIndex(channelName){
 
 //implementation of an object animation
 //made of translation, rotation, scale curves from blender
-function IPOAnimation(nameIn, sceneNameIn, readyCallback, readyCallbackParams){
+function IPOAnimation(nameIn, sceneNameIn, args, readyCallback, readyCallbackParams){
 
 	this.ipoName = nameIn;
 	this.sceneName = sceneNameIn;

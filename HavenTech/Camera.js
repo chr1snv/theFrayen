@@ -67,8 +67,22 @@ function NewDistNormColor(){
 	return [0, new Float32Array(3), new Float32Array(4), null];
 }
 
-function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, rotationIn, stereoIn=false, ipdCMIn=3.9)
+function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters )
 {
+	this.camReadyCallback = camReadyCallback;
+	this.camReadyParameters = camReadyParameters;
+
+	let ipoName     = args[0];
+	let fovIn       = args[1];
+	let nearClipIn  = args[2];
+	let farClipIn   = args[3];
+	let positionIn  = args[4];
+	let rotationIn  = args[5];
+	let lenArgs     = args.length;
+	let stereoIn    = false; if( lenArgs > 6 )  stereoIn = args[6];
+	let ipdCMIn     =3.9;    if( lenArgs > 7  ) ipdCMIn = args[7];
+
+
 	this.cameraName = nameIn;
 	this.sceneName  = sceneNameIn;
 
@@ -85,7 +99,12 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.userPosition = Vect3_NewZero(); //user input position
 	this.userRotation = Quat_New_Identity(); //user input rotation
 
-	this.ipoAnimation = new IPOAnimation(nameIn, sceneNameIn); //the animation curve for the camera (constructor fetches it from url based on the name and scene name)
+	this.isAnimated = false;
+	this.ipoAnimation = null; //the animation curve for the camera (constructor fetches it from url based on the name and scene name)
+	if( ipoName != '' ){
+		this.isAnimated = true;
+		graphics.GetCached( ipoName, sceneNameIn, IPOAnimation, CAM_IpoReady, this);
+	}
 	this.lastUpdateTime = 0;
 
 	this.camToWorldMat         = Matrix_New();
@@ -101,7 +120,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	let rotTmp = Quat_New();
 	this.getRotation = function(rotOut) 
 	{
-		if(!IPOA_GetRotation( this.ipoAnimation, rotOut, this.lastUpdateTime))
+		if(!this.ipoAnimation || !IPOA_GetRotation( this.ipoAnimation, rotOut, this.lastUpdateTime))
 		    Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
 		//apply the user input rotation
 		Quat_Copy( rotTmp, rotOut );
@@ -110,7 +129,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	}
 	this.getLocation = function(locOut)
 	{
-		if(!IPOA_GetLocation( this.ipoAnimation, locOut, this.lastUpdateTime))
+		if(!this.ipoAnimation || !IPOA_GetLocation( this.ipoAnimation, locOut, this.lastUpdateTime))
 		    Vect3_Copy( locOut, this.position);
 		Vect3_Add( locOut, this.userPosition);
 	}
@@ -166,6 +185,7 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 		Matrix_Inverse( this.screenSpaceToWorldMat, tempMat );
 		
 	}
+
 
 	let translation       = Vect3_New();
 	let rot               = Quat_New();
@@ -333,7 +353,14 @@ function Camera(nameIn, sceneNameIn, fovIn, nearClipIn, farClipIn, positionIn, r
 	this.onlyRaysNearCursor = false;
 
 
+	if( !this.isAnimated )
+		this.camReadyCallback(this, camReadyParameters );
+}
 
+function CAM_IpoReady(ipoAnim, cam){
+	cam.ipoAnimation = ipoAnim;
+	
+	cam.camReadyCallback(cam, cam.camReadyParameters );
 }
 
 let numRaysIntersected = 0; //number of intersections found

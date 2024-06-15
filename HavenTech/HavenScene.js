@@ -22,21 +22,40 @@
 //				object (level of detail may change based on distance)
 //					vert transform matrix (maybe a vertex shader with vert weights and bind/pose matricies would be faster than cpu skel anim transforms)
 
+function BufSubRange(startIdxIn, lenIn){
+	this.startIdx = startIdxIn;
+	this.len      = lenIn;
+	this.toWorldMatrix   = Matrix_New();
+	this.skelAnim = null;
+}
+
 const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
 function DrawBatchBuffer(vertCt){
-	this.bufID = nextBufID;
-	nextBufID += 3;
-	this.vertBuffer = new Float32Array(vertCt*vertCard);
-	this.normBuffer = new Float32Array(vertCt*normCard);
-	this.uvBuffer   = new Float32Array(vertCt*uvCard);
-	this.bufferIdx = 0;
-	this.bufferUpdated = true;
-	this.isAnimated = false;
-	this.texName = null;
+	this.bufID = nextBufID; //the gl BufferId in TriGraphics
+	nextBufID += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
+	this.vertBuffer      = null;
+	this.normBuffer      = null;
+	this.uvBuffer        = null;
+	this.bnIdxWghtBuffer = null;
+	this.bufferIdx       = 0;
+	this.bufferUpdated   = true;
+	this.isAnimated      = false;
+	this.texName         = null;
+	
+	this.numSubBufferUpdatesToBeValid = 0;
+	
+	this.bufSubRanges = {};
 	
 	this.diffuseCol = new Float32Array(4);
-	this.toViewportMatrix = Matrix_New();
+}
+
+function AllocateBatchBufferArrays(dbB){
+	dbB.vertBuffer      = new Float32Array( dbB.bufferIdx*vertCard      );
+	dbB.normBuffer      = new Float32Array( dbB.bufferIdx*normCard      );
+	dbB.uvBuffer        = new Float32Array( dbB.bufferIdx*uvCard        );
+	dbB.bnIdxWghtBuffer = new Float32Array( dbB.bufferIdx*bnIdxWghtCard );
+	//dbB.bufferIdx = 0;
 }
 
 let drawBatchBuffers = {};
@@ -50,6 +69,17 @@ function GetDrawBatchBufferForMaterial(shdrName, vertCt){
 	return dbB;
 }
 
+function GetDrawSubBatchBuffer(dbB, subRangeId, numVerts){
+	let subRange = dbB.bufSubRanges[ subRangeId ];
+	if( subRange == undefined ){
+		subRange = new BufSubRange(dbB.bufferIdx, numVerts);
+		dbB.bufSubRanges[ subRangeId ] = subRange;
+		dbB.bufferIdx += numVerts;
+		dbB.numSubBufferUpdatesToBeValid += 1;
+	}
+	return subRange;
+}
+
 function CleanUpDrawBatchBuffers(){
 	delete( drawBatchBuffers );
 	drawBatchBuffers = {};
@@ -57,6 +87,9 @@ function CleanUpDrawBatchBuffers(){
 
 
 function HavenScene( sceneNameIn, sceneLoadedCallback ){
+
+	this.sceneLoadedCallback = sceneLoadedCallback;
+
 	this.sceneName = sceneNameIn;
 	this.isValid = false;
 
@@ -65,6 +98,10 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.models  = {};
 	this.lights  = [];
 	this.cameras = [];
+	
+	this.pendingObjsToLoad = {};
+	
+	this.boneMatTexture = null;
 
 	this.activeCamera = "";
 	this.activeCameraIdx = -1;
@@ -114,8 +151,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		}
 
 		//draw the scene
-		
-		
+
 		//after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
 		//(the state of the art polygon rasterizer in 2022)
 		//I think that because rasterization cost increases with overdraw 
@@ -127,10 +163,10 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		//at full level of detail, time cost of updating octTrees for animated objects
 		//and the non local/upredicatble memory access pattern of ray casting
 		//vs scanline rasterization
-		
+
 		//having compute in memory per world area will make ray casting/tracing more practical, though
 		//until the hardware is commonplace, it's not practical
-		
+
 		//then objects can move from one region to another passed
 		//(via network / intraprocessor connections) to the memory and 
 		//simulation in the new region
@@ -144,12 +180,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		//gpu compute shader implementations
 		//of some of the tracing hopefully interactive framerates with 
 		//photorealisim and minimal noise and can be achieved
-		
-		//clear the render buffer and reset rendering state
-		graphics.Clear();
-		graphics.ClearDepth();
-		//graphics.ClearLights();
-		
+
+
 		if( rayCastDrawing ){
 			//raycasting draw call
 			CAM_RayCastDraw( this.cameras[ this.activeCameraIdx ],
@@ -157,26 +189,51 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		}else{
 
 			//generate the camera matrix
-			let cam = this.cameras[ this.activeCameraIdx ];			
+			let cam = this.cameras[ this.activeCameraIdx ];
 			cam.GenWorldToFromScreenSpaceMats();
 			//get the objects in view
 			objListIdx = TND_GetObjectsInFrustum( this.octTree, cam.worldToScreenSpaceMat, objList, 0 );
 			
+			//for each material get the number of objects using it (sub draw batches)
+			for( let i = 0; i < objListIdx; ++i ){
+				let qm = objList[i].quadmesh;
+				for( let matID = 0; matID < qm.materials.length; ++matID ){
+					let material = qm.materials[matID];
+					if( qm.meshName == 'Sphere' )
+						console.log("sphere buffer allocation");
+					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
+					let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objList[i].uid.val, qm.faceVertsCtForMat[matID] );
+				}
+			}
+
+
 			//update the draw batch buffers from the objects
 			for( let i = 0; i < objListIdx; ++i ){
 				let qm = objList[i].quadmesh;
 
-				for(let matID = 0; matID < qm.materials.length; ++matID ){
-					let material = qm.materials[matID];
-					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val*100 + i, qm.faceVertsCt );
-					
-					Matrix_Multiply( drawBatch.toViewportMatrix, cam.worldToScreenSpaceMat, qm.toWorldMatrix );
-					
-					if( qm.hasntDrawn || qm.isAnimated ){
-						
+				for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
+					let material = qm.materials[matIdx];
 
-						drawBatch.bufferIdx = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
-								drawBatch, qm.materials[matID] );
+					let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
+					let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objList[i].uid.val, qm.faceVertsCtForMat[matIdx] );
+					
+					if( qm.isAnimated || drawBatch.bufferUpdated ){
+						Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
+					}
+
+					if( qm.hasntDrawn ){
+					
+						if( drawBatch.vertBuffer == null )
+							AllocateBatchBufferArrays(drawBatch);
+
+						if( qm.meshName == 'Sphere' || qm.meshName == 'Cylinder')
+							console.log("sphere buffer writing");
+
+						let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
+								drawBatch, subBatchBuffer.startIdx, matIdx, 
+								subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;
+						if( numGenVerts != subBatchBuffer.len )
+							DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
 
 						//set the texture or material properties for the draw batch
 						if( material.texture ){
@@ -191,18 +248,36 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 				}
 			}
 
+			//clear the render buffer and reset rendering state
+			graphics.Clear();
+			graphics.ClearDepth();
+			//graphics.ClearLights();
+
+
+
 			//draw the batch buffers
 			TRI_G_Setup(graphics.triGraphics);
+			
+			if( this.boneMatTexture != null )
+				SkelA_writeCombinedBoneMatsToGL(this);
+			
+			TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat );
 			let dbBKeys = Object.keys( drawBatchBuffers );
 			for( let i = 0; i < dbBKeys.length; ++i ){
 				let dbB = drawBatchBuffers[dbBKeys[i]];
-				if(dbB.bufferIdx > MAX_VERTS )
-					dbB.bufferIdx = MAX_VERTS;
+				//if(dbB.bufferIdx > MAX_VERTS )
+				//	dbB.bufferIdx = MAX_VERTS;
+				if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
 				
-				TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
-					this.sceneName, dbB.toViewportMatrix, dbB );
-				if( dbB.isAnimated )
-					dbB.bufferIdx = 0; //repeat refilling values
+					let numAnimMatricies = 0;
+					if( this.combinedBoneMats )
+						numAnimMatricies = this.combinedBoneMats.length/matrixCard;
+						
+					TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
+						this.sceneName, dbB, numAnimMatricies );
+				}
+				//if( dbB.isAnimated )
+				//	dbB.bufferIdx = 0; //repeat refilling values
 			}
 		
 		
@@ -254,20 +329,62 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 		return this.octTree.ClosestRayIntersection(rayOrig, rayDir);
 	}
 
-	//check if finished asynchronously loading the scene
-	this.checkIfIsLoaded = function(){
-		if( this.pendingModelsAdded <= 5 )
-			DPrintf("models left to load " + this.pendingModelsAdded );
-		if( this.isValid && this.pendingModelsAdded <= 0 )
-			sceneLoadedCallback(this);
-	}
+
 
 
 	//constructor functionality begin asynchronous fetch of scene description
-	this.pendingModelsAdded = 0;
+	this.pendingObjsAdded = 0;
 	loadTextFile("scenes/"+this.sceneName+".hvtScene", 
 				HVNSC_textFileLoadedCallback, this);
 
+}
+
+//check if finished asynchronously loading the scene
+function HVNSC_checkIfIsLoaded(hvnsc){
+	if( hvnsc.pendingObjsAdded <= 5 ){
+		DPrintf("models left to load " + hvnsc.pendingObjsAdded );
+		//let notYetLoadedObjsStr = '';
+		//let objsToLoad = Object.keys(hvnsc.pendingObjsToLoad);
+		//for( let i = 0; i < objsToLoad.length; ++i )
+		//	notYetLoadedObjsStr += objsToLoad[i] + ' ' + objsToLoad[i].quadMesh + ' \n';
+		//DPrintf("not yet loaded models " + notYetLoadedObjsStr );
+	}
+	
+	if( hvnsc.pendingObjsAdded <= 0 ){
+	
+		//look up and set its index
+		for(let j=0; j<hvnsc.cameras.length; ++j){
+			if(hvnsc.cameras[j].cameraName == hvnsc.activeCamera){
+				hvnsc.activeCameraIdx = j;
+				setCamLimitInputs(hvnsc.cameras[j]);
+				break;
+			}
+		}
+		
+		//allocate the float texture for armatures
+		let skelAnimCache = graphics.cachedObjs[SkeletalAnimation.name];
+		if( skelAnimCache != undefined && skelAnimCache[hvnsc.sceneName] != undefined ){
+			let skelAnims = skelAnimCache[hvnsc.sceneName];
+			SkelA_AllocateCombinedBoneMatTexture(skelAnims, hvnsc)
+		}
+	
+		hvnsc.Update(0.0); //init animated objs
+		hvnsc.isValid = true;
+		hvnsc.sceneLoadedCallback(hvnsc);
+	}
+}
+
+function HVNSC_ObjLoadedCallback(obj, hvnsc){
+	statusElm.innerHTML = "Loading " + hvnsc.pendingObjsAdded + " Objs";
+	hvnsc.pendingObjsAdded-=1;
+	if( obj.constructor.name == Camera.name ){
+		hvnsc.cameras[hvnsc.camInsertIdx] = obj;
+	}else if( obj.constructor.name == Model.name ){
+		MDL_Update( obj, 0 ); //update to generate AABB
+		MDL_AddToOctTree( obj, hvnsc.octTree );
+		delete hvnsc.pendingObjsToLoad[obj.modelName];
+	}
+	HVNSC_checkIfIsLoaded(hvnsc);
 }
 
 //called to read from text file models, lights, and cameras in the scene
@@ -294,8 +411,13 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let numLghts = parseInt( sceneObjLghtCamCtTxt[4] );
 	let numCams = parseInt( sceneObjLghtCamCtTxt[6] );
 	
+	hvnsc.pendingObjsAdded = numObjs + numCams + 1;
+	
+	hvnsc.cameras = new Array(numCams);
+	hvnsc.camInsertIdx = 0;
+	
 	//per obj vars while parsing
-	let mdlName = '';
+	let scneObjName = '';
 	let mdlMeshName = '';
 	let mAABB = null;
 	let mdlAABBmin = Vect3_NewZero();
@@ -308,10 +430,12 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let lcol = Vect3_NewZero();
 	let lenrg = 0;
 	let lspotsz = 0;
+	let lanim = '';
 	
 	let camAng = 0;
 	let camStart = 0;
 	let camEnd = 0;
+	let camIpoName = '';
 	
 	let txtNumLines = textFileLines.length;
 	for( let i = 0; i<txtNumLines; ++i )
@@ -321,8 +445,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 
 		if(txtLineParts[0] == 'm' ){ //this is a model to be read in 
 		//(load the model and then append it to the scenegraph)
-			mdlName = txtLineParts[1];
-			mdlMeshName = mdlName;
+			scneObjName = txtLineParts[1];
+			mdlMeshName = scneObjName;
 		}else if( txtLineParts[0] == 'maabb' ){
 			Vect3_parse( mdlAABBmin, txtLineParts, 3 );
 			Vect3_parse( mdlAABBmax, txtLineParts, 7 );
@@ -330,7 +454,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			//try to read in an AABB from the model description line
 			//if there aren't values set the not a number flag
 			
-			if( !Vect3_containsNaN( mdlAABBmin ) && Vect3_containsNaN( mdlAABBmax ) )
+			if( !Vect3_containsNaN( mdlAABBmin ) && !Vect3_containsNaN( mdlAABBmax ) )
 				mAABB = new AABB( mdlAABBmin, mdlAABBmax );
 				
 		}else if( txtLineParts[0] == 'mloc' ){
@@ -339,25 +463,18 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			Vect3_parse( mdlRot, txtLineParts, 1 );
 		}else if( txtLineParts[0] == 'mEnd' ){
 			
-			hvnsc.pendingModelsAdded++; //compared in check if is loaded
+			//compared in check if is loaded
 			//to check if all models have finished loading
-			newMdl    = new Model( mdlName, mdlMeshName, 
-					        hvnsc.sceneName, mAABB, hvnsc,
-			function( model, havenScenePointer ){ //modelLoadedCallback
-				MDL_Update( model, 0 ); //update to generate AABB
-				MDL_AddToOctTree( model, havenScenePointer.octTree,
-					function(){
-					    statusElm.innerHTML = "Loading " + havenScenePointer.pendingModelsAdded + " Models";
-					    havenScenePointer.pendingModelsAdded-=1;
-					    havenScenePointer.checkIfIsLoaded();
-					} );
-			}
-			 );
+			newMdl    = new Model( scneObjName, mdlMeshName, 
+					        hvnsc.sceneName, mAABB, hvnsc, HVNSC_ObjLoadedCallback );
+			hvnsc.pendingObjsToLoad[scneObjName] = newMdl;
 			
 		}
 		
 		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
-			
+			graphics.GetCached( txtLineParts[1], hvnsc.sceneName, SkeletalAnimation, 
+				null, 
+				HVNSC_ObjLoadedCallback, hvnsc );
 		}
 		
 		
@@ -367,7 +484,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		//(info is one line in the text file)
 		//this is a light to be read in
 		else if(txtLineParts[0] == "l"){
-			mdlName = txtLineParts[1];
+			scneObjName = txtLineParts[1];
+			lanim = '';
 		}else if( txtLineParts[0] == 'ltype' ){
 			lampType = txtLineParts[1];
 		}else if( txtLineParts[0] == 'lloc' ){
@@ -380,15 +498,17 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			lenrg = parseFloat( txtLineParts[1] )
 		}else if( txtLineParts[0] == 'lspotsz'){
 			lspotsz = parseFloat( txtLineParts[1] )
+		}else if( txtLineParts[0] == 'l_anim'){
+			lanim = txtLinePars[1];
 		}else if( txtLineParts[0] == 'lEnd' ){
-			hvnsc.lights.push( new Light(mdlName, hvnsc.sceneName, 
-					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz) );
+			hvnsc.lights.push( new Light(scneObjName, hvnsc.sceneName, 
+					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz, lanim) );
 		}
 		
 		//this is a camera to be read in
 		else if(txtLineParts[0] == 'c')
 		{
-			mdlName	= txtLineParts[1];
+			scneObjName	= txtLineParts[1];
 		}else if( txtLineParts[0] == 'cloc' ){
 			Vect3_parse( mdlLoc, txtLineParts, 1 );
 		}else if( txtLineParts[0] == 'crot' ){
@@ -398,27 +518,22 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}else if( txtLineParts[0] == 'cstartend' ){
 			camStart = parseFloat( txtLineParts[1] );
 			camEnd = parseFloat( txtLineParts[2] );
+		}else if( txtLineParts[0] == 'c_anim' ){
+			camIpoName = txtLineParts[1];
 		}else if( txtLineParts[0] == 'cEnd' ){
-			hvnsc.cameras.push( new Camera( mdlName, 
-			hvnsc.sceneName, camAng, camStart, camEnd, mdlLoc, mdlRot));
+
+			graphics.GetCached(scneObjName, hvnsc.sceneName, Camera, 
+				[camIpoName, camAng, camStart, camEnd, mdlLoc, mdlRot], HVNSC_ObjLoadedCallback, hvnsc);
 		}
 		//this is the name of the active camera to be read in
 		else if( txtLineParts[0] == 'ac' )
 		{
 			hvnsc.activeCamera = txtLineParts[1];
-			//look up and set its index
-			for(let j=0; j<hvnsc.cameras.length; ++j){
-				if(hvnsc.cameras[j].cameraName == hvnsc.activeCamera){
-					hvnsc.activeCameraIdx = j;
-					setCamLimitInputs(hvnsc.cameras[j]);
-					break;
-				}
-			}
 		}
 	}
-	hvnsc.Update(0.0); //init animated objs
-	hvnsc.isValid = true;
-	hvnsc.checkIfIsLoaded();
+	
+	--hvnsc.pendingObjsAdded;
+	HVNSC_checkIfIsLoaded(hvnsc);
 }
 
 function HVNSC_textFileLoadedCallback(txtFile, thisP) 

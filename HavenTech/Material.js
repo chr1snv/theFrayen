@@ -11,7 +11,7 @@
 
 //(and may have an option to set settings on glPrograms if gl rasterization is used)
 
-function Material(nameIn, sceneNameIn, readyCallbackParams, materialReadyCallback)
+function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallbackParams )
 {
 	this.uid = NewUID();
 	this.materialName = nameIn;

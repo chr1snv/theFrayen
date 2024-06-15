@@ -28,6 +28,7 @@ return false;
 const vertCard     = 3;
 const normCard     = 3;
 const uvCard       = 2;
+const bnIdxWghtCard = 2*2; //(index of bone mat + weight) * 2 bone mats per vertex
 const matrixCard   = 4*4;
 
 function Graphics( canvasIn, loadCompleteCallback ){
@@ -171,31 +172,24 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.UnrefQuadMesh = function(filename, sceneName) {}
 	
 	
-	//used to cache components between scene changes, view changes, etc to avoid unnecessary http requests
+	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests
 	let cachedObj;
-	this.GetCached = function(filename, sceneName, ObjConstructor, objReadyCallback, readyCallbackParameters){
-		concatName = filename + sceneName;
-		cachedObj = this.cachedObjs[concatName];
+	this.GetCached = function(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
+		//concatName = filename + sceneName;
+		if( this.cachedObjs[ObjConstructor.name] == undefined )
+			this.cachedObjs[ObjConstructor.name] = {};
+		if( this.cachedObjs[ObjConstructor.name][sceneName] == undefined )
+			this.cachedObjs[ObjConstructor.name][sceneName] = {};
+		cachedObj = this.cachedObjs[ObjConstructor.name][sceneName][filename];
 		if(cachedObj === undefined){
 			//component is not loaded, load the new component and return it (asynchronous load)
-			this.cachedObjs[concatName] =
-				new ObjConstructor(filename, sceneName, objReadyCallback, readyCallbackParameters);
+			this.cachedObjs[ObjConstructor.name][sceneName][filename] =
+				new ObjConstructor(filename, sceneName, ObjConstructorArgs, objReadyCallback, readyCallbackParameters);
 		}else{
-			objReadyCallback( cachedObj, readyCallbackParameters );}
+			objReadyCallback( cachedObj, readyCallbackParameters );
+		}
 	}
 	
-	
-	let armature;
-	this.GetArmature = function(filename, sceneName, readyCallbackParameters, armatureReadyCallback){
-		concatName = filename + sceneName;
-		armature = this.armatures[concatName];
-		if(armature === undefined){
-			//armature is not loaded, load the new armature and return it (asynchronous load)
-			this.armatures[concatName] =
-				new SkeletalAnimation(filename, sceneName, armatureReadyCallback, readyCallbackParameters);
-		}else{
-			armatureReadyCallback( armature, readyCallbackParameters );}
-	}
 	
 	
 	

@@ -26,11 +26,7 @@ mrot 0.000000 -0.000000 0.000000
 mEnd
 
 a Armature
-mloc 0.000000 0.000000 0.000000 
-mrot 0.000000 0.000000 0.000000 
-mEnd
-
 ac Camera
-sceStats objs 3 lghts 1 cams 1
+sceStats objs 2 lghts 1 cams 1
 sceAABB -1.000000 -6.925791 -1.000000  7.358891 11.000000 5.903862
 sceEnd

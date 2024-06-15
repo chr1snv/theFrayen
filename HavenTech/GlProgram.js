@@ -51,6 +51,21 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 		loadTextFile( thisP.fragShaderFilename, thisP.fragShaderLoaded, thisP );
 	}
 	this.unifLocs = {};
+	this.unifInitCopyAndSetters = {
+		'4fv': [Vect3_NewZero, Vect3_Copy, gl.uniform4fv],
+		'1f' : [0, function(d, i){ d = i; }, gl.uniform1f],
+		'1i' : [0, function(d, i){ d = i; }, gl.uniform1i]
+	};
+	this.setUniformType = function( unifName, type, value ){
+		if( this.unifLocs[unifName] == undefined )
+			this.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
+		if( this.unifLocs[unifName + 'val'] == undefined )
+			this.unifLocs[unifName + 'val'] = unifInitCopyAndSetters[type][0]();
+		if( !Vect3_Cmp( this.unifLocs[unifName + 'val'], value ) ){
+			unifInitCopyAndSetters[type][1]( this.unifLocs[unifName + 'val'], value);
+			unifInitCopyAndSetters[type][2]( this.unifLocs[unifName], value );
+		}
+	}
 	this.setVec4Uniform = function( unifName, value ){
 		if( this.unifLocs[unifName] == undefined )
 			this.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
@@ -69,6 +84,16 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 		if( this.unifLocs[unifName + 'val'] != value ){
 			this.unifLocs[unifName + 'val'] = value;
 			gl.uniform1f( this.unifLocs[unifName], value );
+		}
+	}
+	this.setIntUniform = function( unifName, value ){
+		if( this.unifLocs[unifName] == undefined )
+			this.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
+		if( this.unifLocs[unifName + 'val'] == undefined )
+			this.unifLocs[unifName + 'val'] = 0;
+		if( this.unifLocs[unifName + 'val'] != value ){
+			this.unifLocs[unifName + 'val'] = value;
+			gl.uniform1i( this.unifLocs[unifName], value );
 		}
 	}
 	

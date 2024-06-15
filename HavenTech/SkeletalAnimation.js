@@ -10,7 +10,7 @@ function SkelA_HierarchyNode(){
 };
 
 //constructor
-function SkeletalAnimation( nameIn, sceneNameIn, readyCallback, readyCallbackParams ){
+function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallbackParams ){
 
 
 	/*
@@ -147,6 +147,12 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 
 		//store this bone's pose matrix in the frameTransformation object
 		Matrix_Multiply(skelA.transformationMatricies[currentIdx], skelA.orientation, pose_mat);
+		
+		//write this bones combined matrix to combinedBoneMats
+		Matrix_MultToArrTransp( skelA.hvnsc.combinedBoneMats,
+			(currentIdx + skelA.combinedBoneMatOffset)*matrixCard,
+			skelA.transformationMatricies[currentIdx],
+			skelA.bones[currentIdx].inverseBindPose );
 
 		//calculate the matrix to pass to this bone's children
 		Matrix_Multiply(tempMat2, pose_mat, bone_mat_loc_tail);
@@ -159,6 +165,30 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 			boneQueue.push(newNode);
 		}
 	}
+	
+	
+}
+
+function SkelA_writeCombinedBoneMatsToGL(hvnsc){
+	//write the combined bone matricies to gl
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.NEAREST);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
+	
+	gl.texImage2D(
+		gl.TEXTURE_2D, 
+		0,					//level
+		gl.RGBA,			//internal format
+		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
+		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone
+		0,					//border
+		gl.RGBA,			//format
+		gl.FLOAT,			//type
+		hvnsc.combinedBoneMats
+	);
 }
 
 function SkelA_GenerateBoneTree(skelA){
@@ -180,12 +210,12 @@ function SkelA_GenerateBoneTree(skelA){
 	}
 }
 
-function SkelA_GenerateMesh(skelA, transformedVerts, mesh, time, minCoord, maxCoord){
+function SkelA_GenerateMesh(skelA, mesh, time ){
 	//apply skelA transformation to the mesh vertices, generating a new set of vertex positions
 
-	let wrappedTime = time;
-	if( skelA.loop && time > skelA.duration )
-		wrappedTime = time % skelA.duration;
+	let wrappedTime = time * 24;
+	if( skelA.loop && wrappedTime > skelA.duration )
+		wrappedTime = wrappedTime % skelA.duration;
 		
 	if( wrappedTime == skelA.lastUpdateTime )
 		return false;
@@ -193,76 +223,6 @@ function SkelA_GenerateMesh(skelA, transformedVerts, mesh, time, minCoord, maxCo
 	//generate the transformation matrices
 	SkelA_GenerateFrameTransformations(skelA, wrappedTime);
 
-	//check if the space allocated for the return is of the right size
-	if(transformedVerts.length != mesh.vertPositions.length)
-		return;
-
-	let meshOrientationMatrix = mesh.toWorldMatrix;
-	let inverseMeshOrientationMatrix = mesh.wrldToLclMat;
-
-	//transform each vertex
-	for(let i=0; i<mesh.vertPositions.length/vertCard; ++i){
-		//step 1, multiply by the transformation matrix of the mesh
-		//to get vertices into model space
-		let preSklPosition = Vect3_New();
-		Vect3_CopyFromArr( preSklPosition, mesh.vertPositions, i*vertCard);
-		let position = Vect3_New();
-		Matrix_Multiply_Vect3(position, meshOrientationMatrix, preSklPosition);
-
-		//step 2, for each bone weight, find the effect of each bone,
-		//and then average the results
-		let accumPosition = Vect3_NewZero();
-		let boneWeightAccum = 0;
-
-		let tempVect1 = Vect3_New();
-		let tempVect2 = Vect3_New();
-		let vertBWeights = mesh.vertBoneWeights[i];
-		let vertBones = Object.keys(vertBWeights);
-		let numBoneWeights = vertBones.length;
-		if( numBoneWeights > 0 ){
-			for(let j=0; j<numBoneWeights; ++j){
-				let boneID = vertBones[j];
-				let boneWeight = vertBWeights[boneID];
-				if(boneWeight < epsilon) //if the boneWeight is negligible
-					continue; //ignore it
-				boneWeightAccum += boneWeight;
-
-				//step2.1, get the matrix that transforms the vertex into
-				//the local space of the affecting bone
-				let toBoneSpaceMatrix = null;
-				if( skelA.bones[boneID] )
-					toBoneSpaceMatrix = skelA.bones[boneID].inverseBindPose;
-				else
-					console.log("skelA.bones " + boneID + " not found");
-
-				//step2.2, get the matrix that transforms the vertex from the
-				//local space of the bone to its animated position in the world
-				let toAnimatedWorldSpaceMatrix = skelA.transformationMatricies[boneID];
-
-				//step 2.3, average the effect of the bones on the position
-				Matrix_Multiply_Vect3(tempVect1,  toBoneSpaceMatrix, position);
-
-				Matrix_Multiply_Vect3(tempVect2, toAnimatedWorldSpaceMatrix, tempVect1);
-				Vect3_MultiplyScalar(tempVect2, boneWeight);
-				Vect3_Add(accumPosition, tempVect2);
-			}
-
-			//step3.1, divide the averaged changes by the accumulated bone weight
-			Vect3_MultiplyScalar(accumPosition, 1/boneWeightAccum);
-		}else{
-			Vect3_Copy(accumPosition, position);
-		}
-
-		////step 3.2, apply the inverse mesh orientation matrix to the new values
-		let vertPosition = new Float32Array(vertCard);
-		Matrix_Multiply_Vect3(vertPosition, inverseMeshOrientationMatrix, accumPosition);
-
-		//step 3.3, write the new position and normal data to the morph target
-		transformedVerts[i*vertCard]   = vertPosition[0];
-		transformedVerts[i*vertCard+1] = vertPosition[1];
-		transformedVerts[i*vertCard+2] = vertPosition[2];
-		Vect3_minMax( minCoord, maxCoord, vertPosition );
-	}
 	skelA.lastUpdateTime = time;
 	return true;
 }
@@ -326,7 +286,7 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 
 function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	if( skelAnimFile === undefined ){ 
-		skelA.loadCompCallback(skelA, this.loadCompCbParams);
+		skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
 		return;
 	}
 	let skelAnimFileLines = skelAnimFile.split('\n');
@@ -356,9 +316,9 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 		if(temp[0] == 'b'){
 			//read in a bone, find the longest bone animation, and find the
 			//parent bone index
-			let newBone = new Bone();
+			let newBone = new Bone(parseInt(words[1]));
 			skelA.bones.push(newBone);
-			Bone_Parse(newBone, skelAnimFileLines, sLIdx); //bone constructor handles reading bone
+			sLIdx = Bone_Parse(newBone, skelAnimFileLines, sLIdx); //bone constructor handles reading bone
 			let tempDuration = skelA.bones[skelA.bones.length-1].animationLength;
 			if(tempDuration > skelA.duration) //set the duration
 				skelA.duration = tempDuration;
@@ -371,7 +331,7 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	//let blenderToHaven = new Float32Array(4*4);
 	//Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
 	//let tempMat = new Float32Array(4*4);
-	Matrix(skelA.orientation, MatrixType.euler_transformation, skelA.scale, skelA.rotation, skelA.origin);
+	Matrix( skelA.orientation, MatrixType.euler_transformation, skelA.scale, skelA.rotation, skelA.origin );
 	//Matrix_Multiply(skelA.orientation, blenderToHaven, tempMat);
 	let orientationCpy = new Float32Array(4*4);
 	Matrix_Copy(orientationCpy, skelA.orientation);
@@ -382,14 +342,61 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	//pre calculate these (will be used each frame)
 	SkelA_GenerateInverseBindPoseTransformations(skelA);
 
-	IPrintf("SkeletalAnimation: read in " + skelA.bones.length +
-	        " bones, duration is: " + skelA.duration );
+	IPrintf("SkeletalAnimation: " + skelA.skelAnimName +  " read in " + skelA.bones.length +
+			" bones, duration is: " + skelA.duration );
 
 	//allocate the transformation matricies
+	skelA.transformationMatricies = new Array(skelA.bones.length);
 	for(let i=0; i<skelA.bones.length; ++i)
-	    skelA.transformationMatricies.push( new Float32Array(matrixCard) );
+		skelA.transformationMatricies[i] = Matrix_New();
+
 
 	skelA.isValid = true;
 	
 	skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
+}
+
+function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
+
+	// create a texture to hold the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
+	let texFloatExt = gl.getExtension('OES_texture_float');
+	if (!texFloatExt) {
+		DPrintf("OES_texture_float not supported");
+		return; // the extension doesn't exist on this device
+	}
+
+	let skelAnimCacheKeys = Object.keys(skelAnims);
+	let totalNumBones = 1; //offset by 1 for the identity Matrix
+	for( let i = 0; i < skelAnimCacheKeys.length; ++i ){
+		let skelAnim = skelAnims[skelAnimCacheKeys[i]];
+		skelAnim.combinedBoneMatOffset = totalNumBones; //increment the offset
+		totalNumBones += skelAnim.bones.length;
+		skelAnim.hvnsc = havenScene;
+	}
+	
+	//allocate the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
+	havenScene.combinedBoneMats = new Float32Array( matrixCard * totalNumBones );
+	
+	Matrix_SetIdentity(havenScene.combinedBoneMats);
+	
+	havenScene.boneMatTexture = gl.createTexture();
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, havenScene.boneMatTexture);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
+	
+	gl.texImage2D(
+		gl.TEXTURE_2D, 
+		0,					//level
+		gl.RGBA,			//internal format
+		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
+		totalNumBones,		//one row per bone
+		0,					//border
+		gl.RGBA,			//format
+		gl.FLOAT,			//type
+		havenScene.combinedBoneMats
+	);
+	
 }

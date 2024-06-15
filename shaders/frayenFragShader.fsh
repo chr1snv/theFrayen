@@ -4,6 +4,7 @@
 precision mediump float;
 
 //constant variables
+//uniform sampler2D boneMatrixTexture;
 uniform sampler2D texSampler;
 uniform float     texturingEnabled;
 uniform vec4      diffuseColor;
