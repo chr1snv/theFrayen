@@ -319,49 +319,73 @@ function QM_SL_tesselateUVCoords(
 	return cI/uvCard;
 }
 
-let idx1     = 0;
-let wght1    = 0;
-let idx2     = 0;
-let wght2    = 0;
-let tempIdx  = 0;
-let tempWght = 0;
-let wghtTot = 0;
+let idx1      = 0;
+let wght1     = 0;
+let idx2      = 0;
+let wght2     = 0;
+let tempIdx   = 0;
+let tempWght  = 0;
+let wghtTot   = 0;
+let accumWght = 0;
+let numWghts  = 0;
 function getMostSignificantBoneIdxWghtsForVert(weights){
 
 	//init to zero idx (default identity matrix) if there are'nt weights for the vertex
 	idx1  = -1;
-	wght1 = -1;
+	wght1 =  0;
 	idx2  = -1;
-	wght2 = -1;
+	wght2 =  0;
 
 	wghtTot = 0;
+	numWghts  = 0;
 
 	if( weights != undefined ){
 		for( let boneIdx in weights ){
 			tempIdx = parseInt(boneIdx);
 			tempWght = weights[boneIdx];
+			wghtTot += tempWght;
 			if( tempWght > wght1 ){
 				//replace 1 with temp and put 1 in 2
 				wght2 = wght1;
 				idx2 = idx1;
 				wght1 = tempWght;
 				idx1 = tempIdx;
+				numWghts += 1;
 			}else if( tempWght > wght2 ){
 				//replace 2 with temp
 				wght2 = tempWght;
 				idx2 = tempIdx;
+				numWghts += 1;
 			}
 		}
 		
-		/*
+		
 		//normalize weights
-		if( wght1 > 0 )
-			wghtTot += wght1;
-		if( wght2 > 0 )
-			wghtTot += wght2;
-		wght1 /= wghtTot;
-		wght2 /= wghtTot;
-		*/
+		if(numWghts == 0){
+			wght1 = 0.5;
+			wght2 = 0.5;
+		}else{
+		
+			accumWght = wght1 + wght2;
+			/*
+			if(accumWght < wghtTot){ //more than 2 weights
+				wght1 *= wghtTot/accumWght;
+				wght2 *= wghtTot/accumWght;
+			}else{ //2 or less weights
+				if( numWghts == 1 ){ //give remaining weight to unassigned index
+					if( idx1 < 0 )
+						wght1 = 1-accumWght;
+					else
+						wght2 = 1-accumWght;
+				}
+				wght1 /= accumWght;
+				wght2 /= accumWght;
+			}
+			*/
+			wght1 /= accumWght;
+			wght2 /= accumWght;
+		}
+		
 	}
 
 }
@@ -369,7 +393,7 @@ function writeIdxWeights(bnIdxWghts, cI, matOffset){
 
 	if( idx1 < 0 ){
 		bnIdxWghts[cI++] = 0;
-		bnIdxWghts[cI++] = 1;
+		bnIdxWghts[cI++] = wght1;
 	}else{
 		bnIdxWghts[cI++] = idx1 + matOffset;
 		bnIdxWghts[cI++] = wght1;
@@ -377,7 +401,7 @@ function writeIdxWeights(bnIdxWghts, cI, matOffset){
 	
 	if( idx2 < 0 ){
 		bnIdxWghts[cI++] = 0;
-		bnIdxWghts[cI++] = 1;
+		bnIdxWghts[cI++] = wght2;
 	}else{
 		bnIdxWghts[cI++] = idx2 + matOffset;
 		bnIdxWghts[cI++] = wght2;

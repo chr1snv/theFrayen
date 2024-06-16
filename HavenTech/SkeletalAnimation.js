@@ -5,7 +5,7 @@
 
 //small structure used in breadth first traversal of the bone tree 
 function SkelA_HierarchyNode(){
-	this.parent_mat = new Float32Array(4*4);
+	this.parent_mat = Matrix_New();
 	this.idx = -1; //the index of the represented bone
 };
 
@@ -27,12 +27,12 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.lineDrawBuffer = null;
 	this.linePts = null;
 
-	this.scale        = Vect3_NewAllOnes();
-	this.rotation     = Vect3_NewZero();
-	this.origin       = Vect3_NewZero();
-	this.orientation  = Matrix_New();
-	this.inverseMatrix = Matrix_New();
-	Matrix_SetIdentity( this.orientation );
+	this.scale          = Vect3_NewAllOnes();
+	this.rotation       = Vect3_NewZero();
+	this.origin         = Vect3_NewZero();
+	this.toWorldMatrix  = Matrix_New();
+	this.wrldToLclMat  = Matrix_New();
+	Matrix_SetIdentity( this.toWorldMatrix );
 
 	this.loadCompCallback = readyCallback;
 	this.loadCompCbParams = readyCallbackParams;
@@ -104,9 +104,25 @@ function SkelA_Cleanup(skelA){
 	gl.deleteBuffer( skelA.lineDrawBuffer );
 }
 
+const TRAVERSAL_NODE_POOL_SIZE = 128;
+let traversalNodePool = new Array(TRAVERSAL_NODE_POOL_SIZE);
+for( let i = 0; i < traversalNodePool.length; ++i){
+	traversalNodePool[i] = new SkelA_HierarchyNode();
+}
+let traversalNodePoolIdx = TRAVERSAL_NODE_POOL_SIZE-1;
+
+function SkelA_GetTraversalNode(  ){
+	if( traversalNodePoolIdx < 2 )
+		console.log( "almost out of traversal nodes\n" );
+	return traversalNodePool[traversalNodePoolIdx--];
+}
+function SkelA_ReturnTraversalNode( node ){
+	traversalNodePool[++traversalNodePoolIdx] = node;
+}
+
 function SkelA_InitTraversalQueue(skelA, queue){
 	for( let i = 0; i < skelA.rootBoneIdxs.length; ++i ){
-		let hierarchyNode = new SkelA_HierarchyNode();
+		let hierarchyNode = SkelA_GetTraversalNode();
 		Matrix(hierarchyNode.parent_mat, MatrixType.identity);
 		hierarchyNode.idx = skelA.rootBoneIdxs[i];
 		queue.push(hierarchyNode);
@@ -141,9 +157,6 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		
 		Bone_GetPose_Mat(skelA.bones[currentIdx], bone_mat_actions, time);
 
-		//temporaries used for matrix multiplication
-		let tempMat1 = Matrix_New();
-		let tempMat2 = Matrix_New();
 
 		//calculate the pose matrix for this bone
 		let pose_mat = Matrix_New();
@@ -152,7 +165,7 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
 
 		//store this bone's pose matrix in the frameTransformation object
-		Matrix_Multiply(skelA.transformationMatricies[currentIdx], skelA.orientation, pose_mat);
+		Matrix_Multiply(skelA.transformationMatricies[currentIdx], skelA.toWorldMatrix, pose_mat);
 		
 		//write this bones combined matrix to combinedBoneMats
 		Matrix_MultToArrTransp( skelA.hvnsc.combinedBoneMats,
@@ -163,9 +176,10 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		//calculate the matrix to pass to this bone's children
 		Matrix_Multiply(tempMat2, pose_mat, bone_mat_loc_tail);
 
+		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
 		for(let i=0; i<skelA.bones[currentIdx].childrenIdxs.length; ++i){
-			let newNode = new SkelA_HierarchyNode();
+			let newNode = SkelA_GetTraversalNode();
 			Matrix_Copy(newNode.parent_mat, tempMat2);
 			newNode.idx = skelA.bones[currentIdx].childrenIdxs[i];
 			boneQueue.push(newNode);
@@ -179,10 +193,6 @@ function SkelA_writeCombinedBoneMatsToGL(hvnsc){
 	//write the combined bone matricies to gl
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.NEAREST);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
 	
 	gl.texImage2D(
 		gl.TEXTURE_2D, 
@@ -233,6 +243,11 @@ function SkelA_GenerateMesh(skelA, mesh, time ){
 	return true;
 }
 
+//temporaries used for matrix multiplications
+//let tempMat1 = new Float32Array(4*4);
+let arm_mat  = Matrix_New();
+let mat_to_pass_on = Matrix_New();
+//let tempMat2 = new Float32Array(4*4);
 function SkelA_GenerateInverseBindPoseTransformations(skelA){
 	//breadth first traverse the bone hierarchy and
 	//generate the inverse bind pose transformation for each bone
@@ -258,27 +273,23 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 		let bone_mat_head     = skelA.bones[currentIdx].head_Mat;
 		let bone_mat_loc_tail = skelA.bones[currentIdx].loc_tail_Mat;
 
-		//temporaries used for matrix multiplications
-		let tempMat1 = new Float32Array(4*4);
-		let arm_mat  = new Float32Array(4*4);
-		let tempMat2 = new Float32Array(4*4);
 
 		//calculate and store the inverse bind_pose/armature_matrix
 		Matrix_Multiply(tempMat1, bone_mat_head, bone_mat);
 		Matrix_Multiply(arm_mat, parent_arm_mat, tempMat1);
-		//invert the bones arm_mat and apply it to the inverse orientation matrix of the armature and store it
+		//invert the bones arm_mat and apply it to the inverse toWorldMatrix matrix of the armature and store it
 		Matrix_Copy(tempMat2, arm_mat);
 		Matrix_Inverse(tempMat1, tempMat2);
 		Matrix_Multiply(skelA.bones[currentIdx].inverseBindPose,
-						tempMat1, skelA.inverseMatrix);
+						tempMat1, skelA.wrldToLclMat);
 
 		//calculate the matrix to pass to this bones children
-		let mat_to_pass_on = new Float32Array(4*4);
 		Matrix_Multiply(mat_to_pass_on, arm_mat, bone_mat_loc_tail);
 
+		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
 		for(let i=0; i<skelA.bones[currentIdx].childrenIdxs.length; ++i){
-			let newNode = new SkelA_HierarchyNode();
+			let newNode = SkelA_GetTraversalNode();
 			Matrix_Copy(newNode.parent_mat, mat_to_pass_on);
 			newNode.idx = skelA.bones[currentIdx].childrenIdxs[i];
 			boneQueue.push(newNode);
@@ -286,6 +297,7 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 	}
 }
 
+let toWorldMatrixCpy = new Float32Array(4*4);
 function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	if( skelAnimFile === undefined ){ 
 		skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
@@ -329,15 +341,14 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 		}
 	}
 
-	//calculate the orientation matrix of the Animation and its inverse
+	//calculate the toWorldMatrix matrix of the Animation and its inverse
 	//let blenderToHaven = new Float32Array(4*4);
 	//Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
 	//let tempMat = new Float32Array(4*4);
-	Matrix( skelA.orientation, MatrixType.euler_transformation, skelA.scale, skelA.rotation, skelA.origin );
-	//Matrix_Multiply(skelA.orientation, blenderToHaven, tempMat);
-	let orientationCpy = new Float32Array(4*4);
-	Matrix_Copy(orientationCpy, skelA.orientation);
-	Matrix_Inverse(skelA.inverseMatrix, orientationCpy); //destructive operation on source matrix
+	Matrix( skelA.toWorldMatrix, MatrixType.euler_transformation, skelA.scale, skelA.rotation, skelA.origin );
+	//Matrix_Multiply(skelA.toWorldMatrix, blenderToHaven, tempMat);
+	Matrix_Copy(toWorldMatrixCpy, skelA.toWorldMatrix);
+	Matrix_Inverse(skelA.wrldToLclMat, toWorldMatrixCpy); //destructive operation on source matrix
 
 	//calculate bone lookup indices for faster bone lookup
 	SkelA_GenerateBoneTree(skelA);
