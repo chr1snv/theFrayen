@@ -12,71 +12,6 @@ function SkelA_HierarchyNode(){
 //constructor
 function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallbackParams ){
 
-
-	/*
-
-	this.Draw()
-	{
-		if(!isValid)
-		    return;
-
-
-
-		gl.EnableClientState(gl.GL_VERTEX_ARRAY);
-		gl.DisableClientState(gl.GL_NORMAL_ARRAY);
-
-		gl.DisableClientState(gl.GL_TEXTURE_COORD_ARRAY);
-
-
-
-		//allocate the buffer and temp point array
-
-		let lineBufferID = 0;
-		gl.GenBuffers(1, &lineBufferID);
-
-		GLfloat * linePts = new GLfloat[bones.size()*2*vertCard];
-
-
-		//calculate the line points
-		float tempZero[3];
-		float tempVec[3];
-		for(unsigned int i=0; i<bones.size(); ++i)
-		{
-		    Vect3_Zero(tempZero);
-
-		    Vect3_Zero(tempVec);
-		    tempVec[1] = 1.0;
-
-
-		    float head[3];
-		    float tail[3];
-		    Matrix_Multiply(head, (float(*)[4])&transformationMatricies[i*matCard], tempZero);
-		    Matrix_Multiply(tail, (float(*)[4])&transformationMatricies[i*matCard], tempVec);
-		    Vect3_Copy(&linePts[i*vertCard], head);
-		    Vect3_Copy(&linePts[(i+1)*vertCard], tail);
-		}
-
-		//bind the array buffer and upload the line points
-		glBindBuffer(GL_ARRAY_BUFFER, lineBufferID);
-		glBufferData(GL_ARRAY_BUFFER, bones.size()*2*vertCard*sizeof(GLfloat), linePts, GL_DYNAMIC_DRAW);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
-
-		//draw
-		glDisable(GL_DEPTH_TEST);
-		glColor4f(1.0, 0.5, 0.0, 1.0);
-		glDrawArrays(GL_LINES, 0, bones.size()*2);
-
-		//free the memory
-		gl.DeleteBuffers(1, &lineBufferID);
-		delete [] linePts;
-
-		//restore rendering state
-		glEnable(GL_DEPTH_TEST);
-
-	}
-	*/
-
-
 	this.skelAnimName = nameIn;
 	this.sceneName = sceneNameIn;
 	
@@ -84,10 +19,13 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 
 	this.transformationMatricies = [];
 	this.isValid = false;
-	this.headBoneIdx = -1;
+	this.rootBoneIdxs = [];
 	this.bones = [];
 	this.duration = 0.0;
 	this.loop = true;
+	
+	this.lineDrawBuffer = null;
+	this.linePts = null;
 
 	this.scale        = Vect3_NewAllOnes();
 	this.rotation     = Vect3_NewZero();
@@ -101,7 +39,78 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 
 	//open the file for reading
 	let fileName = "scenes/"+this.sceneName+"/skelAnimations/"+this.skelAnimName+".hvtAnim";
-    loadTextFile(fileName, SkelA_AnimFileLoaded, this );
+	loadTextFile(fileName, SkelA_AnimFileLoaded, this );
+}
+
+
+//let tempZero = Vect3_NewZero();
+let tempVec = Vect3_New();
+
+let head = Vect3_New();
+let tail = Vect3_New();
+function SkelA_Draw(skelA){
+	if(!skelA.isValid)
+		return;
+
+
+	gl.EnableClientState(gl.GL_VERTEX_ARRAY);
+	gl.DisableClientState(gl.GL_NORMAL_ARRAY);
+
+	gl.DisableClientState(gl.GL_TEXTURE_COORD_ARRAY);
+
+	//allocate the buffer and temp point array
+
+	if( skelA.lineDrawBuffer == null ){
+		skelA.lineDrawBuffer = gl.createBuffer();
+		skelA.linePts = new Float32Array(skelA.bones.length*2*vertCard);
+	}
+
+
+	//calculate the line points
+
+	for(let i=0; i<skelA.bones.length; ++i)
+	{
+		Vect3_Zero(tempZero);
+
+		Vect3_Zero(tempVec);
+		tempVec[1] = 1.0;
+
+
+		Matrix_Multiply(head, skelA.transformationMatricies[i], tempZero);
+		Matrix_Multiply(tail, skelA.transformationMatricies[i], tempVec);
+		Vect3_Copy(linePts[i*vertCard], head);
+		Vect3_Copy(linePts[(i+1)*vertCard], tail);
+	}
+
+	//bind the array buffer and upload the line points
+	glBindBuffer(GL_ARRAY_BUFFER, lineBufferID);
+	glBufferData(GL_ARRAY_BUFFER, bones.size()*2*vertCard*sizeof(GLfloat), linePts, GL_DYNAMIC_DRAW);
+	glVertexPointer(3, GL_FLOAT, 0, 0);
+
+	//draw
+	glDisable(GL_DEPTH_TEST);
+	glColor4f(1.0, 0.5, 0.0, 1.0);
+	glDrawArrays(GL_LINES, 0, bones.size()*2);
+
+	
+
+	//restore rendering state
+	glEnable(GL_DEPTH_TEST);
+
+}
+
+function SkelA_Cleanup(skelA){
+	//free the memory
+	gl.deleteBuffer( skelA.lineDrawBuffer );
+}
+
+function SkelA_InitTraversalQueue(skelA, queue){
+	for( let i = 0; i < skelA.rootBoneIdxs.length; ++i ){
+		let hierarchyNode = new SkelA_HierarchyNode();
+		Matrix(hierarchyNode.parent_mat, MatrixType.identity);
+		hierarchyNode.idx = skelA.rootBoneIdxs[i];
+		queue.push(hierarchyNode);
+	}
 }
 
 let bone_mat_actions  = Matrix_New();
@@ -115,10 +124,7 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 
 	//setup the traversal queue
 	let boneQueue = [];
-	let hierarchyNode = new SkelA_HierarchyNode();
-	Matrix(hierarchyNode.parent_mat, MatrixType.identity);
-	hierarchyNode.idx = skelA.headBoneIdx;
-	boneQueue.push(hierarchyNode);
+	SkelA_InitTraversalQueue(skelA, boneQueue);
 	
 	while(boneQueue.length > 0){
 		//get the next bone from the queue
@@ -236,12 +242,8 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 
 	//initialize the traversal queue
 	let boneQueue = [];
+	SkelA_InitTraversalQueue(skelA, boneQueue);
 
-	let hierarchyNode = new SkelA_HierarchyNode();
-	Matrix(hierarchyNode.parent_mat, MatrixType.identity);
-	hierarchyNode.idx = skelA.headBoneIdx;
-
-	boneQueue.push(hierarchyNode);
 
 	while(boneQueue.length > 0){
 		//get the next bone from the queue
@@ -323,7 +325,7 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 			if(tempDuration > skelA.duration) //set the duration
 				skelA.duration = tempDuration;
 			if(skelA.bones[skelA.bones.length-1].parentName == "None") //set the parent bone idx
-				skelA.headBoneIdx = skelA.bones.length-1;
+				skelA.rootBoneIdxs.push( skelA.bones.length-1 );
 		}
 	}
 

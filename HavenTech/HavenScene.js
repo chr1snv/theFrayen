@@ -29,7 +29,7 @@ function BufSubRange(startIdxIn, lenIn){
 	this.skelAnim = null;
 }
 
-const MAX_VERTS = 65536;
+//const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
 function DrawBatchBuffer(vertCt){
 	this.bufID = nextBufID; //the gl BufferId in TriGraphics

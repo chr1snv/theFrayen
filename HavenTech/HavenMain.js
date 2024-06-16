@@ -184,7 +184,7 @@ function stepTreeToggle(e){
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
-let autoRunCountdown = 4;
+let autoRunCountdown = 1;
 let stopAutoStart = false;
 function havenMain(){
 
