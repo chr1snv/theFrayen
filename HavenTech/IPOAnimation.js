@@ -125,7 +125,7 @@ function IPOA_GetMatrix(ipoa, outMat, time){
 
 
 	//return the corresponding matrix
-	Matrix(outMat, MatrixType.quat_transformation, scale, rot, translation);
+	Matrix_SetQuatTransformation(outMat, scale, rot, translation);
 }
 
 function IPOA_textFileLoaded(txtFile, ipoa)

@@ -4,7 +4,7 @@
 precision mediump float;
 
 //constant variables
-//uniform sampler2D boneMatrixTexture;
+uniform sampler2D boneMatrixTexture;
 uniform sampler2D texSampler;
 uniform float     texturingEnabled;
 uniform vec4      diffuseColor;
@@ -25,7 +25,7 @@ varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 void main() {
 
     //calculate the diffuse color
-    vec4 texColor            = texture2D( texSampler, texCoordVarying );
+    vec4 texColor            = vec4(texture2D( boneMatrixTexture, texCoordVarying ).xyz, 1);
     vec4 diffuseCol          = texColor * texturingEnabled +
                                ( diffuseColor * ( 1.0-texturingEnabled ) );
 

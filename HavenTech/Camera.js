@@ -140,7 +140,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 		//get the new rotation
 		this.getRotation(rotMatRotTemp);
 		//convert it to a 4x4 matrix
-		Matrix( rotMat, MatrixType.quat_rotate, rotMatRotTemp );
+		Matrix_SetQuatRotate( rotMat, rotMatRotTemp );
 	}
 
 	//apply the Cameras transformation
@@ -203,8 +203,8 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 
 
 		//combine the translation and rotation into one matrix
-		Matrix( transMat, MatrixType.translate, translation );
-		Matrix( this.camToWorldRotMat, MatrixType.quat_rotate, rot );
+		Matrix_SetTranslate(               transMat, translation );
+		Matrix_SetQuatRotate( this.camToWorldRotMat, rot );
 		Matrix_Multiply( this.camToWorldMat, transMat, this.camToWorldRotMat );
 	}
 

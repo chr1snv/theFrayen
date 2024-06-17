@@ -36,7 +36,7 @@ function Bone_GetPose_Mat(bone, m, time)
 	Bone_GetQuaternion(bone,  bone_quaternion, time); Quat_Norm(bone_quaternion);
 
 	Bone_GetTranslation(bone, bone_translation, time);
-	Matrix(m, MatrixType.quat_transformation, bone_scale, bone_quaternion, bone_translation);
+	Matrix_SetQuatTransformation(m,  bone_scale, bone_quaternion, bone_translation);
 }
 
 function Bone_GetScale(bone, scale, time)
@@ -168,20 +168,20 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 
 	//roll_Mat
 	bone.roll_Mat = Matrix_New();
-	Matrix(bone.roll_Mat, MatrixType.yRot, bone.roll[1]);
+	Matrix_SetYRot(bone.roll_Mat, bone.roll[1]);
 	//orientation_Mat
 	bone.orientation_Mat = Matrix_New();
-	Matrix(bone.orientation_Mat, MatrixType.orientation, bone.tail, bone.head);
+	Matrix_SetBoneOrientation(bone.orientation_Mat, bone.head, bone.tail);
 	//bone_Mat
 	bone.bone_Mat = Matrix_New();
 	Matrix_Multiply(bone.bone_Mat, bone.orientation_Mat, bone.roll_Mat);
 	//head_Mat
 	bone.head_Mat = Matrix_New();
-	Matrix(bone.head_Mat, MatrixType.translate, bone.head);
+	Matrix_SetTranslate(bone.head_Mat, bone.head);
 	//loc_tail_Mat
-	let distVec = new Float32Array([0, Vect3_Distance( bone.tail, bone.head ), 0]);
+	let distVec = Vect3_NewVals(0, 0, Vect3_Distance( bone.tail, bone.head ));
 	bone.loc_tail_Mat = Matrix_New();
-	Matrix(bone.loc_tail_Mat, MatrixType.translate, distVec);
+	Matrix_SetTranslate(bone.loc_tail_Mat, distVec);
 
 	return SLIdx;
 }

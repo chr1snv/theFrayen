@@ -651,8 +651,7 @@ function QM_UpdateToWorldMatrix(qm, time){
 		//if there is an ipo animation, ignore the quadmesh animations
 		//and over write it's world to local matrix for getRayIntersection
 	}else{
-		Matrix( qm.toWorldMatrix, 
-				MatrixType.quat_transformation, 
+		Matrix_SetQuatTransformation( qm.toWorldMatrix, 
 				qm.scale, qm.rotation, qm.origin );
 	}
 	Matrix_Copy(tempMat, qm.toWorldMatrix );

@@ -65,8 +65,8 @@ function test_quatToMatrix(){
 		Vect3_Zero( elrAngIn );
 		elrAngIn[i] = 90*Math.PI/180;
 		Quat_FromEuler( quat, elrAngIn );
-		Matrix( fromQuatMat, MatrixType.quat_rotate, quat );
-		Matrix( fromEulrMat, MatrixType.euler_rotate, elrAngIn );
+		Matrix_SetQuatRotate( fromQuatMat, quat );
+		Matrix_SetEulerRotate( fromEulrMat, elrAngIn );
 		DTPrintf("test_quatToMatrix " + i, "test", "color:beige", 0 );
 		Matrix_Print( fromQuatMat, "quat Mat");
 		Matrix_Print( fromEulrMat, "eulr Mat");

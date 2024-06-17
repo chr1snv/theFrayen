@@ -123,7 +123,7 @@ function SkelA_ReturnTraversalNode( node ){
 function SkelA_InitTraversalQueue(skelA, queue){
 	for( let i = 0; i < skelA.rootBoneIdxs.length; ++i ){
 		let hierarchyNode = SkelA_GetTraversalNode();
-		Matrix(hierarchyNode.parent_mat, MatrixType.identity);
+		Matrix_SetIdentity(hierarchyNode.parent_mat);
 		hierarchyNode.idx = skelA.rootBoneIdxs[i];
 		queue.push(hierarchyNode);
 	}
@@ -161,8 +161,8 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		//calculate the pose matrix for this bone
 		let pose_mat = Matrix_New();
 		Matrix_Multiply(tempMat1, bone_mat, bone_mat_actions);
-		Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
-		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
+		//Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
+		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat1);
 
 		//store this bone's pose matrix in the frameTransformation object
 		Matrix_Multiply(skelA.transformationMatricies[currentIdx], skelA.toWorldMatrix, pose_mat);
@@ -173,14 +173,13 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 			skelA.transformationMatricies[currentIdx],
 			skelA.bones[currentIdx].inverseBindPose );
 
-		//calculate the matrix to pass to this bone's children
-		Matrix_Multiply(tempMat2, pose_mat, bone_mat_loc_tail);
 
 		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
 		for(let i=0; i<skelA.bones[currentIdx].childrenIdxs.length; ++i){
 			let newNode = SkelA_GetTraversalNode();
-			Matrix_Copy(newNode.parent_mat, tempMat2);
+			//calculate the matrix to pass to this bone's children
+			Matrix_Multiply(newNode.parent_mat, pose_mat, bone_mat_loc_tail);
 			newNode.idx = skelA.bones[currentIdx].childrenIdxs[i];
 			boneQueue.push(newNode);
 		}
@@ -275,8 +274,8 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 
 
 		//calculate and store the inverse bind_pose/armature_matrix
-		Matrix_Multiply(tempMat1, bone_mat_head, bone_mat);
-		Matrix_Multiply(arm_mat, parent_arm_mat, tempMat1);
+		//Matrix_Multiply(tempMat1, bone_mat_head, bone_mat);
+		Matrix_Multiply(arm_mat, parent_arm_mat, bone_mat);
 		//invert the bones arm_mat and apply it to the inverse toWorldMatrix matrix of the armature and store it
 		Matrix_Copy(tempMat2, arm_mat);
 		Matrix_Inverse(tempMat1, tempMat2);
@@ -345,7 +344,7 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	//let blenderToHaven = new Float32Array(4*4);
 	//Matrix(blenderToHaven, MatrixType.xRot, -Math.PI/2.0);
 	//let tempMat = new Float32Array(4*4);
-	Matrix( skelA.toWorldMatrix, MatrixType.euler_transformation, skelA.scale, skelA.rotation, skelA.origin );
+	Matrix_SetEulerTransformation( skelA.toWorldMatrix, skelA.scale, skelA.rotation, skelA.origin );
 	//Matrix_Multiply(skelA.toWorldMatrix, blenderToHaven, tempMat);
 	Matrix_Copy(toWorldMatrixCpy, skelA.toWorldMatrix);
 	Matrix_Inverse(skelA.wrldToLclMat, toWorldMatrixCpy); //destructive operation on source matrix
