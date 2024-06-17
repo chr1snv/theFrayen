@@ -60,13 +60,13 @@ function IPOA_GetLocation(ipoa, ret, time){
 	//get location from curves
 	Vect3_Zero(ret);
 	if(ipoa.curves[0]){ //x
-		ret[0] = ipoa.curves[0].GetValue(time);
+		ret[0] = Curv_GetValue(ipoa.curves[0],time);
 		success = true;}
 	if(ipoa.curves[1]){ //y
-		ret[1] = ipoa.curves[1].GetValue(time);
+		ret[1] = Curv_GetValue(ipoa.curves[1],time);
 		success = true;}
-	if(ipoa.curves.LocZ){ //z
-		ret[2] = ipoa.curves[2].GetValue(time);
+	if(ipoa.curves[2]){ //z
+		ret[2] = Curv_GetValue(ipoa.curves[2],time);
 		success = true;}
 	return success;
 }
@@ -79,13 +79,13 @@ function IPOA_GetRotation(ipoa, rot, time){
 		//get rotation (blender stores it as degrees/10)
 		Vect3_Zero(eulerRotTemp);
 		if(ipoa.curves[3]){ //eulr x
-			eulerRotTemp[0] = ipoa.curves[3].GetValue(time);//*Math.PI/18.0;
+			eulerRotTemp[0] = Curv_GetValue(ipoa.curves[3],time);//*Math.PI/18.0;
 			success = true;}
 		if(ipoa.curves[4]){ //eulr y
-			eulerRotTemp[1] = -ipoa.curves[4].GetValue(time);//*Math.PI/18.0;
+			eulerRotTemp[1] = -Curv_GetValue(ipoa.curves[4],time);//*Math.PI/18.0;
 			success = true;}
 		if(ipoa.curves[5]){ //eulr z
-			eulerRotTemp[2] = ipoa.curves[5].GetValue(time);//*Math.PI/18.0;
+			eulerRotTemp[2] = Curv_GetValue(ipoa.curves[5],time);//*Math.PI/18.0;
 			success = true;}
 		Quat_FromEuler( rot, eulerRotTemp );
 	}
@@ -96,13 +96,13 @@ function IPOA_GetScale(ipoa, scale, time){
 	//get scale
 	Vect3_SetScalar(scale, 1);
 	if(ipoa.curves[7]){ //x
-		scale[0] = ipoa.curves[7].GetValue(time);
+		scale[0] = Curv_GetValue(ipoa.curves[7],time);
 		success = true;}
 	if(ipoa.curves[8]){ //y
-		scale[1] = ipoa.curves[8].GetValue(time);
+		scale[1] = Curv_GetValue(ipoa.curves[8],time);
 		success = true;}
 	if(ipoa.curves[9]){ //z
-		scale[2] = ipoa.curves[9].GetValue(time);
+		scale[2] = Curv_GetValue(ipoa.curves[9],time);
 		success = true;}
 	return success;
 }
@@ -154,10 +154,10 @@ function IPOA_textFileLoaded(txtFile, ipoa)
 				words = temp.split(' ');
 				//read in a point
 				if(temp[0] == 'p')
-					ipoa.curves[curveIdx].InsertPoint(
+					Curv_InsertPoint( ipoa.curves[curveIdx],
 						[parseFloat(words[1]), parseFloat(words[2])]);
 				if(temp[0] == 'e'){
-					let tempDuration = ipoa.curves[curveIdx].GetLength();
+					let tempDuration = Curv_GetLength(ipoa.curves[curveIdx]);
 					if(tempDuration > ipoa.duration) //set the duration
 						ipoa.duration = tempDuration;
 					break; // finish reading in bezier points
@@ -177,7 +177,7 @@ function GetLongestCurveDuration( curves ){
 	let lngstDur = 0;
 	for( let i = 0; i < curves.length; ++i ){
 		if( curves[i] ){
-			let len = curves[i].GetLength();
+			let len = Curv_GetLength(curves[i]);
 			if( len > lngstDur )
 				lngstDur = len;
 		}

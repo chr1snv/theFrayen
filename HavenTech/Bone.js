@@ -42,9 +42,9 @@ function Bone_GetPose_Mat(bone, m, time)
 function Bone_GetScale(bone, scale, time)
 {
 	//returns the animated scale component of the bone
-	scale[0] = bone.curves[7].GetValue(time);
-	scale[1] = bone.curves[8].GetValue(time);
-	scale[2] = bone.curves[9].GetValue(time);
+	scale[0] = Curv_GetValue(bone.curves[7],time);
+	scale[1] = Curv_GetValue(bone.curves[8],time);
+	scale[2] = Curv_GetValue(bone.curves[9],time);
 
 	//curves return 0 when there empty, make 1 for scaling
 	if (scale[0] == 0.0 && scale[1] == 0.0 && scale[2] == 0.0) {
@@ -56,10 +56,10 @@ function Bone_GetScale(bone, scale, time)
 function Bone_GetQuaternion(bone, quaternion, time)
 {
 	//returns the animated rotation component of the bone
-	quaternion[0] = bone.curves[3].GetValue(time);
-	quaternion[1] = bone.curves[4].GetValue(time);
-	quaternion[2] = bone.curves[5].GetValue(time);
-	quaternion[3] = bone.curves[6].GetValue(time);
+	quaternion[0] = Curv_GetValue(bone.curves[3],time);
+	quaternion[1] = Curv_GetValue(bone.curves[4],time);
+	quaternion[2] = Curv_GetValue(bone.curves[5],time);
+	quaternion[3] = Curv_GetValue(bone.curves[6],time);
 
 	//if all the curves return 0, return the identity quaternion
 	if(quaternion[0] == 0.0 && quaternion[1] == 0.0 && quaternion[2] == 0.0 && quaternion[3] == 0.0){
@@ -70,9 +70,9 @@ function Bone_GetQuaternion(bone, quaternion, time)
 
 function Bone_GetTranslation(bone, translation, time){
 	//return the animated translation component of the bone
-	translation[0] = bone.curves[0].GetValue(time);
-	translation[1] = bone.curves[1].GetValue(time);
-	translation[2] = bone.curves[2].GetValue(time);
+	translation[0] = Curv_GetValue(bone.curves[0],time);
+	translation[1] = Curv_GetValue(bone.curves[1],time);
+	translation[2] = Curv_GetValue(bone.curves[2],time);
 }
 
 
@@ -109,9 +109,9 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 
 		    //read in the bind pose data (bone space)
 			 else if(temp[0] == 'H'){
-				bone.head = new Float32Array([words[1], words[2], words[3] ] );
+				bone.head = Vect3_NewVals( words[1], words[2], words[3] );
 			}else if(temp[0] == 'T'){
-				bone.tail = new Float32Array([words[1], words[2], words[3] ]);
+				bone.tail = Vect3_NewVals( words[1], words[2], words[3] );
 			}else if(temp[0] == 'R'){
 				bone.roll[0] = parseFloat(words[1]);
 				bone.roll[1] = parseFloat(words[2]);
@@ -140,7 +140,7 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 					}
 				}
 			}else if(temp[0] == 'p'){ //read a point into the curve
-				bone.curves[curveIdx].InsertPoint( 
+				Curv_InsertPoint( bone.curves[curveIdx],
 					[ parseFloat(words[1]), parseFloat(words[2]), 
 					  parseFloat(words[3]), parseFloat(words[4]), 
 					  parseFloat(words[5]), parseFloat(words[6]) ] );

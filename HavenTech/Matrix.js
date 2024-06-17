@@ -88,9 +88,9 @@ function Matrix_SetBoneOrientation( retMat, head, tail ){
 	let dotProduct = Vect3_Dot(boneAxis, defAxis);
 	let rotationAngle = Math.acos(dotProduct);
 	
-	//if the bone is not parallel to the y axis
+	//if the bone is not parallel to the default axis
 	if( Math.abs(rotationAngle) > epsilon && Math.abs(rotationAngle) < Math.PI ){
-		//find the axis to rotate around
+		//find the axis to rotate around (orthogonal to the tail-head and default axis)
 		
 		Vect3_Cross(rotationAxis, boneAxis, defAxis);
 		Vect3_Unit(rotationAxis);
