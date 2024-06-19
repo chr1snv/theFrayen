@@ -45,58 +45,69 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 
 //let tempZero = Vect3_NewZero();
 let tempVec = Vect3_New();
+Vect3_Zero(tempVec);
+tempVec[1] = 1.0;
+let tempVec2 = Vect3_NewVals(0,0,0.2);
 
 let head = Vect3_New();
 let tail = Vect3_New();
-function SkelA_Draw(skelA){
+let zIndc = Vect3_New();
+
+let bindHead = Vect3_New();
+let bindTail = Vect3_New();
+let bindZIndc = Vect3_New();
+
+let poseCol     = [0,1,1,1];
+let poseColEnd  = [0,1,1,0.2];
+let poseZCol    = [0,1,0,1];
+let poseZColEnd = [0,1,0,0.2];
+
+let bindCol     = [1,1,0,1];
+let bindColEnd  = [1,1,0,0.2];
+let bindZCol    = [0,0,1,1];
+let bindZColEnd = [0,0,1,0.2];
+
+const numLineVertsPerBone = 8;
+function SkelA_Draw(skelA, buf, subB){
 	if(!skelA.isValid)
 		return;
 
 
-	gl.EnableClientState(gl.GL_VERTEX_ARRAY);
-	gl.DisableClientState(gl.GL_NORMAL_ARRAY);
-
-	gl.DisableClientState(gl.GL_TEXTURE_COORD_ARRAY);
-
-	//allocate the buffer and temp point array
-
-	if( skelA.lineDrawBuffer == null ){
-		skelA.lineDrawBuffer = gl.createBuffer();
-		skelA.linePts = new Float32Array(skelA.bones.length*2*vertCard);
-	}
-
-
 	//calculate the line points
 
-	for(let i=0; i<skelA.bones.length; ++i)
-	{
-		Vect3_Zero(tempZero);
+	for(let i=0; i<skelA.bones.length; ++i){
+		Matrix_Multiply_Vect3(head, skelA.transformationMatricies[i], tempZero);
+		Matrix_Multiply_Vect3(tail, skelA.transformationMatricies[i], tempVec);
+		Matrix_Multiply_Vect3(zIndc, skelA.transformationMatricies[i], tempVec2);
+		Vect_CopyToFromArr(buf.buffers[0],( (i*numLineVertsPerBone)   +subB.startIdx)*vertCard,  head, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+1)+subB.startIdx)*vertCard,  tail, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+2)+subB.startIdx)*vertCard,  head, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+3)+subB.startIdx)*vertCard, zIndc, 0, vertCard);
 
-		Vect3_Zero(tempVec);
-		tempVec[1] = 1.0;
+		Vect_CopyToFromArr(buf.buffers[1],( (i*numLineVertsPerBone)   +subB.startIdx)*colCard, poseCol,     0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+1)+subB.startIdx)*colCard, poseColEnd,  0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+2)+subB.startIdx)*colCard, poseZCol,    0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+3)+subB.startIdx)*colCard, poseZColEnd, 0, colCard);
 
 
-		Matrix_Multiply(head, skelA.transformationMatricies[i], tempZero);
-		Matrix_Multiply(tail, skelA.transformationMatricies[i], tempVec);
-		Vect3_Copy(linePts[i*vertCard], head);
-		Vect3_Copy(linePts[(i+1)*vertCard], tail);
+		Matrix_Copy( tempMat, skelA.bones[i].inverseBindPose);
+		Matrix_Inverse( tempMat2, tempMat );
+		Matrix_Multiply_Vect3(bindHead, tempMat2, tempZero);
+		Matrix_Multiply_Vect3(bindTail, tempMat2, tempVec);
+		Matrix_Multiply_Vect3(bindZIndc, tempMat2, tempVec2);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+4)+subB.startIdx)*vertCard,  bindHead, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+5)+subB.startIdx)*vertCard,  bindTail, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+6)+subB.startIdx)*vertCard,  bindHead, 0, vertCard);
+		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+7)+subB.startIdx)*vertCard, bindZIndc, 0, vertCard);
+
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+4)+subB.startIdx)*colCard, bindCol,     0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+5)+subB.startIdx)*colCard, bindColEnd,  0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+6)+subB.startIdx)*colCard, bindZCol,    0, colCard);
+		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+7)+subB.startIdx)*colCard, bindZColEnd, 0, colCard);
+
 	}
 
-	//bind the array buffer and upload the line points
-	glBindBuffer(GL_ARRAY_BUFFER, lineBufferID);
-	glBufferData(GL_ARRAY_BUFFER, bones.size()*2*vertCard*sizeof(GLfloat), linePts, GL_DYNAMIC_DRAW);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
-
-	//draw
-	glDisable(GL_DEPTH_TEST);
-	glColor4f(1.0, 0.5, 0.0, 1.0);
-	glDrawArrays(GL_LINES, 0, bones.size()*2);
-
-	
-
-	//restore rendering state
-	glEnable(GL_DEPTH_TEST);
-
+	buf.bufferUpdated   = true;
 }
 
 function SkelA_Cleanup(skelA){
@@ -161,8 +172,8 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		//calculate the pose matrix for this bone
 		let pose_mat = Matrix_New();
 		Matrix_Multiply(tempMat1, bone_mat, bone_mat_actions);
-		//Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
-		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat1);
+		Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
+		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
 
 		//store this bone's pose matrix in the frameTransformation object
 		Matrix_Multiply(skelA.transformationMatricies[currentIdx], skelA.toWorldMatrix, pose_mat);
@@ -173,13 +184,14 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 			skelA.transformationMatricies[currentIdx],
 			skelA.bones[currentIdx].inverseBindPose );
 
+		Matrix_Multiply(mat_to_pass_on, pose_mat, BN_loc_tail_Mat);
 
 		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
 		for(let i=0; i<skelA.bones[currentIdx].childrenIdxs.length; ++i){
 			let newNode = SkelA_GetTraversalNode();
 			//calculate the matrix to pass to this bone's children
-			Matrix_Multiply(newNode.parent_mat, pose_mat, bone_mat_loc_tail);
+			Matrix_Copy(newNode.parent_mat, mat_to_pass_on);
 			newNode.idx = skelA.bones[currentIdx].childrenIdxs[i];
 			boneQueue.push(newNode);
 		}
@@ -244,7 +256,7 @@ function SkelA_GenerateMesh(skelA, mesh, time ){
 
 //temporaries used for matrix multiplications
 //let tempMat1 = new Float32Array(4*4);
-let arm_mat  = Matrix_New();
+let bind_mat  = Matrix_New();
 let mat_to_pass_on = Matrix_New();
 //let tempMat2 = new Float32Array(4*4);
 function SkelA_GenerateInverseBindPoseTransformations(skelA){
@@ -265,25 +277,24 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 		let currentIdx = currentBoneNode.idx;
 
 		//get the relevant data from the parent
-		let parent_arm_mat    = currentBoneNode.parent_mat;
+		let parent_bind_mat    = currentBoneNode.parent_mat;
 
 		//get the relevant data from the current bone
 		let bone_mat          = skelA.bones[currentIdx].bone_Mat;
 		let bone_mat_head     = skelA.bones[currentIdx].head_Mat;
-		let bone_mat_loc_tail = skelA.bones[currentIdx].loc_tail_Mat;
 
 
 		//calculate and store the inverse bind_pose/armature_matrix
 		//Matrix_Multiply(tempMat1, bone_mat_head, bone_mat);
-		Matrix_Multiply(arm_mat, parent_arm_mat, bone_mat);
+		Matrix_Multiply(bind_mat, parent_bind_mat, bone_mat);
 		//invert the bones arm_mat and apply it to the inverse toWorldMatrix matrix of the armature and store it
-		Matrix_Copy(tempMat2, arm_mat);
+		Matrix_Copy(tempMat2, bind_mat);
 		Matrix_Inverse(tempMat1, tempMat2);
 		Matrix_Multiply(skelA.bones[currentIdx].inverseBindPose,
 						tempMat1, skelA.wrldToLclMat);
 
 		//calculate the matrix to pass to this bones children
-		Matrix_Multiply(mat_to_pass_on, arm_mat, bone_mat_loc_tail);
+		Matrix_Multiply(mat_to_pass_on, bind_mat, BN_loc_tail_Mat );
 
 		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
@@ -374,8 +385,15 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	let texFloatExt = gl.getExtension('OES_texture_float');
 	if (!texFloatExt) {
 		DPrintf("OES_texture_float not supported");
-		return; // the extension doesn't exist on this device
+		texFloatExt = gl.getExtension('OES_texture_float_linear');
+		if(!texFloatExt){
+			DPrintf("OES_texture_float_linear not supported either");
+			//return; // the extension doesn't exist on this device
+		}else{
+		}
 	}
+	
+	
 
 	let skelAnimCacheKeys = Object.keys(skelAnims);
 	let totalNumBones = 1; //offset by 1 for the identity Matrix

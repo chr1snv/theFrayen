@@ -28,6 +28,7 @@ return false;
 const vertCard     = 3;
 const normCard     = 3;
 const uvCard       = 2;
+const colCard      = 4;
 const bnIdxWghtCard = 2*2; //(index of bone mat + weight) * 2 bone mats per vertex
 const matrixCard   = 4*4;
 
@@ -220,17 +221,35 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	gl.enable(gl.BLEND);
 	
 	
-	//load and compile the point and triangle drawing gl programs
-	this.pointGraphics = new PointGraphics(loadTriGraphics);
-	this.glPrograms['frayenPoint'] = this.pointGraphics.pointProgram;
-	this.currentProgram = this.pointGraphics.pointProgram.glShaderProgramRefId;
-	this.currentProgramName = 'frayenPoint';
+	//load and compile the point, line, and triangle drawing gl programs
+	this.pointGraphics = new PointGraphics(loadLineGraphics);
+	this.glPrograms['point'] = this.pointGraphics.glProgram;
+	this.currentProgram = this.pointGraphics.glProgram.glShaderProgramRefId;
+	this.currentProgramName = 'point';
+	
+	function loadLineGraphics(){
+		graphics.lineGraphics = new LineGraphics(loadTriGraphics);
+		graphics.glPrograms['line'] = graphics.lineGraphics.glProgram;
+		CheckGLError( "after load line gl program" );
+		graphics.currentProgram = graphics.lineGraphics.glProgram.glShaderProgramRefId;
+		graphics.currentProgramName = 'line';
+	}
 	
 	function loadTriGraphics(){
 		graphics.triGraphics = new TriGraphics(loadCompleteCallback);
-		graphics.glPrograms['frayenTexQuad'] = graphics.triGraphics.triProgram;
+		graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
 		CheckGLError( "after load tri gl program" );
+		graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;
+		graphics.currentProgramName = 'tri';
 	}
 
+
+}
+
+
+function GRPH_Cleanup(grph){
+	let progKeys = Object.keys( graphics.glPrograms );
+	for( let i = 0; i < progKeys.length; ++i )
+		graphics.glPrograms[progKeys[i]].cleanup();
 }
 

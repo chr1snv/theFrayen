@@ -269,6 +269,6 @@ mEnd
 
 a Armature
 ac Camera
-sceStats objs 34 lghts 7 cams 1
+sceStats objs 34 lghts 7 cams 1 armatures 3
 sceAABB -5.896148 -46.049072 -25.103775  27.873617 32.966118 42.212540
 sceEnd

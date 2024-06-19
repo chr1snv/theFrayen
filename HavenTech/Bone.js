@@ -1,8 +1,12 @@
 //Bone.js: Animation Bone Implementation
 //to request use or code/art please contact chris@itemfactorystudio.com
 
-function Bone( expectedCurvesToRead ){
+//loc_tail_Mat
+let BN_loc_tail_Mat = Matrix_New();
+let distVec = Vect3_NewVals(0, 1, 0);
+Matrix_SetTranslate(  BN_loc_tail_Mat, distVec);
 
+function Bone( expectedCurvesToRead ){
 
 	this.parentName = "Not Set";
 	this.boneName = "Not Set";
@@ -18,8 +22,17 @@ function Bone( expectedCurvesToRead ){
 	this.childrenIdxs= [];
 	this.children    = [];
 
-	this.head = Vect3_NewZero();
-	this.tail = Vect3_NewZero();
+	this.head = Vect3_NewZero(); //relative to parent bone
+	this.tail = Vect3_NewZero(); //relative to bone 0,0,0 in unscaled bone space
+	this.head_armSpc = Vect3_NewZero();
+	this.tail_armSpc = Vect3_NewZero();
+	
+	this.roll_Mat   = Matrix_New();
+	this.rotat_Mat  = Matrix_New();
+	this.bone_Mat   = Matrix_New(); //from local bone space to armature space (rotScale*roll)
+	this.scale_Mat  = Matrix_New();
+	this.head_Mat   = Matrix_New();
+	this.tail_Mat   = Matrix_New();
 
 	this.inverseBindPose = Matrix_New();
 
@@ -108,10 +121,14 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 			}
 
 		    //read in the bind pose data (bone space)
-			 else if(temp[0] == 'H'){
+			 else if(words[0] == 'H'){
 				bone.head = Vect3_NewVals( words[1], words[2], words[3] );
-			}else if(temp[0] == 'T'){
+			}else if(words[0] == 'HA'){
+				bone.head_armSpc = Vect3_NewVals( words[1], words[2], words[3] );
+			}else if(words[0] == 'T'){
 				bone.tail = Vect3_NewVals( words[1], words[2], words[3] );
+			}else if(words[0] == 'TA'){
+				bone.tail_armSpc = Vect3_NewVals( words[1], words[2], words[3] );
 			}else if(temp[0] == 'R'){
 				bone.roll[0] = parseFloat(words[1]);
 				bone.roll[1] = parseFloat(words[2]);
@@ -167,21 +184,15 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	//generate cached matrices for fast lookup
 
 	//roll_Mat
-	bone.roll_Mat = Matrix_New();
-	Matrix_SetYRot(bone.roll_Mat, bone.roll[1]);
-	//orientation_Mat
-	bone.orientation_Mat = Matrix_New();
-	Matrix_SetBoneOrientation(bone.orientation_Mat, bone.head, bone.tail);
+	Matrix_SetYRot(         bone.roll_Mat,     bone.roll[1]);
+	//rotScale_Mat
+	Matrix_SetBoneRotat( bone.rotat_Mat, bone.tail );
 	//bone_Mat
-	bone.bone_Mat = Matrix_New();
-	Matrix_Multiply(bone.bone_Mat, bone.orientation_Mat, bone.roll_Mat);
+	Matrix_Multiply(        bone.bone_Mat,     bone.rotat_Mat, bone.roll_Mat);
 	//head_Mat
-	bone.head_Mat = Matrix_New();
-	Matrix_SetTranslate(bone.head_Mat, bone.head);
-	//loc_tail_Mat
-	let distVec = Vect3_NewVals(0, 0, Vect3_Distance( bone.tail, bone.head ));
-	bone.loc_tail_Mat = Matrix_New();
-	Matrix_SetTranslate(bone.loc_tail_Mat, distVec);
+	Matrix_SetTranslate(    bone.head_Mat,     bone.head);
+	//tail mat
+	Matrix_SetTranslate(    bone.tail_Mat,     bone.tail_armSpc);
 
 	return SLIdx;
 }

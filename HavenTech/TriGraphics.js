@@ -9,7 +9,7 @@ function TriGraphics(loadCompleteCallback){
 	this.shinyness        = 0;
 
 
-	this.triProgram = new GlProgram('frayen', null, loadCompleteCallback);
+	this.glProgram = new GlProgram('frayen', null, loadCompleteCallback);
 
 	this.textures = {};
 }
@@ -21,37 +21,37 @@ let temp = [1.0,1.0,1.0,1.0];
 let tempZero = [ 0,0,0,1];
 function TRI_G_Setup(triG){
 
-	let progId = triG.triProgram.glProgId;
+	let progId = triG.glProgram.glProgId;
 
 	gl.useProgram(progId);
 	//CheckGLError( "after enable tri glProgram " );
 
 
 	if( !triG.texturingEnabled_UnifF1 )
-		triG.texturingEnabled_UnifF1 = gl.getUniformLocation( triG.triProgram.glProgId, 'texturingEnabled' );
+		triG.texturingEnabled_UnifF1 = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled' );
 
 	if( !triG.projMatrixUnif )
-		triG.projMatrixUnif = gl.getUniformLocation( triG.triProgram.glProgId, 'projMatrix');
+		triG.projMatrixUnif = gl.getUniformLocation( triG.glProgram.glProgId, 'projMatrix');
 
 	if( !triG.mMatrixUnif ){
-		triG.mMatrixUnif = gl.getUniformLocation( triG.triProgram.glProgId, 'mMatrix');
+		triG.mMatrixUnif = gl.getUniformLocation( triG.glProgram.glProgId, 'mMatrix');
 	}
 
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 	
-	triG.triProgram.setIntUniform('boneMatrixTexture', 1);
-	triG.triProgram.setIntUniform('texSampler', 0);
+	triG.glProgram.setIntUniform('boneMatrixTexture', 1);
+	triG.glProgram.setIntUniform('texSampler', 0);
 
-	triG.triProgram.setVec4Uniform('diffuseColor', temp);
-	//triG.triProgram.setVec4Uniform('ambient', temp);
-	triG.triProgram.setVec4Uniform('emissionColor', tempZero);
-	triG.triProgram.setVec4Uniform('specularColor', tempZero);
-	triG.triProgram.setFloatUniform('shinyness', 1);
+	triG.glProgram.setVec4Uniform('diffuseColor', temp);
+	//triG.glProgram.setVec4Uniform('ambient', temp);
+	triG.glProgram.setVec4Uniform('emissionColor', tempZero);
+	triG.glProgram.setVec4Uniform('specularColor', tempZero);
+	triG.glProgram.setFloatUniform('shinyness', 1);
 	//CheckGLError( "glProgram::before lighting enabled " );
 
 	//lighting setup
-	triG.triProgram.setFloatUniform( 'lightingEnabled', 0 );
+	triG.glProgram.setFloatUniform( 'lightingEnabled', 0 );
 
 
 	//CheckGLError( "glProgram::end frag shader loaded " );
@@ -73,12 +73,12 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 
 		triG.textures[textureName].Bind();
 		
-		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+		triG.glProgram.setFloatUniform( 'texturingEnabled', 1 );
 	}else{
-		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
+		triG.glProgram.setFloatUniform( 'texturingEnabled', 0 );
 	}
 
-	triG.triProgram.setIntUniform( 'skelSkinningEnb', 0 );
+	triG.glProgram.setIntUniform( 'skelSkinningEnb', 0 );
 	
 	Matrix_Transpose( transMat, identMatrix );
 	gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );
@@ -115,11 +115,11 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	uvs[5*2+0] = minUv[0]; uvs[5*2+1] = minUv[1]; //left  bottom
 
 
-	triG.triProgram.vertexAttribSetFloats( 0,  3, verts, 'position' );
+	triG.glProgram.vertexAttribSetFloats( 0,  3, verts, 'position' );
 	//CheckGLError("draw square, after position attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 1,    3, verts, 'norm' );
+	triG.glProgram.vertexAttribSetFloats( 1,    3, verts, 'norm' );
 	//CheckGLError("draw square, after normal attributeSetFloats");
-	triG.triProgram.vertexAttribSetFloats( 2,  2, uvs, 'texCoord' );
+	triG.glProgram.vertexAttribSetFloats( 2,  2, uvs, 'texCoord' );
 	//CheckGLError("draw square, after texCoord attributeSetFloats");
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	//CheckGLError("draw square, after drawArrays");
@@ -146,28 +146,28 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 
 		triG.textures[textureName].Bind();
 
-		triG.triProgram.setFloatUniform( 'texturingEnabled', 1 );
+		triG.glProgram.setFloatUniform( 'texturingEnabled', 1 );
 	}else{
-		triG.triProgram.setFloatUniform( 'texturingEnabled', 0 );
-		triG.triProgram.setVec4Uniform('diffuseColor', buf.diffuseCol);
+		triG.glProgram.setFloatUniform( 'texturingEnabled', 0 );
+		triG.glProgram.setVec4Uniform('diffuseColor', buf.diffuseCol);
 	}
 
 
 
 	let bufID = (buf.bufID);
 	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
-		triG.triProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.vertBuffer,       'position',     0);//buf.isAnimated );
-		triG.triProgram.vertexAttribSetFloats( bufID+1,      vertCard,      buf.vertBuffer,       'norm',         0);//buf.isAnimated );
-		triG.triProgram.vertexAttribSetFloats( bufID+2,      uvCard,        buf.uvBuffer,         'texCoord',     0);//buf.isAnimated );
+		triG.glProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.vertBuffer,       'position',     0);//buf.isAnimated );
+		triG.glProgram.vertexAttribSetFloats( bufID+1,      vertCard,      buf.vertBuffer,       'norm',         0);//buf.isAnimated );
+		triG.glProgram.vertexAttribSetFloats( bufID+2,      uvCard,        buf.uvBuffer,         'texCoord',     0);//buf.isAnimated );
 		if( buf.bnIdxWghtBuffer != null )
-			triG.triProgram.vertexAttribSetFloats( bufID+3,  bnIdxWghtCard, buf.bnIdxWghtBuffer,  'indexWeights', 0);//buf.isAnimated );
+			triG.glProgram.vertexAttribSetFloats( bufID+3,  bnIdxWghtCard, buf.bnIdxWghtBuffer,  'indexWeights', 0);//buf.isAnimated );
 		buf.bufferUpdated = false;
 	}else{
-		triG.triProgram.vertexAttribBuffEnable( bufID ,  vertCard, (buf.bufferIdx)*vertCard);
-		triG.triProgram.vertexAttribBuffEnable( bufID+1, vertCard, (buf.bufferIdx)*vertCard);
-		triG.triProgram.vertexAttribBuffEnable( bufID+2, uvCard,   (buf.bufferIdx)*uvCard  );
+		triG.glProgram.vertexAttribBuffEnable( bufID ,  vertCard, (buf.bufferIdx)*vertCard);
+		triG.glProgram.vertexAttribBuffEnable( bufID+1, vertCard, (buf.bufferIdx)*vertCard);
+		triG.glProgram.vertexAttribBuffEnable( bufID+2, uvCard,   (buf.bufferIdx)*uvCard  );
 		if( buf.bnIdxWghtBuffer != null )
-			triG.triProgram.vertexAttribBuffEnable( bufID+3, bnIdxWghtCard, (buf.bufferIdx)*bnIdxWghtCard );
+			triG.glProgram.vertexAttribBuffEnable( bufID+3, bnIdxWghtCard, (buf.bufferIdx)*bnIdxWghtCard );
 	}
 
 	let bufSubRangeKeys = Object.keys(buf.bufSubRanges);
@@ -176,11 +176,11 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		let startIdx = subRange.startIdx;
 		
 		if( subRange.skelAnim != null ){
-			triG.triProgram.setIntUniform( 'skelSkinningEnb', 1 );
+			triG.glProgram.setIntUniform( 'skelSkinningEnb', 1 );
 			let rowIdx = Math.floor(sceneTime % 4)
-			triG.triProgram.setFloatUniform( 'numBones', totalNumBones );
+			triG.glProgram.setFloatUniform( 'numBones', totalNumBones );
 		}else{
-			triG.triProgram.setIntUniform( 'skelSkinningEnb', 0 );
+			triG.glProgram.setIntUniform( 'skelSkinningEnb', 0 );
 		}
 
 		//set the screenspace orthographic matrix

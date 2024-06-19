@@ -263,7 +263,7 @@ function stop(){
 	
 	
 	CleanUpDrawBatchBuffers();
-	graphics.triGraphics.triProgram.cleanupVertexAttribBuffs();
+	GRPH_Cleanup(graphics);
 	delete( mainScene );
 	
 }
@@ -288,7 +288,6 @@ var sceneLoadedTime = 0;
 function sceneLoaded(havenScene)
 {
 	statusElm.innerHTML = "Init Scene";
-	sceneLoadedTime = Date.now();
 	lastSceneFPSOutputTime = 0;
 	framesSinceLastFPSOutputTime = 0;
 	mainScene = havenScene;
@@ -312,6 +311,7 @@ function sceneLoaded(havenScene)
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	UpadateMousePosText();
 	UpdateCamTransText(cam);
+	sceneLoadedTime = Date.now();
 	running = true;
 }
 
@@ -340,9 +340,9 @@ function MainLoop()
 	UpdateCamera( sceneTime );
 	//drawSquare(graphics);
 	//CheckGLError("before point graphics setup");
-	graphics.pointGraphics.Setup();
+	//graphics.pointGraphics.Setup();
 	//CheckGLError("after point graphics setup");
-	mainScene.Draw();
+	HVNSC_Draw( mainScene );
 	//console.log("frameRayHits " + totalFrameRayHits );
 	//CheckGLError("after draw mainScene");
 

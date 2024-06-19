@@ -96,7 +96,9 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 			gl.uniform1i( this.unifLocs[unifName], value );
 		}
 	}
-	
+	this.cleanup = function(){
+		this.cleanupVertexAttribBuffs();
+	}
 	this.cleanupVertexAttribBuffs  = function(){
 		let vertexAttribBuffKeys = Object.keys( this.attribLocs );
 		for( let i = 0; i < vertexAttribBuffKeys.length; ++i ){

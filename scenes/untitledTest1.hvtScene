@@ -20,6 +20,6 @@ cstartend 0.100000 100.000000
 cEnd
 
 ac Camera
-sceStats objs 1 lghts 1 cams 1
+sceStats objs 1 lghts 1 cams 1 armatures 0
 sceAABB -1.000000 -6.925791 -1.000000  7.358891 1.005454 5.903862
 sceEnd

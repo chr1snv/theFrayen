@@ -112,7 +112,7 @@ function Curv_GetValue(c, value)
 	
 	//if the endpoints are the same, return one of them
 	if(intervalLength < epsilon)
-		return p1[0];
+		return b[0][0];
 	
 	//return the linear interpolation between the two points
 	let distFromFirstPoint = value - b[0][0];

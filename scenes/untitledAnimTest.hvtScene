@@ -26,6 +26,6 @@ mrot 0.000000 -0.000000 1.570796
 mEnd
 
 ac Camera
-sceStats objs 2 lghts 1 cams 1
+sceStats objs 2 lghts 1 cams 1 armatures 0
 sceAABB -4.260000 -6.925791 -3.240000  7.358891 10.939999 5.903862
 sceEnd

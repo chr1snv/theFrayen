@@ -15,7 +15,7 @@ function PointGraphics(loadCompleteCallback){
 	this.pointFalloffAttr = null;
 	this.Setup = function(){
 	
-		let glProgId = this.pointProgram.glProgId;
+		let glProgId = this.glProgram.glProgId;
 	
 		gl.useProgram(glProgId);
 	
@@ -100,6 +100,6 @@ function PointGraphics(loadCompleteCallback){
 	
 	
 	
-	this.pointProgram = new GlProgram('frayenPoint', this, loadCompleteCallback);
+	this.glProgram = new GlProgram('frayenPoint', this, loadCompleteCallback);
 	
 }

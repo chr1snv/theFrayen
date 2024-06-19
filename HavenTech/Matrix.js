@@ -67,7 +67,7 @@ function Matrix_SetQuatTransformation( retMat,  scale, qRot, trans ){
 	Matrix_SetTranslate(  tempMat1,  trans );
 		Matrix_Multiply( retMat, tempMat1, tempMat3 );
 }
-function Matrix_SetBoneOrientation( retMat, head, tail ){
+function Matrix_SetBoneRotat( retMat, tail ){
 
 	Matrix_SetIdentity(retMat);
 
@@ -79,10 +79,9 @@ function Matrix_SetBoneOrientation( retMat, head, tail ){
 	// the y axis to the axis of the bone (boneAxisVector)
 	
 	Vect3_Copy(boneAxis, tail);
-	Vect3_Subtract(boneAxis, head);
 	Vect3_Unit(boneAxis);
 	
-	let defAxis = Vect3_NewVals(0.0, 0.0, 1.0);
+	let defAxis = Vect3_NewVals(0.0, 1.0, 0.0);
 	
 	//find the angle to rotate by (boneAxis dot yAxis)
 	let dotProduct = Vect3_Dot(boneAxis, defAxis);
@@ -92,7 +91,7 @@ function Matrix_SetBoneOrientation( retMat, head, tail ){
 	if( Math.abs(rotationAngle) > epsilon && Math.abs(rotationAngle) < Math.PI ){
 		//find the axis to rotate around (orthogonal to the tail-head and default axis)
 		
-		Vect3_Cross(rotationAxis, boneAxis, defAxis);
+		Vect3_Cross(rotationAxis, defAxis, boneAxis);
 		Vect3_Unit(rotationAxis);
 		
 		//generate the rotation quaternion
@@ -105,9 +104,9 @@ function Matrix_SetBoneOrientation( retMat, head, tail ){
 		//generate a identity matrix (dont need to rotate since we
 		//are already at the y-axis)
 		//or a matrix scaling -1 along the y axis
-		if(boneAxis[2] > 0.0)
+		if(boneAxis[1] > 0.0)
 			return; //identity matrix already set
-		
+		//otherwise pointing along negative y (180 deg rotation)
 		Matrix_SetXRot(retMat, Math.PI);
 	}
 }

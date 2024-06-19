@@ -92,6 +92,6 @@ lenrg 3000.000000
 lEnd
 
 ac Camera
-sceStats objs 9 lghts 4 cams 1
+sceStats objs 9 lghts 4 cams 1 armatures 0
 sceAABB -13.961706 -37.631817 -7.293530  88.734047 75.704918 28.537518
 sceEnd
