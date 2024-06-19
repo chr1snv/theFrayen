@@ -6,6 +6,7 @@ import bpy, bpy_extras.node_shader_utils
 #from Blender import Modifier
 import os, math, shutil, sys
 from mathutils import Vector
+import imbuf
 
 def vec3NewScalar( s ):
 	return Vector([ s, s, s ])
@@ -17,6 +18,12 @@ def vec3Max( v1, v2 ):
 	v1[0] = v1[0] if v1[0] > v2[0] else v2[0]
 	v1[1] = v1[1] if v1[1] > v2[1] else v2[1]
 	v1[2] = v1[2] if v1[2] > v2[2] else v2[2]
+	
+def nextPot(dim):
+	ret = 2
+	while( ret < dim ):
+		ret *= 2
+	return ret
 
 def popupMenu(message):
     bpy.context.window_manager.popup_menu(lambda self, \
@@ -80,6 +87,8 @@ def writeMeshMaterials(assetDirectory, ob):
     
     #open the output file
     out = open(matFileName, "w")
+    
+    out.write( 'n %s\n' % len(mesh.materials) )
 
     for mat in mesh.materials:
         #write a line in the hvtmeshmat file
@@ -181,7 +190,11 @@ def writeMaterial(assetDirectory, mat):
                 #copy the texture file into the proper folder
                 newPath = assetDirectory+"/textures/"+filename
                 print( "copying texturefile from absPath %s newPath %s" % (absPath, newPath) ) 
-                shutil.copyfile(absPath, newPath)
+                img = imbuf.load(absPath)
+                potSize = ( nextPot(img.size[0]), nextPot(img.size[1]) )
+                newimg = img.resize( potSize )#, Image.ANTIALIAS )
+                imbuf.write(img, filepath=newPath)
+                #shutil.copyfile(absPath, newPath)
     out.write('\n')
 
     #write out the shader settings
@@ -275,8 +288,8 @@ def writeMesh(assetDirectory, ob, ipoFileName):
         wVert = ob.matrix_world @ vert.co
         vec3Max( wMaxV, wVert )
         vec3Min( wMinV, wVert )
-        out.write( 'v %f %f %f\n' % (vert.co.x, vert.co.y, vert.co.z) )
-        out.write( 'n %f %f %f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
+        out.write( 'v %.2f %.2f %.2f\n' % (vert.co.x, vert.co.y, vert.co.z) )
+        out.write( 'n %.3f %.3f %.3f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
         #normalize the bone weights
         boneWeights = []
         boneWeightTotal = 0.0
@@ -291,7 +304,7 @@ def writeMesh(assetDirectory, ob, ipoFileName):
         #print out the bone weights
         for boneWeight in boneWeights:
             #a bone weight is a (name, weight) pair
-            out.write( 'w %s %f\n' % ( boneWeight[0],
+            out.write( 'w %s %.3f\n' % ( boneWeight[0],
                                        boneWeight[1]/boneWeightTotal ) )
         out.write( 'e\n' )
 
@@ -319,7 +332,7 @@ def writeMesh(assetDirectory, ob, ipoFileName):
             for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
                 uv_coords = ob.data.uv_layers.active.data[loop_idx].uv
                 #print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
-                out.write( ' %f %f' % (uv_coords[0], uv_coords[1]) )
+                out.write( ' %.3f %.3f' % (uv_coords[0], 1-uv_coords[1]) )
         except:
         	print( "can't read uv data, make sure %s isn't in edit mode" % (ob.name) )
         out.write('\ne\n')
@@ -362,7 +375,8 @@ def writeAnimationCurves(outputFile, curves):
     for curveTuple in curves:#Ipo.getCurves():
         curve = curveTuple[1]
         cType = curve.data_path.replace (" ", "_")
-        writeAnimationCurveData(outputFile, curve, cType)
+        if( cType == 'location' or cType == 'rotation_quaternion' or cType == 'rotation_euler' or cType == 'scale' ):
+            writeAnimationCurveData(outputFile, curve, cType)
 
 def writeAnimationCurveData(out, curve, cType):
 
@@ -378,7 +392,7 @@ def writeAnimationCurveData(out, curve, cType):
         [handle_left_time, handle_left_value]   = [keyframe_point.handle_left[0], keyframe_point.handle_left[1]]
         [handle_right_time, handle_right_value] = [keyframe_point.handle_right[0], keyframe_point.handle_right[1]]
         
-        out.write('p %f %f %f %f %f %f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
+        out.write('p %.2f %.2f %.2f %.2f %.2f %.2f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
     out.write('e\n') #end of points and curve
 
 
@@ -421,7 +435,7 @@ def writeKeyframeMeshData(assetDirectory, ob):
         for bezierPoint in curve.bezierPoints:
             knot = bezierPoint.vec[1]
             [x, y, z] = knot
-            out.write('p %f %f %f\n' % (x, y, z)) #write out the point knot
+            out.write('p %.3f %.3f %.3f\n' % (x, y, z)) #write out the point knot
         out.write('e\n') #end of points
         out.write('e\n') #end of curve
     
@@ -444,11 +458,23 @@ def writeKeyframeMeshData(assetDirectory, ob):
             return
         out.write('c %i\n' % len(blockData)) #count of verticies
         for vert in blockData:
-            out.write('v %f %f %f\n' % (vert.co[0], vert.co[1], -vert.co[2])) #vert positions
+            out.write('v %.3f %.3f %.3f\n' % (vert.co[0], vert.co[1], -vert.co[2])) #vert positions
         out.write('e\n')
 
     out.close()
         
+
+#debug console data probing example
+#how to get armature data in blender python console in varaible 'a'
+# a = bpy.data.scenes[0].objects['Armature']
+ 
+#how to get animation pose data at time (deselect armature or ctrl-shift -> pose mode, 
+#then change timeline to keyframe then below command in console )
+# a.pose.bones[0].matrix
+ 
+#how to get bind pose data (select armature, 
+#press shift to show the 'bind' or inital pose vert weights are mapped to)
+# a.data.bones['Bone'].tail
 
 def writeArmatureAnim(assetDirectory, ob):
     """Write a haven tech animation file from the given blender armature object"""
@@ -491,7 +517,13 @@ def writeArmatureAnim(assetDirectory, ob):
 
     #write each bone's rest data and animation data
     for (boneName, bone) in armature.bones.items():
-        out.write( 'b\n')
+        numBoneCurves = 0
+        try:
+            boneChannelCurves = armatureBoneCurves[ boneName ]
+            numBoneCurves = len( boneChannelCurves )
+        except:
+            print( "no curves for bone %s\n" % boneName )
+        out.write( 'b %i\n' % numBoneCurves)
         out.write( 'N %s\n' % boneName )
         if bone.parent != None:
             out.write( 'p %s\n' % bone.parent.name )
@@ -503,15 +535,18 @@ def writeArmatureAnim(assetDirectory, ob):
 
         #write out bind pose data (bonespace)
         head = bone.head
+        #headArmSpc = bone.head_local
         #write the location of the bones head in relation to its parents tail
         out.write( 'H %f %f %f\n' % (head[0], head[1], head[2]) )
+        #out.write( 'HA %f %f %f\n' % (headArmSpc[0], headArmSpc[1], headArmSpc[2]) )
         #write the location of the bones tail
-        tailPosition = bone.tail
-        out.write( 'T %f %f %f\n' % \
-            (tailPosition[0], tailPosition[1], tailPosition[2]) )
+        tail = bone.tail
+        #tailArmSpc = bone.tail_local
+        out.write( 'T %f %f %f\n' % (tail[0], tail[1], tail[2]) )
+        #out.write( 'TA %f %f %f\n' % (tailArmSpc[0], tailArmSpc[1], tailArmSpc[2]) )
         #https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
         bRot = bone.matrix.to_euler()
-        print( "R %f %f %f" % (bRot[0], bRot[1], bRot[2]) )
+        #print( "R %f %f %f" % (bRot[0], bRot[1], bRot[2]) )
         out.write( 'R %f %f %f\n' % (bRot[0], bRot[1], bRot[2]) )
 
         #write out the animation data of the bone
@@ -530,19 +565,21 @@ def genArmatureBoneCurves(armature):
     fcurves = armature.animation_data.nla_tracks.data.action.fcurves.items()
     curves = {}
     for c in fcurves:
-        #print("C %s" % c[1].data_path )
         cNameParts = c[1].data_path.split('"')
+        #name parts [1] is the bone name
+        #name parts [2] is the curve type
+        #print( "C %s | %s | %s" % (c[1].data_path, cNameParts[1], cNameParts[2]) )
         try:
             curves[cNameParts[1]]
         except:
-            #print("appending to curves %s\n" % (cNameParts[1]) )
+            #print( "appending to curves %s\n" % (cNameParts[1]) )
             curves[cNameParts[1]] = []
         curves[cNameParts[1]].append(c[1])
     return curves
 
 def writeBoneKeyframes(out, armatureBoneCurves, boneName):
     #get the Ipo channel corresponding to the bone
-    print("writeBoneKeyframes\n")
+    #print("writeBoneKeyframes\n")
     
     try:
         boneChannelCurves = armatureBoneCurves[ boneName ]

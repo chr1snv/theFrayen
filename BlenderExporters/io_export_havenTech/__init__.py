@@ -253,6 +253,7 @@ def writeScene(path):
     mshCt  = 0
     lghtCt = 0
     camCt  = 0
+    armCt  = 0
     wMin = vec3NewScalar(  9999999 )
     wMax = vec3NewScalar( -9999999 )
     
@@ -278,38 +279,36 @@ def writeScene(path):
         
         ipoFileName = writeObjectAnimationData(sceneDirectory, obj)
         
-        if obj.type == 'MESH' or obj.type == 'ARMATURE':
-            prefixTypeLetter = 'm'
-            if obj.type == 'ARMATURE':
-                prefixTypeLetter = 'a'
-            out.write( '%s %s\n' % (prefixTypeLetter, obj.name) )
+        if obj.type == 'ARMATURE':
+            out.write( 'a %s\n' % (obj.name) )
+            mAABBws = writeArmature(sceneDirectory, obj)
+            armCt += 1
+        if obj.type == 'MESH':
+            out.write( 'm %s\n' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
-            if obj.type == 'ARMATURE':
-                mAABBws = writeArmature(sceneDirectory, obj)
+            mAABBws = writeModel(sceneDirectory, obj, ipoFileName) #world space aabb
+            print( 'AABB %s' % mAABBws )
+            if mAABBws == None:
+                print( 'Mesh object %s not exportable (AABB not returned)' % \
+                    obj.name )
+                break
             else:
-                mAABBws = writeModel(sceneDirectory, obj, ipoFileName) #world space aabb
-                print( 'AABB %s' % mAABBws )
-                if mAABBws == None:
-                    print( 'Mesh object %s not exportable (AABB not returned)' % \
-                        obj.name )
-                    break
-                else:
-                    out.write( 'baabb %f %f %f  %f %f %f\n' % \
-                        (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
-                         mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
-                    aabbMin = mAABBws[0]
-                    aabbMax = mAABBws[1]
-                    vec3Min( wMin, aabbMin )
-                    vec3Max( wMax, aabbMax )
-                    newObj = TreeObj(aabbMin, aabbMax, obj)
-                #addSuccessful = rootNode.AddObject( newObj )
-                #print( "object aabb overlap check result " + \
-                #    str( addSuccessful ) )
-                #if addSuccessful == False:
-                #    break
-                #AddOccupiedRegion( AABB[0], AABB[3], 0 )
-                #AddOccupideRegion( AABB[1], AABB[4], 1 )
-                #AddOccupiedRegion( AABB[2], AABB[5], 2 )
+                out.write( 'baabb %f %f %f  %f %f %f\n' % \
+                    (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
+                     mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
+                aabbMin = mAABBws[0]
+                aabbMax = mAABBws[1]
+                vec3Min( wMin, aabbMin )
+                vec3Max( wMax, aabbMax )
+                newObj = TreeObj(aabbMin, aabbMax, obj)
+            #addSuccessful = rootNode.AddObject( newObj )
+            #print( "object aabb overlap check result " + \
+            #    str( addSuccessful ) )
+            #if addSuccessful == False:
+            #    break
+            #AddOccupiedRegion( AABB[0], AABB[3], 0 )
+            #AddOccupideRegion( AABB[1], AABB[4], 1 )
+            #AddOccupiedRegion( AABB[2], AABB[5], 2 )
             out.write( 'mloc %f %f %f \n' % \
                  (obj.location[0], obj.location[1], obj.location[2]))
             out.write( 'mrot %f %f %f \n' % \
@@ -353,8 +352,8 @@ def writeScene(path):
     sceCamName = str( 'ac %s\n' % sce.camera.name )
     out.write(sceCamName)
     print(sceCamName)
-    sceStats = str('sceStats objs %i lghts %i cams %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
-    	(mshCt, lghtCt, camCt,   wMin[0], wMin[1], wMin[2],   wMax[0], wMax[1], wMax[2]) )
+    sceStats = str('sceStats objs %i lghts %i cams %i armatures %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
+    	(mshCt, lghtCt, camCt, armCt,   wMin[0], wMin[1], wMin[2],   wMax[0], wMax[1], wMax[2]) )
     out.write( sceStats )
     print( sceStats )
     #close the output file
