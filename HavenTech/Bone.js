@@ -24,13 +24,13 @@ function Bone( expectedCurvesToRead ){
 
 	this.head = Vect3_NewZero(); //relative to parent bone
 	this.tail = Vect3_NewZero(); //relative to bone 0,0,0 in unscaled bone space
+	this.len = 1;
 	this.head_armSpc = Vect3_NewZero();
 	this.tail_armSpc = Vect3_NewZero();
 	
 	this.roll_Mat   = Matrix_New();
 	this.rotat_Mat  = Matrix_New();
 	this.bone_Mat   = Matrix_New(); //from local bone space to armature space (rotScale*roll)
-	this.scale_Mat  = Matrix_New();
 	this.head_Mat   = Matrix_New();
 	this.tail_Mat   = Matrix_New();
 
@@ -88,7 +88,7 @@ function Bone_GetTranslation(bone, translation, time){
 	translation[2] = Curv_GetValue(bone.curves[2],time);
 }
 
-
+let tempLenVec = Vect3_NewZero();
 function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	//fStream is a opened file stream with the read marker set to the beginning
 	//of this bones data
@@ -123,12 +123,11 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 		    //read in the bind pose data (bone space)
 			 else if(words[0] == 'H'){
 				bone.head = Vect3_NewVals( words[1], words[2], words[3] );
-			}else if(words[0] == 'HA'){
-				bone.head_armSpc = Vect3_NewVals( words[1], words[2], words[3] );
 			}else if(words[0] == 'T'){
 				bone.tail = Vect3_NewVals( words[1], words[2], words[3] );
-			}else if(words[0] == 'TA'){
-				bone.tail_armSpc = Vect3_NewVals( words[1], words[2], words[3] );
+				Vect3_Copy(tempLenVec, bone.tail);
+				Vect3_Subtract(tempLenVec, bone.head);
+				bone.len = Vect3_Length( tempLenVec );
 			}else if(temp[0] == 'R'){
 				bone.roll[0] = parseFloat(words[1]);
 				bone.roll[1] = parseFloat(words[2]);
@@ -188,11 +187,13 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	//rotScale_Mat
 	Matrix_SetBoneRotat( bone.rotat_Mat, bone.tail );
 	//bone_Mat
-	Matrix_Multiply(        bone.bone_Mat,     bone.rotat_Mat, bone.roll_Mat);
+	Matrix_Multiply(        bone.bone_Mat,     bone.rotat_Mat, bone.roll_Mat );
 	//head_Mat
-	Matrix_SetTranslate(    bone.head_Mat,     bone.head);
+	Matrix_SetTranslate(    bone.head_Mat,     bone.head );
 	//tail mat
-	Matrix_SetTranslate(    bone.tail_Mat,     bone.tail_armSpc);
+	Vect3_Zero(tempLenVec);
+	tempLenVec[1] = bone.len;
+	Matrix_SetTranslate(    bone.tail_Mat,     tempLenVec );
 
 	return SLIdx;
 }

@@ -77,7 +77,9 @@ function SkelA_Draw(skelA, buf, subB){
 
 	for(let i=0; i<skelA.bones.length; ++i){
 		Matrix_Multiply_Vect3(head, skelA.transformationMatricies[i], tempZero);
+		tempVec[1] = skelA.bones[i].len;
 		Matrix_Multiply_Vect3(tail, skelA.transformationMatricies[i], tempVec);
+		tempVec2[2] = tempVec[1] * 0.2;
 		Matrix_Multiply_Vect3(zIndc, skelA.transformationMatricies[i], tempVec2);
 		Vect_CopyToFromArr(buf.buffers[0],( (i*numLineVertsPerBone)   +subB.startIdx)*vertCard,  head, 0, vertCard);
 		Vect_CopyToFromArr(buf.buffers[0],(((i*numLineVertsPerBone)+1)+subB.startIdx)*vertCard,  tail, 0, vertCard);
@@ -164,7 +166,7 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		//get the relevant data from the bone
 		let bone_mat          = skelA.bones[currentIdx].bone_Mat;
 		let bone_mat_head     = skelA.bones[currentIdx].head_Mat;
-		let bone_mat_loc_tail = skelA.bones[currentIdx].loc_tail_Mat;
+		let bone_mat_tail = skelA.bones[currentIdx].tail_Mat;
 		
 		Bone_GetPose_Mat(skelA.bones[currentIdx], bone_mat_actions, time);
 
@@ -184,7 +186,7 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 			skelA.transformationMatricies[currentIdx],
 			skelA.bones[currentIdx].inverseBindPose );
 
-		Matrix_Multiply(mat_to_pass_on, pose_mat, BN_loc_tail_Mat);
+		Matrix_Multiply(mat_to_pass_on, pose_mat, bone_mat_tail);
 
 		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
@@ -282,6 +284,7 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 		//get the relevant data from the current bone
 		let bone_mat          = skelA.bones[currentIdx].bone_Mat;
 		let bone_mat_head     = skelA.bones[currentIdx].head_Mat;
+		let bone_mat_tail     = skelA.bones[currentIdx].tail_Mat;
 
 
 		//calculate and store the inverse bind_pose/armature_matrix
@@ -294,7 +297,7 @@ function SkelA_GenerateInverseBindPoseTransformations(skelA){
 						tempMat1, skelA.wrldToLclMat);
 
 		//calculate the matrix to pass to this bones children
-		Matrix_Multiply(mat_to_pass_on, bind_mat, BN_loc_tail_Mat );
+		Matrix_Multiply(mat_to_pass_on, bind_mat, bone_mat_tail );
 
 		SkelA_ReturnTraversalNode( currentBoneNode );
 		//append this bones children to the traversal queue
