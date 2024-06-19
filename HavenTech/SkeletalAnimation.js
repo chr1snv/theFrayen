@@ -319,7 +319,7 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	let skelAnimFileLines = skelAnimFile.split('\n');
 
 	//read in the file line by line
-	sLIdx = 0
+	let sLIdx = -1;
 	while(++sLIdx < skelAnimFileLines.length ){
 		let temp = skelAnimFileLines[sLIdx];
 		let words = temp.split(' ');
