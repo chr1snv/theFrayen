@@ -183,8 +183,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 
 const maxObjsToDraw = 64;
-let objList = new Array(maxObjsToDraw);
-let objListIdx = 0;
+let objMap = new Map();
 function HVNSC_Draw(hvnsc){
 	if(!hvnsc.isValid){
 		DTPrintf(hvnsc.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
@@ -257,28 +256,30 @@ function HVNSC_Draw(hvnsc){
 		
 		
 		//get the objects in view
-		objListIdx = TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objList, 0 );
+		TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objMap );
+		
 		
 		//for each material get the number of objects using it (sub draw batches)
-		for( let i = 0; i < objListIdx; ++i ){
-			let qm = objList[i].quadmesh;
+		for( const [key,val] of objMap ){
+			let qm = val.quadmesh;
 			for( let matID = 0; matID < qm.materials.length; ++matID ){
 				let material = qm.materials[matID];
 				let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
-				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objList[i].uid.val, qm.faceVertsCtForMat[matID] );
+				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
 			}
 		}
 
 
 		//update the draw batch buffers from the objects
-		for( let i = 0; i < objListIdx; ++i ){
-			let qm = objList[i].quadmesh;
+		for( const [key,val] of objMap ){
+			let qm = val.quadmesh;
 
 			for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 				let material = qm.materials[matIdx];
 
 				let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
-				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objList[i].uid.val, qm.faceVertsCtForMat[matIdx] );
+				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
+				
 				
 				if( qm.isAnimated || drawBatch.bufferUpdated ){
 					Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
@@ -288,8 +289,7 @@ function HVNSC_Draw(hvnsc){
 				
 					if( drawBatch.vertBuffer == null )
 						AllocateBatchBufferArrays(drawBatch);
-
-
+					
 					let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
 							drawBatch, subBatchBuffer.startIdx, matIdx, 
 							subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;

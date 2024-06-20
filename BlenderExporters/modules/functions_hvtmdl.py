@@ -218,6 +218,19 @@ def writeMesh(assetDirectory, ob, ipoFileName):
     """Write a HavenTech mesh file from the passed in blender object"""
 
     #get the mesh data
+    #https://blender.stackexchange.com/questions/7196/how-to-get-a-new-mesh-with-modifiers-applied-using-blender-python-api
+    
+    #deselect all objects
+    for obj in bpy.context.view_layer.objects.selected:
+    	obj.select_set(False)
+    
+    #bpy.context.view_layer.objects.active
+    
+    
+	#bpy.data.scenes[0].objects['viper650hull'].modifiers[0].show_viewport = True
+    #d = bpy.context.evaluated_depsgraph_get()
+	#bpy.ops.object.mode_set(mode='EDIT')
+    
     mesh = ob.data #getData()
     
     #print( "writeMesh: %s" %(ob.name) ) 
@@ -278,6 +291,14 @@ def writeMesh(assetDirectory, ob, ipoFileName):
     wMinV = vec3NewScalar( sys.float_info.max )
      
     wMaxV = vec3NewScalar( sys.float_info.min )
+    
+    #get the vertex group names
+    vGNames = {vgroup.index: vgroup.name for vgroup in ob.vertex_groups}
+    out.write( 'cg %i\n' % ( len(vGNames) )  )
+    for i in vGNames:
+        out.write( 'g %i %s\n' %(i,vGNames[i]) )
+    out.write( 'e\n' )
+    out.write( '\n' )
 
     #write the verticies (position, normal, texture coordinate, and bone weight)
     numVerts = len(mesh.vertices)
@@ -289,22 +310,37 @@ def writeMesh(assetDirectory, ob, ipoFileName):
         vec3Max( wMaxV, wVert )
         vec3Min( wMinV, wVert )
         out.write( 'v %.2f %.2f %.2f\n' % (vert.co.x, vert.co.y, vert.co.z) )
-        out.write( 'n %.3f %.3f %.3f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
-        #normalize the bone weights
+        out.write( 'n %.2f %.2f %.2f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
+        #gather bone weights for the vertex
         boneWeights = []
         boneWeightTotal = 0.0
         for influencingGroup in vert.groups:
-            boneWeight = (influencingGroup.group, influencingGroup.weight)
+            boneWeight = [influencingGroup.group, influencingGroup.weight]
             if boneWeight[1] < 0.0:
                 print('Error%t|Negative Bone Weight')
                 out.close()
                 return
             boneWeightTotal += boneWeight[1]
             boneWeights.append(boneWeight)
+        #normalize the weights
+        for w in boneWeights:
+            w[1] /= boneWeightTotal
+        #remove small bone weights
+        wIdx = 0
+        boneWeightTotal = 1
+        while wIdx < len(boneWeights):
+            if( boneWeights[wIdx][1] < 0.1 ):
+                boneWeightTotal -= boneWeights[wIdx][1]
+                del boneWeights[wIdx]
+            else:
+                wIdx += 1
+        #renormalize the most significant weights
+        for w in boneWeights:
+            w[1] /= boneWeightTotal
         #print out the bone weights
         for boneWeight in boneWeights:
             #a bone weight is a (name, weight) pair
-            out.write( 'w %s %.3f\n' % ( boneWeight[0],
+            out.write( 'w %s %.2f\n' % ( boneWeight[0],
                                        boneWeight[1]/boneWeightTotal ) )
         out.write( 'e\n' )
 
@@ -523,7 +559,7 @@ def writeArmatureAnim(assetDirectory, ob):
             numBoneCurves = len( boneChannelCurves )
         except:
             print( "no curves for bone %s\n" % boneName )
-        out.write( 'b %i\n' % numBoneCurves)
+        out.write( 'b %i\n' % numBoneCurves )
         out.write( 'N %s\n' % boneName )
         if bone.parent != None:
             out.write( 'p %s\n' % bone.parent.name )

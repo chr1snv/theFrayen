@@ -646,6 +646,7 @@ function QM_PrintHierarchy(qm, name, par){
 //update the quadmesh to world transformation
 let tempMat = new Float32Array(4*4);
 function QM_UpdateToWorldMatrix(qm, time){
+
 	if( qm.lastToWorldMatrixUpdateTime == time )
 		return false;
 	if( qm.ipoAnimation != null ){

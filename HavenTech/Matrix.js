@@ -140,8 +140,8 @@ function Matrix_SetZRot( retMat, zRot ){
 }
 function Matrix_SetQuatRotate( retMat, quat ){
 	Matrix_SetIdentity(retMat);
-	if(quat[3] == 0.0)
-	    return;
+	//if(quat[3] == 0.0)
+	//    return;
 	//basis matrix computation
 	//https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions
 	//https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
