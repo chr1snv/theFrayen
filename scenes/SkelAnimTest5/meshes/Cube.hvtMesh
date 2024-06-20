@@ -5,6 +5,12 @@ x 0.000000 0.000000 0.000000
 a Armature
 e
 
+cg 3
+g 0 Bone
+g 1 Bone.001
+g 2 Bone.002
+e
+
 cv 16
 
 v 1.00 1.00 1.00

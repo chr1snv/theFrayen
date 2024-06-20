@@ -21,6 +21,7 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.isValid = false;
 	this.rootBoneIdxs = [];
 	this.bones = [];
+	this.boneNamesToIdxs = {};
 	this.duration = 0.0;
 	this.loop = true;
 	
@@ -341,14 +342,16 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 		}
 
 		if(temp[0] == 'b'){
-			//read in a bone, find the longest bone animation, and find the
-			//parent bone index
+			//read in a bone
 			let newBone = new Bone(parseInt(words[1]));
 			skelA.bones.push(newBone);
 			sLIdx = Bone_Parse(newBone, skelAnimFileLines, sLIdx); //bone constructor handles reading bone
+			skelA.boneNamesToIdxs[newBone.boneName] = skelA.bones.length-1;
+			//find the longest bone animation
 			let tempDuration = skelA.bones[skelA.bones.length-1].animationLength;
 			if(tempDuration > skelA.duration) //set the duration
 				skelA.duration = tempDuration;
+			//find parent bone indicies
 			if(skelA.bones[skelA.bones.length-1].parentName == "None") //set the parent bone idx
 				skelA.rootBoneIdxs.push( skelA.bones.length-1 );
 		}
@@ -383,6 +386,8 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 }
 
 function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
+	if( skelAnims.length < 1 )
+		return;
 
 	// create a texture to hold the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
 	let texFloatExt = gl.getExtension('OES_texture_float');

@@ -161,8 +161,6 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	//now unused because drawing is raytraced 
 	//(maybe will come back / be replaced by spectral image for denoising)
 
-	//function members
-	this.GetName = function(){ return this.sceneName; }
 
 	//updates the entire scene
 	//only parts of the oct tree that are active should be updated
@@ -420,11 +418,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		}
 		
 		//allocate the float texture for armatures
-		let skelAnimCache = graphics.cachedObjs[SkeletalAnimation.name];
-		if( skelAnimCache != undefined && skelAnimCache[hvnsc.sceneName] != undefined ){
-			let skelAnims = skelAnimCache[hvnsc.sceneName];
-			SkelA_AllocateCombinedBoneMatTexture(skelAnims, hvnsc)
-		}
+		SkelA_AllocateCombinedBoneMatTexture(hvnsc.armatures, hvnsc);
 	
 		hvnsc.Update(0.0); //init animated objs
 		hvnsc.isValid = true;

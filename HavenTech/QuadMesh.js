@@ -97,6 +97,8 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.vertPositions   = null;
 	this.vertNormals     = null;
 	this.vertBoneWeights = [];
+	
+	this.weightGroupIdsToBoneNames = null;
 
 	//animation base mesh
 	this.keyedPositions  = [];
@@ -848,17 +850,20 @@ function QM_matFileLoaded(matFile, thisP){
 function QM_ArmatureReadyCallback(armature, qm){
 	qm.skelAnimation = armature;
 	
-	/* //now done in blender exporter
+
 	//finalize the binding between the quadMesh and the skelAnimation
 	//by setting the boneID's in the bone weights
 	//based on the bone positions
 	//in the animation bone list
-	for( let i in qm.vertBoneWeights )
-		for( let boneName in qm.vertBoneWeights[i] )
-			for( let k in qm.skelAnimation.bones )
-				if(qm.skelAnimation.bones[k].boneName == boneName)
-					qm.vertBoneWeights[i][boneName].boneID = k;
-	*/
+	for( let i = 0; i < qm.vertBoneGroupIDWeights.length; ++i ){
+		for( let groupId in qm.vertBoneGroupIDWeights[i] ){
+			let boneName = qm.weightGroupIdsToBoneNames[groupId];
+			let k = qm.skelAnimation.boneNamesToIdxs[boneName];
+			if( k != undefined )
+				qm.vertBoneWeights[i][k] = qm.vertBoneGroupIDWeights[i][groupId];
+		}
+	}
+
 
 	QM_CallReadyCallbackIfLoaded(qm);
 }
@@ -893,6 +898,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 	
 	let temp = meshFileLines[meshFileLines.length-2];
 	let words = temp.split(' ');
+	
 	if( temp[0] == 'c' && temp[1] == 't' ){
 		triCt = words[1];
 		//thisP.tris = new Array(triCt);
@@ -907,6 +913,23 @@ function QM_meshFileLoaded(meshFile, thisP)
 	{
 		temp = meshFileLines[mLIdx];
 		words = temp.split(' ');
+		
+		
+		if( words[0] == 'cg' ){
+			let numWghtGroups = parseFloat(words[1]);
+			thisP.weightGroupIdsToBoneNames = new Array(numWghtGroups);
+			
+			while( ++mLIdx < meshFileLines.length )
+			{
+				temp = meshFileLines[mLIdx];
+				words = temp.split(' ');
+				if( temp[0] == 'g' ){
+					thisP.weightGroupIdsToBoneNames[parseInt(words[1])] = words[2];
+				}else if( temp[0] == 'e' ){
+					break;
+				}
+			}
+		}
 
 		//read in the mesh transformation matrix (translate, scale, rotate)
 		if( temp[0] == 'm' )
@@ -945,12 +968,6 @@ function QM_meshFileLoaded(meshFile, thisP)
 					thisP.isAnimated = true;
 					thisP.componentsToLoad += 1;
 				}else if( temp[0] == 'e' ){
-					if( ipoAnimName != '' )
-						graphics.GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
-					if( meshKeyAnimName != '' )
-						graphics.GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
-					if( skelAnimName != '' )
-						graphics.GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
 					break;
 				}
 			}
@@ -965,9 +982,12 @@ function QM_meshFileLoaded(meshFile, thisP)
 			thisP.vertPositions = new Float32Array( numVerts * vertCard );
 			thisP.vertNormals = new Float32Array( numVerts * vertCard );
 			thisP.transformedVerts = new Float32Array( numVerts * vertCard );
+			thisP.vertBoneGroupIDWeights = new Array( numVerts );
 			thisP.vertBoneWeights = new Array( numVerts );
-			for( let i = 0; i < numVerts; ++i )
+			for( let i = 0; i < numVerts; ++i ){
+				thisP.vertBoneGroupIDWeights[i] = {};
 				thisP.vertBoneWeights[i] = {};
+			}
 		}
 
 		//read in a vertex
@@ -996,10 +1016,10 @@ function QM_meshFileLoaded(meshFile, thisP)
 				temp = meshFileLines[mLIdx];
 				words = temp.split(' ');
 				if( temp[0] == 'w' ){
-					let boneIdx = parseInt(words[1]);
+					let groupIdx = parseInt(words[1]);
 					let boneWeight = parseFloat(words[2]);
 					let idx = Math.floor((vertIdx-1)/vertCard);
-					thisP.vertBoneWeights[idx][boneIdx] = boneWeight;
+					thisP.vertBoneGroupIDWeights[idx][groupIdx] = boneWeight;
 				}else if( temp[0] == 'e')
 					break; //done reading the vertex
 			}
@@ -1111,6 +1131,13 @@ function QM_meshFileLoaded(meshFile, thisP)
 	DPrintf('Quadmesh: ' + thisP.meshName +
 			', successfully read in faces: ' + thisP.faces.length + 
 			', verts: ' + thisP.vertPositions.length/3 );
+			
+	if( ipoAnimName != '' )
+		graphics.GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
+	if( meshKeyAnimName != '' )
+		graphics.GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
+	if( skelAnimName != '' )
+		graphics.GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
 
 	//initialize the aabb if not animated
 	QM_UpdateAABB( thisP, 0.0);

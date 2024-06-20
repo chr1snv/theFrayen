@@ -174,23 +174,33 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	
 	
 	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests
-	let cachedObj;
+	let cachedObjStatusAndCallbacks;
+	
 	this.GetCached = function(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
 		//concatName = filename + sceneName;
 		if( this.cachedObjs[ObjConstructor.name] == undefined )
 			this.cachedObjs[ObjConstructor.name] = {};
 		if( this.cachedObjs[ObjConstructor.name][sceneName] == undefined )
 			this.cachedObjs[ObjConstructor.name][sceneName] = {};
-		cachedObj = this.cachedObjs[ObjConstructor.name][sceneName][filename];
-		if(cachedObj === undefined){
-			//component is not loaded, load the new component and return it (asynchronous load)
-			this.cachedObjs[ObjConstructor.name][sceneName][filename] =
-				new ObjConstructor(filename, sceneName, ObjConstructorArgs, objReadyCallback, readyCallbackParameters);
+		cachedObjStatusAndCallbacks = this.cachedObjs[ObjConstructor.name][sceneName][filename];
+		if(cachedObjStatusAndCallbacks === undefined){
+			//component hasn't been requested to load, 
+			//load the new component
+			//and store a new callback for it to be returned (asynchronous load)
+			
+			cachedObjStatusAndCallbacks =
+				[	null,
+					false, 
+					[objReadyCallback, readyCallbackParameters] 
+				];
+			this.cachedObjs[ObjConstructor.name][sceneName][filename] = cachedObjStatusAndCallbacks;
+			cachedObjStatusAndCallbacks[0] = 
+				new ObjConstructor(filename, sceneName, ObjConstructorArgs, 
+						GRPH_ObjReadyCallback, cachedObjStatusAndCallbacks);
 		}else{
-			objReadyCallback( cachedObj, readyCallbackParameters );
+			GRPH_AddCachedObjCallbackAndCallIfReady( cachedObjStatusAndCallbacks, objReadyCallback, readyCallbackParameters );
 		}
 	}
-	
 	
 	
 	
@@ -244,6 +254,38 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	}
 
 
+}
+
+function GRPH_ObjReadyCallback( obj, cachedObjStatusAndCallbacks ){
+	cachedObjStatusAndCallbacks[0] = obj;
+	cachedObjStatusAndCallbacks[1] = true; //is now ready
+	let callbacksAndArgs = cachedObjStatusAndCallbacks[2];
+	for( let i = 0; i < callbacksAndArgs.length; i+=2 ){
+		callbacksAndArgs[i](obj, callbacksAndArgs[i+1]);
+	}
+}
+
+function GRPH_AddCachedObjCallbackAndCallIfReady( objStatusAndCallbacks, objReadyCallback, readyCallbackParameters ){
+	if( objStatusAndCallbacks[1] )
+		objReadyCallback( objStatusAndCallbacks[0], readyCallbackParameters );
+	else{ //not yet loaded
+		objStatusAndCallbacks[2].push(objReadyCallback);
+		objStatusAndCallbacks[2].push(readyCallbackParameters);
+	}
+}
+
+function GRPH_GetCallbacksForObj( grph, obType, sceneName, obName ){
+	let clBacksAndArgs = grph.cachedObjs[obType][sceneName][obName][2];
+	return clBacksAndArgs;
+	//for( let i = 0; i < clBacksAndArgs.length; ++i )
+}
+
+function GRPH_GetCachedObjsOfType( grph, obType, sceneName, retArray ){
+	let objDict = grph.cachedObjs[obType][sceneName];
+	let objKeys = Object.keys(objDict);
+	for( let i = 0; i < objKeys.length; ++i ){
+		retArray[i] = objDict[objKeys[i]][0];
+	}
 }
 
 
