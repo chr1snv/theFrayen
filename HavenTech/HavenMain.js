@@ -416,7 +416,7 @@ function MainLoop()
 	}else{
 		wasntShowingHelpInputOverlay = true;
 	}
-	
+
 	//graphics.Flush();
 }
 
@@ -464,6 +464,7 @@ let moveAmt = 0.2;
 let camPositionUpdate = Vect3_New();
 let mY = 0;
 let mX = 0;
+let mW = 0;
 let relMx;
 let relMy;
 let camRotDelEuler = Vect3_New();
@@ -498,7 +499,7 @@ function UpdateCamera( updateTime )
 {
 	if( mainScene.cameras.length < 1 )
 		return;
-		
+
 	updateCameraTimeDelta = updateTime - lastUpdateCameraTime;
 
 	//generate the position update
@@ -524,34 +525,36 @@ function UpdateCamera( updateTime )
 	}
 	relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
 	relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
-	mX = relMx*mouseXSenValue; 
-	mY = relMy*mouseYSenValue; 
+	//relMw = mCoordDelta.w;
+	mX = relMx*mouseXSenValue;
+	mY = relMy*mouseYSenValue;
 	mX += touch.lookDelta[0]*touchLookSenValue;
 	mY += touch.lookDelta[1]*touchLookSenValue;
+	mW = touch.rollDelta*touchLookSenValue;
 
 	camRotDelEuler[0] = -mY*Math.PI/180;
 	camRotDelEuler[1] = -mX*Math.PI/180;
-	camRotDelEuler[2] = 0;
-	mCoordDelta.x = mCoordDelta.y = 0;
-	
+	camRotDelEuler[2] = -mW*Math.PI/180;
+	mCoordDelta.x = mCoordDelta.y = mCoordDelta.w = 0;
+
 	//roll the camera around it's forward axis
 	if( keys[keyCodes.KEY_Q] == true )
 		camRotDelEuler[2] += moveAmt*9*updateCameraTimeDelta;
 	if( keys[keyCodes.KEY_E] == true )
 		camRotDelEuler[2] -= moveAmt*9*updateCameraTimeDelta;
-	
-	
+
+
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
-	
+
 	if( keys[keyCodes.KEY_N] ) //toggle limited view of camera rays near screen position of cursor
 		cam.onlyRaysNearCursor = !cam.onlyRaysNearCursor;
-	
+
 	//update mouse position text
 	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*cam.numHorizRays);
 	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*cam.numVertRays);
 	UpadateMousePosText();
-	
-	
+
+
 	//update text
 	if( Vect3_LengthSquared( camRotDelEuler ) > 0.000001 || 
 		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){

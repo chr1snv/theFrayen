@@ -164,14 +164,17 @@ function Matrix_SetScale( retMat, scale ){
 	retMat[1*4+1] = scale[1];
 	retMat[2*4+2] = scale[2];
 }
+let tempRMat1 = Matrix_New();
+let tempRMat2 = Matrix_New();
+let tempRMat3 = Matrix_New();
 function Matrix_SetEulerRotate(retMat, rotVect){
 	//Matrix_SetIdentity(arguments[0]);
 	//generate a rotation matrix with (xyz) ordering
-	Matrix_SetXRot(tempMat1, rotVect[0]);
-	Matrix_SetYRot(tempMat2, rotVect[1]);
-			Matrix_Multiply(tempMat3, tempMat2, tempMat1);
-	Matrix_SetZRot(tempMat1, rotVect[2]);
-			Matrix_Multiply(  retMat, tempMat1, tempMat3);
+	Matrix_SetXRot(tempRMat1, rotVect[0]);
+	Matrix_SetYRot(tempRMat2, rotVect[1]);
+			Matrix_Multiply(tempRMat3, tempRMat2, tempRMat1);
+	Matrix_SetZRot(tempRMat1, rotVect[2]);
+			Matrix_Multiply(  retMat, tempRMat1, tempRMat3);
 }
 function Matrix_SetTranslate(retMat, trans){
 	Matrix_SetIdentity(retMat);
