@@ -181,6 +181,11 @@ function stepTreeToggle(e){
 	}
 }
 
+let animDrawElm = document.getElementById('animDbgDiv');
+function animDebugToggle(){
+	AnimTransformDrawingEnabled = animDrawElm.checked;
+}
+
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)

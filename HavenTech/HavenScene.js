@@ -181,6 +181,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 }
 
+var AnimTransformDrawingEnabled = true;
 
 const maxObjsToDraw = 64;
 let objMap = new Map();
@@ -237,21 +238,22 @@ function HVNSC_Draw(hvnsc){
 		let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 		cam.GenWorldToFromScreenSpaceMats();
 		
-		
-		//get the number of armatures and line verts for them
-		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
-			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
-			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
-		}
-		//gather the line vert positions
-		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
-			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
-			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
-			if( drawBatch.buffers[0] == null )
-				AllocateBatchAttrBuffers(drawBatch);
-			SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
+		if(AnimTransformDrawingEnabled){
+			//get the number of armatures and line verts for them
+			for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
+				let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
+				let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+				let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
+			}
+			//gather the line vert positions
+			for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
+				let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
+				let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+				let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
+				if( drawBatch.buffers[0] == null )
+					AllocateBatchAttrBuffers(drawBatch);
+				SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
+			}
 		}
 		
 		
@@ -341,13 +343,15 @@ function HVNSC_Draw(hvnsc){
 			//	dbB.bufferIdx = 0; //repeat refilling values
 		}
 		
-		//if there are armature buffers draw them
-		if( hvnsc.armatureInsertIdx > 0 ){
-			graphics.enableDepthTest(false);
-			LINE_G_Setup(graphics.lineGraphics);
-			LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat);
-			LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
-			graphics.enableDepthTest(true);
+		if(AnimTransformDrawingEnabled){
+			//if there are armature buffers draw them
+			if( hvnsc.armatureInsertIdx > 0 ){
+				graphics.enableDepthTest(false);
+				LINE_G_Setup(graphics.lineGraphics);
+				LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat);
+				LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
+				graphics.enableDepthTest(true);
+			}
 		}
 	
 	
