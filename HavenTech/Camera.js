@@ -190,7 +190,8 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	let translation       = Vect3_New();
 	let rot               = Quat_New();
 	let transMat          = Matrix_New();
-	let invTransMat       = Matrix_New();
+	Matrix_SetIdentity( transMat );
+	//let invTransMat       = Matrix_New();
 	this.camToWorldRotMat = Matrix_New();
 
 

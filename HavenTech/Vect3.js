@@ -35,6 +35,7 @@ function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[
 function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
 function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } //use _Copy function below when possible
 
+function Vect3_SetVals( v, s1, s2, s3 ){ v[0] = s1; v[1] = s2; v[2] = s3; }
 function Vect3_SetScalar( v, val ){ v[0] = val; v[1] = val; v[2] = val; }
 
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }

@@ -550,6 +550,9 @@ def writeArmatureAnim(assetDirectory, ob):
                 (armatureObj.location.x,  armatureObj.location.y,  armatureObj.location.z))
 
     armatureBoneCurves = genArmatureBoneCurves(armatureObj)
+    
+    #bpy.context.view_layer.objects.active = armatureObj
+    #bpy.ops.object.mode_set(mode='EDIT')
 
     #write each bone's rest data and animation data
     for (boneName, bone) in armature.bones.items():
@@ -573,7 +576,7 @@ def writeArmatureAnim(assetDirectory, ob):
         head = bone.head
         #headArmSpc = bone.head_local
         #write the location of the bones head in relation to its parents tail
-        out.write( 'H %f %f %f\n' % (head[0], head[1], head[2]) )
+        out.write( 'H %.2f %f %f\n' % (head[0], head[1], head[2]) )
         #out.write( 'HA %f %f %f\n' % (headArmSpc[0], headArmSpc[1], headArmSpc[2]) )
         #write the location of the bones tail
         tail = bone.tail
@@ -581,15 +584,17 @@ def writeArmatureAnim(assetDirectory, ob):
         out.write( 'T %f %f %f\n' % (tail[0], tail[1], tail[2]) )
         #out.write( 'TA %f %f %f\n' % (tailArmSpc[0], tailArmSpc[1], tailArmSpc[2]) )
         #https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
-        bRot = bone.matrix.to_euler()
-        #print( "R %f %f %f" % (bRot[0], bRot[1], bRot[2]) )
-        out.write( 'R %f %f %f\n' % (bRot[0], bRot[1], bRot[2]) )
+        #bRot = bone.matrix.to_euler()
+        yRoll = bone.AxisRollFromMatrix(bone.matrix, axis=bone.y_axis)[1]
+        out.write( "R %.2f\n" % (yRoll) )#'R %.2f\n' % (armature.edit_bones[boneName].roll) )
 
         #write out the animation data of the bone
         writeBoneKeyframes(out, armatureBoneCurves, boneName)
         #mark the end of the bone data
         out.write('e\n')
 
+    #bpy.ops.object.mode_set(mode='OBJECT')
+    
     #end of animation data
     out.write('\n')
     out.close()

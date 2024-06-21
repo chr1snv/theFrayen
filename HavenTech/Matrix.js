@@ -54,18 +54,21 @@ function Matrix_SetEulerTransformation( retMat,  scale, rot, trans ){
 	//scale, rotate, then translate
 	Matrix_SetScale(       tempMat1, scale);
 	Matrix_SetEulerRotate( tempMat2,   rot);
-			Matrix_Multiply( tempMat3, tempMat2, tempMat1 );
-	Matrix_SetTranslate(   tempMat1, trans);
-			Matrix_Multiply(  retMat,  tempMat1, tempMat3 );
+			Matrix_Multiply( retMat, tempMat2, tempMat1 );
+	Matrix_SetTranslate( retMat, trans);
+	//Matrix_SetIdentity(tempMat1);
+	//Matrix_SetTranslate(   tempMat1, trans);
+	//		Matrix_Multiply(  retMat,  tempMat1, tempMat3 );
 }
 
 function Matrix_SetQuatTransformation( retMat,  scale, qRot, trans ){
 	//scale, rotate, then translate
 	Matrix_SetScale(      tempMat1,  scale );
 	Matrix_SetQuatRotate( tempMat2,   qRot );
-		Matrix_Multiply( tempMat3, tempMat2, tempMat1 );
-	Matrix_SetTranslate(  tempMat1,  trans );
-		Matrix_Multiply( retMat, tempMat1, tempMat3 );
+		Matrix_Multiply( retMat, tempMat2, tempMat1 );
+	Matrix_SetTranslate( retMat,  trans );
+	//Matrix_SetTranslate(  tempMat1,  trans );
+	//	Matrix_Multiply( retMat, tempMat1, tempMat3 );
 }
 function Matrix_SetBoneRotat( retMat, tail ){
 
@@ -91,13 +94,13 @@ function Matrix_SetBoneRotat( retMat, tail ){
 	if( Math.abs(rotationAngle) > epsilon && Math.abs(rotationAngle) < Math.PI ){
 		//find the axis to rotate around (orthogonal to the tail-head and default axis)
 		
-		Vect3_Cross(rotationAxis, defAxis, boneAxis);
+		Vect3_Cross(rotationAxis,  defAxis, boneAxis );
 		Vect3_Unit(rotationAxis);
 		
 		//generate the rotation quaternion
 		//to be delt with
 		Quat_FromAxisAng(tempQuat, rotationAxis, rotationAngle);
-		
+		//Quat_Norm(tempQuat);
 		Matrix_SetQuatRotate(retMat, tempQuat);
 	}
 	else{ // the bone is parallel to the y axis
@@ -177,7 +180,7 @@ function Matrix_SetEulerRotate(retMat, rotVect){
 			Matrix_Multiply(  retMat, tempRMat1, tempRMat3);
 }
 function Matrix_SetTranslate(retMat, trans){
-	Matrix_SetIdentity(retMat);
+	//Matrix_SetIdentity(retMat);
 	retMat[0*4+3] = trans[0];
 	retMat[1*4+3] = trans[1];
 	retMat[2*4+3] = trans[2];
