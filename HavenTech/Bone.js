@@ -90,7 +90,7 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	//of this bones data
 
 	let curveIdx = -1;
-	
+
 	let readingCurve = false;
 
 	let expectedCurvePoints = 0;
@@ -98,7 +98,7 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 
 	//bone.expectedCurvesToRead; //read in constructor
 	let curvesRead = 0;
-	
+
 	ipoChanAxisIdx = 0;
 	while(SLIdx < skelAnimFileLines.length-1)
 	{
@@ -181,8 +181,8 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	bone.animationLength = GetLongestCurveDuration( bone.curves );
 
 	//generate cached matrices for fast lookup
-	
-	if( Vect3_Length(bone.head[0]) > epsilon )
+
+	if( Vect3_Length(bone.head) > epsilon )
 		console.log("non zero bone head");
 
 	//roll_Mat

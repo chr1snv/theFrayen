@@ -180,8 +180,8 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		//calculate the pose matrix for this bone
 		let pose_mat = Matrix_New();
 		Matrix_Multiply(tempMat1, bone_mat, bone_mat_actions);
-		//Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
-		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat1);
+		Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
+		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
 
 		//store this bone's pose matrix in the frameTransformation object
 		Matrix_Copy(skelA.transformationMatricies[currentIdx], pose_mat);
