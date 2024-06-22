@@ -69,7 +69,7 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	this.isValid         = false; //true once loading is complete
 	this.isAnimated      = false;
-	this.hasntDrawn      = true;
+	this.materialHasntDrawn = null;
 	this.componentsToLoad = 0; //the quadmesh, and each animation type key, ipo, skel, etc
 	//count as a component to asynchronously load, each time one finishes the count is decremented
 	//and if == 0 the callback for the quadmesh (as a complete object) being loaded is called
@@ -559,7 +559,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 			startIdx );
 
 
-		qm.hasntDrawn = false;
+		qm.materialHasntDrawn[matIdx] = false;
 		
 		
 		drawBatch.numSubBufferUpdatesToBeValid -= 1;
@@ -842,11 +842,13 @@ function QM_matFileLoaded(matFile, thisP){
 		QM_materialReady, [thisP, numMaterials-1] );
 	}
 
+	thisP.materialHasntDrawn = new Array(numMaterials);
 	thisP.faceIdxsForMatInsertIdx = new Array(numMaterials);
 	thisP.faceVertsCtForMat = new Array( numMaterials );
 	for(let i = 0; i < numMaterials; ++i ){
 		thisP.faceIdxsForMatInsertIdx[i] = 0;
 		thisP.faceVertsCtForMat[i] = 0;
+		thisP.materialHasntDrawn[i] = true;
 	}
 	thisP.faceIdxsForMat = new Array( numMaterials );
 

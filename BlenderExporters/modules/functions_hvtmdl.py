@@ -33,7 +33,7 @@ def writeArmature(assetDirectory, ob):
     writeArmatureAnim(assetDirectory, ob)
 
 #asset directory is the dir that contains the folders meshes, animations, ..etc.
-def writeModel(assetDirectory, ob, ipoFileName):
+def writeModel(assetDirectory, ob, ipoFileName, depsGraph):
     """Write a HavenTech mesh and animation file from the current blender
     scene, returns the Axis aligned bounding box min and max vect3's for
     inital adding to the haven scene oct tree"""
@@ -49,7 +49,7 @@ def writeModel(assetDirectory, ob, ipoFileName):
     
     #----write the mesh file----
     #---------------------------
-    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, ipoFileName)
+    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, ipoFileName, depsGraph)
 
     #----write the mesh materials file----
     #-------------------------------------
@@ -214,7 +214,7 @@ def writeMaterial(assetDirectory, mat):
 
     out.close()
 
-def writeMesh(assetDirectory, ob, ipoFileName):
+def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):
     """Write a HavenTech mesh file from the passed in blender object"""
 
     #get the mesh data
@@ -271,8 +271,10 @@ def writeMesh(assetDirectory, ob, ipoFileName):
         out.write('i %s\n' % ipoFileName)
     
     #check if the mesh has an armature modifier
+    usesArmature = False
     for modifier in ob.modifiers:
         if modifier.type == 'ARMATURE':
+            usesArmature = True
             armatureObj = modifier.object
             #check the armature modifier does not use envelopes
             if modifier.use_bone_envelopes:
@@ -286,6 +288,9 @@ def writeMesh(assetDirectory, ob, ipoFileName):
     
     out.write( 'e\n' )
     out.write( '\n' )
+    
+    if not usesArmature: #use the modified version (mirror modifer etc applied)
+        mesh = depsGraph.objects[ob.name].data
 
     #keep track of the min and max corners of the AABB
     wMinV = vec3NewScalar( sys.float_info.max )
@@ -576,12 +581,12 @@ def writeArmatureAnim(assetDirectory, ob):
         head = bone.head
         #headArmSpc = bone.head_local
         #write the location of the bones head in relation to its parents tail
-        out.write( 'H %.2f %f %f\n' % (head[0], head[1], head[2]) )
+        out.write( 'H %.2f %.2f %.2f\n' % (head[0], head[1], head[2]) )
         #out.write( 'HA %f %f %f\n' % (headArmSpc[0], headArmSpc[1], headArmSpc[2]) )
         #write the location of the bones tail
         tail = bone.tail
         #tailArmSpc = bone.tail_local
-        out.write( 'T %f %f %f\n' % (tail[0], tail[1], tail[2]) )
+        out.write( 'T %.2f %.2f %.2f\n' % (tail[0], tail[1], tail[2]) )
         #out.write( 'TA %f %f %f\n' % (tailArmSpc[0], tailArmSpc[1], tailArmSpc[2]) )
         #https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
         #bRot = bone.matrix.to_euler()

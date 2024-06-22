@@ -34,8 +34,9 @@ void main() {
 	//calculate the diffuse color
 	vec4 diffuseCol = diffuseColor;
 	vec3 specularCol = vec3(1,1,1);
-	if( texturingEnabled )
+	if( texturingEnabled ){
 		diffuseCol = texture2D( texSampler, texCoordVarying );
+	}
 
 	if( !lightingEnabled ){
 		gl_FragColor = diffuseCol;

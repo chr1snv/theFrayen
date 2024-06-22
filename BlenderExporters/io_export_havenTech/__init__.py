@@ -257,6 +257,8 @@ def writeScene(path):
     wMin = vec3NewScalar(  9999999 )
     wMax = vec3NewScalar( -9999999 )
     
+    depsGraph = bpy.context.evaluated_depsgraph_get() #objects with modifiers applied
+    
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
@@ -286,7 +288,7 @@ def writeScene(path):
         if obj.type == 'MESH':
             out.write( 'm %s\n' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
-            mAABBws = writeModel(sceneDirectory, obj, ipoFileName) #world space aabb
+            mAABBws = writeModel(sceneDirectory, obj, ipoFileName, depsGraph) #world space aabb
             print( 'AABB %s' % mAABBws )
             if mAABBws == None:
                 print( 'Mesh object %s not exportable (AABB not returned)' % \

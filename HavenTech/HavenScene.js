@@ -291,7 +291,7 @@ function HVNSC_Draw(hvnsc){
 					Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 				}
 
-				if( qm.hasntDrawn ){
+				if( qm.materialHasntDrawn[matIdx] ){
 				
 					if( drawBatch.vertBuffer == null )
 						AllocateBatchBufferArrays(drawBatch);
