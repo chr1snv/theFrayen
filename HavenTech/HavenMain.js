@@ -186,6 +186,11 @@ function animDebugToggle(){
 	AnimTransformDrawingEnabled = animDrawElm.checked;
 }
 
+let AnimPlaybackEnabled = true;
+let animPlayElm = document.getElementById('animPlayDiv');
+function animPlayToggle(){
+	AnimPlaybackEnabled = animPlayElm.checked;
+}
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
@@ -338,7 +343,8 @@ function MainLoop()
 	if( !running )
 		return;
 
-	sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
+	if(AnimPlaybackEnabled)
+		sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
 	//graphics.Clear();
 	//graphics.ClearDepth();
 	mainScene.Update( sceneTime );

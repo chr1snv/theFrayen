@@ -1,5 +1,8 @@
 //#version 300 es
 
+//precision qualifier for the shader code
+precision lowp float;
+
 //frayen vert shader
 
 //MAX_VERTEX_UNIFORM_VECTORS: 128 / 4 -> 32 vec4's or  / 16 -> 8 mats
@@ -43,16 +46,21 @@ mat4 getBoneMatrix(float boneNdx) {
 //variables passed to the fragment shader
 varying vec3 normalVarying;//out vec3 normalVarying;
 varying vec2 texCoordVarying;//out vec2 texCoordVarying;
+varying vec4 worldSpaceFragPosition;
 
 void main() {
 	if (skelSkinningEnb){
 		mat4 skinMatrix = getBoneMatrix(indexWeights.x) * indexWeights.y +
 						  getBoneMatrix(indexWeights.z) * indexWeights.w;
-		gl_Position = projMatrix * skinMatrix * mMatrix * vec4(position,1);
+		worldSpaceFragPosition = skinMatrix * mMatrix * vec4(position,1);
+		gl_Position = projMatrix * worldSpaceFragPosition;
+		normalVarying = normalize((skinMatrix * mMatrix * vec4(norm, 0)).xyz);
 	}else{
-		gl_Position = projMatrix * mMatrix * vec4(position,1);
+		worldSpaceFragPosition = mMatrix * vec4(position,1);
+		gl_Position = projMatrix * worldSpaceFragPosition;
+		normalVarying = normalize((mMatrix * vec4(norm, 0)).xyz);
 	}
 
-	normalVarying = norm;//(mvpMatrix * vec4(norm, 1)).xyz;
+	//normalVarying = norm;//(mvpMatrix * vec4(norm, 1)).xyz;
 	texCoordVarying = texCoord;
 }

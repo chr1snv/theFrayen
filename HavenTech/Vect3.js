@@ -29,6 +29,8 @@
 //slow functions, should only use these outside of program loops and pre allocate memory where possible
 function Vect3_NewVals( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[1] = s2; v[2] = s3; return v; }
 function Vect3_New() { return new Float32Array(3);}
+function Vect_New(n) { return new Float32Array(n);}
+function Vect_NewZero(n) { return new Float32Array(n);}
 //NewZero the same as New though if ported to another language / implementation need to make sure the values are initalized to zero
 function Vect3_NewZero() { return new Float32Array(3);}//[0,0,0]); };
 function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v;}

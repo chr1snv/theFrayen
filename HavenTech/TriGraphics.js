@@ -45,16 +45,27 @@ function TRI_G_Setup(triG){
 
 	triG.glProgram.setVec4Uniform('diffuseColor', temp);
 	//triG.glProgram.setVec4Uniform('ambient', temp);
-	triG.glProgram.setVec4Uniform('emissionColor', tempZero);
-	triG.glProgram.setVec4Uniform('specularColor', tempZero);
-	triG.glProgram.setFloatUniform('shinyness', 1);
 	//CheckGLError( "glProgram::before lighting enabled " );
 
 	//lighting setup
-	triG.glProgram.setFloatUniform( 'lightingEnabled', 0 );
+	triG.glProgram.setIntUniform( 'lightingEnabled', 0 );
 
 
 	//CheckGLError( "glProgram::end frag shader loaded " );
+}
+
+
+let trigLightPosVec = new Array(8*vertCard);
+function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
+	for( let l = 0; l < numLights; ++l ){
+		Vect_CopyToFromArr( trigLightPosVec, l*3, lights[l].pos, 0, 3 );
+	}
+	triG.glProgram.setVec3Uniform( 'lightPos', trigLightPosVec );
+	//triG.glProgram.setVec4Uniform( 'lightPos', trigLightPosVec );
+	triG.glProgram.setIntUniform( 'numLights', numLights );
+	
+	triG.ambientColor = ambientColor;
+	
 }
 
 
@@ -126,9 +137,10 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	//gl.flush();
 }
 
-function TRI_G_setCamMatrix( triG, camMat ){
+function TRI_G_setCamMatrix( triG, camMat, camWorldPos ){
 	Matrix_Transpose( transMat, camMat );
 	gl.uniformMatrix4fv( triG.projMatrixUnif, false, transMat );
+	triG.glProgram.setVec3Uniform( 'camWorldPos', camWorldPos );
 }
 
 const TRI_G_VERT_ATTRIB_UID_START = 3;
@@ -152,12 +164,22 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		triG.glProgram.setVec4Uniform('diffuseColor', buf.diffuseCol);
 	}
 
+	if( buf.material.isShadeless ){
+		triG.glProgram.setIntUniform( 'lightingEnabled', 0 );
+	}else{
+		triG.glProgram.setIntUniform( 'lightingEnabled', 1 );
+	}
+	
+	triG.glProgram.setVec2Uniform( 'specularAmtExponent', buf.material.specularAmtExponent );
+	
+	triG.glProgram.setVec3Uniform( 'emissionAndAmbientColor', triG.ambientColor );
+	
 
 
 	let bufID = (buf.bufID);
 	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
 		triG.glProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.vertBuffer,       'position',     0);//buf.isAnimated );
-		triG.glProgram.vertexAttribSetFloats( bufID+1,      vertCard,      buf.vertBuffer,       'norm',         0);//buf.isAnimated );
+		triG.glProgram.vertexAttribSetFloats( bufID+1,      vertCard,      buf.normBuffer,       'norm',         0);//buf.isAnimated );
 		triG.glProgram.vertexAttribSetFloats( bufID+2,      uvCard,        buf.uvBuffer,         'texCoord',     0);//buf.isAnimated );
 		if( buf.bnIdxWghtBuffer != null )
 			triG.glProgram.vertexAttribSetFloats( bufID+3,  bnIdxWghtCard, buf.bnIdxWghtBuffer,  'indexWeights', 0);//buf.isAnimated );

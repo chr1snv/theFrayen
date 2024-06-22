@@ -20,17 +20,14 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 
 	this.emitAmount = 0.0;
 
-	this.diffuseMix = -1.0;
 	this.alpha = 1.0;
-	this.normalMix = -1.0;
-	this.specularMix = -1.0;
-	this.specRoughness = 1;
-	this.emitMix = -1.0;
+	this.normalMix = 0;
+	this.specularAmtExponent = Vect_New(2);
+	this.specularAmtExponent[0] = 0; this.specularAmtExponent[1] = 1;
+	this.emitMix = 0;
 	this.diffuseTextureAlpha = false;
 
 	this.IsTransparent = function() { return this.alpha < 1.0 || this.diffuseTextureAlpha; }
-
-	this.specularHardness = 10.0;
 
 	this.isShadeless = false;
 
@@ -66,8 +63,8 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 					thisP.diffuseMix = 1;
 				}
 				if( temp[0] == 'specMixHrd' ){ //read in specular color
-					thisP.specularMix		=	parseFloat( temp[1] );
-					thisP.specRoughness		=	parseFloat( temp[2] );
+					thisP.specularAmtExponent[0] =	parseFloat( temp[1] );
+					thisP.specularAmtExponent[1] =	parseFloat( temp[2] );
 				}
 				if(temp[0] == 'alph'){ // read in alpha amount
 					thisP.alpha = parseFloat( temp[1] );
@@ -79,9 +76,9 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 				if(temp[0] == 'tex'){ //read in texture information
 
 					//keep track of the type of texture this one is
-					var isDiffuse = false;
-					var isNormal = false;
-					var isEmit = false;
+					let isDiffuse = false;
+					let isNormal = false;
+					let isEmit = false;
 					while(++i < materialFileLines.length){
 						temp = materialFileLines[i].split(' ');
 						if(temp[0] == 'difTexAisAlpha')
@@ -119,9 +116,9 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 			}
 
 			//loosely check that some of the values were read in correctly
-			if( thisP.diffuseMix == -1.0 &&
-				thisP.specularMix == -1.0 &&
-				thisP.emitMix == -1.0 )
+			if( thisP.diffuseMix == 0 &&
+				thisP.specularMix == 0 &&
+				thisP.emitMix == 0 )
 				 return;
 
 			if(thisP.diffuseMix == -1.0)

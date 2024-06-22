@@ -68,9 +68,10 @@ function BufSubRange(startIdxIn, lenIn){
 
 //const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
-function DrawBatchBuffer(vertCt){
+function DrawBatchBuffer(material){
 	this.bufID = nextBufID; //the gl BufferId in TriGraphics
 	nextBufID += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
+	this.material        = material;
 	this.vertBuffer      = null;
 	this.normBuffer      = null;
 	this.uvBuffer        = null;
@@ -84,7 +85,7 @@ function DrawBatchBuffer(vertCt){
 	
 	this.bufSubRanges = {};
 	
-	this.diffuseCol = new Float32Array(4);
+	this.diffuseCol = Vect_New(4);
 }
 
 function AllocateBatchBufferArrays(dbB){
@@ -97,11 +98,11 @@ function AllocateBatchBufferArrays(dbB){
 
 let drawBatchBuffers = {};
 
-function GetDrawBatchBufferForMaterial(shdrName, vertCt){
-	let dbB = drawBatchBuffers[shdrName];
+function GetDrawBatchBufferForMaterial(material){
+	let dbB = drawBatchBuffers[material.uid.val];
 	if( dbB == undefined ){
-		dbB = new DrawBatchBuffer(vertCt);
-		drawBatchBuffers[shdrName] = dbB;
+		dbB = new DrawBatchBuffer(material);
+		drawBatchBuffers[material.uid.val] = dbB;
 	}
 	return dbB;
 }
@@ -131,11 +132,14 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 	this.sceneName = sceneNameIn;
 	this.isValid = false;
+	
+	this.ambientColor = Vect3_NewVals(0.05, 0.05, 0.1); 
 
 	//will likely be removed since stored in oct tree and a per scene
 	//array of objects may become very big
 	this.models    = {};
-	this.lights    = [];
+	this.lights    = new Array(8);
+	this.numLights = 0;
 	this.cameras   = [];
 	this.armatures = [];
 	
@@ -181,7 +185,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 }
 
-var AnimTransformDrawingEnabled = true;
+var AnimTransformDrawingEnabled = false;
 
 const maxObjsToDraw = 64;
 let objMap = new Map();
@@ -266,7 +270,7 @@ function HVNSC_Draw(hvnsc){
 			let qm = val.quadmesh;
 			for( let matID = 0; matID < qm.materials.length; ++matID ){
 				let material = qm.materials[matID];
-				let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
+				let drawBatch = GetDrawBatchBufferForMaterial( material );
 				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
 			}
 		}
@@ -279,7 +283,7 @@ function HVNSC_Draw(hvnsc){
 			for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 				let material = qm.materials[matIdx];
 
-				let drawBatch = GetDrawBatchBufferForMaterial( material.uid.val );
+				let drawBatch = GetDrawBatchBufferForMaterial( material );
 				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
 				
 				
@@ -317,14 +321,15 @@ function HVNSC_Draw(hvnsc){
 		//graphics.ClearLights();
 
 
-
 		//draw the triangle batch buffers
 		TRI_G_Setup(graphics.triGraphics);
-		
+
+		TRI_G_SetupLights(graphics.triGraphics, hvnsc.lights, hvnsc.numLights, hvnsc.ambientColor);
+
 		if( hvnsc.boneMatTexture != null )
 			SkelA_writeCombinedBoneMatsToGL(hvnsc);
-		
-		TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat );
+			
+		TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
 		let dbBKeys = Object.keys( drawBatchBuffers );
 		for( let i = 0; i < dbBKeys.length; ++i ){
 			let dbB = drawBatchBuffers[dbBKeys[i]];
@@ -562,8 +567,9 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}else if( txtLineParts[0] == 'l_anim'){
 			lanim = txtLinePars[1];
 		}else if( txtLineParts[0] == 'lEnd' ){
-			hvnsc.lights.push( new Light(scneObjName, hvnsc.sceneName, 
-					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz, lanim) );
+			hvnsc.lights[hvnsc.numLights++] = 
+				new Light(scneObjName, hvnsc.sceneName, 
+					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz, lanim);
 		}
 		
 		//this is a camera to be read in

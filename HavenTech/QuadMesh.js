@@ -533,6 +533,13 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		////
 		//Generate the vertex normal coordinates
 		////////////////////////////////////////////////////////////
+		
+		
+		//tesselate the normal coordinates
+		QM_SL_tesselateCoords( 
+			drawBatch.normBuffer,
+			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
+			qm.vertNormals, startIdx );
 
 		//generate & tesselate the normal coords from the batch of verts currently being used
 
