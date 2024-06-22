@@ -46,18 +46,21 @@ mat4 getBoneMatrix(float boneNdx) {
 //variables passed to the fragment shader
 varying vec3 normalVarying;//out vec3 normalVarying;
 varying vec2 texCoordVarying;//out vec2 texCoordVarying;
-varying vec4 worldSpaceFragPosition;
+varying vec3 worldSpaceFragPosition;
 
 void main() {
 	if (skelSkinningEnb){
 		mat4 skinMatrix = getBoneMatrix(indexWeights.x) * indexWeights.y +
 						  getBoneMatrix(indexWeights.z) * indexWeights.w;
-		worldSpaceFragPosition = skinMatrix * mMatrix * vec4(position,1);
-		gl_Position = projMatrix * worldSpaceFragPosition;
+		vec4 worldSpacePosTemp = skinMatrix * mMatrix * vec4(position,1);
+		gl_Position = projMatrix * worldSpacePosTemp;
+		worldSpaceFragPosition = worldSpacePosTemp.xyz;
 		normalVarying = normalize((skinMatrix * mMatrix * vec4(norm, 0)).xyz);
+		
 	}else{
-		worldSpaceFragPosition = mMatrix * vec4(position,1);
-		gl_Position = projMatrix * worldSpaceFragPosition;
+		vec4 worldSpacePosTemp = mMatrix * vec4(position,1);
+		gl_Position = projMatrix * worldSpacePosTemp;
+		worldSpaceFragPosition = worldSpacePosTemp.xyz;
 		normalVarying = normalize((mMatrix * vec4(norm, 0)).xyz);
 	}
 

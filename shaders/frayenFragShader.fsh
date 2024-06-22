@@ -24,7 +24,7 @@ uniform vec3      camWorldPos;
 
 
 //variables passed from the vertex shader
-varying vec4      worldSpaceFragPosition;
+varying vec3      worldSpaceFragPosition;
 varying vec3      normalVarying;//in vec3      normalVarying;
 varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
@@ -46,7 +46,7 @@ void main() {
 		//calculate the light color
 		if( 0 < numLights ){
 			//diffuse calculation
-			vec3 fragPosToLightVecUnit = normalize(lightPos[0]-worldSpaceFragPosition.xyz);
+			vec3 fragPosToLightVecUnit = normalize(lightPos[0]-worldSpaceFragPosition);
 			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
 			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
 			

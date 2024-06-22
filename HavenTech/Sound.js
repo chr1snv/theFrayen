@@ -170,12 +170,43 @@ g.gain.exponentialRampToValueAtTime(
   0.0000000001, context.currentTime + 0.4
 )
 */
+function soundIconClicked(){
+	if( window.audioContext == undefined ){
+		window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		
+	}
+	//playNote('G3', 0.0, 0.15);
+	//playNote('G3', 0.2, 0.15);
+	//playNote('G3', 0.5, 0.15);
+	//playNote('E4', 0.5, 0.25);
+	//playNote('C4', 1.0, 0.25);
+	//playNote('C5', 1.0, 0.25);
+	playBuffer();
+}
 
-window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const SampleRate = 44100;
+const NumSamples = 44100;
+function playBuffer(){
+	let ctx = window.audioContext;
+	
+	//noise tone
+	let buffer  = ctx.createBuffer(1, NumSamples, SampleRate);
+	let buf = buffer.getChannelData(0);
+	for( let i = 0; i < NumSamples; ++i )
+		buf[i] = Math.random( ) * Math.sin( 440 * Math.PI * 2 * i / SampleRate );
+	let node = ctx.createBufferSource(0);
+	node.buffer = buffer;
+	
+	
+	let bandpass = new BiquadFilterNode( ctx, {type:"bandpass", frequency:100} );
+	
+	node.connect(bandpass).connect(ctx.destination);
+	node.start(ctx.currentTime);
+}
 
 window.playNote = function (note, time, duration) {
-    var ctx = window.audioContext;
-    var osc = ctx.createOscillator();
+    let ctx = window.audioContext;
+    let osc = ctx.createOscillator();
     osc.frequency.value = noteValues[note];
     osc.connect(ctx.destination);
     osc.start(ctx.currentTime + time);

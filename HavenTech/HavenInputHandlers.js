@@ -43,6 +43,8 @@ function pageKeyUpHandler(e){
 }
 
 function canvasMouseDownHandler(e){
+	//createAudioContext();
+	
 	mDownCoords.x = mCoords.x;
 	mDownCoords.y = mCoords.y;
 	mDown = true;
@@ -85,6 +87,7 @@ function updatePosition(e) {
 }
 
 function canvasMouseMoveHandler(e){
+
 	canvas.relMouseCoords(e);
 	mCoords['x'] = e.canvasX;
 	mCoords['y'] = e.canvasY;
