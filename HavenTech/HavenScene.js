@@ -232,132 +232,127 @@ function HVNSC_Draw(hvnsc){
 	//photorealisim and minimal noise and can be achieved
 
 
-	if( rayCastDrawing ){
-		//raycasting draw call
-		CAM_RayCastDraw( hvnsc.cameras[ hvnsc.activeCameraIdx ],
-			hvnsc.octTree, graphics.screenWidth/graphics.screenHeight );
-	}else{
 
-		//generate the camera matrix
-		let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
-		cam.GenWorldToFromScreenSpaceMats();
-		
-		if(AnimTransformDrawingEnabled){
-			//get the number of armatures and line verts for them
-			for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
-				let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-				let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
-				let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
-			}
-			//gather the line vert positions
-			for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
-				let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-				let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
-				let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
-				if( drawBatch.buffers[0] == null )
-					AllocateBatchAttrBuffers(drawBatch);
-				SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
-			}
+	//generate the camera matrix
+	let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
+	cam.GenWorldToFromScreenSpaceMats();
+	
+	if(AnimTransformDrawingEnabled){
+		//get the number of armatures and line verts for them
+		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
+			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
+			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
 		}
-		
-		
-		//get the objects in view
-		TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objMap );
-		
-		
-		//for each material get the number of objects using it (sub draw batches)
-		for( const [key,val] of objMap ){
-			let qm = val.quadmesh;
-			for( let matID = 0; matID < qm.materials.length; ++matID ){
-				let material = qm.materials[matID];
-				let drawBatch = GetDrawBatchBufferForMaterial( material );
-				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
-			}
+		//gather the line vert positions
+		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
+			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
+			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
+			if( drawBatch.buffers[0] == null )
+				AllocateBatchAttrBuffers(drawBatch);
+			SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
 		}
-
-
-		//update the draw batch buffers from the objects
-		for( const [key,val] of objMap ){
-			let qm = val.quadmesh;
-
-			for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
-				let material = qm.materials[matIdx];
-
-				let drawBatch = GetDrawBatchBufferForMaterial( material );
-				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
-				
-				
-				if( qm.isAnimated || drawBatch.bufferUpdated ){
-					Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
-				}
-
-				if( qm.materialHasntDrawn[matIdx] ){
-				
-					if( drawBatch.vertBuffer == null )
-						AllocateBatchBufferArrays(drawBatch);
-					
-					let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
-							drawBatch, subBatchBuffer.startIdx, matIdx, 
-							subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;
-					if( numGenVerts != subBatchBuffer.len )
-						DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
-
-					//set the texture or material properties for the draw batch
-					if( material.texture ){
-						drawBatch.texName = material.texture.texName;
-					}else{
-						drawBatch.texName = null;
-						Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
-						drawBatch.diffuseCol[3] = material.diffuseMix;
-					}
-				}
-
-			}
+	}
+	
+	
+	//get the objects in view
+	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objMap );
+	
+	
+	//for each material get the number of objects using it (sub draw batches)
+	for( const [key,val] of objMap ){
+		let qm = val.quadmesh;
+		for( let matID = 0; matID < qm.materials.length; ++matID ){
+			let material = qm.materials[matID];
+			let drawBatch = GetDrawBatchBufferForMaterial( material );
+			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
 		}
-
-		//clear the render buffer and reset rendering state
-		graphics.Clear();
-		graphics.ClearDepth();
-		//graphics.ClearLights();
+	}
 
 
-		//draw the triangle batch buffers
-		TRI_G_Setup(graphics.triGraphics);
+	//update the draw batch buffers from the objects
+	for( const [key,val] of objMap ){
+		let qm = val.quadmesh;
 
-		TRI_G_SetupLights(graphics.triGraphics, hvnsc.lights, hvnsc.numLights, hvnsc.ambientColor);
+		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
+			let material = qm.materials[matIdx];
 
-		if( hvnsc.boneMatTexture != null )
-			SkelA_writeCombinedBoneMatsToGL(hvnsc);
+			let drawBatch = GetDrawBatchBufferForMaterial( material );
+			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
 			
-		TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
-		let dbBKeys = Object.keys( drawBatchBuffers );
-		for( let i = 0; i < dbBKeys.length; ++i ){
-			let dbB = drawBatchBuffers[dbBKeys[i]];
-			//if(dbB.bufferIdx > MAX_VERTS )
-			//	dbB.bufferIdx = MAX_VERTS;
-			if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
 			
-				let numAnimMatricies = 0;
-				if( hvnsc.combinedBoneMats )
-					numAnimMatricies = hvnsc.combinedBoneMats.length/matrixCard;
-					
-				TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
-					hvnsc.sceneName, dbB, numAnimMatricies );
+			if( qm.isAnimated || drawBatch.bufferUpdated ){
+				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
-			//if( dbB.isAnimated )
-			//	dbB.bufferIdx = 0; //repeat refilling values
+
+			if( qm.materialHasntDrawn[matIdx] ){
+			
+				if( drawBatch.vertBuffer == null )
+					AllocateBatchBufferArrays(drawBatch);
+				
+				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
+						drawBatch, subBatchBuffer.startIdx, matIdx, 
+						subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;
+				if( numGenVerts != subBatchBuffer.len )
+					DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
+
+				//set the texture or material properties for the draw batch
+				if( material.texture ){
+					drawBatch.texName = material.texture.texName;
+				}else{
+					drawBatch.texName = null;
+					Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
+					drawBatch.diffuseCol[3] = material.diffuseMix;
+				}
+			}
+
 		}
+	}
+
+	//clear the render buffer and reset rendering state
+	graphics.Clear();
+	graphics.ClearDepth();
+	//graphics.ClearLights();
+
+
+	//draw the triangle batch buffers
+	TRI_G_Setup(graphics.triGraphics);
+
+	TRI_G_SetupLights(graphics.triGraphics, hvnsc.lights, hvnsc.numLights, hvnsc.ambientColor);
+
+	if( hvnsc.boneMatTexture != null )
+		SkelA_writeCombinedBoneMatsToGL(hvnsc);
 		
-		if(AnimTransformDrawingEnabled){
-			//if there are armature buffers draw them
-			if( hvnsc.armatureInsertIdx > 0 ){
-				graphics.enableDepthTest(false);
-				LINE_G_Setup(graphics.lineGraphics);
-				LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat);
-				LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
-				graphics.enableDepthTest(true);
-			}
+	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
+	let dbBKeys = Object.keys( drawBatchBuffers );
+	for( let i = 0; i < dbBKeys.length; ++i ){
+		let dbB = drawBatchBuffers[dbBKeys[i]];
+		//if(dbB.bufferIdx > MAX_VERTS )
+		//	dbB.bufferIdx = MAX_VERTS;
+		if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
+		
+			let numAnimMatricies = 0;
+			if( hvnsc.combinedBoneMats )
+				numAnimMatricies = hvnsc.combinedBoneMats.length/matrixCard;
+				
+			TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
+				hvnsc.sceneName, dbB, numAnimMatricies );
 		}
+		//if( dbB.isAnimated )
+		//	dbB.bufferIdx = 0; //repeat refilling values
+	}
+	
+	if(AnimTransformDrawingEnabled){
+		//if there are armature buffers draw them
+		if( hvnsc.armatureInsertIdx > 0 ){
+			graphics.enableDepthTest(false);
+			LINE_G_Setup(graphics.lineGraphics);
+			LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat);
+			LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
+			graphics.enableDepthTest(true);
+		}
+	}
 	
 	
 	/*  //old rasterization code here
@@ -384,7 +379,7 @@ function HVNSC_Draw(hvnsc){
 	hvnsc.renderBufferManager.Draw( hvnsc.cameras[hvnsc.activeCameraIdx], nodesToDraw );
 	
 	*/
-	}
+	
 }
 
 //trace a ray from a screen point with the active camera into the scene to find

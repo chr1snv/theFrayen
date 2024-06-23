@@ -68,6 +68,11 @@ function EnterFullscreen(){
 
 }
 
+function SetCanvasSize(){
+	graphics.SetCanvasSize(canvWidthElm.value,
+							canvHeightElm.value);
+}
+
 //attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
 //(first person like mouse input)
 var ptrLck = null;
@@ -110,16 +115,6 @@ function ExitFullscreen(){
 
 }
 
-let rcOrSLRastButton = document.getElementById("rcOrSLRast");
-var rayCastDrawing = false;
-function RayCastOrScanLDrawing(){
-	rayCastDrawing = !rayCastDrawing;
-	if( rayCastDrawing )
-		rcOrSLRastButton.innerHTML = "RayCast Mode";
-	else
-		rcOrSLRastButton.innerHTML = "ScanLine Mode";
-}
-
 
 var debOctOpac = 1;
 function debOctOpacChng(elm){
@@ -140,23 +135,6 @@ function camLimitChange(){
 function setCamLimitInputs(cam){
 	camNearElm.value = cam.nearClip;
 	camFarElm.value = cam.farClip;
-}
-
-var treeDebug;
-let debugElm = document.getElementById('treeDebug');
-function debugToggle(){
-	treeDebug = debugElm.checked;
-}
-var targFps = 60;
-let targFpsElm = document.getElementById('targFps');
-function targFpsChange(){
-	targFps = targFpsElm.value;
-}
-
-let tarFpsTglElm = document.getElementById('targFpsToggle');
-function toggleTargFps(){
-	mainScene.cameras[mainScene.activeCameraIdx].autoRaysPerFrame =
-		tarFpsTglElm.checked;
 }
 
 let settingsButtonElm = document.getElementById('showSettings');
@@ -205,8 +183,15 @@ function havenMain(){
 
 	registerInputHandlers();
 
+
 	graphics = new Graphics(document.getElementById('frayenCanvas'), 
-		function(){ statusElm.innerHTML = "Auto run in 5";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
+		function(){ statusElm.innerHTML = "Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
+		
+	canvWidthElm.value = window.innerWidth;
+	canvHeightElm.value = window.innerHeight;
+	fullScrCanvWidthElm.value = screen.width;
+	fullScrCanvHeightElm.value = screen.height;
+	
 	console.log("graphics loaded");
 	touch = new TouchScreenControls();
 	//sceneChanged(); //get the selected scene from the dropdown and load it
@@ -229,10 +214,6 @@ function autoRunCount(){
 	}
 }
 
-function SetCanvasSize(){
-	graphics.SetCanvasSize(document.getElementById('canvWidth').value,
-							document.getElementById('canvHeight').value);
-}
 
 function sceneSelectionFocus(){
 	this.selectedIndex=-1;
@@ -282,12 +263,6 @@ function ResetSettings(){
 	mouseXSenE.value = 0.1; mouseYSenE.value = 0.1;
 	touchMoveSenE.value = 0.005; touchLookSenE.value = 0.1;
 
-	targFpsElm.value = 60;
-	tarFpsTglElm.checked = true;
-	minRaysPerFrameElm.value = 50; maxRaysPerFrameElm.value = 5000;
-	raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
-	pointSizeElm.value = 10; pointFalloffElm.value = 0.1;
-
 	fullScrCanvWidthElm.value = 1920; fullScrCanvHeightElm.value = 1080;
 	canvWidthElm.value = 640; canvHeightElm.value = 480;
 }
@@ -308,15 +283,10 @@ function sceneLoaded(havenScene)
 	//graphics.pointGraphics.Setup();
 	mouseSenChange();
 	touchSenChange();
-	targFpsChange();
-	toggleTargFps();
-	//raysPerFrameElm.value = 2000; accumulatedRaysElm.value = 20000;
-	raysPerFrameChange();
-	//pointSizeElm.value = 10; pointFalloffElm.value = 0.5;
-	pointSizeChange();
+
+	SetCanvasSize( );
+
 	statusElm.innerHTML = "Running";
-	debugToggle();
-	treeHierarchyButtonElm.style.visibility = "inherit";
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	UpadateMousePosText();
@@ -429,28 +399,6 @@ function MainLoop()
 	}
 
 	//graphics.Flush();
-}
-
-let pointSizeElm = document.getElementById( "pointSize" );
-let pointFalloffElm = document.getElementById( "pointFalloff" );
-function pointSizeChange(){
-	graphics.pointGraphics.pointSize = pointSizeElm.value;
-	graphics.pointGraphics.pointFalloff = pointFalloffElm.value;
-}
-let minRaysPerFrameElm = document.getElementById("minRaysPerFrame");
-let maxRaysPerFrameElm = document.getElementById("maxRaysPerFrame");
-let raysPerFrameElm = document.getElementById("raysPerFrame");
-let accumulatedRaysElm = document.getElementById("accumulatedRays");
-function raysPerFrameChange(){
-	
-	mainScene.cameras[mainScene.activeCameraIdx].
-		changeNumRaysPerFrame(
-			parseInt(raysPerFrameElm.value), 
-			parseInt(accumulatedRaysElm.value),
-			parseInt(minRaysPerFrameElm.value),
-			parseInt(maxRaysPerFrameElm.value),
-			tarFpsTglElm.checked
-		);
 }
 
 let mouseXSenE = document.getElementById("mouseXSen");

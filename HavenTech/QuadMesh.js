@@ -105,8 +105,6 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	//the oct tree of the mesh faces (updated with mesh animations)
 	const tDim = 100;
-	if( rayCastDrawing )
-		this.octTree = new TreeNode( [-tDim, -tDim, -tDim], [tDim, tDim, tDim], null );
 	this.worldMinCorner = Vect3_NewScalar(  999999 );
 	this.worldMaxCorner = Vect3_NewScalar( -999999 );
 	this.lclMinCorner   = Vect3_NewScalar(  999999 );
@@ -766,13 +764,6 @@ function QM_Update( qm, animationTime ) {
 		let worldTransformUpdated = QM_UpdateToWorldMatrix(qm, animationTime );
 		
 		vertsUpdated = QM_UpdateTransformedVerts(qm, animationTime );
-		if( vertsUpdated || qm.lastMeshUpdateTime < 0){ //than rebuild the face octTree
-			if( rayCastDrawing ){
-				octTreeDivLogElm.innerHTML += "<br/>update " + qm.meshName + "<br/>";
-				QM_UpdateOctTree(qm); //updates world space min and max corners
-			}
-		}
-		
 		
 		if( worldTransformUpdated || vertsUpdated || qm.lastMeshUpdateTime < 0){ //then update the AABB
 			QM_UpdateAABB( qm, animationTime );

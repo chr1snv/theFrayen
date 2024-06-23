@@ -19,6 +19,8 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.glMaterialProgramRefId = graphics.currentProgram;
 
 	this.emitAmount = 0.0;
+	
+	this.subSurfaceExponent = 0;
 
 	this.alpha = 1.0;
 	this.normalMix = 0;
@@ -48,6 +50,9 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 			materialReadyCallback( thisP, readyCallbackParams );
 		}else{
 			//read in the file contents
+			if(nameIn == 'skin')
+				thisP.subSurfaceExponent = 5;
+			
 			let materialFileLines = materialFile.split('\n');
 			for( let i = 0; i < materialFileLines.length; ++i ){
 				let temp = materialFileLines[i].split(' ');

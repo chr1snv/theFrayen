@@ -168,11 +168,15 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		triG.glProgram.setIntUniform( 'lightingEnabled', 0 );
 	}else{
 		triG.glProgram.setIntUniform( 'lightingEnabled', 1 );
+		
+		triG.glProgram.setVec2Uniform( 'specularAmtExponent', buf.material.specularAmtExponent );
+	
+		triG.glProgram.setVec3Uniform( 'emissionAndAmbientColor', triG.ambientColor );
+		
+		triG.glProgram.setFloatUniform( 'subSurfaceExponent', buf.material.subSurfaceExponent );
 	}
 	
-	triG.glProgram.setVec2Uniform( 'specularAmtExponent', buf.material.specularAmtExponent );
-	
-	triG.glProgram.setVec3Uniform( 'emissionAndAmbientColor', triG.ambientColor );
+
 	
 
 

@@ -10,7 +10,8 @@ uniform sampler2D texSampler;
 uniform vec4      diffuseColor;
 uniform vec2      specularAmtExponent;
 
-//uniform float     specularExponent;
+uniform float     subSurfaceExponent;
+
 uniform vec3      emissionAndAmbientColor;
 
 uniform bool      lightingEnabled;
@@ -44,26 +45,33 @@ void main() {
 		vec3 fragToCamVecUnit = normalize( camWorldPos - worldSpaceFragPosition.xyz );
 	
 		gl_FragColor = vec4(emissionAndAmbientColor,0);//diffuseColvec4(diffuseCol.xyz*emissionAndAmbientColor,0);
-		//calculate the light color
+		
+		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
+		
+		if( subSurfaceExponent > 0.0 )
+			gl_FragColor += vec4( pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, subSurfaceExponent)* vec3(1.0,0.5,0.0), 0);
+		
+
+		//calculate light contributions
 		if( 0 < numLights ){
 			//diffuse calculation
 			vec3 fragPosToLightVecUnit = normalize(lightPos[0]-worldSpaceFragPosition);
 			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
 			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
+			gl_FragColor += vec4( diffuseCol.xyz * diffuseLightAmt, diffuseCol.w);
 			
 			//specular calculation
-			vec3 fragPosToCamVecUnit = normalize(worldSpaceFragPosition.xyz -camWorldPos );
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
 			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
 			float specularLightAmt = pow( toCamLightAmt*specularAmtExponent[0],  5.0*specularAmtExponent[1]);//specularExponent );
 			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
+			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, 1);
 			
-			//sum the diffuse specular and emissive components
-			gl_FragColor           += vec4( diffuseCol.xyz * diffuseLightAmt, diffuseCol.w);
-			gl_FragColor           += vec4(specularCol.xyz * specularLightAmt, 1);
 		}
 		if( 1 < numLights ){
 		}
+		
+		
 	}
 	
 	//FragColor.a = 1.0;

@@ -9,9 +9,11 @@
 </head>
 
 <body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; background-attachment:fixed; text-align:center; font-family:arial; color:white;">
+
 	<h1>The Frayen</h1>
 	<p style="width:32em; margin:auto;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name "The Frayen"</p>
-	<p>Auto start countdown is to give time to adjust settings if resolution or rays per frame were set too high</p>
+	<h3>Controls: Touch / WASD keys, Q,E roll, Mouse click to use - ESC to exit</h3>
+					<h4 id="cameraDebugText"></h4>
 	<div style="margin:auto; width:700px;">
 		<table style="margin:auto; width:450px;">
 			<tr>
@@ -47,13 +49,7 @@
 					</select>
 				</td>
 				<td><button type="button" id="runSceneButton" onclick="stopAutostart()">Stop Autostart</button></td>
-				<td><input type="checkbox" id="treeDebug" onclick="debugToggle()">Enable Debug</input></td>
-				<td><input type="number" id="debOctOpac" onchange="debOctOpacChng(this)" value="0.2" step="0.1" max="1" min="0.1" style="width:40px;"></input>Opacity</td>
 
-			</tr>
-
-			<tr style="height:3px;">
-				<td style="width:120px;"><button type="button" id="rcOrSLRast" onclick="RayCastOrScanLDrawing()">Scan Line Mode</button></td>
 			</tr>
 
 			<tr>
@@ -76,7 +72,7 @@
 				<td><input type="number" id="canvWidth" value="640" step=0.1; style="width:4em;"></input></td>
 				<td>Canvas Height</td>
 				<td><input type="number" id="canvHeight" value="480" step=0.1; style="width:4em;"></input></td>
-				<td><button type="button" onclick="SetCanvasSize()">Set Canvas Size</button></td>
+				<td><button type="button" onclick="SetCanvasSize()">Set Size</button></td>
 			</tr>
 
 			<tr>
@@ -85,30 +81,7 @@
 				<td>Fullscreen Height</td>
 				<td><input type="number" id="fullScrCanvHeight" value="1080" step=0.1; style="width:4em;"></input></td>
 			</tr>
-			<tr>
-				<td>Target Framerate</td>
-				<td><input type="number" id="targFps" value="60" step=1; onchange="targFpsChange()" style="width:4em;"></input></td>
-				<td>auto rays per frame</td>
-				<td><input type="checkbox" id="targFpsToggle" onclick="toggleTargFps()" checked>Enable</input></td>
-			</tr>
-			<tr>
-				<td>Min Rays Per Frame</td>
-				<td><input type="number" id="minRaysPerFrame" value="50" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-				<td>Max Rays Per Frame</td>
-				<td><input type="number" id="maxRaysPerFrame" value="5000" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-			</tr>
-			<tr>
-				<td>Rays Per Frame</td>
-				<td><input type="number" id="raysPerFrame" value="1000" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-				<td>Accumulated Rays</td>
-				<td><input type="number" id="accumulatedRays" value="8000" step=1; onchange="raysPerFrameChange()" style="width:4em;"></input></td>
-			</tr>
-			<tr>
-				<td>Point Size</td>
-				<td><input type="number" id="pointSize" value="10" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
-				<td>Distance Falloff Multiplier</td>
-				<td><input type="number" id="pointFalloff" value="0.1" step=0.1; onchange="pointSizeChange()" style="width:4em;"></input></td>
-			</tr>
+			
 			<tr>
 				<td>Camera Near View Limit</td>
 				<td><input type="number" id="camNear" value="1" step=1; onchange="camLimitChange()" style="width:4em;"></input></td>
@@ -116,7 +89,6 @@
 				<td><input type="number" id="camFar" value="1" step=100; onchange="camLimitChange()" style="width:4em;"></input></td>
 			</tr>
 			<tr>
-				<td><input type="checkbox" id="stepTreeDiv" onclick="stepTreeToggle()">Step Every Oct T Div</input></td>
 				<td><input type="checkbox" id="animDbgDiv" onclick="animDebugToggle()">Show Anim Transforms</input></td>
 				<td><input type="checkbox" id="animPlayDiv" onclick="animPlayToggle()" checked>Play Anim</input></td>
 			</tr>
@@ -158,54 +130,21 @@
 		</div>
 	</div>
 
-	<table style="margin:auto;">
-		<tr>
-			<td>
-				<div>
-					<h3>Controls: Touch / WASD keys, Q,E roll, Mouse click to use - ESC to exit</h3>
-					<h4 id="cameraDebugText"></h4>
-					<canvas id="frayenCanvas" width=640px; height=480px; style="width:640px; height:480px; outline:1px solid white;"></canvas>
-				</div>
-			</td>
-			<td style="width:400px;">
-				<table style="text-align:left;">
-					<tr>
-						<td>
-							<button type="button" id="showTreeHierachy" style="visibility:hidden;" 
-								onclick="showHideTreeHierachy()">> Tree Hierarchy</button>
-						</td>
-						<td>
-							<button type="button" id="expandAllTreeHierarchy" onclick="expandAllHierarchy()">Expand All</button>
-						</td>
-						<td>
-							<button type="button" id="hideAllTreeHierarchy" onclick="hideAllHierarchy()">Hide All</button>
-						</td>
-						<td>
-							<button type="button" id="enDisHirh" onclick="enDisHirhUpdate()">Disable Update</button>
-						</td>
-					</tr>
-					<tr><td><p id="treeHierarchy"></p></td></tr>
-				</table>
-			</td>
-		</tr>
-	</table>
+	
 	<div style="width:80%; margin:auto;">
 		<table style="margin:auto; text-align:left;">
 			<tr><td id="debugTags" style="color:white;">Debug Message Types<br/></td></tr>
 			<tr>
 				<td>
 					<table>
-						<tr>
-							<td><button type="button" id="showTreeBuildLog" onclick="showHideTreeBuildLog()">> Tree Build Log</button></td>
-							<td><button type="button" id="stepTreeBuildLog" onclick="stepTreeBuild()">Step Tree Build</button></td>
-						</tr>
-						<tr><td><p id="octTreeDivLog" style="text-align:left; color:black; display:none; overflow:scroll; height: 300px;">Tree Subdivision Log:<br/></p></td></tr>
 					</table>
 				</td>
 			</tr>
 		</table>
 	</div>
 	<h4 id ="status"></h4>
+	
+	<canvas id="frayenCanvas" width=640px; height=480px; style="margin:-8px;"></canvas>
 
 </body>
 </html>
