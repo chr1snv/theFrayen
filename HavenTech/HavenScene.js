@@ -327,6 +327,8 @@ function HVNSC_Draw(hvnsc){
 	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
 	let dbBKeys = Object.keys( drawBatchBuffers );
 	for( let i = 0; i < dbBKeys.length; ++i ){
+		if( dbBKeys == 'line' )
+			continue;
 		let dbB = drawBatchBuffers[dbBKeys[i]];
 		//if(dbB.bufferIdx > MAX_VERTS )
 		//	dbB.bufferIdx = MAX_VERTS;

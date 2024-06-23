@@ -74,6 +74,7 @@ function SkelA_Draw(skelA, buf, subB){
 	if(!skelA.isValid)
 		return;
 
+	let zIndcPct = (sceneTime % 0.5) / 0.5;
 
 	//calculate the line points
 
@@ -81,8 +82,8 @@ function SkelA_Draw(skelA, buf, subB){
 		Matrix_Multiply_Vect3(head, skelA.transformationMatricies[i], tempZero);
 		tempVec[1] = skelA.bones[i].len; //set length of display axis
 		Matrix_Multiply_Vect3(tail, skelA.transformationMatricies[i], tempVec);
-		tempVec2[1] = tempVec[1] * 0.5;//set midpoint of z axis indicator
-		tempVec3[1] = tempVec[1] * 0.5;
+		tempVec2[1] = tempVec[1] * zIndcPct;//set midpoint of z axis indicator
+		tempVec3[1] = tempVec[1] * zIndcPct;
 		tempVec3[2] = tempVec[1] * 0.2;//set length of z axis indicator
 		Matrix_Multiply_Vect3(zIndcS, skelA.transformationMatricies[i], tempVec2);
 		Matrix_Multiply_Vect3(zIndc, skelA.transformationMatricies[i], tempVec3);
@@ -146,6 +147,7 @@ function SkelA_InitTraversalQueue(skelA, queue){
 	}
 }
 
+let pose_mat = Matrix_New();
 let bone_mat_actions  = Matrix_New();
 function SkelA_GenerateFrameTransformations(skelA, time){
 	//breadth first traverse the bone hierarchy and generate bone transformations
@@ -178,7 +180,6 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 
 
 		//calculate the pose matrix for this bone
-		let pose_mat = Matrix_New();
 		Matrix_Multiply(tempMat1, bone_mat, bone_mat_actions);
 		Matrix_Multiply(tempMat2, bone_mat_head, tempMat1);
 		Matrix_Multiply(pose_mat, parent_pose_mat, tempMat2);
@@ -248,12 +249,12 @@ function SkelA_GenerateBoneTree(skelA){
 function SkelA_GenerateMesh(skelA, mesh, time ){
 	//apply skelA transformation to the mesh vertices, generating a new set of vertex positions
 
+	if( time == skelA.lastUpdateTime )
+		return false;
+
 	let wrappedTime = time * 24;
 	if( skelA.loop && wrappedTime > skelA.duration )
 		wrappedTime = wrappedTime % skelA.duration;
-		
-	if( wrappedTime == skelA.lastUpdateTime )
-		return false;
 
 	//generate the transformation matrices
 	SkelA_GenerateFrameTransformations(skelA, wrappedTime);

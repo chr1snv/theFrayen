@@ -42,8 +42,8 @@ function LINE_G_drawLines( lineG, buf ){
 
 	let bufID = (buf.bufID);
 	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
-		lineG.glProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.buffers[0],       'position',     0);//buf.isAnimated );
-		lineG.glProgram.vertexAttribSetFloats( bufID+1,      colCard,      buf.buffers[1],       'ptCol',         0);//buf.isAnimated );
+		lineG.glProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.buffers[0],       'position',     1);//buf.isAnimated );
+		lineG.glProgram.vertexAttribSetFloats( bufID+1,      colCard,      buf.buffers[1],       'ptCol',         1);//buf.isAnimated );
 		buf.bufferUpdated = false;
 	}else{
 		lineG.glProgram.vertexAttribBuffEnable( bufID ,  vertCard, (buf.bufferIdx)*vertCard);
