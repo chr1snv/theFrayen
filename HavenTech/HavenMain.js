@@ -187,7 +187,7 @@ function havenMain(){
 	graphics = new Graphics(document.getElementById('frayenCanvas'), 
 		function(){ statusElm.innerHTML = "Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
 		
-	canvWidthElm.value = window.innerWidth;
+	canvWidthElm.value = window.innerWidth * 0.9;
 	canvHeightElm.value = window.innerHeight;
 	fullScrCanvWidthElm.value = screen.width;
 	fullScrCanvHeightElm.value = screen.height;

@@ -360,7 +360,7 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 			if(tempDuration > skelA.duration) //set the duration
 				skelA.duration = tempDuration;
 			//find parent bone indicies
-			if(skelA.bones[skelA.bones.length-1].parentName == "None") //set the parent bone idx
+			if(skelA.bones[skelA.bones.length-1].parentName.length < 1) //set the parent bone idx
 				skelA.rootBoneIdxs.push( skelA.bones.length-1 );
 		}
 	}

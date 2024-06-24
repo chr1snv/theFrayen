@@ -3,7 +3,7 @@
 //the table of frequencies came from a tutorial site
 //and the functions are based on other tutorials
 
-var noteValues = {
+var noteFrequencies = {
 	'C0': 16.35,
 	'C#0': 17.32,
 	'Db0': 17.32,
@@ -170,43 +170,52 @@ g.gain.exponentialRampToValueAtTime(
   0.0000000001, context.currentTime + 0.4
 )
 */
+let aCtx = null;
 function soundIconClicked(){
-	if( window.audioContext == undefined ){
-		window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	if( aCtx == null ){
+		aCtx = new (window.AudioContext || window.webkitAudioContext)();
 		
 	}
-	//playNote('G3', 0.0, 0.15);
-	//playNote('G3', 0.2, 0.15);
-	//playNote('G3', 0.5, 0.15);
-	//playNote('E4', 0.5, 0.25);
-	//playNote('C4', 1.0, 0.25);
-	//playNote('C5', 1.0, 0.25);
+	//playSineToneNode('G3', 0.0, 0.15);
+	//playSineToneNode('G3', 0.2, 0.15);
+	//playSineToneNode('G3', 0.5, 0.15);
+	//playSineToneNode('E4', 0.5, 0.25);
+	//playSineToneNode('C4', 1.0, 0.25);
+	//playSineToneNode('C5', 1.0, 0.25);
 	playBuffer();
 }
 
 const SampleRate = 44100;
 const NumSamples = 44100;
 function playBuffer(){
-	let ctx = window.audioContext;
 	
 	//noise tone
-	let buffer  = ctx.createBuffer(1, NumSamples, SampleRate);
+	let buffer  = aCtx.createBuffer(1, NumSamples, SampleRate);
 	let buf = buffer.getChannelData(0);
 	for( let i = 0; i < NumSamples; ++i )
 		buf[i] = Math.random( ) * Math.sin( 440 * Math.PI * 2 * i / SampleRate );
-	let node = ctx.createBufferSource(0);
+	let node = aCtx.createBufferSource(0);
 	node.buffer = buffer;
 	
 	
-	let bandpass = new BiquadFilterNode( ctx, {type:"bandpass", frequency:100} );
+	let bandpass = new BiquadFilterNode( aCtx, {type:"bandpass", frequency:100} );
 	
-	node.connect(bandpass).connect(ctx.destination);
-	node.start(ctx.currentTime);
+	node.connect(bandpass).connect(aCtx.destination);
+	node.start(aCtx.currentTime);
 }
 
-window.playNote = function (note, time, duration) {
-    let ctx = window.audioContext;
-    let osc = ctx.createOscillator();
+function playBassSineTone(note, time, duration){
+	let osc = aCtx.createOscillator();
+	osc.frequency( noteFrequencies[note] );
+	lfo.connect(amp.gain);
+	osc.connect(amp).connect(audioCtx.destination);
+	lfo.start();
+	osc.start(time);
+	osc.stop(time+duration);
+}
+
+function playSineToneNode(note, time, duration) {
+    let osc = aCtx.createOscillator();
     osc.frequency.value = noteValues[note];
     osc.connect(ctx.destination);
     osc.start(ctx.currentTime + time);
@@ -215,12 +224,12 @@ window.playNote = function (note, time, duration) {
 }
 
 /*
-playNote('G3', 0.0, 0.15);
-playNote('G3', 0.2, 0.15);
-playNote('G3', 0.5, 0.15);
-playNote('E4', 0.5, 0.25);
-playNote('C4', 1.0, 0.25);
-playNote('C5', 1.0, 0.25);
+playSineToneNode('G3', 0.0, 0.15);
+playSineToneNode('G3', 0.2, 0.15);
+playSineToneNode('G3', 0.5, 0.15);
+playSineToneNode('E4', 0.5, 0.25);
+playSineToneNode('C4', 1.0, 0.25);
+playSineToneNode('C5', 1.0, 0.25);
 */
 
 

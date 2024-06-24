@@ -44,7 +44,11 @@ function Bone_GetPose_Mat(bone, m, time)
 	Bone_GetScale(bone,            bone_scale, time);
 	Bone_GetQuaternion(bone,  bone_quaternion, time); Quat_Norm(bone_quaternion);
 
-	Bone_GetTranslation(bone, bone_translation, time);
+	if( bone.parentName.length < 1)
+		Bone_GetTranslation(bone, bone_translation, time);		
+	else
+		Vect3_Zero( bone_translation );
+
 	Matrix_SetQuatTransformation(m,  bone_scale, bone_quaternion, bone_translation);
 }
 
@@ -110,7 +114,10 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 			if(temp[0] == 'N'){
 				bone.boneName = words[1];
 			}else if(temp[0] == 'p'){
-				bone.parentName = words[1];
+				if( words[1] == 'None' )
+					bone.parentName = '';
+				else
+					bone.parentName = words[1];
 			}else if(temp[0] == 'c'){
 				let newChild = words[1];
 				bone.children.push(newChild);
