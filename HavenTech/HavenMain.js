@@ -229,12 +229,14 @@ function loadScene()
 {
 	var idx = sceneSelectorElm.selectedIndex;
 	var newSceneName = sceneSelectorElm.children[idx].text;
-	
+
 	stop();
-	
+
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
-	
+
+	sceneSpecificLoad(newSceneName);
+
 
 	statusElm.innerHTML = "Loading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
@@ -251,12 +253,12 @@ function stop(){
 	statusElm.innerHTML = "Stopped";
 	runSceneButtonElm.innerHTML = "Run";
 	runSceneButtonElm.onclick = loadScene;
-	
-	
+
+
 	CleanUpDrawBatchBuffers();
 	GRPH_Cleanup(graphics);
 	delete( mainScene );
-	
+
 }
 
 function ResetSettings(){
@@ -287,6 +289,7 @@ function sceneLoaded(havenScene)
 	SetCanvasSize( );
 
 	statusElm.innerHTML = "Running";
+	
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	UpadateMousePosText();

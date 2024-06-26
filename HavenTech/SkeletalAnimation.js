@@ -252,7 +252,7 @@ function SkelA_GenerateMesh(skelA, mesh, time ){
 	if( time == skelA.lastUpdateTime )
 		return false;
 
-	let wrappedTime = time * 24;
+	let wrappedTime = time * 25;
 	if( skelA.loop && wrappedTime > skelA.duration )
 		wrappedTime = wrappedTime % skelA.duration;
 

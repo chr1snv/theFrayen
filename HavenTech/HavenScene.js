@@ -132,7 +132,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 	this.sceneName = sceneNameIn;
 	this.isValid = false;
-	
+
 	this.ambientColor = Vect3_NewVals(0.05, 0.05, 0.1); 
 
 	//will likely be removed since stored in oct tree and a per scene
@@ -142,9 +142,9 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	this.numLights = 0;
 	this.cameras   = [];
 	this.armatures = [];
-	
+
 	this.pendingObjsToLoad = {};
-	
+
 	this.boneMatTexture = null;
 
 	this.activeCamera = "";
