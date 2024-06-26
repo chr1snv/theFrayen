@@ -61,8 +61,8 @@ var incFiles = ['DPrintf.js',
 				
 				'Sound.js',
 				
-				'Sail/Sail.js',
-				'Sail/Ocean.js'
+				'sail/Sail.js',
+				'sail/Ocean.js'
 				];
 var incFileIdx = 0;
 
