@@ -172,6 +172,7 @@ function TND_addToThisNode( t, nLvsMDpth, object ){
 	}
 	
 	if( isCocentric ){
+		DPrintf( "addToThisNode failed t.uid" + t.uid.val + " objMeshName " + object.meshName );
 		nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
 	}
 	
@@ -427,7 +428,9 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 									if( nd.objInsertIdx > maxObjsInNde )
 										maxObjsInNde = nd.objInsertIdx;
 									
-								}//else subDiv AddObject failed
+								}else{// subDiv AddObject failed
+									DPrintf("failed to add " + xObDict[obUid].meshName + " " + xObDict[obUid].uid.val + " to nd " + nd.uid.val );
+								}
 							}//else xObDict[ obUid ].notAddedStr
 						}
 						
@@ -441,8 +444,8 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 			//check the subdivision was successful
 			//all objects could be added and that the max num objs in each node has decreased
 			let addedObjs = Object.keys(objsAdded);
-			let allObjs = t.objects[0];
-			if( addedObjs.length < allObjs.length ){
+			let allObjsLen = t.objInsertIdx;
+			if( addedObjs.length < allObjsLen ){
 				//the subdivision didn't work
 				
 				nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
@@ -829,7 +832,7 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 
 const gravityAccel = [0,9.8, 0];
 
-const MaxTreeDepth = 10;
+const MaxTreeDepth = 15;
 const minNodeSideLength = 0.01;
 const MaxTreeNodeObjects = 8; //must be a power of 2 for merge sort during trace
 var totalFrameRayHits = 0;

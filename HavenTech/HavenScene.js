@@ -175,6 +175,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 		TND_Update(this.octTree, time);
 
+		sceneSpecificUpdate( this.sceneName, time );
+
 	}
 
 
@@ -259,6 +261,8 @@ function HVNSC_Draw(hvnsc){
 	//get the objects in view
 	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objMap );
 	
+	sceneSpecificObjects( hvnsc.sceneName, objMap );
+	
 	
 	//for each material get the number of objects using it (sub draw batches)
 	for( const [key,val] of objMap ){
@@ -275,22 +279,23 @@ function HVNSC_Draw(hvnsc){
 	for( const [key,val] of objMap ){
 		let qm = val.quadmesh;
 
+
 		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 			let material = qm.materials[matIdx];
 
 			let drawBatch = GetDrawBatchBufferForMaterial( material );
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
-			
-			
+
+
 			if( qm.isAnimated || drawBatch.bufferUpdated ){
 				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
 
 			if( qm.materialHasntDrawn[matIdx] ){
-			
+
 				if( drawBatch.vertBuffer == null )
 					AllocateBatchBufferArrays(drawBatch);
-				
+
 				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
 						drawBatch, subBatchBuffer.startIdx, matIdx, 
 						subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;
@@ -339,7 +344,7 @@ function HVNSC_Draw(hvnsc){
 				numAnimMatricies = hvnsc.combinedBoneMats.length/matrixCard;
 				
 			TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
-				hvnsc.sceneName, dbB, numAnimMatricies );
+				dbB.material.sceneName, dbB, numAnimMatricies );
 		}
 		//if( dbB.isAnimated )
 		//	dbB.bufferIdx = 0; //repeat refilling values

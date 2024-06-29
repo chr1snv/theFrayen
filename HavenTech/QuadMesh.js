@@ -882,7 +882,7 @@ function QM_IPOAnimReadyCallback(ipoAnim, qm){
 function QM_meshFileLoaded(meshFile, thisP)
 {	
 	let meshFileLines = meshFile.split('\n');
-	
+
 	let numVerts = 0; //value to check for errors
 	let faceCt = 0;
 	let triCt = 0;

@@ -106,10 +106,12 @@ function MDL_AddToOctTree( mdl, octTreeIn, addCompletedCallback )
 {
 	if( octTreeIn == null )
 		return;
+
 	MDL_RemoveFromOctTree( mdl );
 	mdl.octTreeAddedTo = octTreeIn;
 	let nLvsMDpth = [0,0];
 	TND_AddObject(mdl.octTreeAddedTo, nLvsMDpth, mdl, addCompletedCallback);
+
 }
 
 function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
