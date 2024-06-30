@@ -1,7 +1,7 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision lowp float;
+precision mediump float;
 
 //constant variables
 uniform bool      texturingEnabled;
