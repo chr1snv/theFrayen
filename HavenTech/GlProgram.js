@@ -132,6 +132,13 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 		this.attribLocs = {};
 	}
 	
+	this.cleanupVertexAttribBuff = function(attribInstID){
+		if( this.attribLocs[attribInstID] != undefined ){
+			gl.deleteBuffer( this.attribLocs[attribInstID][1] );
+			delete this.attribLocs[attribInstID];
+		}
+	}
+	
 	this.vertexAttribBuffEnable = function(attribInstID, rsize, len){
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.attribLocs[attribInstID][1]);
 		//gl.bufferData(gl.ARRAY_BUFFER, len, gl.STATIC_DRAW);

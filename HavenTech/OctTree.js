@@ -574,17 +574,32 @@ function TND_SubNode( t, point ){
 
 }
 
-function TND_GetObjectsInFrustum( t, wrldToFrusMat, retObjMap ){
+function TND_GetObjectsInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap ){
+
+
 	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
-		if( t.objInsertIdx > 0 ){
+		//overlaps with the aabb
+		if( t.objInsertIdx > 0 ){ //if this node has objects
+		
 			for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
 				retObjMap.set(t.objects[ i ].uid.val, t.objects[ i ]);
-		}else{
-			for( let i = 0; i < t.subNodes.length; ++i ){
-				if( t.subNodes[i] ){
-					TND_GetObjectsInFrustum(t.subNodes[i], wrldToFrusMat, retObjMap );
+		
+		}else{ //attempt to recurse into subnodes 
+		
+			//if occupies a significant on screen area
+			//calculate the size of the oct tree node on screen
+			let distFromCam = Vect3_Distance(t.AABB.center, frusOrigin);
+			//given the distance and field of view in radians, find the length of the diagonal
+			//in -1,1 screen coodrdinates
+			let nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
+			if( nodePctOfHalfScreenWidth > 0.1 ){
+				for( let i = 0; i < t.subNodes.length; ++i ){
+					if( t.subNodes[i] ){
+						TND_GetObjectsInFrustum(t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap );
+					}
 				}
 			}
+			
 		}
 	}
 

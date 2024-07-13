@@ -189,6 +189,8 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 			triG.glProgram.vertexAttribSetFloats( bufID+3,  bnIdxWghtCard, buf.bnIdxWghtBuffer,  'indexWeights', 0);//buf.isAnimated );
 		buf.bufferUpdated = false;
 	}else{
+		if( triG.glProgram.attribLocs[bufID] == undefined )
+			console.log("buffer hasn't drawn");
 		triG.glProgram.vertexAttribBuffEnable( bufID ,  vertCard, (buf.bufferIdx)*vertCard);
 		triG.glProgram.vertexAttribBuffEnable( bufID+1, vertCard, (buf.bufferIdx)*vertCard);
 		triG.glProgram.vertexAttribBuffEnable( bufID+2, uvCard,   (buf.bufferIdx)*uvCard  );
@@ -214,6 +216,10 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		Matrix_Transpose( transMat, subRange.toWorldMatrix );
 		gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );//, 0, 4*4 );
 
+		let vertBufferNumVerts = buf.vertBuffer.length/3;
+		let subRangeNumVerts = startIdx + subRange.len;
+		if( subRangeNumVerts > vertBufferNumVerts )
+			console.log("subRangeNumVerts mismatch");
 		gl.drawArrays( gl.TRIANGLES, startIdx, subRange.len );
 		//CheckGLError("drawTriangles, after drawArrays");
 	}

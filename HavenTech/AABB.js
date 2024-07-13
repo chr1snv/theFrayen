@@ -83,6 +83,7 @@ function AABB( minCorner, maxCorner ){
 	this.maxCoord = Vect3_NewZero();
 	this.center   = Vect3_NewZero();
 	this.diag     = Vect3_NewZero();
+	this.diagLen  = 0;
 	
 	if( minCorner != undefined )
 		AABB_UpdateMinMaxCenter(this, minCorner, maxCorner );
@@ -110,10 +111,12 @@ function AABB_UpdateMinMaxCenter(aabb, minCorner, maxCorner){
 	Vect3_Copy( aabb.center, aabb.minCoord );
 	Vect3_Add( aabb.center, aabb.maxCoord );
 	Vect3_DivideScalar( aabb.center, 2 );
-	
+	//generate the diagonal for use in updating the min and max from a new center position
 	Vect3_Copy( aabb.diag, aabb.maxCoord );
 	Vect3_Subtract( aabb.diag, aabb.minCoord );
 	Vect3_MultiplyScalar( aabb.diag, 0.5 );
+	
+	aabb.diagLen = Vect3_Length( aabb.diag );
 }
 /*
 this.UpdateCenterDiag(){

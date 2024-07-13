@@ -232,4 +232,12 @@ playSineToneNode('C4', 1.0, 0.25);
 playSineToneNode('C5', 1.0, 0.25);
 */
 
+let soundCanvas = document.getElementById('soundCanvas');
+let sCtx = soundCanvas.getContext('2d');
+function InitSoundCanvas(){
+	sCtx.fillStyle = '#ffffff';
+	sCtx.clearRect(0, 0, sCtx.canvas.width, sCtx.canvas.height);
+	sCtx.fillRect(0, 0, sCtx.canvas.width, sCtx.canvas.height);
+	
+}
 

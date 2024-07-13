@@ -182,7 +182,8 @@ function havenMain(){
 	CreateDebugTabsOnPage();
 
 	registerInputHandlers();
-
+	
+	InitSoundCanvas();
 
 	graphics = new Graphics(document.getElementById('frayenCanvas'), 
 		function(){ statusElm.innerHTML = "Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it

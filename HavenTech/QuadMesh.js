@@ -490,7 +490,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 
 
 
-	let numGenVerts = 0;
+	let endGenVertIdx = startIdx; //if no verts are generated
 
 	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
 	if( /*drawBatch.isAnimated ||*/ drawBatch.bufferUpdated /*|| qm.skelAnimation*/ ){//|| qm.keyAnimation){
@@ -523,7 +523,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		////////////////////////////////////////////////////////////
 
 		//tesselate the vertex positions
-		numGenVerts = QM_SL_tesselateCoords( 
+		endGenVertIdx = QM_SL_tesselateCoords( 
 			drawBatch.vertBuffer,
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
 			qm.transformedVerts, startIdx );
@@ -563,7 +563,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		drawBatch.numSubBufferUpdatesToBeValid -= 1;
 	}
 
-	return numGenVerts;
+	return endGenVertIdx;
 }
 
 

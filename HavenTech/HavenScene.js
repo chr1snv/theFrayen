@@ -60,6 +60,8 @@ function GetSkelBatchBuffer(shdrName, numAttrs, attrCards){
 
 
 function BufSubRange(startIdxIn, lenIn){
+	this.lastStartIdx = 0;
+	this.lastLen = 0;
 	this.startIdx = startIdxIn;
 	this.len      = lenIn;
 	this.toWorldMatrix   = Matrix_New();
@@ -76,9 +78,13 @@ function DrawBatchBuffer(material){
 	this.normBuffer      = null;
 	this.uvBuffer        = null;
 	this.bnIdxWghtBuffer = null;
+	
 	this.bufferIdx       = 0;
+	this.lastBufferIdx   = 0;
+	
 	this.bufferUpdated   = true;
 	this.isAnimated      = false;
+	this.hasSkelAnim     = false;
 	this.texName         = null;
 	
 	this.numSubBufferUpdatesToBeValid = 0;
@@ -89,10 +95,21 @@ function DrawBatchBuffer(material){
 }
 
 function AllocateBatchBufferArrays(dbB){
+	if( dbB.vertBuffer != null ){
+		//deallocate previous
+		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID);
+		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+1);
+		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+2);
+		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+3);
+		
+	}
 	dbB.vertBuffer      = new Float32Array( dbB.bufferIdx*vertCard      );
 	dbB.normBuffer      = new Float32Array( dbB.bufferIdx*normCard      );
 	dbB.uvBuffer        = new Float32Array( dbB.bufferIdx*uvCard        );
+	
 	dbB.bnIdxWghtBuffer = new Float32Array( dbB.bufferIdx*bnIdxWghtCard );
+	
+	dbB.bufferUpdated   = true;
 	//dbB.bufferIdx = 0;
 }
 
@@ -107,14 +124,69 @@ function GetDrawBatchBufferForMaterial(material){
 	return dbB;
 }
 
+
+//reset indicies between frames incase the objects
+//within the camera frustum to be drawn are different
+function ResetDrawAndSubBatchBufferIdxs(){
+	//sub batch buffer
+	let dbbKeys = Object.keys(drawBatchBuffers);
+	for( let i = 0; i < dbbKeys.length; ++i ){
+		let dbb = drawBatchBuffers[dbbKeys[i]];
+		dbb.lastBufferIdx = dbb.bufferIdx;
+		dbb.numSubBufferUpdatesToBeValid = 0;
+		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
+		dbb.bufferIdx = 0;
+		
+		let sbbKeys = Object.keys( dbb.bufSubRanges );
+		for( let j = 0; j < sbbKeys.length; ++j ){
+			let subRange = dbb.bufSubRanges[ sbbKeys[j] ];
+			subRange.lastStartIdx = subRange.startIdx;
+			subRange.lastLen = subRange.len;
+			subRange.startIdx = 0;
+			subRange.len = 0;
+		}
+	}
+
+}
+
+function ReallocateDrawBatchBuffersIfNecessary(){
+	let dbbKeys = Object.keys(drawBatchBuffers);
+	for( let i = 0; i < dbbKeys.length; ++i ){
+		let drawBatch = drawBatchBuffers[dbbKeys[i]];
+
+		if( drawBatch.vertBuffer == null)
+			AllocateBatchBufferArrays(drawBatch);
+		else{
+			let drawBatchNumVertsAllocated = drawBatch.vertBuffer.length/3;
+			if( drawBatchNumVertsAllocated < drawBatch.bufferIdx )
+				AllocateBatchBufferArrays(drawBatch);
+		}
+	}
+	
+}
+
 function GetDrawSubBatchBuffer(dbB, subRangeId, numVerts){
 	let subRange = dbB.bufSubRanges[ subRangeId ];
-	if( subRange == undefined ){
+
+
+	if( subRange == undefined ){ //obj+material hasn't been drawn
 		subRange = new BufSubRange(dbB.bufferIdx, numVerts);
 		dbB.bufSubRanges[ subRangeId ] = subRange;
 		dbB.bufferIdx += numVerts;
 		dbB.numSubBufferUpdatesToBeValid += 1;
+	}else if( subRange.len == 0 ){
+		//this object was in previous frames
+		//though this subrange has been reset (in check for allocation phase) for this frame
+		subRange.startIdx = dbB.bufferIdx;
+		subRange.len = numVerts;
+		dbB.bufferIdx += numVerts;
+		if( subRange.len != subRange.lastLen ||
+			subRange.lastStartIdx != subRange.startIdx ){
+			dbB.bufferUpdated = true;
+			dbB.numSubBufferUpdatesToBeValid += 1;
+		}
 	}
+
 	return subRange;
 }
 
@@ -256,15 +328,18 @@ function HVNSC_Draw(hvnsc){
 			SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
 		}
 	}
-	
-	
+
+
+	ResetDrawAndSubBatchBufferIdxs();
+
 	//get the objects in view
-	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, objMap );
-	
+	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
+
 	sceneSpecificObjects( hvnsc.sceneName, objMap );
-	
-	
-	//for each material get the number of objects using it (sub draw batches)
+
+
+	//for each material check sub draw batch allocations for each object using it
+	//and that enough array buffer space is allocated for the batches
 	for( const [key,val] of objMap ){
 		let qm = val.quadmesh;
 		for( let matID = 0; matID < qm.materials.length; ++matID ){
@@ -273,28 +348,29 @@ function HVNSC_Draw(hvnsc){
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
 		}
 	}
+	
+	ReallocateDrawBatchBuffersIfNecessary();
 
-
-	//update the draw batch buffers from the objects
-	for( const [key,val] of objMap ){
+	//for each object in view
+	//update the draw batch buffers corresponding to the object materials
+	for( const [key,val] of objMap ){ 
 		let qm = val.quadmesh;
 
-
+		//for each material in the object
 		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 			let material = qm.materials[matIdx];
 
 			let drawBatch = GetDrawBatchBufferForMaterial( material );
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
-
+			subBatchBuffer.qm = qm; //for debugging to trace the sub batch buffer that doesn't have verts allocated
 
 			if( qm.isAnimated || drawBatch.bufferUpdated ){
 				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
+			
+			
 
-			if( qm.materialHasntDrawn[matIdx] ){
-
-				if( drawBatch.vertBuffer == null )
-					AllocateBatchBufferArrays(drawBatch);
+			if( qm.materialHasntDrawn[matIdx] || drawBatch.bufferUpdated ){
 
 				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
 						drawBatch, subBatchBuffer.startIdx, matIdx, 
