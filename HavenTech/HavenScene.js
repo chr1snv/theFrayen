@@ -311,6 +311,8 @@ function HVNSC_Draw(hvnsc){
 	let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 	cam.GenWorldToFromScreenSpaceMats();
 	
+	ResetDrawAndSubBatchBufferIdxs();
+	
 	if(AnimTransformDrawingEnabled){
 		//get the number of armatures and line verts for them
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
@@ -325,12 +327,9 @@ function HVNSC_Draw(hvnsc){
 			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
 			if( drawBatch.buffers[0] == null )
 				AllocateBatchAttrBuffers(drawBatch);
-			SkelA_Draw( hvnsc.armatures[i], drawBatch, subBB );
+			SkelA_ArmatureDebugDraw( hvnsc.armatures[i], drawBatch, subBB );
 		}
 	}
-
-
-	ResetDrawAndSubBatchBufferIdxs();
 
 	//get the objects in view
 	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
@@ -408,7 +407,7 @@ function HVNSC_Draw(hvnsc){
 	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
 	let dbBKeys = Object.keys( drawBatchBuffers );
 	for( let i = 0; i < dbBKeys.length; ++i ){
-		if( dbBKeys == 'line' )
+		if( dbBKeys[i] == 'line' )
 			continue;
 		let dbB = drawBatchBuffers[dbBKeys[i]];
 		//if(dbB.bufferIdx > MAX_VERTS )
@@ -419,6 +418,8 @@ function HVNSC_Draw(hvnsc){
 			if( hvnsc.combinedBoneMats )
 				numAnimMatricies = hvnsc.combinedBoneMats.length/matrixCard;
 				
+			if( dbB.material == undefined )
+				console.log("probably skelAnim lines");
 			TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
 				dbB.material.sceneName, dbB, numAnimMatricies );
 		}

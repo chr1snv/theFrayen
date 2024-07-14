@@ -70,7 +70,7 @@ let bindZCol    = [0,0,1,1];
 let bindZColEnd = [0,0,1,0.2];
 
 const numLineVertsPerBone = 8;
-function SkelA_Draw(skelA, buf, subB){
+function SkelA_ArmatureDebugDraw(skelA, buf, subB){
 	if(!skelA.isValid)
 		return;
 
@@ -113,7 +113,7 @@ function SkelA_Draw(skelA, buf, subB){
 		Vect_CopyToFromArr(buf.buffers[1],(((i*numLineVertsPerBone)+7)+subB.startIdx)*colCard, bindZColEnd, 0, colCard);
 
 	}
-
+	subB.len = skelA.bones.length * 8;
 	buf.bufferUpdated   = true;
 }
 
