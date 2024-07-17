@@ -6,12 +6,12 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
     //generates an orthographic (rectangular non perspective)
     //projection matrix for the camera
 
-    var tx = -(right+left)/(right-left);
-    var ty = -(top+bottom)/(top-bottom);
-    var tz = -(farVal+nearVal)/(farVal-nearVal);
-    var xs =  2/(right-left);
-    var ys =  2/(top-bottom);
-    var zs = -2/(farVal-nearVal);
+    let tx = -(right+left)/(right-left);
+    let ty = -(top+bottom)/(top-bottom);
+    let tz = -(farVal+nearVal)/(farVal-nearVal);
+    let xs =  2/(right-left);
+    let ys =  2/(top-bottom);
+    let zs = -2/(farVal-nearVal);
     
     gOM[0*4+0]=xs;gOM[0*4+1]=0 ;gOM[0*4+2]=0; gOM[0*4+3]=tx;
     gOM[1*4+0]=0; gOM[1*4+1]=ys;gOM[1*4+2]=0; gOM[1*4+3]=ty;
@@ -31,13 +31,13 @@ function gluPerspective(fovy, aspect, zNear, zFar)
     //to render/fragment shader coordinates (a rectangular volume x,y with depth)
     
     //tan(theta) = opposite/adjacent or (vertical far frustum half height) / 1 (frustum depth)
-    var f = 1/Math.tan(fovy/2); //f = inverse vertical far frustum half height / frustum depth 
+    let f = 1/Math.tan(fovy*0.5); //f = inverse vertical far frustum half height / frustum depth 
     //( goes to inf as fovy -> pi (180 deg)
     //if aspect is 1 (square rendered image) xs and ys will be equal
-    var xs = f/aspect;                     //x scale factor
-    var ys = f;                            //y scale factor
-    var zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
-    var tz = (2*zFar*zNear)/(zNear-zFar);
+    let xs = f/aspect;                     //x scale factor
+    let ys = f;                            //y scale factor
+    let zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
+    let tz = ((2*zFar)*zNear)/(zNear-zFar);
     gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0; gPM[0*4+3]=0;
     gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0; gPM[1*4+3]=0;
     gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=zs;gPM[2*4+3]=tz;

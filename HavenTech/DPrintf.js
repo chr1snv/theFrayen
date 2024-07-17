@@ -45,6 +45,8 @@ const Deb_test				 = 18;
 const enabledDebugTags = { 
 	"CheckGLError":0,
 	
+	"hvnsc debug":0,
+	
 	"mouse":0,
 	"add obj":0,
 	

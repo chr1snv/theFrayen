@@ -11,7 +11,7 @@
 //(the content comes first)
 //idealy it will have an 3d scene editor, mesh editor, texture atlas creator, and animation / sound sequencer
 //with save / load functionality and graphics / sound rendering that scales to the resources of
-//the instance at runtime (from multi processor / gpu realtime raytraced, 
+//the instance at runtime (from high end multi processor / gpu realtime raytraced, 
 //to offline mobile fixed function gpu with baked lighting)
 //to do this it is being written in javascript using webgl, because browsers are avaliable on
 //desktops (pc, mac, linux), mobile devices (ios, android), consoles (), and vr ()
@@ -26,10 +26,10 @@
 //so it also allows for learning of how it works and modification / extension
 //doing something without being able to explain why (closed source code),
 //usually leads to problems later
-//the ethos of haven tech / the frayen is to deliver a virtual enviroment
+//the ethos/goal/mantra/aim of haven tech / the frayen is to deliver a virtual enviroment
 //where ever it can, in the real world hardware and power may be limited
-//hence "haven" it is designed to give a place for creativive thoughts and
-//experiences to be explored
+//hence "haven" it is designed to give a place for creative thoughts and
+//experiences (imagination) to be explored
 
 //transitions the rendering to fullscreen
 var fullScrCanvWidthElm  = document.getElementById('fullScrCanvWidth');
@@ -176,6 +176,7 @@ let autoRunCountdown = 1;
 let stopAutoStart = false;
 function havenMain(){
 
+	//uncomment and run module unit tests here
 	//ray2Tests();
 
 	//cameraStream = new CameraStream();
@@ -299,6 +300,8 @@ function sceneLoaded(havenScene)
 	running = true;
 }
 
+let simPhys = true;
+
 let lastInputTime = -10;
 const noInputDisplayHelpOverlayTime = 3; //display help if no user input for 3 seconds
 const numTimesBtwnInputHelpOverlayReset = 2;
@@ -321,86 +324,22 @@ function MainLoop()
 		sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
 	//graphics.Clear();
 	//graphics.ClearDepth();
-	mainScene.Update( sceneTime );
+	
+	if( keysDown[keyCodes.KEY_P] == true )
+		simPhys = !simPhys;
+	
 	UpdateCamera( sceneTime );
-	//drawSquare(graphics);
-	//CheckGLError("before point graphics setup");
-	//graphics.pointGraphics.Setup();
-	//CheckGLError("after point graphics setup");
+	
+	HVNSC_Update( mainScene, sceneTime );
+
+
 	HVNSC_Draw( mainScene );
-	//console.log("frameRayHits " + totalFrameRayHits );
-	//CheckGLError("after draw mainScene");
 
 	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
-	framesSinceLastFPSOutputTime += 1;
-	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
-		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
-		lastSceneFPSOutputTime = sceneTime;
-		framesSinceLastFPSOutputTime = 0;
-	}
 	
-	let timeSinceShowingInputHelperOverlay = sceneTime-lastInputTime;
-	if( timeSinceShowingInputHelperOverlay > noInputDisplayHelpOverlayTime ){
-		
-		if( timeSinceShowingInputHelperOverlay > resetTimeBtwnInputHelpOverlay )
-			numInputHelpOverlayTimesLeft = numTimesBtwnInputHelpOverlayReset;
-		
-		if(numInputHelpOverlayTimesLeft > 0 ){
-		
-			if(wasntShowingHelpInputOverlay){
-				wasntShowingHelpInputOverlay = false;
-				numInputHelpOverlayTimesLeft -= 1;
-			}
-		
-			TRI_G_Setup(graphics.triGraphics);
-			
-			if (hasTouchSupport()) {
-				//console.log("Mobile device detected");
-			
-				//draw quads with left of screen movement and right rotate graphics
-				
-				let transAnimTime = sceneTime%4;
-				let lrOff = 0;
-				let udOff = 0;
-				if( lrOrUdAnim ){
-					lrOff = Math.sin(sceneTime*2)*0.25;
-					if( Math.abs(lrOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
-						lrOrUdAnim = false;
-						lrOrUdChangeResetFrames = 10;
-					}
-				}else{
-					udOff = Math.sin(sceneTime*2)*0.25;
-					if( Math.abs(udOff) < 0.05 && lrOrUdChangeResetFrames-- <= 0 ){
-						lrOrUdAnim = true;
-						lrOrUdChangeResetFrames = 10;
-					}
-				}
-				let cenPos    = [-0.5+lrOff, udOff];
-				let wdthHight = [ 0.5      , 0.5  ];
-				let minUv     = [   0      , 1    ];
-				let maxUv     = [ 0.5      , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
-				
-				
-				cenPos        = [ 0.5      , 0    ];
-				wdthHight     = [ 0.5      , 0.5  ];
-				minUv         = [ 0.5      , 1    ];
-				maxUv         = [ 1        , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
-			
-			} else {
-				//console.log("Desktop device detected");
-				cenPos        = [ 0        , 0    ];
-				wdthHight     = [ 2        , 1.5  ];
-				minUv         = [ 0        , 1    ];
-				maxUv         = [ 1        , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
-			}
-			
-		}
-	}else{
-		wasntShowingHelpInputOverlay = true;
-	}
+	Overlay_DrawInputHint();
+	
+	HVNINPT_ClearKeysDown();
 
 	//graphics.Flush();
 }
@@ -466,15 +405,18 @@ function UpdateCamera( updateTime )
 	updateCameraTimeDelta = updateTime - lastUpdateCameraTime;
 
 	//generate the position update
+	let moveOffset = moveAmt;
+	if( keys[keyCodes.SHIFT] == true ) //times 5 movement speed if shift is held
+		moveOffset *= 5;
 	camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
 	if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
-		camPositionUpdate[2] -= moveAmt;
+		camPositionUpdate[2] -= moveOffset;
 	if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
-		camPositionUpdate[2] += moveAmt;
+		camPositionUpdate[2] += moveOffset;
 	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
-		camPositionUpdate[0] -= moveAmt;
+		camPositionUpdate[0] -= moveOffset;
 	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
-		camPositionUpdate[0] += moveAmt;
+		camPositionUpdate[0] += moveOffset;
 
 		camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
 		camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;

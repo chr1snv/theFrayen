@@ -64,6 +64,8 @@ function linePlaneIntersection( lineOrigin, lineEndpoint, planeCenter, planeNorm
    
 }
 
+let testCoord = Vect3_New();
+
 let aabbMin = Vect3_New();
 let aabbMax = Vect3_New();
 let tempCoord = Vect3_New();
@@ -72,11 +74,39 @@ const frusMax = Vect3_NewScalar(1);
 function FRUS_AABBOverlaps( wrldToFrusMat, aabb ){
 	//transform the corners of the aabb into frustum space
 	//check if the range overlaps in xyz
-	Matrix_Multiply_Vect3( tempCoord, wrldToFrusMat, aabb.minCoord );
-	Vect3_minMax( aabbMin, aabbMax, tempCoord );
-	Matrix_Multiply_Vect3( tempCoord, wrldToFrusMat, aabb.maxCoord );
-	Vect3_minMax( aabbMin, aabbMax, tempCoord );
 	
+//	DTPrintf( "cam.position " + Vect_ToFixedPrecisionString(cam.position, 5), "hvnsc debug" );
+//	Matrix_Multiply_Vect3( testCoord, cam.screenSpaceToWorldMat, [0,0,-1] );
+//	DTPrintf( "cam near coord" + Vect_ToFixedPrecisionString(testCoord, 5), "hvnsc debug" );
+//	Matrix_Multiply_Vect3( testCoord, cam.screenSpaceToWorldMat, [0,0,1] );
+//	DTPrintf( "cam far coord " + Vect_ToFixedPrecisionString(testCoord, 5), "hvnsc debug" );
+//	//Vect3_Add( testCoord, cam.position );
+//	Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, testCoord );
+//	DTPrintf( "farCoord in screen space " + Vect_ToFixedPrecisionString(tempCoord, 5), "hvnsc debug" );
+//	
+//	DTPrintf( "node minCoord " + Vect_ToFixedPrecisionString(aabb.minCoord, 5), "hvnsc debug" );
+//	DTPrintf( "node maxCoord " + Vect_ToFixedPrecisionString(aabb.maxCoord, 5), "hvnsc debug" );
+
+	AABB_Gen8Corners(aabb);
+
+	Vect3_SetScalar(aabbMin, Number.POSITIVE_INFINITY);
+	Vect3_SetScalar(aabbMax, Number.NEGATIVE_INFINITY);
+
+	for( let i = 0; i < 8; ++i ){
+		Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
+		Vect3_minMax( aabbMin, aabbMax, tempCoord );
+	}
+	
+//	DTPrintf( "node frusSpace minCoord " + Vect_ToFixedPrecisionString(aabbMin, 5), "hvnsc debug" );
+//	DTPrintf( "node frusSpace maxCoord " + Vect_ToFixedPrecisionString(aabbMax, 5), "hvnsc debug" );
+//	
+//	Matrix_Multiply_Vect3( tempCoord, cam.screenSpaceToWorldMat, aabbMin );
+//	DTPrintf( "node world space minCoord " + Vect_ToFixedPrecisionString(tempCoord, 5), "hvnsc debug" );
+//	Matrix_Multiply_Vect3( tempCoord, cam.screenSpaceToWorldMat, aabbMax );
+//	DTPrintf( "node world space maxCoord " + Vect_ToFixedPrecisionString(tempCoord, 5), "hvnsc debug" );
+	
+	aabbMin[2] = 0;
+	aabbMax[2] = 0;
 	return AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
 }
 

@@ -54,6 +54,8 @@ var incFiles = ['DPrintf.js',
 				'HierarchyView.js',
 				'HavenMain.js',
 				
+				'Overlay.js',
+				
 				'HavenInputHandlers.js',
 				'TouchScreenControls.js',
 				'InertialSensors.js',

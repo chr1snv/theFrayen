@@ -5,7 +5,7 @@
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
 function Model( nameIn, meshNameIn, sceneNameIn, AABB, 
-					modelLoadedParameters, modelLoadedCallback=null )
+					modelLoadedParameters, modelLoadedCallback=null, isDynamic=false )
 {
 	
 	/*
@@ -56,6 +56,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.uid = NewUID();
 
 	this.physObj = null;
+	if( isDynamic )
+		this.physObj = new PhysObj(thisP.AABB, thisP, 0);
 
 	this.treeNodes = {};
 
@@ -82,8 +84,6 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 
 	//request the quadmesh from the graphics class to get it to load it
-	if( meshNameIn == 'Cylinder' )
-		console.log('attempting to load Cylinder quadmesh\n');
 	graphics.GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
 				MDL_getQuadMeshCb,
 				{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }
@@ -141,11 +141,17 @@ function MDL_Update( mdl, time, treeNd ){
 		
 		QM_Update( mdl.quadmesh, time );
 		
-		mdl.AABB = mdl.quadmesh.AABB;
+		if( mdl.physObj ){
+			
 		
-		mdl.physObj.Update(time, gravityAccel, treeNd);
+			mdl.AABB = mdl.quadmesh.AABB;
 		
-		mdl.lastUpdateTime = time;
+			mdl.physObj.Update(time, gravityAccel, treeNd);
+			
+			mdl.lastUpdateTime = time;
+		}
+		
+		
 	}
 }
 
@@ -201,7 +207,7 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 	QM_Reset(thisP.quadmesh);
 	QM_Update( thisP.quadmesh, 0 );
 	thisP.AABB = thisP.quadmesh.AABB;
-	thisP.physObj = new PhysObj(thisP.AABB, thisP, 0);
+	
 	//if there isn't a modelLoadedCallback callback don't try to call it
 	if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
 		cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree

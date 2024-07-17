@@ -408,8 +408,8 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 		}else{
 		}
 	}
-	
-	
+
+
 
 	let skelAnimCacheKeys = Object.keys(skelAnims);
 	let totalNumBones = 1; //offset by 1 for the identity Matrix
@@ -419,12 +419,12 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 		totalNumBones += skelAnim.bones.length;
 		skelAnim.hvnsc = havenScene;
 	}
-	
+
 	//allocate the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
 	havenScene.combinedBoneMats = new Float32Array( matrixCard * totalNumBones );
-	
+
 	Matrix_SetIdentity(havenScene.combinedBoneMats);
-	
+
 	havenScene.boneMatTexture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, havenScene.boneMatTexture);
@@ -432,7 +432,7 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
-	
+
 	gl.texImage2D(
 		gl.TEXTURE_2D, 
 		0,					//level
@@ -444,5 +444,5 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 		gl.FLOAT,			//type
 		havenScene.combinedBoneMats
 	);
-	
+
 }

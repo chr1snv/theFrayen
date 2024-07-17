@@ -9,6 +9,7 @@ mCoords		= {x:0, y:0};
 mDown		= false;
 mDownCoords = {x:0, y:0}; 
 keys		= {};
+keysDown    = {};
 
 //https://medium.com/geekculture/detecting-mobile-vs-desktop-browsers-in-javascript-ad46e8d23ce5
 function hasTouchSupport() {
@@ -27,10 +28,17 @@ function registerInputHandlers(){
 	document.onkeyup   = pageKeyUpHandler;
 }
 
+function HVNINPT_ClearKeysDown(){
+	for( key in keysDown ){
+		keysDown[key] = false;
+	}
+}
+
 function pageKeyDownHandler(e){
 	//e.preventDefault();
 	var keyCode = e.keyCode;
 	//DPrintf( 'keyPressed: ' + keyCode );
+	keysDown[keyCode] = true;
 	keys[keyCode] = true;
 	if( keyCode == 27 )
 		releasePointerLock();

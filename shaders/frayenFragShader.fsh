@@ -78,12 +78,16 @@ void main() {
 
 	/*
 	float z = gl_FragCoord.z;
-	if( gl_FragCoord.z < 0.0 ){
+	if( z < 0.0 ){
 		z = -z;
 		vec4(0,z,0,1.0);
 	}else{
-		FragColor = vec4(z,0,0,1.0);
+		if( z > 1.0 )
+			gl_FragColor = vec4(0,0,z-1.0,1.0);
+		else
+			gl_FragColor = vec4(z,0,0,1.0);
 	}
 	*/
+	
 	//FragDepth = z;
 }

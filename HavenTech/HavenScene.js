@@ -191,10 +191,12 @@ function GetDrawSubBatchBuffer(dbB, subRangeId, numVerts){
 }
 
 function CleanUpDrawBatchBuffers(){
-	delete( drawBatchBuffers );
+	for( dbB in drawBatchBuffers ){
+		delete( dbB );
+	}
 	drawBatchBuffers = {};
-	delete( skelDrawBatchBuffers );
-	skelDrawBatchBuffers = {};
+	//there aren't any skeletal animation debug draw batch buffers 
+	//( they are in draw batch buffers with the key 'line' instead of a material uid )
 }
 
 
@@ -238,20 +240,6 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	//(maybe will come back / be replaced by spectral image for denoising)
 
 
-	//updates the entire scene
-	//only parts of the oct tree that are active should be updated
-	//(animated objects within the field of view, or area's with 
-	//dynamic events occuring) to minimize compute / power required
-	//because parts of the scene may be on seperate nodes/comp should be parallelized
-	this.Update = function( time ){
-
-		TND_Update(this.octTree, time);
-
-		sceneSpecificUpdate( this.sceneName, time );
-
-	}
-
-
 	//constructor functionality begin asynchronous fetch of scene description
 	this.pendingObjsAdded = 0;
 	loadTextFile("scenes/"+this.sceneName+".hvtScene",
@@ -259,39 +247,139 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 }
 
+function CheckIsValidFor( hvnsc, operationName ){
+
+	if(!hvnsc.isValid){
+		DTPrintf(hvnsc.sceneName + ' was asked to ' + operationName + ' but is not valid', "havenScene: ", 'orange');
+		return false;
+	}
+	if(hvnsc.activeCameraIdx == -1){
+		DTPrintf( hvnsc.sceneName + ' was asked to ' + operationName + ' but has no active camera', 
+			'havenScene: ', 'orange');
+		return false;
+	}
+	return true;
+}
+
+//updates the entire scene
+//only parts of the oct tree that are active should be updated
+//(animated objects within the field of view, or area's with 
+//dynamic events occuring) to minimize compute / power required
+//because parts of the scene may be on seperate nodes/comp should be parallelized
+let cam = null;
+let nodeMap = new Map();
+let objMap = new Map();
+function HVNSC_Update( hvnsc, time ){
+
+	if(!CheckIsValidFor( hvnsc, 'Update' ) )
+		return;
+
+	//generate the camera matrix
+	cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
+	cam.GenWorldToFromScreenSpaceMats();
+
+	//Matrix_Print( cam.worldToScreenSpaceMat, "cam.worldToScreenSpaceMat" );
+
+//	AABB_Gen8Corners(hvnsc.octTree.AABB);
+
+//	Vect3_SetScalar(aabbMin, Number.POSITIVE_INFINITY);
+//	Vect3_SetScalar(aabbMax, Number.NEGATIVE_INFINITY);
+
+//	for( let i = 0; i < 8; ++i ){
+//		Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
+//		Vect3_minMax( aabbMin, aabbMax, tempCoord );
+//	}
+//	
+//	DTPrintf( "node frusSpace minCoord " + Vect_ToFixedPrecisionString(aabbMin, 5), "hvnsc debug" );
+//	DTPrintf( "node frusSpace maxCoord " + Vect_ToFixedPrecisionString(aabbMax, 5), "hvnsc debug" );
+
+	//get the nodes within view
+	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated
+	objMap.clear();
+	nodeMap.clear();
+	TND_GetNodesInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, nodeMap );
+
+	for( const [key,node] of nodeMap ){
+		if( simPhys ){
+//			DTPrintf("=====Apply User input " + time.toPrecision(3), "loop");
+//			//if( queuedMouseEvents.length < 1 ){
+//			//	releasePointerLock(lFetCanvas);
+//			//}else{
+//			while( lFetCanvas.pointerHandler.queuedEvents.length > 0 ){
+//				let mevent = lFetCanvas.pointerHandler.queuedEvents.shift(1);
+//				preformMouseEvent(mevent);
+//			}
+			//}
+			DTPrintf("=====detect colis " + time.toPrecision(3), "loop");
+			TND_ApplyExternAccelAndDetectCollisions(node, time);
+			DTPrintf("=====link graphs " + time.toPrecision(3), "loop");
+			TND_LinkPhysGraphs(node, time);
+			TND_AppyInterpenOffset(node, time);
+			
+			//need to do this to prevent inerpenetation of objects, though
+			//for performace idealy the number of iterations is low
+			let numAddionalColis = 1;
+			while( numAddionalColis > 0 ){
+				DTPrintf("=====trans energy " + time.toPrecision(3), "loop" );
+				TND_TransferEnergy(node, time);
+				DTPrintf("=====detect additional " + time.toPrecision(3), "loop" );
+				numAddionalColis = TND_DetectAdditionalCollisions(node, time);
+				if( numAddionalColis > 0 ){
+					DTPrintf("======link numAdditional " + numAddionalColis + " time " + time.toPrecision(3), "loop" );
+					TND_LinkPhysGraphs(node, time);
+					TND_AppyInterpenOffset(node, time);
+				}
+			}
+			DTPrintf( "===update " + time.toPrecision(3), "loop" );
+			TND_Update(node, time);
+
+		}
+		
+		TND_addObjsInNodeToMap( node, objMap );
+	}
+	//DTPrintf( "nodeMap size " + nodeMap.size, "hvnsc debug", "color:white", 0 );
+
+	sceneSpecificUpdate( hvnsc.sceneName, time ); //run the game code
+
+}
+
 var AnimTransformDrawingEnabled = false;
 
 const maxObjsToDraw = 64;
-let objMap = new Map();
 function HVNSC_Draw(hvnsc){
-	if(!hvnsc.isValid){
-		DTPrintf(hvnsc.sceneName + ' was asked to draw but is not valid', "havenScene: ", 'orange');
+
+	if(!CheckIsValidFor( hvnsc, 'Draw' ) )
 		return;
-	}
-	if(hvnsc.activeCameraIdx == -1){
-		DTPrintf( hvnsc.sceneName + ' was asked to draw but has no active camera', 
-			'havenScene: ', 'orange');
-		return;
-	}
 
 	//draw the scene
 
 	//after watching how unreal5 nanite works https://youtu.be/TMorJX3Nj6U 
-	//(the state of the art polygon rasterizer in 2022)
-	//I think that because rasterization cost increases with overdraw 
-	//and as the number of polygons increases
-	//longterm a render engine based on ray casting rays from the camera 
-	//is going to have better performance and realisim
-	//than rasterization
-	//the problem though is memory usage of loading all objects in the scene
-	//at full level of detail, time cost of updating octTrees for animated objects
-	//and the non local/upredicatble memory access pattern of ray casting
-	//vs scanline rasterization
+	//(the state of the art polygon rasterizer in 2022-2024 that uses automatic level of detal generation)
+	
+	//a simpler way to render would be ray casting with allot of fast memory
+	//because rasterization cost increases with overdraw 
+	//if there are more polygons than pixels
+	//rendering based on casting rays from the camera
+	// vs transforming all verticies in view and scan line rendering polygons
+	//will have better performance and realisim
+	//
+	//however the problem though is randomly accessing memory is more expensive than compute
+	//loading all objects in the scene at full level of detail
+	//and the time cost of updating octTrees for animated objects
+	//requires more compare and branch operations vs scanline rasterization 
+	//indepndent parallel multiplication of numbers is very fast and energy efficent
+	//vs the non local/upredicatble memory access dependent pattern of ray casting
 
 	//having compute in memory per world area will make ray casting/tracing more practical, though
-	//until the hardware is commonplace, it's not practical
+	//until the hardware for it is commonplace 
+	//(i.e ray tracing gpus, 
+	//chips like Qualcom NPU Hexagon Tensor, 
+	//Hailo-8,
+	//or a distributed compute cluster with low latency networking
+	//vertex and fragment shader rendering with polygons larger than pixels will outpreform it)
 
-	//then objects can move from one region to another passed
+	//for raycast rendering
+	//objects can move from one region to another passed
 	//(via network / intraprocessor connections) to the memory and 
 	//simulation in the new region
 	//there are optimizations, reStir, metropolus light transport for 
@@ -306,10 +394,9 @@ function HVNSC_Draw(hvnsc){
 	//photorealisim and minimal noise and can be achieved
 
 
-
 	//generate the camera matrix
-	let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
-	cam.GenWorldToFromScreenSpaceMats();
+	//let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
+	//cam.GenWorldToFromScreenSpaceMats();
 	
 	ResetDrawAndSubBatchBufferIdxs();
 	
@@ -332,7 +419,8 @@ function HVNSC_Draw(hvnsc){
 	}
 
 	//get the objects in view
-	TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
+	//objMap.clear();
+	//TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
 
 	sceneSpecificObjects( hvnsc.sceneName, objMap );
 
@@ -366,8 +454,8 @@ function HVNSC_Draw(hvnsc){
 			if( qm.isAnimated || drawBatch.bufferUpdated ){
 				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
-			
-			
+
+
 
 			if( qm.materialHasntDrawn[matIdx] || drawBatch.bufferUpdated ){
 
@@ -396,7 +484,7 @@ function HVNSC_Draw(hvnsc){
 	//graphics.ClearLights();
 
 
-	//draw the triangle batch buffers
+	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
 
 	TRI_G_SetupLights(graphics.triGraphics, hvnsc.lights, hvnsc.numLights, hvnsc.ambientColor);
@@ -432,7 +520,7 @@ function HVNSC_Draw(hvnsc){
 		if( hvnsc.armatureInsertIdx > 0 ){
 			graphics.enableDepthTest(false);
 			LINE_G_Setup(graphics.lineGraphics);
-			LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat);
+			LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat );
 			LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
 			graphics.enableDepthTest(true);
 		}
@@ -508,7 +596,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		//allocate the float texture for armatures
 		SkelA_AllocateCombinedBoneMatTexture(hvnsc.armatures, hvnsc);
 	
-		hvnsc.Update(0.0); //init animated objs
+		HVNSC_Update( hvnsc, 0.0 ); //init animated objs
 		hvnsc.isValid = true;
 		hvnsc.sceneLoadedCallback(hvnsc);
 	}

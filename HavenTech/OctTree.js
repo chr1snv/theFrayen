@@ -62,32 +62,40 @@ function TND_initObjects(t){
 }
 
 function TND_ApplyExternAccelAndDetectCollisions( t, time ){
-	for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
+	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
+		if( t.objects[ i ].physObj != null )
 			t.objects[ i ].physObj.ApplyExternAccelAndDetectCollisions(time, gravityAccel); //pass node so can check where updated from
+	}
 
 	for( let i = 0; i < t.subNodes.length; ++i ) //recurse to sub nodes
-		if( this.subNodes[i] )
+		if( t.subNodes[i] )
 			TND_ApplyExternAccelAndDetectCollisions( t.subNodes[i], time );
 }
 function TND_LinkPhysGraphs( t, time ){ //combine constraint groups from each object
-	for( let i = 0; i < t.objInsertIdx; ++i )
-		this.objects[ i ].physObj.LinkPhysGraphs(time);
+	for( let i = 0; i < t.objInsertIdx; ++i ){
+		if( t.objects[ i ].physObj != null )
+			this.objects[ i ].physObj.LinkPhysGraphs(time);
+	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
-		if( this.subNodes[i] )
+		if( t.subNodes[i] )
 			LinkPhysGraphs( t.subNodes[i], time );
 }
 function TND_AppyInterpenOffset( t, time ){ //apply interpenetration offsets for constraint groups
-	for( let i = 0; i < t.objInsertIdx; ++i )
-		this.objects[ i ].physObj.ApplyInterpenOffset(time);
+	for( let i = 0; i < t.objInsertIdx; ++i ){
+		if( t.objects[ i ].physObj != null )
+			this.objects[ i ].physObj.ApplyInterpenOffset(time);
+	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
 			AppyInterpenOffset( t.subNodes[i], time );
 }
 function TND_TransferEnergy( t, time ){ //transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
-	for( let i = 0; i < t.objInsertIdx; ++i )
-		t.objects[ i ].physObj.TransferEnergy(time, this);
+	for( let i = 0; i < t.objInsertIdx; ++i ){
+		if( t.objects[ i ].physObj != null )
+			t.objects[ i ].physObj.TransferEnergy(time, this);
+	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
@@ -98,8 +106,10 @@ function TND_DetectAdditionalCollisions( t, time ){
 	//in which case dissipate more of their energy
 	//and only allow them to move in free directions
 	let additionalColis = 0;
-	for( let i = 0; i < t.objInsertIdx; ++i )
-		additionalColis += t.objects[ i ].physObj.DetectAdditionalCollisions(time, gravityAccel);
+	for( let i = 0; i < t.objInsertIdx; ++i ){
+		if( t.objects[ i ].physObj != null )
+			additionalColis += t.objects[ i ].physObj.DetectAdditionalCollisions(time, gravityAccel);
+	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
@@ -574,36 +584,67 @@ function TND_SubNode( t, point ){
 
 }
 
-function TND_GetObjectsInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap ){
-
-
-	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
-		//overlaps with the aabb
-		if( t.objInsertIdx > 0 ){ //if this node has objects
+function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNodeMap ){
+	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ //overlaps with the aabb
 		
-			for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
-				retObjMap.set(t.objects[ i ].uid.val, t.objects[ i ]);
+		//if the node occupies a significant on screen area (check it's sub nodes)
+		//calculate the size of the oct tree node on screen
+		let distFromCam = Vect3_Distance(t.AABB.center, frusOrigin);
+		//given the distance and field of view in radians, find the length of the diagonal
+		//in -1,1 screen coodrdinates
+		t.nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
+		if( t.nodePctOfHalfScreenWidth > 0.1 ){
 		
-		}else{ //attempt to recurse into subnodes 
-		
-			//if occupies a significant on screen area
-			//calculate the size of the oct tree node on screen
-			let distFromCam = Vect3_Distance(t.AABB.center, frusOrigin);
-			//given the distance and field of view in radians, find the length of the diagonal
-			//in -1,1 screen coodrdinates
-			let nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
-			if( nodePctOfHalfScreenWidth > 0.1 ){
+			if( t.objInsertIdx > 0 ){ //this node has objects
+				retNodeMap.set( t.uid.val, t ); //return the node
+			}else{ //attempt to recurse into subnodes 
 				for( let i = 0; i < t.subNodes.length; ++i ){
 					if( t.subNodes[i] ){
-						TND_GetObjectsInFrustum(t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap );
+						TND_GetNodesInFrustum(t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retNodeMap );
 					}
 				}
 			}
 			
 		}
-	}
 
+	}
 }
+
+function TND_addObjsInNodeToMap( t, objMap ){
+	for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
+		objMap.set(t.objects[ i ].uid.val, t.objects[ i ]);
+}
+
+//function TND_GetObjectsInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap ){
+
+
+//	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ 
+//		//overlaps with the aabb
+//		if( t.objInsertIdx > 0 ){ //if this node has objects
+//		
+//			for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
+//				retObjMap.set(t.objects[ i ].uid.val, t.objects[ i ]);
+//		
+//		}else{ //attempt to recurse into subnodes 
+//		
+//			//if occupies a significant on screen area
+//			//calculate the size of the oct tree node on screen
+//			let distFromCam = Vect3_Distance(t.AABB.center, frusOrigin);
+//			//given the distance and field of view in radians, find the length of the diagonal
+//			//in -1,1 screen coodrdinates
+//			let nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
+//			if( nodePctOfHalfScreenWidth > 0.1 ){
+//				for( let i = 0; i < t.subNodes.length; ++i ){
+//					if( t.subNodes[i] ){
+//						TND_GetObjectsInFrustum(t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap );
+//					}
+//				}
+//			}
+//			
+//		}
+//	}
+
+//}
 
 const OT_TYPE_QuadMesh = 0;
 const OT_TYPE_Face = 1;
@@ -881,6 +922,8 @@ function TreeNode( minCoord, maxCoord, parent ){
 	TND_initObjects(this);
 	
 	this.subNodes = [null,null,null,null,  null,null,null,null];
+	
+	this.nodePctOfHalfScreenWidth = 0; //for level of detail
 	
 	//this.boundColor = new Float32Array([0,0,0,0.5]);
 	
