@@ -340,6 +340,24 @@ function Matrix_Multiply_Vect3( ret, m, v, w=1){
 	//matrix to preform translation as well as rotation and scaling
 }
 
+//for 4x4 matrix * vec4 used in frustum aabb intersection to get coordinate in
+//clip space (before w divide)
+function Matrix_Multiply_Vect( ret, m, v ){
+	let dim = v.length;
+	for( let i = 0; i < dim; ++i ){
+		ret[i] = 0;
+		for( let j = 0; j < dim; ++j ){
+			ret[i] += m[i*dim+j] * v[j];
+		}
+	}
+}
+
+function WDivide( ret, v ){
+	ret[0] = v[0] / v[3];
+	ret[1] = v[1] / v[3];
+	ret[2] = v[2] / v[3];
+}
+
 function Matrix_Multiply_Array3( arrayOut, m, arrayIn ){
 	//multiply an array of vec3's by the matrix m
 	let temp = new Float32Array(3);

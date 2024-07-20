@@ -64,37 +64,37 @@ function linePlaneIntersection( lineOrigin, lineEndpoint, planeCenter, planeNorm
    
 }
 
-let testCoord = Vect3_New();
+let frus_testCoord = Vect_New(4);
 
-let aabbMin = Vect3_New();
-let aabbMax = Vect3_New();
-let tempCoord = Vect3_New();
-const frusMin = Vect3_NewScalar(-1);
+let frus_aabbMin = Vect_New(4);
+let frus_aabbMax = Vect_New(4);
+let frus_tempCoord = Vect_New(4);
+const frusMin = Vect3_NewVals(-1, -1, -1);
 const frusMax = Vect3_NewScalar(1);
 function FRUS_AABBOverlaps( wrldToFrusMat, aabb ){
-	//transform the corners of the aabb into frustum space
-	//check if the range overlaps in xyz
-	
-//	DTPrintf( "cam.position " + Vect_ToFixedPrecisionString(cam.position, 5), "hvnsc debug" );
-//	Matrix_Multiply_Vect3( testCoord, cam.screenSpaceToWorldMat, [0,0,-1] );
-//	DTPrintf( "cam near coord" + Vect_ToFixedPrecisionString(testCoord, 5), "hvnsc debug" );
-//	Matrix_Multiply_Vect3( testCoord, cam.screenSpaceToWorldMat, [0,0,1] );
-//	DTPrintf( "cam far coord " + Vect_ToFixedPrecisionString(testCoord, 5), "hvnsc debug" );
-//	//Vect3_Add( testCoord, cam.position );
-//	Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, testCoord );
-//	DTPrintf( "farCoord in screen space " + Vect_ToFixedPrecisionString(tempCoord, 5), "hvnsc debug" );
-//	
+	//transform the corners of the aabb into frustum clip space (not normalized device space / screen space)
+	//check if the range of the aabb overlaps in xyz (clip space is before the w division
+	//because dividing by w moves z values behind the camera infront)
+	//clip space is (-w,-w,0) to (w,w,w)
+
+
 //	DTPrintf( "node minCoord " + Vect_ToFixedPrecisionString(aabb.minCoord, 5), "hvnsc debug" );
 //	DTPrintf( "node maxCoord " + Vect_ToFixedPrecisionString(aabb.maxCoord, 5), "hvnsc debug" );
 
 	AABB_Gen8Corners(aabb);
 
-	Vect3_SetScalar(aabbMin, Number.POSITIVE_INFINITY);
-	Vect3_SetScalar(aabbMax, Number.NEGATIVE_INFINITY);
+	Vect_SetScalar(frus_aabbMin, Number.POSITIVE_INFINITY);
+	Vect_SetScalar(frus_aabbMax, Number.NEGATIVE_INFINITY);
 
 	for( let i = 0; i < 8; ++i ){
-		Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
-		Vect3_minMax( aabbMin, aabbMax, tempCoord );
+		Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
+		if( frus_tempCoord[3] > 0 ){ 
+			//prevent z (x and y) inversion from homogoneous clipSpace coordinates
+			//when doing the range overlap comparison
+			frus_tempCoord[3] = -frus_tempCoord[3];
+		}
+		WDivide( frus_temp3, frus_tempCoord );
+		Vect_minMax( frus_aabbMin, frus_aabbMax, frus_temp3 );
 	}
 	
 //	DTPrintf( "node frusSpace minCoord " + Vect_ToFixedPrecisionString(aabbMin, 5), "hvnsc debug" );
@@ -105,9 +105,9 @@ function FRUS_AABBOverlaps( wrldToFrusMat, aabb ){
 //	Matrix_Multiply_Vect3( tempCoord, cam.screenSpaceToWorldMat, aabbMax );
 //	DTPrintf( "node world space maxCoord " + Vect_ToFixedPrecisionString(tempCoord, 5), "hvnsc debug" );
 	
-	aabbMin[2] = 0;
-	aabbMax[2] = 0;
-	return AABB_OthrObjOverlap( frusMin, frusMax, aabbMin, aabbMax );
+	//aabbMin[2] = 0;
+	//aabbMax[2] = 0;
+	return AABB_OthrObjOverlap( frusMin, frusMax, frus_aabbMin, frus_aabbMax );
 }
 
 //a 3d 4 sided pyramid with the top removed and replaced by a plane ( camera near clip plane)

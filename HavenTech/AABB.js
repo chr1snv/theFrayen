@@ -42,40 +42,48 @@ return false;
 
 let AABB_8Corners = new Array(8);
 for( let i = 0; i < 8; ++i )
-	AABB_8Corners[i] = Vect3_New();
+	AABB_8Corners[i] = Vect_New(4);
 function AABB_Gen8Corners( a ){
 	AABB_8Corners[0][0] = a.minCoord[0]; //left back bottom
 	AABB_8Corners[0][1] = a.minCoord[1];
 	AABB_8Corners[0][2] = a.minCoord[2];
+	AABB_8Corners[0][3] = 1;
 	
 	AABB_8Corners[1][0] = a.maxCoord[0]; //right back bottom 
 	AABB_8Corners[1][1] = a.minCoord[1];
 	AABB_8Corners[1][2] = a.minCoord[2];
+	AABB_8Corners[1][3] = 1;
 	
 	AABB_8Corners[2][0] = a.minCoord[0]; //left front bottom 
 	AABB_8Corners[2][1] = a.maxCoord[1];
 	AABB_8Corners[2][2] = a.minCoord[2];
+	AABB_8Corners[2][3] = 1;
 	
 	AABB_8Corners[3][0] = a.maxCoord[0]; //right front bottom 
 	AABB_8Corners[3][1] = a.maxCoord[1];
 	AABB_8Corners[3][2] = a.minCoord[2];
+	AABB_8Corners[3][3] = 1;
 
 	
 	AABB_8Corners[4][0] = a.minCoord[0]; //left back top
 	AABB_8Corners[4][1] = a.minCoord[1];
 	AABB_8Corners[4][2] = a.maxCoord[2];
+	AABB_8Corners[4][3] = 1;
 	
 	AABB_8Corners[5][0] = a.maxCoord[0]; //right back top
 	AABB_8Corners[5][1] = a.minCoord[1];
 	AABB_8Corners[5][2] = a.maxCoord[2];
+	AABB_8Corners[5][3] = 1;
 	
 	AABB_8Corners[6][0] = a.minCoord[0]; //left front top
 	AABB_8Corners[6][1] = a.maxCoord[1];
 	AABB_8Corners[6][2] = a.maxCoord[2];
+	AABB_8Corners[6][3] = 1;
 	
 	AABB_8Corners[7][0] = a.maxCoord[0]; //right front top
 	AABB_8Corners[7][1] = a.maxCoord[1];
 	AABB_8Corners[7][2] = a.maxCoord[2];
+	AABB_8Corners[7][3] = 1;
 }
 
 function AABB_OthrObjOverlap(a1min, a1Max, a2min, a2Max){

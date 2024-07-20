@@ -493,7 +493,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 	let endGenVertIdx = startIdx; //if no verts are generated
 
 	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
-	if( /*drawBatch.isAnimated ||*/ drawBatch.bufferUpdated /*|| qm.skelAnimation*/ ){//|| qm.keyAnimation){
+	if( qm.materialHasntDrawn[matIdx] || /*drawBatch.isAnimated ||*/ drawBatch.bufferUpdated /*|| qm.skelAnimation*/ ){//|| qm.keyAnimation){
 
 		if( qm.skelAnimation ){
 			subBatchBuffer.skelAnim = qm.skelAnimation;

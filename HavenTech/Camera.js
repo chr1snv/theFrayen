@@ -27,38 +27,50 @@ var gPM = new Float32Array(4*4);
 function gluPerspective(fovy, aspect, zNear, zFar)
 {
     //generates the perspective projection matrix
-    //to convert verticies from positions in the camera frustum
-    //to render/fragment shader coordinates (a rectangular volume x,y with depth)
+    //to convert verticies from camera space positions in the frustum
+    //to render/fragment shader coordinates in ndc/clip/screenSpace (a rectangular volume x,y with depth, range -1,1)
     
-    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / 1 (frustum depth)
-    let f = 1/Math.tan(fovy*0.5); //f = inverse vertical far frustum half height / frustum depth 
+    let frusLen = (zFar-zNear);
+    
+    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / (frustum depth)
+    let f = 1/Math.tan(fovy*0.5); //f = frustum depth / inverse vertical far frustum half height
     //( goes to inf as fovy -> pi (180 deg)
-    //if aspect is 1 (square rendered image) xs and ys will be equal
-    let xs = f/aspect;                     //x scale factor
-    let ys = f;                            //y scale factor
-    let zs = (zFar+zNear)/(zNear-zFar);    //z scale factor
-    let tz = ((2*zFar)*zNear)/(zNear-zFar);
-    gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0; gPM[0*4+3]=0;
-    gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0; gPM[1*4+3]=0;
-    gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=zs;gPM[2*4+3]=tz;
-    gPM[3*4+0]=0; gPM[3*4+1]=0; gPM[3*4+2]=-1;gPM[3*4+3]=0;
+    //if aspect (width/height) is 1 (square rendered image) xs and ys will be equal
+    let xs = (f/aspect);                     //x scale factor
+    let ys = (f);                            //y scale factor
+    let zs =  (zFar+zNear)/frusLen;    //z scale factor
+    let tz = -2*(zNear*zFar)/frusLen;//((2*zFar)*zNear)/(zNear-zFar);
+    gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0;  gPM[0*4+3]=0;
+    gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0;  gPM[1*4+3]=0;
+    gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=-zs; gPM[2*4+3]=tz;
+    gPM[3*4+0]=0; gPM[3*4+1]=0; gPM[3*4+2]=-1;  gPM[3*4+3]=0;
     
-    //var frustumDepth = (zFar-zNear);
+    //let w = z - 
     
     //depth_pct = (z-zNear)/frustumDepth
-    //x_projected = x / ( depth_pct * farfrustumWidth  + (1-depth_pct) * nearfrustumWidth  )
-    //y_projected = y / ( depth_pct * farfrustumHeight + (1-depth_pct) * nearfrustumHeight )
+    //x_projected = x / ( depth_pct * farFrustumWidth  + (1-depth_pct) * nearFrustumWidth  )
+    //y_projected = y / ( depth_pct * farFrustumHeight + (1-depth_pct) * nearFrustumHeight )
     //z_projected = depth_pct
     //need to put equations in the form
     //x_proj =  a*x / w  +  b*y / w  +  c*z / w  +  d*1 / w
     //     w =  a*x      +  b*y      +  c*z      +  d*1
+    
+    //solve for the z scaling
+    //-1 = A + B/zNear
+    //-1 = A / zNear + B / zNear
+    //A / zNear = 1 + B / zNear
+    //A = zNear + B
+    
+    // 1 = A + B/zFar
+    // -A = 1 + B/zFar
+    // A = -1 - B/zFar
     
 }
 
 //derivation of perspective transform matrix
 //truncated pyramid [frustum] (near clip plane removes the pointy part of the 4 sided pyramid)
 //everything is linear (this is linear algebra) so the matrix is really a coordinate transformation
-//of the space inside the frustum to opengl ndc space ( x,y,z [-1,1] )
+//of the space inside the frustum to opengl ndc space ( x,y,z [-1,1] (normalized device space) )
 //at the near clip plane r-l gives the clip plane width,
 //turns out the problem was set depth mask being passed gl.TRUE instead of true
 

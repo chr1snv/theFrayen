@@ -45,3 +45,9 @@ function minMax( m, M, i, val ){
 	m[i] = m[i] < val ? m[i] : val;
 	M[i] = M[i] > val ? M[i] : val;
 }
+
+
+function SystemOfEquationSolver(){
+
+	
+}

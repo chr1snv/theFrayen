@@ -266,6 +266,9 @@ function CheckIsValidFor( hvnsc, operationName ){
 //(animated objects within the field of view, or area's with 
 //dynamic events occuring) to minimize compute / power required
 //because parts of the scene may be on seperate nodes/comp should be parallelized
+let frus_temp3 = Vect_New(3);
+let frus_temp3Remap = Vect_New(3);
+
 let cam = null;
 let nodeMap = new Map();
 let objMap = new Map();
@@ -279,19 +282,73 @@ function HVNSC_Update( hvnsc, time ){
 	cam.GenWorldToFromScreenSpaceMats();
 
 	//Matrix_Print( cam.worldToScreenSpaceMat, "cam.worldToScreenSpaceMat" );
+	
+//	let frusUpFwdLeft = [Vect3_New(), Vect3_New(), Vect3_New()];
+//	let frusCenter = Vect3_New();
+//	Matrix_Multiply_Vect3( frusCenter, cam.screenSpaceToWorldMat, [0,0,0] );
+//	Matrix_Multiply_Vect3( frusUpFwdLeft[0], cam.screenSpaceToWorldMat, [0,1,0] );
+//	Vect3_Subtract( frusUpFwdLeft[0], frusCenter );
+//	Vect3_Normal( frusUpFwdLeft[0] );
+//	Matrix_Multiply_Vect3( frusUpFwdLeft[1], cam.screenSpaceToWorldMat, [0,0,1] );
+//	Vect3_Subtract( frusUpFwdLeft[1], frusCenter );
+//	Vect3_Normal( frusUpFwdLeft[1] );
+//	Matrix_Multiply_Vect3( frusUpFwdLeft[2], cam.screenSpaceToWorldMat, [1,0,0] );
+//	Vect3_Subtract( frusUpFwdLeft[2], frusCenter );
+//	Vect3_Normal( frusUpFwdLeft[2] );
+//	
+//	DTPrintf( "frusWorldCenter " + Vect_ToFixedPrecisionString(frusCenter, 5), "hvnsc debug" );
+//	DTPrintf( "frusWorldUp "     + Vect_ToFixedPrecisionString(frusUpFwdLeft[0], 5), "hvnsc debug" );
+//	DTPrintf( "frusWorldFwd "    + Vect_ToFixedPrecisionString(frusUpFwdLeft[1], 5), "hvnsc debug" );
+//	DTPrintf( "frusWorldLeft "   + Vect_ToFixedPrecisionString(frusUpFwdLeft[2], 5), "hvnsc debug" );
+//	
+//	DTPrintf( "cam.nearClip " + cam.nearClip, "hvnsc debug" );
+//	DTPrintf( "cam.farClip "  + cam.farClip, "hvnsc debug" );
+//	
+//	DTPrintf( "cam.position " + Vect_ToFixedPrecisionString(cam.position, 5), "hvnsc debug" );
+//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,0,-1] );
+//	DTPrintf( "cam near coord wrld " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
+//	frus_testCoord[3] = 1;
+//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
+//	DTPrintf( "nearCoord in clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
+//	
+//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,0,1] );
+//	DTPrintf( "cam far coord " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
+//	//Vect3_Add( frus_testCoord, cam.position );
+//	frus_testCoord[3] = 1;
+//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
+//	DTPrintf( "farCoord in clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
+//	
+//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,1,-3] );
+//	DTPrintf( "cam neg far coord wrld " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
+//	//Vect3_Add( frus_testCoord, cam.position );
+//	frus_testCoord[3] = 1;
+//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
+//	DTPrintf( "cam neg far coord clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
 
 //	AABB_Gen8Corners(hvnsc.octTree.AABB);
 
-//	Vect3_SetScalar(aabbMin, Number.POSITIVE_INFINITY);
-//	Vect3_SetScalar(aabbMax, Number.NEGATIVE_INFINITY);
+//	Vect_SetScalar(frus_aabbMin, Number.POSITIVE_INFINITY);
+//	Vect_SetScalar(frus_aabbMax, Number.NEGATIVE_INFINITY);
 
 //	for( let i = 0; i < 8; ++i ){
-//		Matrix_Multiply_Vect3( tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
-//		Vect3_minMax( aabbMin, aabbMax, tempCoord );
+//		DTPrintf( "node corner " + i + " " + Vect_ToFixedPrecisionString(AABB_8Corners[i], 5), "hvnsc debug" );
+//		Vect3_Copy( frus_temp3, AABB_8Corners[i] );
+//		Vect3_Subtract( frus_temp3, frusCenter );
+//		Vect_DotProdCoordRemap( frus_temp3Remap, frus_temp3, frusUpFwdLeft );
+//		DTPrintf( "corner in frusWorldSpaceUpFwdLeft coords " +  Vect_ToFixedPrecisionString(frus_temp3Remap, 5), "hvnsc debug" );
+//		Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
+//		Vect_minMax( frus_aabbMin, frus_aabbMax, frus_tempCoord );
+//		DTPrintf( "corner in clipSpace " + i + " " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
+//		if( frus_tempCoord[2] < 0 )
+//			frus_tempCoord[2] = -frus_tempCoord[2];
+//		WDivide( frus_temp3, frus_tempCoord );
+//		DTPrintf("corner in ndcSpace " + Vect_ToFixedPrecisionString( frus_temp3, 5), "hvnsc debug" );
+//		
+//		DTPrintf( " ", "hvnsc debug");
 //	}
 //	
-//	DTPrintf( "node frusSpace minCoord " + Vect_ToFixedPrecisionString(aabbMin, 5), "hvnsc debug" );
-//	DTPrintf( "node frusSpace maxCoord " + Vect_ToFixedPrecisionString(aabbMax, 5), "hvnsc debug" );
+//	DTPrintf( "node minCoord clipSpace  " + Vect_ToFixedPrecisionString(frus_aabbMin, 5), "hvnsc debug" );
+//	DTPrintf( "node maxCoord clipSpace  " + Vect_ToFixedPrecisionString(frus_aabbMax, 5), "hvnsc debug" );
 
 	//get the nodes within view
 	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated

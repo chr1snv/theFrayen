@@ -39,6 +39,10 @@ function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } 
 
 function Vect3_SetVals( v, s1, s2, s3 ){ v[0] = s1; v[1] = s2; v[2] = s3; }
 function Vect3_SetScalar( v, val ){ v[0] = val; v[1] = val; v[2] = val; }
+function Vect_SetScalar( v, val ){
+	for( let i = 0; i < v.length; ++i )
+		v[i] = val;
+}
 
 function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
 
@@ -203,6 +207,14 @@ function VectArr_LERP( v, vArr, v1, v2, v2W ){
 function VectArr_PctAdd( v, vArr, v1, v2W ){
 	for( let i = 0; i < v.length; ++i){
 		v[i] += vArr[v1+i]*v2W;
+	}
+}
+
+function Vect_minMax( m, M, v ){
+	const dim = m.length;
+	for( let i = 0; i < dim; ++i ){
+		m[i] = m[i] < v[i] ? m[i] : v[i];
+		M[i] = M[i] > v[i] ? M[i] : v[i];
 	}
 }
 
