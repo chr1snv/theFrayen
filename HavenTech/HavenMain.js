@@ -183,8 +183,7 @@ function havenMain(){
 	CreateDebugTabsOnPage();
 
 	registerInputHandlers();
-	
-	InitSoundCanvas();
+
 
 	graphics = new Graphics(document.getElementById('frayenCanvas'), 
 		function(){ statusElm.innerHTML = "Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
@@ -243,6 +242,8 @@ function loadScene()
 	statusElm.innerHTML = "Loading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
 	runSceneButtonElm.onclick = stop;
+	
+	loadSceneSounds(newSceneName);
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
 let running = false;
@@ -340,6 +341,12 @@ function MainLoop()
 	Overlay_DrawInputHint();
 	
 	HVNINPT_ClearKeysDown();
+	
+	
+	updateACtx();
+	
+	if( !document.fullscreenElement )
+		DrawSoundCanvas();
 
 	//graphics.Flush();
 }

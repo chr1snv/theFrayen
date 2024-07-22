@@ -46,6 +46,10 @@ function minMax( m, M, i, val ){
 	M[i] = M[i] > val ? M[i] : val;
 }
 
+function mnMax( mM, val ){
+	mM[0] = mM[0] < val ? mM[0] : val;
+	mM[1] = mM[1] > val ? mM[1] : val;
+}
 
 function SystemOfEquationSolver(){
 
