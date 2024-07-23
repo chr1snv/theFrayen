@@ -60,7 +60,7 @@ function GetSkelBatchBuffer(shdrName, numAttrs, attrCards){
 
 
 function BufSubRange(startIdxIn, lenIn){
-	this.lastStartIdx = 0;
+	//this.lastStartIdx = 0;
 	this.lastLen = 0;
 	this.startIdx = startIdxIn;
 	this.len      = lenIn;
@@ -140,9 +140,9 @@ function ResetDrawAndSubBatchBufferIdxs(){
 		let sbbKeys = Object.keys( dbb.bufSubRanges );
 		for( let j = 0; j < sbbKeys.length; ++j ){
 			let subRange = dbb.bufSubRanges[ sbbKeys[j] ];
-			subRange.lastStartIdx = subRange.startIdx;
+			//subRange.lastStartIdx = subRange.startIdx;
 			subRange.lastLen = subRange.len;
-			subRange.startIdx = 0;
+			//subRange.startIdx = 0;
 			subRange.len = 0;
 		}
 	}

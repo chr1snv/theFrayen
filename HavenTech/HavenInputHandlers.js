@@ -35,8 +35,9 @@ function HVNINPT_ClearKeysDown(){
 }
 
 function pageKeyDownHandler(e){
+	if( e.repeat ) return; // block auto repeat events
 	//e.preventDefault();
-	var keyCode = e.keyCode;
+	let keyCode = e.keyCode;
 	//DPrintf( 'keyPressed: ' + keyCode );
 	keysDown[keyCode] = true;
 	keys[keyCode] = true;
@@ -45,7 +46,7 @@ function pageKeyDownHandler(e){
 }
 function pageKeyUpHandler(e){
 	//e.preventDefault();
-	var keyCode = e.keyCode;
+	let keyCode = e.keyCode;
 	//DPrintf( 'keyUp: ' + keyCode );
 	keys[keyCode] = false;
 }

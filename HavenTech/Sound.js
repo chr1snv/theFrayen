@@ -3,7 +3,7 @@
 //the table of frequencies came from a tutorial site
 //and the functions are based on other tutorials
 
-var noteFrequencies = {
+const noteFrequencies = {
 	'C0' :   16.35,
 	'C#0':   17.32,
 	'Db0':   17.32,
@@ -170,8 +170,8 @@ g.gain.exponentialRampToValueAtTime(
   0.0000000001, context.currentTime + 0.4
 )
 */
-let aCtx = null;
-function soundIconClicked(){
+
+function SND_RestartSoundContext(){
 
 	if( aCtx != null ){
 		aCtx.suspend();
@@ -179,7 +179,25 @@ function soundIconClicked(){
 	}
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
-	//aCtx.resume();
+}
+
+function SND_StartSoundContext(){
+
+	if( aCtx != null ){
+		aCtx.resume();
+		return;
+	}
+	
+	aCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+
+let aCtx = null;
+function soundIconClicked(){
+
+	SND_RestartSoundContext();
+	
+	aCtx.resume();
 	for( let i = 0; i < instruments.length; ++i ){
 		let inst = instruments[i];
 		for( let j = 0; j < inst.notes.length; ++j ){
@@ -187,10 +205,27 @@ function soundIconClicked(){
 			playSineToneNode( note.freq, note.startTime, note.duration);
 		}
 	}
-
+	lastUserInputNoteTime = 0; //reset now that song is playing
+	
 	//playBuffer();
 	
-	
+}
+
+let inputKeyNoteMappings = {};
+let inputKeyNoteMappings_dictKeys = null;
+
+lastUserInputNoteTime = 0;
+function SND_UserInputsToNotes(){
+	for( let i = 0; i < inputKeyNoteMappings_dictKeys.length; ++i ){
+		let kC = inputKeyNoteMappings_dictKeys[i];
+		if( keysDown[ kC ] == true ){
+			SND_StartSoundContext();
+			playSineToneNode(inputKeyNoteMappings[kC], 0, 0.25);
+			let noteEndTime = aCtx.currentTime + 0 + 0.25;
+			if( lastUserInputNoteTime < noteEndTime)
+				lastUserInputNoteTime = noteEndTime;
+		}
+	}
 }
 
 const SampleRate = 44100;
@@ -216,10 +251,11 @@ function playBassSineTone(note, time, duration){
 	let osc = aCtx.createOscillator();
 	osc.frequency( noteFrequencies[note] );
 	lfo.connect(amp.gain);
-	osc.connect(amp).connect(audioCtx.destination);
+	osc.connect(amp).connect(aCtx.destination);
 	lfo.start();
 	osc.start(time);
 	osc.stop(time+duration);
+	return osc;
 }
 
 function playSineToneNode(freq, time, duration) {
@@ -263,6 +299,21 @@ function AddNoteToInstr( instr, note ){
 }
 
 function loadSceneSounds(sceneName){
+
+	//init key mappings to frquencies
+	inputKeyNoteMappings[keyCodes.KEY_Z]         = noteFrequencies['C3' ];
+	inputKeyNoteMappings[keyCodes.KEY_X]         = noteFrequencies['C#3'];
+	inputKeyNoteMappings[keyCodes.KEY_C]         = noteFrequencies['D3' ];
+	inputKeyNoteMappings[keyCodes.KEY_V]         = noteFrequencies['D#3'];
+	inputKeyNoteMappings[keyCodes.KEY_B]         = noteFrequencies['E3' ];
+	inputKeyNoteMappings[keyCodes.KEY_N]         = noteFrequencies['F3' ];
+	inputKeyNoteMappings[keyCodes.KEY_M]         = noteFrequencies['G3' ];
+	inputKeyNoteMappings[keyCodes.COMMA]         = noteFrequencies['G#3'];
+	inputKeyNoteMappings[keyCodes.PERIOD]        = noteFrequencies['A3' ];
+	inputKeyNoteMappings[keyCodes.FORWARD_SLASH] = noteFrequencies['A#3'];
+	inputKeyNoteMappings_dictKeys = Object.keys(inputKeyNoteMappings);
+
+
 	instruments = [];
 	//load song, instruments, notes
 	let synthLead = new Instrument( InstrumentType.SynthLead );
@@ -273,13 +324,14 @@ function loadSceneSounds(sceneName){
 	AddNoteToInstr( synthLead, new Note('C4', 1.0, 0.25) );
 	AddNoteToInstr( synthLead, new Note('C5', 1.0, 0.25) );
 	instruments.push( synthLead );
+
 }
 
-function updateACtx(){
+function SND_updateACtx(){
 	if( aCtx == null )
 		return;
 	
-	if( aCtx.currentTime > lastNoteTime )
+	if( aCtx.currentTime > lastNoteTime && aCtx.currentTime > lastUserInputNoteTime  )
 		aCtx.suspend();
 	
 }

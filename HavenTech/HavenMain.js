@@ -340,10 +340,12 @@ function MainLoop()
 	
 	Overlay_DrawInputHint();
 	
+	SND_UserInputsToNotes();
+	
 	HVNINPT_ClearKeysDown();
 	
 	
-	updateACtx();
+	SND_updateACtx();
 	
 	if( !document.fullscreenElement )
 		DrawSoundCanvas();

@@ -154,24 +154,30 @@ def writeMaterial(assetDirectory, mat):
 
                 #write the texture type
                 out.write('tex\n')
-                if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
-                    diffuseTextureFilename = filename
-                    out.write('difTex\t %s\n' % (diffuseTextureFilename)) #diffuse texture
-                if node.outputs['Color'].links[0].to_socket.name == 'Normal':
-                    normalAmount = 1#texture.norfac
-                    out.write('normTex\t %f\n' % (normalAmount))  #normal texture
-                if node.outputs['Color'].links[0].to_socket.name == 'Emission':
-                    emitAmount = 1#texture.dvar
-                    out.write('lumTex\t %f\n' % (emitAmount))    #emissive texture
-                if node.outputs['Color'].links[0].to_socket.name == 'Alpha' or\
-                   (len(node.outputs['Alpha'].links) >= 1 and node.outputs['Alpha'].links[0].to_socket.name == 'Alpha') :
-                    if(filename == diffuseTextureFilename):
-                        out.write('difTexAisAlpha\n')                 #write out a flag if the alpha channel of the diffuse texture is used
-                    else:
-                        #don't support seperate alpha/diffuse textures
-                        print("Alpha texture is not diffuse Texture ")
-                        out.write('e\n')
-                        continue
+                try:
+                    if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
+                        diffuseTextureFilename = filename
+                        out.write('difTex\t %s\n' % (diffuseTextureFilename)) #diffuse texture
+                    if node.outputs['Color'].links[0].to_socket.name == 'Normal':
+                        normalAmount = 1#texture.norfac
+                        out.write('normTex\t %f\n' % (normalAmount))  #normal texture
+                    if node.outputs['Color'].links[0].to_socket.name == 'Emission':
+                        emitAmount = 1#texture.dvar
+                        out.write('lumTex\t %f\n' % (emitAmount))    #emissive texture
+                except:
+                    None
+                try:
+                    if node.outputs['Alpha'].links[0].to_socket.name == 'Alpha' or\
+                       (len(node.outputs['Alpha'].links) >= 1 and node.outputs['Alpha'].links[0].to_socket.name == 'Alpha') :
+                        if(filename == diffuseTextureFilename):
+                            out.write('difTexAisAlpha\n')                 #write out a flag if the alpha channel of the diffuse texture is used
+                        else:
+                            #don't support seperate alpha/diffuse textures
+                            print("Alpha texture is not diffuse Texture ")
+                            out.write('e\n')
+                            continue
+                except:
+                    None
                 #
                 #write out the texture filename
                 out.write( 'fileName %s \n' % (filename))
@@ -371,7 +377,7 @@ def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):
         try:
             out.write('u')
             for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
-                uv_coords = ob.data.uv_layers.active.data[loop_idx].uv
+                uv_coords = mesh.uv_layers.active.data[loop_idx].uv
                 #print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
                 out.write( ' %.3f %.3f' % (uv_coords[0], 1-uv_coords[1]) )
         except:

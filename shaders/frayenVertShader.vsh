@@ -1,7 +1,7 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision mediump float;
+precision lowp float;
 
 //frayen vert shader
 
