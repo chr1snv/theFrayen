@@ -1,7 +1,7 @@
 
 function testMergeSort(){
 	let aTemp = null;
-	let tempArr = [0,0,0,0,0,0,0,0]
+	let tempArr = [0,0,0,0,0,0,0,0] //length 8
 	let a = [4,1,3,2]
 	if( MergeSort( a, tempArr, function(a,b){return a<=b;}) ){
 		aTemp = a;

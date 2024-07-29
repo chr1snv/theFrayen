@@ -68,7 +68,6 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.sceneName       = sceneNameIn;
 
 	this.isValid         = false; //true once loading is complete
-	this.isAnimated      = false;
 	this.materialHasntDrawn = null;
 	this.componentsToLoad = 0; //the quadmesh, and each animation type key, ipo, skel, etc
 	//count as a component to asynchronously load, each time one finishes the count is decremented
@@ -89,6 +88,11 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.faceVertsCtForMat       = null;
 	this.faceIdxsForMatInsertIdx = null;
 	this.faceIdxsForMat          = null; //the indicies of faces for materials
+	
+	this.bnIdxWghtBufferForMat = null;
+	this.vertBufferForMat = null;
+	this.normBufferForMat = null;
+	this.uvBufferForMat = null;
 
 	//the mesh data
 	this.tris            = [];
@@ -227,8 +231,8 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
 //3 verticies per face) for rendering with webgl 
 function QM_SL_tesselateCoords( coords,
                                 faces, faceIdxs, numFaceIdxs,
-                                inputCoords, startIdx ){
-	let cI = startIdx*vertCard;
+                                inputCoords /*, startIdx*/ ){
+	let cI = 0;//startIdx*vertCard; //now using seprate buffer for obj/material (start at zero)
 
 	//create the vertex array
 	for(let i=0; i<numFaceIdxs; ++i){
@@ -276,10 +280,10 @@ function QM_SL_tesselateCoords( coords,
 
 function QM_SL_tesselateUVCoords( 
 	uvCoords, 
-	faces, faceIdxs, numFaceIdxs,
-	startIdx ){
+	faces, faceIdxs, numFaceIdxs /*,
+	startIdx*/ ){
 	
-	let cI = startIdx*uvCard;
+	let cI = 0; //startIdx*uvCard; //now using seprate buffer for obj/material (start at zero)
 
 	//create the vertex index array
 	for(let i=0; i<numFaceIdxs; ++i)
@@ -419,8 +423,8 @@ function getAndCopyMostSignificantWeightsForIdx(
 function QM_SL_tesselateBoneIdxWghtCoords( 
 	bnIdxWghts, vertBoneWeights, 
 	faces, faceIdxs, numFaceIdxs,
-	startIdx, matOffset ){
-	let cI = startIdx*bnIdxWghtCard;
+	/*startIdx,*/ matOffset ){
+	let cI = 0; //startIdx*bnIdxWghtCard; //now using seprate buffer for obj (start at zero)
 
 	//tesselate the vertBoneWeights according to the face vert idxs
 	//create the vertex array
@@ -484,16 +488,15 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 	}
 
 
-	if( qm.isAnimated || drawBatch.isAnimated ){
-		drawBatch.isAnimated = true;
+	if( qm.keyAnimation ){
+		drawBatch.vertexAnimated = true;
 	}
 
 
-
-	let endGenVertIdx = startIdx; //if no verts are generated
+	let endGenVertIdx = 0; //startIdx; //if no verts are generated
 
 	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
-	if( qm.materialHasntDrawn[matIdx] || /*drawBatch.isAnimated ||*/ drawBatch.bufferUpdated /*|| qm.skelAnimation*/ ){//|| qm.keyAnimation){
+	if( qm.materialHasntDrawn[matIdx] || drawBatch.regenAndUploadEntireBuffer || qm.keyAnimation ){
 
 		if( qm.skelAnimation ){
 			subBatchBuffer.skelAnim = qm.skelAnimation;
@@ -503,12 +506,12 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 			/////////////////////////////////////////////////////////////
 
 			QM_SL_tesselateBoneIdxWghtCoords( 
-				drawBatch.bnIdxWghtBuffer, qm.vertBoneWeights, 
+				qm.bnIdxWghtBufferForMat[matIdx], qm.vertBoneWeights, 
 				qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
 				startIdx, qm.skelAnimation.combinedBoneMatOffset );
 		}
 
-		drawBatch.bufferUpdated = true;
+		subBatchBuffer.vertsNotYetUploaded = true;
 		
 		
 
@@ -524,7 +527,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 
 		//tesselate the vertex positions
 		endGenVertIdx = QM_SL_tesselateCoords( 
-			drawBatch.vertBuffer,
+			qm.vertBufferForMat[matIdx],
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
 			qm.transformedVerts, startIdx );
 
@@ -535,7 +538,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		
 		//tesselate the normal coordinates
 		QM_SL_tesselateCoords( 
-			drawBatch.normBuffer,
+			qm.normBufferForMat[matIdx],
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
 			qm.vertNormals, startIdx );
 
@@ -552,7 +555,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		/////////////////////////////////////////////////////////////
 
 		QM_SL_tesselateUVCoords(
-			drawBatch.uvBuffer,
+			qm.uvBufferForMat[matIdx],
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
 			startIdx );
 
@@ -1120,6 +1123,23 @@ function QM_meshFileLoaded(meshFile, thisP)
 		}
 	}
 	
+	
+	//allocate output geometry buffers for upload to gl
+	//if(thisP.meshName == "MountianSide")
+	//	console.log("not assigning vertBufferForMat");
+	let numMaterials = thisP.faceVertsCtForMat.length;
+	if( thisP.skelAnimation )
+		this.bnIdxWghtBufferForMat = new Array(numMaterials);
+	thisP.vertBufferForMat = new Array(numMaterials);
+	thisP.normBufferForMat = new Array(numMaterials);
+	thisP.uvBufferForMat = new Array(numMaterials);
+	for(let i = 0; i < numMaterials; ++i ){
+		if(thisP.skelAnimation )
+			thisP.bnIdxWghtBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i] );
+		thisP.vertBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i]*vertCard );
+		thisP.normBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i]*normCard );
+		thisP.uvBufferForMat[i]   = new Float32Array( thisP.faceVertsCtForMat[i]*uvCard );
+	} 
 
 	if( !(Math.abs(thisP.vertPositions.length - numVerts*3) < 0.01) )
 		DPrintf("Quadmesh: verts read mismatch\n");
@@ -1127,6 +1147,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 		DPrintf("Quadmesh: normals read mismatch\n");
 	else
 		thisP.isValid = true;
+
 
 
 	DPrintf('Quadmesh: ' + thisP.meshName +

@@ -47,7 +47,6 @@ function AllocateBatchAttrBuffers(dbB){
 
 }
 
-
 function GetSkelBatchBuffer(shdrName, numAttrs, attrCards){
 	let dbB = drawBatchBuffers[shdrName];
 	if( dbB == undefined ){
@@ -59,49 +58,58 @@ function GetSkelBatchBuffer(shdrName, numAttrs, attrCards){
 
 
 
-function BufSubRange(startIdxIn, lenIn){
+
+
+
+function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
 	//this.lastStartIdx = 0;
-	this.lastLen = 0;
+	this.obj = objIn;
+	this.objMatIdx = objMatIdxIn;
+	this.maxLen = 0;
 	this.startIdx = startIdxIn;
 	this.len      = lenIn;
 	this.toWorldMatrix   = Matrix_New();
 	this.skelAnim = null;
+	this.vertsNotYetUploaded = true;
 }
-
 //const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
 function DrawBatchBuffer(material){
 	this.bufID = nextBufID; //the gl BufferId in TriGraphics
 	nextBufID += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
 	this.material        = material;
-	this.vertBuffer      = null;
-	this.normBuffer      = null;
-	this.uvBuffer        = null;
-	this.bnIdxWghtBuffer = null;
+	//this.vertBuffer      = null;
+	//this.normBuffer      = null;
+	//this.uvBuffer        = null;
+	//this.bnIdxWghtBuffer = null;
 	
 	this.bufferIdx       = 0;
 	this.lastBufferIdx   = 0;
 	
-	this.bufferUpdated   = true;
-	this.isAnimated      = false;
-	this.hasSkelAnim     = false;
-	this.texName         = null;
+	this.lastAllocatedSize = 0; //should be a power of two
+	
+	this.regenAndUploadEntireBuffer   = true;
+	this.vertexAnimated             = false; //for static / dynamic gl attrib buffer usage
+	this.hasSkelAnim                = false;
+	this.texName                    = null;
 	
 	this.numSubBufferUpdatesToBeValid = 0;
 	
 	this.bufSubRanges = {};
+	this.sortedBufSubRangeObjUids = null;
 	
 	this.diffuseCol = Vect_New(4);
 }
+let drawBatchBuffers = {};
 
+/*
 function AllocateBatchBufferArrays(dbB){
 	if( dbB.vertBuffer != null ){
-		//deallocate previous
+		//deallocate previous gl uploaded buffer
 		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID);
 		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+1);
 		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+2);
 		graphics.triGraphics.glProgram.cleanupVertexAttribBuff(dbB.bufID+3);
-		
 	}
 	dbB.vertBuffer      = new Float32Array( dbB.bufferIdx*vertCard      );
 	dbB.normBuffer      = new Float32Array( dbB.bufferIdx*normCard      );
@@ -112,8 +120,7 @@ function AllocateBatchBufferArrays(dbB){
 	dbB.bufferUpdated   = true;
 	//dbB.bufferIdx = 0;
 }
-
-let drawBatchBuffers = {};
+*/
 
 function GetDrawBatchBufferForMaterial(material){
 	let dbB = drawBatchBuffers[material.uid.val];
@@ -125,6 +132,10 @@ function GetDrawBatchBufferForMaterial(material){
 }
 
 
+//keep the sub batch buffers in place (even if not active (len == 0) until
+//the bufferIdx is > or less than a block allocation threshold amount
+//(to prevent frequent regeneration of verts,norms,uv's
+
 //reset indicies between frames incase the objects
 //within the camera frustum to be drawn are different
 function ResetDrawAndSubBatchBufferIdxs(){
@@ -135,13 +146,14 @@ function ResetDrawAndSubBatchBufferIdxs(){
 		dbb.lastBufferIdx = dbb.bufferIdx;
 		dbb.numSubBufferUpdatesToBeValid = 0;
 		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
-		dbb.bufferIdx = 0;
+		//dbb.bufferIdx = 0;
 		
 		let sbbKeys = Object.keys( dbb.bufSubRanges );
 		for( let j = 0; j < sbbKeys.length; ++j ){
 			let subRange = dbb.bufSubRanges[ sbbKeys[j] ];
 			//subRange.lastStartIdx = subRange.startIdx;
-			subRange.lastLen = subRange.len;
+			if( subRange.maxLen < subRange.len )
+				subRange.maxLen = subRange.len;
 			//subRange.startIdx = 0;
 			subRange.len = 0;
 		}
@@ -149,45 +161,129 @@ function ResetDrawAndSubBatchBufferIdxs(){
 
 }
 
-function ReallocateDrawBatchBuffersIfNecessary(){
+//each frame sort objects by their distance to the camera,
+//if a object stays in the same position for many frames move it's
+//actual position in the attribBufferArray
+let cmpSbb = null;
+function CmpSBBList(a,b){
+	let objA = undefined;
+	if( a != 0 )
+		cmpSbb.bufSubRanges[a].obj;
+	let objB = undefined;
+	if( b != 0 )
+		cmpSbb.bufSubRanges[b].obj;
+	
+	if( objA == undefined ){
+		if( objB != undefined )
+			return false;
+		else
+			return true;
+	}else if( objB == undefined ){
+		if( objA != undefined )
+			return true;
+		else
+			return false;
+	}
+	//else compare the two
+	let distToA = Vect3_Distance( cam.position, objA.AABB.center);
+	let distToB = Vect3_Distance( cam.position, objB.AABB.center);
+	return distToA<=distToB;
+}
+
+function GenSortedSubBatchBufferList(dbB){
+	//sort the sub batches by object distance to camera (front to back)
+	
+	dbB.subRngKeys = Object.keys(dbB.bufSubRanges);
+	let nextPotSz = Math.pow(2,Math.ceil(Math.log2(dbB.subRngKeys.length)));
+	while( dbB.subRngKeys.length < nextPotSz )
+		dbB.subRngKeys.push(0);
+	let subRngKeysTemp = new Array( nextPotSz );
+	cmpSbb = dbB;
+	if( MergeSort( dbB.subRngKeys, subRngKeysTemp, CmpSBBList ) ){ 
+		//ret true means the sorted output is in ..keysTemp, 
+		//therefore swap keys and keysTemp
+		let tmp = dbB.subRngKeys;
+		dbB.subRngKeys = subRngKeysTemp;
+		subRngKeysTemp = tmp;
+	}
+}
+
+function SortSubBatches(){
+	//called each frame between finding all objects to draw in the frame
+	//and getting verticies from them if necessary
 	let dbbKeys = Object.keys(drawBatchBuffers);
 	for( let i = 0; i < dbbKeys.length; ++i ){
 		let drawBatch = drawBatchBuffers[dbbKeys[i]];
-
-		if( drawBatch.vertBuffer == null)
-			AllocateBatchBufferArrays(drawBatch);
-		else{
-			let drawBatchNumVertsAllocated = drawBatch.vertBuffer.length/3;
-			if( drawBatchNumVertsAllocated < drawBatch.bufferIdx )
-				AllocateBatchBufferArrays(drawBatch);
-		}
+		
+		GenSortedSubBatchBufferList(drawBatch);
+		
+//		if( drawBatch.vertBuffer == null)
+//			AllocateBatchBufferArrays(drawBatch);
+//		else{
+			//let drawBatchNumVertsAllocated = drawBatch.vertBuffer.length/3;
+			if( drawBatch.bufferIdx > drawBatch.lastBufferIdx )
+				drawBatch.regenAndUploadEntireBuffer = true;//AllocateBatchBufferArrays(drawBatch);
+//		}
 	}
 	
 }
 
-function GetDrawSubBatchBuffer(dbB, subRangeId, numVerts){
+function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID ){
 	let subRange = dbB.bufSubRanges[ subRangeId ];
 
 
 	if( subRange == undefined ){ //obj+material hasn't been drawn
-		subRange = new BufSubRange(dbB.bufferIdx, numVerts);
+		//create a new sub batch buffer
+		subRange = new BufSubRange( dbB.bufferIdx, numVerts, subRangeQm, qmMatID );
 		dbB.bufSubRanges[ subRangeId ] = subRange;
 		dbB.bufferIdx += numVerts;
 		dbB.numSubBufferUpdatesToBeValid += 1;
 	}else if( subRange.len == 0 ){
 		//this object was in previous frames
 		//though this subrange has been reset (in check for allocation phase) for this frame
-		subRange.startIdx = dbB.bufferIdx;
-		subRange.len = numVerts;
-		dbB.bufferIdx += numVerts;
-		if( subRange.len != subRange.lastLen ||
-			subRange.lastStartIdx != subRange.startIdx ){
-			dbB.bufferUpdated = true;
+		//subRange.startIdx = dbB.bufferIdx;
+		if( numVerts > subRange.maxLen ){//this would happen if the level of detail changed for an object
+			//the sub batch buffer needs to be bigger
+			//for now, move it to the end of the array
+			//when 
+			//subRange.lastStartIdx != subRange.startIdx ){
+			console.log("resizing sub batch buffer");
+			subRange.startIdx = dbB.bufferIdx;
+			subRange.len = numVerts;
+			dbB.bufferIdx += numVerts;
+			//dbB.bufferUpdated = true;
 			dbB.numSubBufferUpdatesToBeValid += 1;
+		}else{
+			subRange.len = numVerts;
+			//dbB.bufferIdx += numVerts;
 		}
 	}
 
 	return subRange;
+}
+
+//as sub batch buffers may
+function DefragmentBatchBufferAllocations(){
+/*
+	let dbbKeys = Object.keys(drawBatchBuffers);
+	for( let i = 0; i < dbbKeys.length; ++i ){
+		let dbb = drawBatchBuffers[dbbKeys[i]];
+		dbb.lastBufferIdx = dbb.bufferIdx;
+		dbb.numSubBufferUpdatesToBeValid = 0;
+		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
+		//dbb.bufferIdx = 0;
+		
+		let sbbKeys = Object.keys( dbb.bufSubRanges );
+		for( let j = 0; j < sbbKeys.length; ++j ){
+			let subRange = dbb.bufSubRanges[ sbbKeys[j] ];
+			//subRange.lastStartIdx = subRange.startIdx;
+			if( subRange.maxLen < subRange.len )
+				subRange.maxLen = subRange.len;
+			//subRange.startIdx = 0;
+			subRange.len = 0;
+		}
+	}
+	*/
 }
 
 function CleanUpDrawBatchBuffers(){
@@ -280,75 +376,6 @@ function HVNSC_Update( hvnsc, time ){
 	//generate the camera matrix
 	cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 	cam.GenWorldToFromScreenSpaceMats();
-
-	//Matrix_Print( cam.worldToScreenSpaceMat, "cam.worldToScreenSpaceMat" );
-	
-//	let frusUpFwdLeft = [Vect3_New(), Vect3_New(), Vect3_New()];
-//	let frusCenter = Vect3_New();
-//	Matrix_Multiply_Vect3( frusCenter, cam.screenSpaceToWorldMat, [0,0,0] );
-//	Matrix_Multiply_Vect3( frusUpFwdLeft[0], cam.screenSpaceToWorldMat, [0,1,0] );
-//	Vect3_Subtract( frusUpFwdLeft[0], frusCenter );
-//	Vect3_Normal( frusUpFwdLeft[0] );
-//	Matrix_Multiply_Vect3( frusUpFwdLeft[1], cam.screenSpaceToWorldMat, [0,0,1] );
-//	Vect3_Subtract( frusUpFwdLeft[1], frusCenter );
-//	Vect3_Normal( frusUpFwdLeft[1] );
-//	Matrix_Multiply_Vect3( frusUpFwdLeft[2], cam.screenSpaceToWorldMat, [1,0,0] );
-//	Vect3_Subtract( frusUpFwdLeft[2], frusCenter );
-//	Vect3_Normal( frusUpFwdLeft[2] );
-//	
-//	DTPrintf( "frusWorldCenter " + Vect_ToFixedPrecisionString(frusCenter, 5), "hvnsc debug" );
-//	DTPrintf( "frusWorldUp "     + Vect_ToFixedPrecisionString(frusUpFwdLeft[0], 5), "hvnsc debug" );
-//	DTPrintf( "frusWorldFwd "    + Vect_ToFixedPrecisionString(frusUpFwdLeft[1], 5), "hvnsc debug" );
-//	DTPrintf( "frusWorldLeft "   + Vect_ToFixedPrecisionString(frusUpFwdLeft[2], 5), "hvnsc debug" );
-//	
-//	DTPrintf( "cam.nearClip " + cam.nearClip, "hvnsc debug" );
-//	DTPrintf( "cam.farClip "  + cam.farClip, "hvnsc debug" );
-//	
-//	DTPrintf( "cam.position " + Vect_ToFixedPrecisionString(cam.position, 5), "hvnsc debug" );
-//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,0,-1] );
-//	DTPrintf( "cam near coord wrld " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
-//	frus_testCoord[3] = 1;
-//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
-//	DTPrintf( "nearCoord in clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
-//	
-//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,0,1] );
-//	DTPrintf( "cam far coord " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
-//	//Vect3_Add( frus_testCoord, cam.position );
-//	frus_testCoord[3] = 1;
-//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
-//	DTPrintf( "farCoord in clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
-//	
-//	Matrix_Multiply_Vect3( frus_testCoord, cam.screenSpaceToWorldMat, [0,1,-3] );
-//	DTPrintf( "cam neg far coord wrld " + Vect_ToFixedPrecisionString(frus_testCoord, 5), "hvnsc debug" );
-//	//Vect3_Add( frus_testCoord, cam.position );
-//	frus_testCoord[3] = 1;
-//	Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, frus_testCoord );
-//	DTPrintf( "cam neg far coord clipSpc " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
-
-//	AABB_Gen8Corners(hvnsc.octTree.AABB);
-
-//	Vect_SetScalar(frus_aabbMin, Number.POSITIVE_INFINITY);
-//	Vect_SetScalar(frus_aabbMax, Number.NEGATIVE_INFINITY);
-
-//	for( let i = 0; i < 8; ++i ){
-//		DTPrintf( "node corner " + i + " " + Vect_ToFixedPrecisionString(AABB_8Corners[i], 5), "hvnsc debug" );
-//		Vect3_Copy( frus_temp3, AABB_8Corners[i] );
-//		Vect3_Subtract( frus_temp3, frusCenter );
-//		Vect_DotProdCoordRemap( frus_temp3Remap, frus_temp3, frusUpFwdLeft );
-//		DTPrintf( "corner in frusWorldSpaceUpFwdLeft coords " +  Vect_ToFixedPrecisionString(frus_temp3Remap, 5), "hvnsc debug" );
-//		Matrix_Multiply_Vect( frus_tempCoord, cam.worldToScreenSpaceMat, AABB_8Corners[i] );
-//		Vect_minMax( frus_aabbMin, frus_aabbMax, frus_tempCoord );
-//		DTPrintf( "corner in clipSpace " + i + " " + Vect_ToFixedPrecisionString(frus_tempCoord, 5), "hvnsc debug" );
-//		if( frus_tempCoord[2] < 0 )
-//			frus_tempCoord[2] = -frus_tempCoord[2];
-//		WDivide( frus_temp3, frus_tempCoord );
-//		DTPrintf("corner in ndcSpace " + Vect_ToFixedPrecisionString( frus_temp3, 5), "hvnsc debug" );
-//		
-//		DTPrintf( " ", "hvnsc debug");
-//	}
-//	
-//	DTPrintf( "node minCoord clipSpace  " + Vect_ToFixedPrecisionString(frus_aabbMin, 5), "hvnsc debug" );
-//	DTPrintf( "node maxCoord clipSpace  " + Vect_ToFixedPrecisionString(frus_aabbMax, 5), "hvnsc debug" );
 
 	//get the nodes within view
 	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated
@@ -462,7 +489,7 @@ function HVNSC_Draw(hvnsc){
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
 			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
 			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
-			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
+			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts );
 		}
 		//gather the line vert positions
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
@@ -479,46 +506,54 @@ function HVNSC_Draw(hvnsc){
 	//objMap.clear();
 	//TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
 
+	//get additional objects from the gameplay code
 	sceneSpecificObjects( hvnsc.sceneName, objMap );
 
 
 	//for each material check sub draw batch allocations for each object using it
 	//and that enough array buffer space is allocated for the batches
-	for( const [key,val] of objMap ){
-		let qm = val.quadmesh;
+	for( const [objUid,obj] of objMap ){
+		let qm = obj.quadmesh;
 		for( let matID = 0; matID < qm.materials.length; ++matID ){
 			let material = qm.materials[matID];
-			let drawBatch = GetDrawBatchBufferForMaterial( material );
-			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matID] );
+			//get the material buffer and sub buffer for object verts to ensure enough space is allocated
+			//in SortSubBatches...()
+			if( qm.faceVertsCtForMat[matID] > 0 ){ //ignore materials with no verts assigned
+				let drawBatch = GetDrawBatchBufferForMaterial( material );
+				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matID], qm, matID );
+			}
 		}
 	}
 	
-	ReallocateDrawBatchBuffersIfNecessary();
+	SortSubBatches();
 
 	//for each object in view
-	//update the draw batch buffers corresponding to the object materials
-	for( const [key,val] of objMap ){ 
-		let qm = val.quadmesh;
+	//update the model matrix, and sub buffer verts,norms,uvs,bnWghts if necessary
+	for( const [objUid,obj] of objMap ){ 
+		let qm = obj.quadmesh;
 
 		//for each material in the object
 		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 			let material = qm.materials[matIdx];
+			
+			if( qm.faceVertsCtForMat[matIdx] < 1 ) //ignore materials with no verts assigned
+				continue;
 
 			let drawBatch = GetDrawBatchBufferForMaterial( material );
-			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, key, qm.faceVertsCtForMat[matIdx] );
-			subBatchBuffer.qm = qm; //for debugging to trace the sub batch buffer that doesn't have verts allocated
+			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matIdx], obj );
 
-			if( qm.isAnimated || drawBatch.bufferUpdated ){
+			if( qm.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
 				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
 
 
 
-			if( qm.materialHasntDrawn[matIdx] || drawBatch.bufferUpdated ){
+			if( qm.materialHasntDrawn[matIdx] || drawBatch.regenAndUploadEntireBuffer ){
+
 
 				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
 						drawBatch, subBatchBuffer.startIdx, matIdx, 
-						subBatchBuffer, cam.worldToScreenSpaceMat ) - subBatchBuffer.startIdx;
+						subBatchBuffer, cam.worldToScreenSpaceMat ); // - subBatchBuffer.startIdx;
 				if( numGenVerts != subBatchBuffer.len )
 					DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
 

@@ -1,7 +1,10 @@
 //why favor merge sort instead of quicksort?
 //merge sort can be parallelized until the last merge level
 //and its memory access patterns are predictable (linear chunks vs random/data dependant)
-function MergeSort( arr, tempArr, cmpFunc ){
+function MergeSort( arr, tempArr, cmpFunc ){  
+	//takes in power of two size arrays
+	//returns true if the sorted return is in tempArr instead of arr
+	//	depends on number of merge levels
 
 
 	//merge sort the array -         e.x.(4132)

@@ -292,6 +292,6 @@ function GRPH_GetCachedObjsOfType( grph, obType, sceneName, retArray ){
 function GRPH_Cleanup(grph){
 	let progKeys = Object.keys( graphics.glPrograms );
 	for( let i = 0; i < progKeys.length; ++i )
-		graphics.glPrograms[progKeys[i]].cleanup();
+		GLP_cleanup( graphics.glPrograms[progKeys[i]] );
 }
 
