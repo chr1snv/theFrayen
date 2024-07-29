@@ -1,7 +1,7 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision lowp float;
+precision highp float; //on android mobile lowp causes z depth flickering
 
 //frayen vert shader
 

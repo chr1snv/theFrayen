@@ -572,7 +572,8 @@ function HVNSC_Draw(hvnsc){
 
 	//clear the render buffer and reset rendering state
 	graphics.Clear();
-	graphics.ClearDepth();
+	//graphics.ClearDepth();
+	//graphics.Flush();
 	//graphics.ClearLights();
 
 

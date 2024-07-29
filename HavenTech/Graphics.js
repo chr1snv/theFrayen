@@ -66,7 +66,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 	//for clearing the color buffer
 	this.Clear = function(){
-		gl.clear( gl.COLOR_BUFFER_BIT );} //| gl.DEPTH_BUFFER_BIT);
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);}
 	//for clearing depth between scene renderings
 	this.ClearDepth = function(){
 		gl.clear(gl.DEPTH_BUFFER_BIT);}

@@ -11,7 +11,7 @@
 <body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; background-attachment:fixed; text-align:center; font-family:arial; color:white;">
 
 	<h1>The Frayen</h1>
-	<p style="width:32em; margin:auto;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name "The Frayen"</p>
+	<p style="width:32em; margin:auto; margin-top:-20px;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name "The Frayen"</p>
 	<h3>Controls: Touch / WASD keys, Q,E roll, Mouse click to use - ESC to exit</h3>
 					<h4 id="cameraDebugText"></h4>
 	<div style="margin:auto; width:700px;">
@@ -128,26 +128,27 @@
 						</table>
 					</td>
 				</tr>
+				
+				<tr>
+					<div style="width:80%; margin:auto;">
+						<table style="margin:auto; text-align:left;">
+							<tr><td id="debugTags" style="color:white;">Debug Message Types<br/></td></tr>
+							<tr>
+								<td>
+									<table>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</div>
+					<h4 id ="status"></h4>
+				</tr>
 			</table>
 		</div>
 	</div>
-
 	
-	<div style="width:80%; margin:auto;">
-		<table style="margin:auto; text-align:left;">
-			<tr><td id="debugTags" style="color:white;">Debug Message Types<br/></td></tr>
-			<tr>
-				<td>
-					<table>
-					</table>
-				</td>
-			</tr>
-		</table>
-	</div>
-	<h4 id ="status"></h4>
-	
-	<canvas id="frayenCanvas" width=640px; height=480px; style="margin:-8px;"></canvas>
-	<canvas id="soundCanvas" width=640px; height=480px; style="margin:-8px;"></canvas>
+	<canvas id="frayenCanvas" width=640px; height=480px; ></canvas>
+	<canvas id="soundCanvas" width=640px; height=480px; ></canvas>
 
 </body>
 </html>
