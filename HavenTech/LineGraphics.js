@@ -1,8 +1,6 @@
 
 function LineGraphics(loadCompleteCallback){
 
-
-
 	this.glProgram = new GlProgram('frayenLine', null, loadCompleteCallback);
 }
 
@@ -24,7 +22,7 @@ function LINE_G_Setup(lineG){
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 	
-	lineG.glProgram.setVec4Uniform('diffuseColor', temp);
+	GLP_setVec4Uniform(lineG.glProgram, 'diffuseColor', temp);
 	
 	//CheckGLError( "glProgram::end frag shader loaded " );
 }
@@ -42,12 +40,12 @@ function LINE_G_drawLines( lineG, buf ){
 
 	let bufID = (buf.bufID);
 	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
-		lineG.glProgram.vertexAttribSetFloats( bufID,        vertCard,      buf.buffers[0],       'position',     1);//buf.isAnimated );
-		lineG.glProgram.vertexAttribSetFloats( bufID+1,      colCard,      buf.buffers[1],       'ptCol',         1);//buf.isAnimated );
+		GLP_vertexAttribSetFloats( lineG.glProgram, bufID,        vertCard,      buf.buffers[0],       'position',     1);//buf.isAnimated );
+		GLP_vertexAttribSetFloats( lineG.glProgram, bufID+1,      colCard,      buf.buffers[1],       'ptCol',         1);//buf.isAnimated );
 		buf.bufferUpdated = false;
 	}else{
-		lineG.glProgram.vertexAttribBuffEnable( bufID ,  vertCard, (buf.bufferIdx)*vertCard);
-		lineG.glProgram.vertexAttribBuffEnable( bufID+1, colCard, (buf.bufferIdx)*colCard);
+		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID ,  vertCard, (buf.bufferIdx)*vertCard);
+		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID+1, colCard, (buf.bufferIdx)*colCard);
 	}
 
 	let bufSubRangeKeys = Object.keys(buf.bufSubRanges);

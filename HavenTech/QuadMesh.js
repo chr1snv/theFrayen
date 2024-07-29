@@ -508,7 +508,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 			QM_SL_tesselateBoneIdxWghtCoords( 
 				qm.bnIdxWghtBufferForMat[matIdx], qm.vertBoneWeights, 
 				qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
-				startIdx, qm.skelAnimation.combinedBoneMatOffset );
+				qm.skelAnimation.combinedBoneMatOffset );
 		}
 
 		subBatchBuffer.vertsNotYetUploaded = true;
@@ -790,8 +790,27 @@ function QM_Reset(qm){
 ///////////////////////////
 
 function QM_CallReadyCallbackIfLoaded(qm){
-	if( --qm.componentsToLoad == 0 )
+	if( --qm.componentsToLoad == 0 ){
+	
+		//allocate output geometry buffers for upload to gl
+		//if(qm.meshName == "MountianSide")
+		//	console.log("not assigning vertBufferForMat");
+		let numMaterials = qm.faceVertsCtForMat.length;
+		if( qm.skelAnimation )
+			qm.bnIdxWghtBufferForMat = new Array(numMaterials);
+		qm.vertBufferForMat = new Array(numMaterials);
+		qm.normBufferForMat = new Array(numMaterials);
+		qm.uvBufferForMat = new Array(numMaterials);
+		for(let i = 0; i < numMaterials; ++i ){
+			if(qm.skelAnimation )
+				qm.bnIdxWghtBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*bnIdxWghtCard );
+			qm.vertBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*vertCard );
+			qm.normBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*normCard );
+			qm.uvBufferForMat[i]   = new Float32Array( qm.faceVertsCtForMat[i]*uvCard );
+		} 
+	
 		qm.quadMeshReadyCallback(qm, qm.readyCallbackParameters);
+	}
 }
 
 function QM_materialReady( material, thisPAndMaterialIdx ){
@@ -1123,23 +1142,6 @@ function QM_meshFileLoaded(meshFile, thisP)
 		}
 	}
 	
-	
-	//allocate output geometry buffers for upload to gl
-	//if(thisP.meshName == "MountianSide")
-	//	console.log("not assigning vertBufferForMat");
-	let numMaterials = thisP.faceVertsCtForMat.length;
-	if( thisP.skelAnimation )
-		this.bnIdxWghtBufferForMat = new Array(numMaterials);
-	thisP.vertBufferForMat = new Array(numMaterials);
-	thisP.normBufferForMat = new Array(numMaterials);
-	thisP.uvBufferForMat = new Array(numMaterials);
-	for(let i = 0; i < numMaterials; ++i ){
-		if(thisP.skelAnimation )
-			thisP.bnIdxWghtBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i] );
-		thisP.vertBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i]*vertCard );
-		thisP.normBufferForMat[i] = new Float32Array( thisP.faceVertsCtForMat[i]*normCard );
-		thisP.uvBufferForMat[i]   = new Float32Array( thisP.faceVertsCtForMat[i]*uvCard );
-	} 
 
 	if( !(Math.abs(thisP.vertPositions.length - numVerts*3) < 0.01) )
 		DPrintf("Quadmesh: verts read mismatch\n");
