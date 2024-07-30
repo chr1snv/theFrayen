@@ -99,6 +99,15 @@ function DrawBatchBuffer(material){
 	this.sortedBufSubRangeObjUids = null;
 	
 	this.diffuseCol = Vect_New(4);
+	
+	//set the texture or material properties for the draw batch
+	if( material.texture ){
+		this.texName = material.texture.texName;
+	}else{
+		//this.texName = null;
+		Vect3_Copy( this.diffuseCol, material.diffuseCol);
+		this.diffuseCol[3] = material.diffuseMix;
+	}
 }
 let drawBatchBuffers = {};
 
@@ -557,14 +566,9 @@ function HVNSC_Draw(hvnsc){
 				if( numGenVerts != subBatchBuffer.len )
 					DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
 
-				//set the texture or material properties for the draw batch
-				if( material.texture ){
-					drawBatch.texName = material.texture.texName;
-				}else{
-					drawBatch.texName = null;
-					Vect3_Copy( drawBatch.diffuseCol, material.diffuseCol);
-					drawBatch.diffuseCol[3] = material.diffuseMix;
-				}
+				if( subBatchBuffer.skelAnim != null )
+					drawBatch.hasSkelAnim = true;
+
 			}
 
 		}
@@ -601,6 +605,8 @@ function HVNSC_Draw(hvnsc){
 				
 			if( dbB.material == undefined )
 				console.log("probably skelAnim lines");
+			
+			
 			TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
 				dbB.material.sceneName, dbB, numAnimMatricies );
 		}

@@ -74,7 +74,7 @@ void main() {
 		
 	}
 	
-	//FragColor.a = 1.0;
+	//gl_FragColor.a = 1.0;
 
 	/*
 	float z = gl_FragCoord.z;

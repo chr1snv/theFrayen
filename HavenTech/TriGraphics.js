@@ -16,6 +16,7 @@ function TriGraphics(loadCompleteCallback){
 	
 	
 	this.texturingEnabled_UnifF1 = null;
+	
 	this.projMatrixUnif          = null;
 	this.mMatrixUnif             = null;
 	
@@ -73,7 +74,7 @@ function TRI_G_Setup(triG){
 	gl.enableVertexAttribArray(triG.normAttribLoc);
 	gl.enableVertexAttribArray(triG.texCoordAttribLoc);
 	
-	//gl.enableVertexAttribArray(indexWeightsAttribLoc);
+	//gl.enableVertexAttribArray(triG.indexWeightsAttribLoc);
 
 
 	//CheckGLError( "glProgram::end frag shader loaded " );
@@ -98,8 +99,12 @@ function triGTexReady(triG, tex){
 	triG.textures[tex.texName] = tex;
 }
 
+let tquvs = new Float32Array(6*2);
+let tqvrts = new Float32Array(6*3);
 // Draw a textured screenspace rectangle
 function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center, widthHeight, minUv, maxUv ){
+
+	GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
 
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
@@ -115,6 +120,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	}
 
 	GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
+	gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
 	
 	Matrix_Transpose( transMat, identMatrix );
 	gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );
@@ -134,29 +140,32 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	let Mm = [ MM[0], mm[1] ]; //right bottom
 
 	//the two triangles 
-	let vertices = [ mm[0], mm[1], 0.0,   //left bottom
-					 mM[0], mM[1], 0.0,   //left top
-					 MM[0], MM[1], 0.0,   //right top
-					 MM[0], MM[1], 0.0,   //right top
-					 Mm[0], Mm[1], 0.0,   //right bottom
-					 mm[0], mm[1], 0.0 ]; //left bottom
-	let verts = new Float32Array(vertices);
-
-	let uvs = new Float32Array(6*2);
-	uvs[0*2+0] = minUv[0]; uvs[0*2+1] = minUv[1]; //left  bottom
-	uvs[1*2+0] = minUv[0]; uvs[1*2+1] = maxUv[1]; //left  top
-	uvs[2*2+0] = maxUv[0]; uvs[2*2+1] = maxUv[1]; //right top
-	uvs[3*2+0] = maxUv[0]; uvs[3*2+1] = maxUv[1]; //right top
-	uvs[4*2+0] = maxUv[0]; uvs[4*2+1] = minUv[1]; //right bottom
-	uvs[5*2+0] = minUv[0]; uvs[5*2+1] = minUv[1]; //left  bottom
+	let depth = 0.0;
+	tqvrts[0*3+0] = mm[0]; tqvrts[0*3+1] = mm[1]; tqvrts[0*3+2] = depth; //left bottom
+	tqvrts[1*3+0] = MM[0]; tqvrts[1*3+1] = MM[1]; tqvrts[1*3+2] = depth; //right top
+	tqvrts[2*3+0] = mM[0]; tqvrts[2*3+1] = mM[1]; tqvrts[2*3+2] = depth; //left top
+	
+	tqvrts[3*3+0] = MM[0]; tqvrts[3*3+1] = MM[1]; tqvrts[3*3+2] = depth; //right top
+	tqvrts[4*3+0] = mm[0]; tqvrts[4*3+1] = mm[1]; tqvrts[4*3+2] = depth; //left bottom
+	tqvrts[5*3+0] = Mm[0]; tqvrts[5*3+1] = Mm[1]; tqvrts[5*3+2] = depth; //right bottom
 
 
-	GLP_vertexAttribSetFloats( triG.glProgram, 0,  3, verts, 'position' );
+	tquvs[0*2+0] = minUv[0]; tquvs[0*2+1] = minUv[1]; //left  bottom
+	tquvs[1*2+0] = maxUv[0]; tquvs[1*2+1] = maxUv[1]; //right top
+	tquvs[2*2+0] = minUv[0]; tquvs[2*2+1] = maxUv[1]; //left  top
+
+	tquvs[3*2+0] = maxUv[0]; tquvs[3*2+1] = maxUv[1]; //right top
+	tquvs[4*2+0] = minUv[0]; tquvs[4*2+1] = minUv[1]; //left  bottom
+	tquvs[5*2+0] = maxUv[0]; tquvs[5*2+1] = minUv[1]; //right bottom
+
+
+	GLP_vertexAttribSetFloats( triG.glProgram, 0,  3, tqvrts, triG.positionAttribLoc );
 	//CheckGLError("draw square, after position attributeSetFloats");
-	GLP_vertexAttribSetFloats( triG.glProgram, 1,    3, verts, 'norm' );
+	GLP_vertexAttribSetFloats( triG.glProgram, 1,    3, tqvrts, triG.normAttribLoc );
 	//CheckGLError("draw square, after normal attributeSetFloats");
-	GLP_vertexAttribSetFloats( triG.glProgram, 2,  2, uvs, 'texCoord' );
+	GLP_vertexAttribSetFloats( triG.glProgram, 2,  2, tquvs, triG.texCoordAttribLoc );
 	//CheckGLError("draw square, after texCoord attributeSetFloats");
+	//GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( 
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	//CheckGLError("draw square, after drawArrays");
 	//gl.flush();
@@ -214,12 +223,12 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID, triG.positionAttribLoc,  vertCard, numVerts*vertCard, isDynamic);
 	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+1, triG.normAttribLoc,      vertCard, numVerts*normCard, isDynamic);
 	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+2, triG.texCoordAttribLoc,  uvCard, numVerts*uvCard,   isDynamic);
-	//if( buf.hasSkelAnim ){
+	if( buf.hasSkelAnim ){
 		GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeightsAttribLoc,  bnIdxWghtCard, numVerts*bnIdxWghtCard,   false);
 		gl.enableVertexAttribArray(triG.indexWeightsAttribLoc);
-	//}
-	//else
-	//	gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
+	}
+	else
+		gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
 	//CheckGLError("TRI_G_drawTriangles after GLP_vertexAttribBuffAllocateOrEnableAndBind");
 	
 
@@ -257,8 +266,10 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+2][1]);
 	gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+2][0], uvCard, gl.FLOAT, false, 0, 0);
 	
-	gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+3][1]);
-	gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+3][0], bnIdxWghtCard, gl.FLOAT, false, 0, 0);
+	if( buf.hasSkelAnim ){
+		gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+3][1]);
+		gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+3][0], bnIdxWghtCard, gl.FLOAT, false, 0, 0);
+	}
 
 	//CheckGLError("TRI_G_drawTriangles after set vertexAttribPointers");
 

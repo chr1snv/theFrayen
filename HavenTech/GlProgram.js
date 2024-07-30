@@ -191,10 +191,10 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 	
 
 	
-function GLP_vertexAttribSetFloats( glp, attribInstID, rsize, arr, attr_name, dynamic ){
+function GLP_vertexAttribSetFloats( glp, attribInstID, rsize, arr, attribLoc, dynamic ){
 	if( glp.attribLocBufPtrs[attribInstID] == undefined ){
 		//gl.deleteBuffer(Object buffer) when done using
-		glp.attribLocBufPtrs[attribInstID] = [gl.getAttribLocation(glp.glProgId, attr_name), gl.createBuffer()]; 
+		glp.attribLocBufPtrs[attribInstID] = [attribLoc, gl.createBuffer()];
 		gl.enableVertexAttribArray(glp.attribLocBufPtrs[attribInstID][0]);
 	}
 	
