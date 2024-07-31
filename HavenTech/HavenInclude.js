@@ -65,27 +65,29 @@ var incFiles = ['DPrintf.js',
 				
 				'Sound.js',
 				
-				'sail/Sail.js',
-				'sail/Ocean.js'
+				'SceneSpecific.js'
 				];
-var incFileIdx = 0;
 
 var statusElm = document.getElementById("status");
-function havenIncMain(){
-	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFiles.length;
 
-	if( incFileIdx < incFiles.length ){
+var incFileIdx = 0;
+let incFileList = incFiles;
+let loadScriptCmpCb = function(){ havenMain(); }
+function loadScriptLoop(){
+	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
+
+	if( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
-		AttachScript('HavenTech/'+incFiles[incFileIdx++], havenIncMain );
+		AttachScript('HavenTech/'+incFileList[incFileIdx++], loadScriptLoop );
 	}
 	else{
 		//done including files
-		window.removeEventListener( 'load', havenIncMain );
+		window.removeEventListener( 'load', loadScriptLoop );
 		//call the main function
-		havenMain();
+		loadScriptCmpCb();
 	}
 }
-window.addEventListener('load', havenIncMain, false);
+window.addEventListener('load', loadScriptLoop, false);
 
 function AttachScript(scriptName, callback){
 	var head= document.getElementsByTagName('head')[0];

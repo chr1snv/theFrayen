@@ -237,14 +237,14 @@ function loadScene()
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
 
-	sceneSpecificLoad(newSceneName);
+	sceneSpecificLoad(mainScene.scnId, loadSceneSounds);
 
 
 	statusElm.innerHTML = "Loading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
 	runSceneButtonElm.onclick = stop;
 	
-	loadSceneSounds(newSceneName);
+	//loadSceneSounds(newSceneName);
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
 let running = false;

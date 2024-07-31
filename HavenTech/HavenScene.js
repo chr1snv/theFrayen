@@ -345,6 +345,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	//(maybe will come back / be replaced by spectral image for denoising)
 
 
+	this.scnId = SceneNameToId( this.sceneName );
+
 	//constructor functionality begin asynchronous fetch of scene description
 	this.pendingObjsAdded = 0;
 	loadTextFile("scenes/"+this.sceneName+".hvtScene",
@@ -432,7 +434,7 @@ function HVNSC_Update( hvnsc, time ){
 	}
 	//DTPrintf( "nodeMap size " + nodeMap.size, "hvnsc debug", "color:white", 0 );
 
-	sceneSpecificUpdate( hvnsc.sceneName, time ); //run the game code
+	sceneSpecificUpdate( hvnsc.scnId, time ); //run the game code
 
 }
 
@@ -516,7 +518,7 @@ function HVNSC_Draw(hvnsc){
 	//TND_GetObjectsInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, objMap );
 
 	//get additional objects from the gameplay code
-	sceneSpecificObjects( hvnsc.sceneName, objMap );
+	sceneSpecificObjects( hvnsc.scnId, objMap );
 
 
 	//for each material check sub draw batch allocations for each object using it
@@ -626,7 +628,7 @@ function HVNSC_Draw(hvnsc){
 	}
 	
 	
-	sceneSpecificDraw(hvnsc);
+	sceneSpecificDraw(hvnsc.scnId);
 	
 	/*  //old rasterization code here
 	

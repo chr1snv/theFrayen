@@ -298,32 +298,37 @@ function AddNoteToInstr( instr, note ){
 		lastNoteTime = noteEndTime;
 }
 
-function loadSceneSounds(sceneName){
+function loadSceneSounds(){
 
-	//init key mappings to frquencies
-	inputKeyNoteMappings[keyCodes.KEY_Z]         = noteFrequencies['C3' ];
-	inputKeyNoteMappings[keyCodes.KEY_X]         = noteFrequencies['C#3'];
-	inputKeyNoteMappings[keyCodes.KEY_C]         = noteFrequencies['D3' ];
-	inputKeyNoteMappings[keyCodes.KEY_V]         = noteFrequencies['D#3'];
-	inputKeyNoteMappings[keyCodes.KEY_B]         = noteFrequencies['E3' ];
-	inputKeyNoteMappings[keyCodes.KEY_N]         = noteFrequencies['F3' ];
-	inputKeyNoteMappings[keyCodes.KEY_M]         = noteFrequencies['G3' ];
-	inputKeyNoteMappings[keyCodes.COMMA]         = noteFrequencies['G#3'];
-	inputKeyNoteMappings[keyCodes.PERIOD]        = noteFrequencies['A3' ];
-	inputKeyNoteMappings[keyCodes.FORWARD_SLASH] = noteFrequencies['A#3'];
-	inputKeyNoteMappings_dictKeys = Object.keys(inputKeyNoteMappings);
+	if( inputKeyNoteMappings_dictKeys == null ){
+		//init key mappings to frquencies
+		inputKeyNoteMappings[keyCodes.KEY_Z]         = noteFrequencies['C3' ];
+		inputKeyNoteMappings[keyCodes.KEY_X]         = noteFrequencies['C#3'];
+		inputKeyNoteMappings[keyCodes.KEY_C]         = noteFrequencies['D3' ];
+		inputKeyNoteMappings[keyCodes.KEY_V]         = noteFrequencies['D#3'];
+		inputKeyNoteMappings[keyCodes.KEY_B]         = noteFrequencies['E3' ];
+		inputKeyNoteMappings[keyCodes.KEY_N]         = noteFrequencies['F3' ];
+		inputKeyNoteMappings[keyCodes.KEY_M]         = noteFrequencies['G3' ];
+		inputKeyNoteMappings[keyCodes.COMMA]         = noteFrequencies['G#3'];
+		inputKeyNoteMappings[keyCodes.PERIOD]        = noteFrequencies['A3' ];
+		inputKeyNoteMappings[keyCodes.FORWARD_SLASH] = noteFrequencies['A#3'];
+		inputKeyNoteMappings_dictKeys = Object.keys(inputKeyNoteMappings);
+	}
 
+	switch( loadScnId ){
+		case 0:
 
-	instruments = [];
-	//load song, instruments, notes
-	let synthLead = new Instrument( InstrumentType.SynthLead );
-	AddNoteToInstr( synthLead, new Note('G3', 0.0, 0.15) );
-	AddNoteToInstr( synthLead, new Note('G3', 0.2, 0.15) );
-	AddNoteToInstr( synthLead, new Note('G3', 0.5, 0.15) );
-	AddNoteToInstr( synthLead, new Note('E4', 0.5, 0.25) );
-	AddNoteToInstr( synthLead, new Note('C4', 1.0, 0.25) );
-	AddNoteToInstr( synthLead, new Note('C5', 1.0, 0.25) );
-	instruments.push( synthLead );
+		instruments = [];
+		//load song, instruments, notes
+		let synthLead = new Instrument( InstrumentType.SynthLead );
+		AddNoteToInstr( synthLead, new Note('G3', 0.0, 0.15) );
+		AddNoteToInstr( synthLead, new Note('G3', 0.2, 0.15) );
+		AddNoteToInstr( synthLead, new Note('G3', 0.5, 0.15) );
+		AddNoteToInstr( synthLead, new Note('E4', 0.5, 0.25) );
+		AddNoteToInstr( synthLead, new Note('C4', 1.0, 0.25) );
+		AddNoteToInstr( synthLead, new Note('C5', 1.0, 0.25) );
+		instruments.push( synthLead );
+	}
 
 }
 
