@@ -47,14 +47,14 @@ function Overlay_DrawInputHint(){
 				let wdthHight = [ 0.5      , 0.5  ];
 				let minUv     = [   0      , 1    ];
 				let maxUv     = [ 0.5      , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv, 0 );
 				
 				
 				cenPos        = [ 0.5      , 0    ];
 				wdthHight     = [ 0.5      , 0.5  ];
 				minUv         = [ 0.5      , 1    ];
 				maxUv         = [ 1        , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'controls.png', 'default',  cenPos, wdthHight, minUv, maxUv, 0 );
 			
 			} else {
 				//console.log("Desktop device detected");
@@ -62,7 +62,7 @@ function Overlay_DrawInputHint(){
 				wdthHight     = [ 2        , 1.5  ];
 				minUv         = [ 0        , 1    ];
 				maxUv         = [ 1        , 0    ];
-				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv );
+				TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'kbMouControls.png', 'default',  cenPos, wdthHight, minUv, maxUv, 0 );
 			}
 			
 		}

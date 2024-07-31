@@ -102,7 +102,7 @@ function triGTexReady(triG, tex){
 let tquvs = new Float32Array(6*2);
 let tqvrts = new Float32Array(6*3);
 // Draw a textured screenspace rectangle
-function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center, widthHeight, minUv, maxUv ){
+function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center, widthHeight, minUv, maxUv, depth ){
 
 	GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
 
@@ -140,7 +140,6 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	let Mm = [ MM[0], mm[1] ]; //right bottom
 
 	//the two triangles 
-	let depth = 0.0;
 	tqvrts[0*3+0] = mm[0]; tqvrts[0*3+1] = mm[1]; tqvrts[0*3+2] = depth; //left bottom
 	tqvrts[1*3+0] = MM[0]; tqvrts[1*3+1] = MM[1]; tqvrts[1*3+2] = depth; //right top
 	tqvrts[2*3+0] = mM[0]; tqvrts[2*3+1] = mM[1]; tqvrts[2*3+2] = depth; //left top

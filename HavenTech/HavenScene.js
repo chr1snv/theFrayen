@@ -626,6 +626,8 @@ function HVNSC_Draw(hvnsc){
 	}
 	
 	
+	sceneSpecificDraw(hvnsc);
+	
 	/*  //old rasterization code here
 	
 	

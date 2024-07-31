@@ -54,6 +54,8 @@ var incFiles = ['DPrintf.js',
 				'HierarchyView.js',
 				'HavenMain.js',
 				
+				'TextRender.js',
+				
 				'Overlay.js',
 				
 				'HavenInputHandlers.js',
@@ -68,7 +70,9 @@ var incFiles = ['DPrintf.js',
 				];
 var incFileIdx = 0;
 
+var statusElm = document.getElementById("status");
 function havenIncMain(){
+	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFiles.length;
 
 	if( incFileIdx < incFiles.length ){
 		//include files while there are still files to be included

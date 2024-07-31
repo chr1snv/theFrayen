@@ -172,7 +172,7 @@ function animPlayToggle(){
 
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
-let autoRunCountdown = 1;
+let autoRunCountdown = 0;
 let stopAutoStart = false;
 function havenMain(){
 
@@ -184,9 +184,10 @@ function havenMain(){
 
 	registerInputHandlers();
 
+	statusElm.innerHTML = "Graphics init";
 
 	graphics = new Graphics(document.getElementById('frayenCanvas'), 
-		function(){ statusElm.innerHTML = "Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
+		function(){ statusElm.innerHTML = "Loading scene"; loadScene();/*"Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
 		
 	canvWidthElm.value = window.innerWidth * 0.9;
 	canvHeightElm.value = window.innerHeight;
@@ -196,7 +197,7 @@ function havenMain(){
 	console.log("graphics loaded");
 	touch = new TouchScreenControls();
 	//sceneChanged(); //get the selected scene from the dropdown and load it
-	window.setTimeout( autoRunCount, 1000 );
+	//window.setTimeout( autoRunCount, 1000 );
 }
 function stopAutostart(){
 	stopAutoStart = true;
@@ -204,7 +205,7 @@ function stopAutostart(){
 	runSceneButtonElm.innerHTML = "Run";
 	runSceneButtonElm.onclick = loadScene;
 }
-
+/*
 function autoRunCount(){
 	if( !stopAutoStart ){
 		statusElm.innerHTML = "Auto run in " + autoRunCountdown;
@@ -214,6 +215,7 @@ function autoRunCount(){
 			window.setTimeout( autoRunCount, 1000 );
 	}
 }
+*/
 
 
 function sceneSelectionFocus(){
@@ -224,7 +226,6 @@ let octTreeDivLogElm = document.getElementById("octTreeDivLog");
 
 //called when the scene selection dropdown changes
 var sceneSelectorElm = document.getElementById("sceneSelection");
-var statusElm = document.getElementById("status");
 var mainLoopAnimRequestHandle = null;
 function loadScene()
 {
