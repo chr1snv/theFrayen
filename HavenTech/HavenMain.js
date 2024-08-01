@@ -240,7 +240,7 @@ function loadScene()
 	sceneSpecificLoad(mainScene.scnId, loadSceneSounds);
 
 
-	statusElm.innerHTML = "Loading Scene";
+	statusElm.innerHTML = "Reading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
 	runSceneButtonElm.onclick = stop;
 	

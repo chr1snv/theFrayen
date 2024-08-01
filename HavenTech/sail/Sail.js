@@ -14,13 +14,13 @@ function SAIL_ScriptLoadCmp(){
 
 let sailLdCmpCb = null;
 function SAIL_sceneSpecificLoad(cmpCb){
-		sailLdCmpCb = cmpCb;
+	sailLdCmpCb = cmpCb;
 
-		incFileIdx = 0;
-		incFileList = sailScripts;
-		loadScriptCmpCb = SAIL_ScriptLoadCmp;
+	incFileIdx = 0;
+	incFileList = sailScripts;
+	loadScriptCmpCb = SAIL_ScriptLoadCmp;
 
-		loadScriptLoop();
+	loadScriptLoop();
 }
 
 
@@ -40,7 +40,7 @@ function SAIL_sceneSpecificUpdate( time){
 	//handle menu input
 	switch( sgMode ){
 		case SailModes.Menu:
-			if( mDown )
+			if( mDown || touch.menuTouch != null )
 				sgMode = SailModes.Gameplay;
 		case SailModes.Gameplay:
 			WNT_Update( time );

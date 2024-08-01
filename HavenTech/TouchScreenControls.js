@@ -7,6 +7,7 @@ function TouchScreenControls(){
 	this.movementTouch = null; //left-right forward-back translation input
 	this.lookTouch     = null; //look direction (yaw,pitch) input
 	this.rollTouch     = null; //look rotation around forward axis input
+	this.menuTouch     = null;
 	//clientX (browser viewport relative)
 	//screenX (left edge of screen relative y is top relative)
 	//pageX (includes scroll offset)
@@ -14,6 +15,8 @@ function TouchScreenControls(){
 		for(let i = 0; i < e.touches.length; ++i){
 			//new touch
 			canvas.relMouseCoords(e.touches[i]);
+			if( i == 0 )
+				touch.menuTouch = e.touches[i];
 			if( e.touches[i].canvasY < e.touches[i].target.height * 0.2 ){
 				touch.rollTouch = e.touches[i];
 			}else if( e.touches[i].canvasX < e.touches[i].target.width * floatP5){
@@ -50,19 +53,23 @@ function TouchScreenControls(){
 
 	this.OnTouchCancel = function(e){
 		for(let i = 0; i < e.touches.length; ++i){
-			if( touch.movementTouch.identifier == e.touches[i].identifier ){
-				touch.movementTouch = null;
-				touch.movementDelta[0] = 0;
-				touch.movementDelta[1] = 0;
-			}
-			else if( touch.lookTouch.identifier == e.touches[i].identifier ){
-				touch.lookTouch = null;
-				touch.lookDelta[0] = 0;
-				touch.lookDelta[1] = 0;
-			}
-			else if( touch.rollTouch.identifier == e.touches[i].identifier ){
-				touch.rollTouch = null;
-				touch.rollDelta = 0;
+			switch( e.touches[i].identifier ){
+				case touch.movementTouch.identifier:
+					touch.movementTouch = null;
+					touch.movementDelta[0] = 0;
+					touch.movementDelta[1] = 0;
+					
+				case touch.lookTouch.identifier:
+					touch.lookTouch = null;
+					touch.lookDelta[0] = 0;
+					touch.lookDelta[1] = 0;
+					
+				case touch.rollTouch.identifier:
+					touch.rollTouch = null;
+					touch.rollDelta = 0;
+					
+				case touch.menuTouch.identifier:
+					touch.menuTouch = null;
 			}
 		}
 	}
@@ -71,6 +78,7 @@ function TouchScreenControls(){
 		let movementTouchCancelled = true;
 		let lookTouchCancelled     = true;
 		let rollTouchCancelled     = true;
+		let menuTouchCancelled     = true;
 		for(let i = 0; i < e.touches.length; ++i){
 			if( touch.movementTouch != null &&
 				touch.movementTouch.identifier == e.touches[i].identifier ){
@@ -83,6 +91,11 @@ function TouchScreenControls(){
 			if( touch.rollTouch != null &&
 				touch.rollTouch.identifier == e.touches[i].identifier ){
 				rollTouchCancelled = false;
+			}
+			if( touch.menuTouch != null &&
+				touch.menuTouch.identifier == e.touches[i].identifier ){
+				menuTouchCancelled = false;
+				
 			}
 		}
 		if(movementTouchCancelled){
@@ -99,6 +112,8 @@ function TouchScreenControls(){
 			touch.rollTouch = null;
 			touch.rollDelta = 0;
 		}
+		if( menuTouchCancelled )
+			touch.menuTouch = null;
 
 	}
 

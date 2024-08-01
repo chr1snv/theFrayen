@@ -261,10 +261,14 @@ function playBassSineTone(note, time, duration){
 function playSineToneNode(freq, time, duration) {
     let osc = aCtx.createOscillator();
     osc.frequency.value = freq;
-    osc.connect(aCtx.destination);
+    
+    let gain = new GainNode( aCtx, { gain:0.4, } );
+    osc.connect(gain).connect(aCtx.destination);
+    
     osc.start(aCtx.currentTime + time);
     osc.stop(aCtx.currentTime + time + duration);
-    return osc;
+    
+    return gain;
 }
 
 let lastNoteTime = Number.NEGATIVE_INFINITY;
@@ -383,7 +387,7 @@ function DrawSoundCanvas(){
 	
 	//time indication
 	sCtx.fillStyle = '#ffffff';
-	sCtx.fillText( currentTime.toFixed(2), 0, sCtx.canvas.height*timeLineHeightPct );
+	sCtx.fillText( currentTime.toFixed(2)+"s", 0, sCtx.canvas.height*timeLineHeightPct );
 }
 
 const timeTextIntervalSecs = 1;
@@ -395,10 +399,10 @@ function drawTimeBar( leftWidthPct, heightPct, minTime, totalBarTime, currentTim
 	for( let i = 0; i < numTimeTextsToDraw; ++i ){
 		let textWPct = leftWidthPct + (1-leftWidthPct)*(i / numTimeTextsToDraw);
 		let timeT = minTime + ((i/numTimeTextsToDraw) * totalBarTime);
-		sCtx.fillText( timeT, sCtx.canvas.width*textWPct, sCtx.canvas.height*heightPct*0.5 );
+		sCtx.fillText( timeT+"s", sCtx.canvas.width*textWPct, sCtx.canvas.height*heightPct*0.5 );
 	}
 	
-	//draw time bar
+	//draw time bar background
 	sCtx.fillStyle = '#ffffff';
 	let timeBarWPct = (currentTime-minTime)/totalBarTime;
 	sCtx.fillRect( sCtx.canvas.width * ( leftWidthPct + (1-leftWidthPct)*timeBarWPct ), 0, 1, sCtx.canvas.height );

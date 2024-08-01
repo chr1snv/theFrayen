@@ -776,7 +776,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let txtNumLines = textFileLines.length;
 	for( let i = 0; i<txtNumLines; ++i )
 	{
-		statusElm.innerHTML = "Parsing " + (i+1) + "/" + txtNumLines;
+		//statusElm.innerHTML = "Scn Lines " + (i+1) + "/" + txtNumLines;
 		let txtLineParts = textFileLines[i].split( ' ' );
 
 		if(txtLineParts[0] == 'm' ){ //this is a model to be read in 

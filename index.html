@@ -9,23 +9,23 @@
 
 <body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; background-attachment:fixed; text-align:center; font-family:arial; color:white;">
 
-	<h1>The Frayen</h1>
-	<p style="width:32em; margin:auto; margin-top:-20px;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name "The Frayen"</p>
-	<h3>Controls: Touch / WASD keys, Q,E roll, Mouse click to use - ESC to exit</h3>
+	<h1>THE FRAYEN</h1>
+	<p style="width:32em; font-size:12px; margin:auto; margin-top:-20px;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name</p>
+	<h3>Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click - look : ESC to exit</h3>
 					<h4 id="cameraDebugText"></h4>
 	<div style="margin:auto; width:700px;">
 		<table style="margin:auto; width:450px;">
 			<tr>
-				<td style="width:100px;"><button type="button" id="showSettings" onclick="showHideSettings()">> Settings</button></td>
+				<td style="width:100px;"><button type="button" id="showSettings" style="height:30px;" onclick="showHideSettings()">> Settings</button></td>
 				<td id="status" style="border:1px solid #ffffff; width:150px;">Loading Scripts</td>
 				<td style="width:30px;">
 					<table style="width:30px; margin:-3px; margin-left:auto; margin-right:auto;">
-						<tr><td><div id="fps" style="border:1px solid #ffffff; width:25px;">0</div></td>
+						<tr><td><div id="fps" style="border:1px solid #ffffff; width:25px; height:30px; padding-top:3px;">0</div></td>
 							<td>fps</td>
 						</tr>
 					</table>
 				</td>
-				<td style="width:120px;"><button type="button" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+				<td style="width:120px;"><button type="button" style="height:30px;" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
 				<td><img id="soundIcon" onclick="soundIconClicked()" src="scenes/default/textures/soundIcon.png"></img></td>
 			</tr>
 		</table>

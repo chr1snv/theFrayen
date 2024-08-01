@@ -70,6 +70,8 @@ var incFiles = ['DPrintf.js',
 
 var statusElm = document.getElementById("status");
 
+includedScripts = {};
+
 var incFileIdx = 0;
 let incFileList = incFiles;
 let loadScriptCmpCb = function(){ havenMain(); }
@@ -78,7 +80,13 @@ function loadScriptLoop(){
 
 	if( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
-		AttachScript('HavenTech/'+incFileList[incFileIdx++], loadScriptLoop );
+		let scriptName = 'HavenTech/'+incFileList[incFileIdx++];
+		if( !includedScripts[scriptName] ){
+			includedScripts[scriptName] = 1;
+			AttachScript(scriptName, loadScriptLoop );
+		}
+		else
+			loadScriptLoop();
 	}
 	else{
 		//done including files
