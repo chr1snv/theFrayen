@@ -54,7 +54,7 @@ var incFiles = ['DPrintf.js',
 				'HierarchyView.js',
 				'HavenMain.js',
 				
-				'TextRender.js',
+				'TriText.js',
 				
 				'Overlay.js',
 				

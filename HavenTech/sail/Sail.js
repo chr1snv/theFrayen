@@ -71,11 +71,18 @@ function SAIL_sceneSpecificDraw( ){
 		wdthHight     = [ 1        , 1    ];
 		minUv         = [ 0        , 1    ];
 		maxUv         = [ 1        , 0    ];
-		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.1 );
+		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
 		
 		
-		//text
-		TR_QueueText( -0.2, 0.3, 0, 10, "SAIL" );
+		//menu heading text
+		TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL" );
+		
+		TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
+		
+		
+		TR_DrawText();
+		
+		TR_DeactivateFrameGlyphs();
 	}
 
 }

@@ -96,7 +96,8 @@ function DrawBatchBuffer(material){
 	this.numSubBufferUpdatesToBeValid = 0;
 	
 	this.bufSubRanges = {};
-	this.sortedBufSubRangeObjUids = null;
+	this.sortedSubRngKeys = null;
+	this.numBufSubRanges = 0;
 	
 	this.diffuseCol = Vect_New(4);
 	
@@ -202,18 +203,19 @@ function CmpSBBList(a,b){
 function GenSortedSubBatchBufferList(dbB){
 	//sort the sub batches by object distance to camera (front to back)
 	
-	dbB.subRngKeys = Object.keys(dbB.bufSubRanges);
-	let nextPotSz = Math.pow(2,Math.ceil(Math.log2(dbB.subRngKeys.length)));
-	while( dbB.subRngKeys.length < nextPotSz )
-		dbB.subRngKeys.push(0);
-	let subRngKeysTemp = new Array( nextPotSz );
+	dbB.sortedSubRngKeys = Object.keys(dbB.bufSubRanges);
+	dbB.numBufSubRanges = dbB.sortedSubRngKeys.length;
+	let nextPotSz = Math.pow(2,Math.ceil(Math.log2(dbB.sortedSubRngKeys.length)));
+	while( dbB.sortedSubRngKeys.length < nextPotSz )
+		dbB.sortedSubRngKeys.push(0);
+	let sortedSubRngKeysTemp = new Array( nextPotSz );
 	cmpSbb = dbB;
-	if( MergeSort( dbB.subRngKeys, subRngKeysTemp, CmpSBBList ) ){ 
+	if( MergeSort( dbB.sortedSubRngKeys, sortedSubRngKeysTemp, CmpSBBList ) ){ 
 		//ret true means the sorted output is in ..keysTemp, 
 		//therefore swap keys and keysTemp
-		let tmp = dbB.subRngKeys;
-		dbB.subRngKeys = subRngKeysTemp;
-		subRngKeysTemp = tmp;
+		let tmp = dbB.sortedSubRngKeys;
+		dbB.sortedSubRngKeys = sortedSubRngKeysTemp;
+		sortedSubRngKeysTemp = tmp;
 	}
 }
 
@@ -563,8 +565,8 @@ function HVNSC_Draw(hvnsc){
 
 
 				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
-						drawBatch, subBatchBuffer.startIdx, matIdx, 
-						subBatchBuffer, cam.worldToScreenSpaceMat ); // - subBatchBuffer.startIdx;
+						drawBatch, matIdx, 
+						subBatchBuffer ); //, cam.worldToScreenSpaceMat ); // - subBatchBuffer.startIdx;
 				if( numGenVerts != subBatchBuffer.len )
 					DPrintf( "error numGenVerts " + numGenVerts + " subBatchBuffer.len " + subBatchBuffer.len );
 
@@ -713,6 +715,7 @@ function HVNSC_ObjLoadedCallback(obj, hvnsc){
 	}else if( obj.constructor.name == Model.name ){
 		MDL_Update( obj, 0 ); //update to generate AABB
 		MDL_AddToOctTree( obj, hvnsc.octTree );
+		hvnsc.models[obj.uid.val] = obj;
 		delete hvnsc.pendingObjsToLoad[obj.modelName];
 	}else if( obj.constructor.name == SkeletalAnimation.name ){
 		hvnsc.armatures[hvnsc.armatureInsertIdx++] = obj;

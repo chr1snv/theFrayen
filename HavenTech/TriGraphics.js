@@ -220,7 +220,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	let bufID = (buf.bufID);
 		
 	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID, triG.positionAttribLoc,  vertCard, numVerts*vertCard, isDynamic);
-	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+1, triG.normAttribLoc,      vertCard, numVerts*normCard, isDynamic);
+	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+1, triG.normAttribLoc,      normCard, numVerts*normCard, isDynamic);
 	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+2, triG.texCoordAttribLoc,  uvCard, numVerts*uvCard,   isDynamic);
 	if( buf.hasSkelAnim ){
 		GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeightsAttribLoc,  bnIdxWghtCard, numVerts*bnIdxWghtCard,   false);
@@ -233,8 +233,8 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 
 	//CheckGLError("TRI_G_drawTriangles before upload verts attributes if necessary");
 	//upload verts attributes if necessary
-	let bufSubRangeKeys = Object.keys(buf.bufSubRanges);
-	for( let i = 0; i < bufSubRangeKeys.length; ++i ){
+	let bufSubRangeKeys = buf.sortedSubRngKeys;
+	for( let i = 0; i < buf.numBufSubRanges; ++i ){
 		let subRange = buf.bufSubRanges[ bufSubRangeKeys[i] ];
 		let startIdx = subRange.startIdx;
 		
@@ -272,7 +272,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 
 	//CheckGLError("TRI_G_drawTriangles after set vertexAttribPointers");
 
-	for( let i = 0; i < bufSubRangeKeys.length; ++i ){
+	for( let i = 0; i < buf.numBufSubRanges; ++i ){
 		let subRange = buf.bufSubRanges[ bufSubRangeKeys[i] ];
 		let startIdx = subRange.startIdx;
 		

@@ -476,7 +476,7 @@ function QM_SL_tesselateBoneIdxWghtCoords(
 }
 
 //draw interface
-function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx, subBatchBuffer ){
+function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, matIdx, subBatchBuffer ){
 	//since quad meshes are a mixture of quads and tris,
 	//use the face vertex indices to tesselate the entire mesh into
 	//tris, calculate face normals, upload to gl and draw
@@ -488,7 +488,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 	}
 
 
-	if( qm.keyAnimation ){
+	if( qm.keyAnimation && drawBatch != null ){
 		drawBatch.vertexAnimated = true;
 	}
 
@@ -496,9 +496,9 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 	let endGenVertIdx = 0; //startIdx; //if no verts are generated
 
 	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
-	if( qm.materialHasntDrawn[matIdx] || drawBatch.regenAndUploadEntireBuffer || qm.keyAnimation ){
+	if( qm.materialHasntDrawn[matIdx] || (drawBatch && drawBatch.regenAndUploadEntireBuffer) || qm.keyAnimation ){
 
-		if( qm.skelAnimation ){
+		if( qm.skelAnimation && subBatchBuffer){
 			subBatchBuffer.skelAnim = qm.skelAnimation;
 
 			////
@@ -511,7 +511,8 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 				qm.skelAnimation.combinedBoneMatOffset );
 		}
 
-		subBatchBuffer.vertsNotYetUploaded = true;
+		if( subBatchBuffer )
+			subBatchBuffer.vertsNotYetUploaded = true;
 		
 		
 
@@ -529,7 +530,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		endGenVertIdx = QM_SL_tesselateCoords( 
 			qm.vertBufferForMat[matIdx],
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
-			qm.transformedVerts, startIdx );
+			qm.transformedVerts ); //, startIdx );
 
 		////
 		//Generate the vertex normal coordinates
@@ -540,7 +541,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 		QM_SL_tesselateCoords( 
 			qm.normBufferForMat[matIdx],
 			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
-			qm.vertNormals, startIdx );
+			qm.vertNormals ); //, startIdx );
 
 		//generate & tesselate the normal coords from the batch of verts currently being used
 
@@ -556,13 +557,13 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, startIdx, matIdx,
 
 		QM_SL_tesselateUVCoords(
 			qm.uvBufferForMat[matIdx],
-			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
-			startIdx );
+			qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx] );
+			//startIdx );
 
 
 		qm.materialHasntDrawn[matIdx] = false;
 		
-		
+		if( drawBatch )
 		drawBatch.numSubBufferUpdatesToBeValid -= 1;
 	}
 

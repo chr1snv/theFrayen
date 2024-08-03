@@ -194,10 +194,12 @@ function havenMain(){
 	fullScrCanvWidthElm.value = screen.width;
 	fullScrCanvHeightElm.value = screen.height;
 	
-	console.log("graphics loaded");
+	console.log("graphics inited");
 	touch = new TouchScreenControls();
 	//sceneChanged(); //get the selected scene from the dropdown and load it
 	//window.setTimeout( autoRunCount, 1000 );
+	
+	TXTR_Init(); //load text meshes
 }
 function stopAutostart(){
 	stopAutoStart = true;
@@ -205,6 +207,7 @@ function stopAutostart(){
 	runSceneButtonElm.innerHTML = "Run";
 	runSceneButtonElm.onclick = loadScene;
 }
+
 /*
 function autoRunCount(){
 	if( !stopAutoStart ){
@@ -258,6 +261,7 @@ function stop(){
 	runSceneButtonElm.innerHTML = "Run";
 	runSceneButtonElm.onclick = loadScene;
 
+	TR_CleanupFrameGlyphs();
 
 	CleanUpDrawBatchBuffers();
 	GRPH_Cleanup(graphics);
