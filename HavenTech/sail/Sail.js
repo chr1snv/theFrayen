@@ -8,7 +8,7 @@ var sailScripts = [
 
 function SAIL_ScriptLoadCmp(){
 	ocean = new Ocean(mainScene);
-	
+
 	sailLdCmpCb();
 }
 
@@ -35,8 +35,8 @@ function SAIL_sceneSpecificUpdate( time){
 	
 	if( ocean.ready )
 		OCN_Update( ocean, time );
-		
-		
+
+
 	//handle menu input
 	switch( sgMode ){
 		case SailModes.Menu:
@@ -49,6 +49,8 @@ function SAIL_sceneSpecificUpdate( time){
 			
 			RGTTA_Update( time );
 			
+			if( mDownCoords.x < 40 && mDownCoords.y < 40 )
+				sgMode = SailModes.Menu;
 	}
 	
 }
@@ -58,7 +60,10 @@ function SAIL_sceneSpecificObjects( objMap ){
 
 	if( ocean.ready )
 		objMap.set( ocean.uid.val, ocean );
-	
+
+	//if( windIndc.ready )
+	//	objMap.set( windIndc.uid.val, windIndc );
+
 }
 
 
@@ -72,17 +77,21 @@ function SAIL_sceneSpecificDraw( ){
 		minUv         = [ 0        , 1    ];
 		maxUv         = [ 1        , 0    ];
 		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
-		
-		
+
+
 		//menu heading text
 		TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL" );
-		
 		TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
-		
-		
-		TR_DrawText();
-		
-		TR_DeactivateFrameGlyphs();
+		//TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
+
+	}else{
+		TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:" );
+	
 	}
+
+
+	TR_DrawText();
+
+	TR_DeactivateFrameGlyphs();
 
 }

@@ -200,7 +200,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 
 
 	this.camTranslation       = Vect3_New();
-	let rot               = Quat_New();
+	this.camRotation          = Quat_New();
 	let transMat          = Matrix_New();
 	Matrix_SetIdentity( transMat );
 	//let invTransMat       = Matrix_New();
@@ -211,13 +211,13 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	{
 		//get the camera rotation and translation from the ipo (animation)
 
-		this.getRotation(rot);
+		this.getRotation(this.camRotation);
 		this.getLocation(this.camTranslation);
 
 
 		//combine the translation and rotation into one matrix
 		Matrix_SetTranslate(               transMat, this.camTranslation );
-		Matrix_SetQuatRotate( this.camToWorldRotMat, rot );
+		Matrix_SetQuatRotate( this.camToWorldRotMat, this.camRotation );
 		Matrix_Multiply( this.camToWorldMat, transMat, this.camToWorldRotMat );
 	}
 

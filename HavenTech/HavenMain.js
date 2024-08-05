@@ -334,7 +334,8 @@ function MainLoop()
 	if( keysDown[keyCodes.KEY_P] == true )
 		simPhys = !simPhys;
 	
-	UpdateCamera( sceneTime );
+	if( mainScene.scnId < 0 ) //default user input
+		HandleDefaultCameraControls( sceneTime );
 	
 	HVNSC_Update( mainScene, sceneTime );
 
@@ -343,7 +344,8 @@ function MainLoop()
 
 	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
 	
-	Overlay_DrawInputHint();
+	if( mainScene.scnId < 0 )
+		Overlay_DrawInputHint();
 	
 	SND_UserInputsToNotes();
 	
@@ -392,13 +394,13 @@ let camRotDiv = document.getElementById("camRot");
 let mouseLocDiv  = document.getElementById("mouseCanvPos");
 let screenPosDiv = document.getElementById("mouseScreenPos");
 
-let camLocV = Vect3_NewZero();
-let camRotQ = Quat_New();
+//let camLocV = Vect3_NewZero();
+//let camRotQ = Quat_New();
 function UpdateCamTransText(cam){
-	cam.getLocation(camLocV);
-	cam.getRotation(camRotQ);
-	camLocDiv.textContent = Vect_FixedLenStr( camLocV, 2, 6 );
-	camRotDiv.textContent = Vect_FixedLenStr( camRotQ, 2, 6 );
+	//cam.getLocation(camLocV);
+	//cam.getRotation(camRotQ);
+	camLocDiv.textContent = Vect_FixedLenStr( cam.camTranslation, 2, 6 );
+	camRotDiv.textContent = Vect_FixedLenStr( cam.camRotation, 2, 6 );
 }
 
 function UpadateMousePosText(){
@@ -411,8 +413,9 @@ let mScreenRayCoords = new Float32Array(2);
 
 let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
-function UpdateCamera( updateTime )
-{
+function HandleDefaultCameraControls( updateTime ){
+	//default camera input
+	
 	if( mainScene.cameras.length < 1 )
 		return;
 

@@ -16,6 +16,10 @@ function TriGraphics(loadCompleteCallback){
 	
 	
 	this.texturingEnabled_UnifF1 = null;
+	this.lightingEnabled_Unif_I1 = null;
+	
+	this.texturingEnabled_UnifF1 = null;
+	this.diffColUnif_F4 = null;
 	
 	this.projMatrixUnif          = null;
 	this.mMatrixUnif             = null;
@@ -29,8 +33,11 @@ function TriGraphics(loadCompleteCallback){
 
 function TRIG_LoadComp(triG){
 
+	triG.lightingEnabled_Unif_I1 = gl.getUniformLocation( triG.glProgram.glProgId, 'lightingEnabled' );
 	
 	triG.texturingEnabled_UnifF1 = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled' );
+	triG.diffColUnif_F4 = gl.getUniformLocation( triG.glProgram.glProgId, 'diffuseColor' );
+	
 	triG.projMatrixUnif = gl.getUniformLocation( triG.glProgram.glProgId, 'projMatrix');
 	triG.mMatrixUnif = gl.getUniformLocation( triG.glProgram.glProgId, 'mMatrix');
 
@@ -59,10 +66,10 @@ function TRI_G_Setup(triG){
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 	
-	GLP_setIntUniform(triG.glProgram, 'boneMatrixTexture', 1);
-	GLP_setIntUniform(triG.glProgram, 'texSampler', 0);
+	GLP_setIntUniform(triG.glProgram, 'boneMatrixTexture', 1); //possibly binds to gl TEXTURE1 unit
+	//GLP_setIntUniform(triG.glProgram, 'texSampler', 0);
 
-	GLP_setVec4Uniform(triG.glProgram, 'diffuseColor', temp);
+	GLP_setUnif_F4(triG.glProgram, triG.diffColUnif_F4, temp);
 	//triG.glProgram.setVec4Uniform('ambient', temp);
 	//CheckGLError( "glProgram::before lighting enabled " );
 
@@ -83,20 +90,36 @@ function TRI_G_Setup(triG){
 
 let trigLightPosVec = new Array(8*vertCard);
 function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
+
+	triG.ambientColor = ambientColor;
+
+	GLP_setIntUniform( triG.glProgram, 'numLights', numLights );
+
 	for( let l = 0; l < numLights; ++l ){
 		Vect_CopyToFromArr( trigLightPosVec, l*3, lights[l].pos, 0, 3 );
 	}
-	GLP_setVec3Uniform( triG.glProgram, 'lightPos', trigLightPosVec );
+	GLP_setUnif_F3( triG.glProgram, 'lightPos', trigLightPosVec );
 	//triG.glProgram.setVec4Uniform( 'lightPos', trigLightPosVec );
-	GLP_setIntUniform( triG.glProgram, 'numLights', numLights );
-	
-	triG.ambientColor = ambientColor;
-	
+
 }
 
 
 function triGTexReady(triG, tex){
 	triG.textures[tex.texName] = tex;
+}
+
+function TRIG_SetDefaultOrthoCamMat(triG){
+
+	Matrix_Transpose( transMat, identMatrix );
+	gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );
+
+	//set the screenspace orthographic matrix
+	glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
+			-1,1,//-graphics.screenHeight, graphics.screenHeight,
+			-1, 1);
+	Matrix_Transpose( transMat, gOM );
+	gl.uniformMatrix4fv(triG.projMatrixUnif, false, transMat);//, 0, 4*4 );
+
 }
 
 let tquvs = new Float32Array(6*2);
@@ -122,16 +145,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
 	gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
 	
-	Matrix_Transpose( transMat, identMatrix );
-	gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );
-
-	//set the screenspace orthographic matrix
-	glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
-			-1,1,//-graphics.screenHeight, graphics.screenHeight,
-			-1, 1);
-	Matrix_Transpose( transMat, gOM );
-	gl.uniformMatrix4fv(triG.projMatrixUnif, false, transMat);//, 0, 4*4 );
-
+	TRIG_SetDefaultOrthoCamMat(triG);
 
 	//generate the 4 corners from the centerpoint and width/height
 	let mm = [(center[0] - widthHeight[0]/2), (center[1] - widthHeight[1]/2)]; //left bottom
@@ -173,7 +187,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 function TRI_G_setCamMatrix( triG, camMat, camWorldPos ){
 	Matrix_Transpose( transMat, camMat );
 	gl.uniformMatrix4fv( triG.projMatrixUnif, false, transMat );
-	GLP_setVec3Uniform( triG.glProgram, 'camWorldPos', camWorldPos );
+	GLP_setUnif_F3( triG.glProgram, 'camWorldPos', camWorldPos );
 }
 
 const TRI_G_VERT_ATTRIB_UID_START = 3;
@@ -195,7 +209,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 1 );
 	}else{
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
-		GLP_setVec4Uniform( triG.glProgram, 'diffuseColor', buf.diffuseCol);
+		GLP_setUnif_F4( triG.glProgram, triG.diffColUnif_F4, buf.diffuseCol);
 	}
 
 	//set lighting model uniforms
@@ -206,7 +220,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 		
 		GLP_setVec2Uniform( triG.glProgram, 'specularAmtExponent', buf.material.specularAmtExponent );
 	
-		GLP_setVec3Uniform( triG.glProgram, 'emissionAndAmbientColor', triG.ambientColor );
+		GLP_setUnif_F3( triG.glProgram, 'emissionAndAmbientColor', triG.ambientColor );
 		
 		GLP_setFloatUniform( triG.glProgram, 'subSurfaceExponent', buf.material.subSurfaceExponent );
 	}

@@ -48,6 +48,12 @@ function TXTR_AllocSubRngBuffer(numVerts, subBufId){
 	
 	txtR_dbB.bufferIdx += numVerts;
 	
+	let subRngKeys = Object.keys(txtR_dbB.bufSubRanges);
+	for(let i = 0; i < subRngKeys.length; ++i ){
+		txtR_dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
+	}
+	//txtR_dbB.regenAndUploadEntireBuffer = true;
+	
 	return obj;
 }
 
@@ -64,8 +70,24 @@ function TR_QueueText( x, y, dpth, size, str ){
 	
 		//count the number of verts and generate them for each glyph
 		let strNumVerts = 0;
+		let escpSeqActive = false;
+		let escpStr = "";
 		for( let i = 0; i < str.length; ++i ){
 			let ltr = str[i];
+			if( ltr == ":" ){
+				if( !escpSeqActive ){
+					escpSeqActive = true;
+					continue;
+				}else{
+					escpSeqActive = false;
+					ltr = escpStr;
+					escpStr = "";
+				}
+			}else if(escpSeqActive){
+				escpStr += ltr;
+				continue;
+			}
+			
 			strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
 			//generate the tesselated vert Coords for the glyph if necessary
 			if( glyphMeshes[ltr].materialHasntDrawn[0] ){
@@ -78,15 +100,32 @@ function TR_QueueText( x, y, dpth, size, str ){
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
 		let uvBufIdx = 0;
+		escpSeqActive = false;
+		let escpdLen = 0;
 		//generate the mesh for the glyph positions to draw
 		let lNum = 0; //line number
 		for( let i = 0; i < str.length; ++i ){
 		
 			//apply offsets to each
-			let posX = i*xKernSpc;
+			let posX = escpdLen*xKernSpc;
 			let posY = lNum*lVertSpc;
 			
 			let ltr = str[i];
+			if( ltr == ":" ){
+				if( !escpSeqActive ){
+					escpSeqActive = true;
+					continue;
+				}else{
+					escpSeqActive = false;
+					ltr = escpStr;
+					escpStr = "";
+				}
+			}else if(escpSeqActive){
+				escpStr += ltr;
+				continue;
+			}
+			
+			
 			let glyphM = glyphMeshes[ltr];
 			let glyphVerts = glyphM.vertBufferForMat[0];
 			let glyphNorms = glyphM.normBufferForMat[0];
@@ -106,6 +145,7 @@ function TR_QueueText( x, y, dpth, size, str ){
 				uvBufIdx += uvCard;
 
 			}
+			escpdLen += 1;
 		}
 		
 		
@@ -123,8 +163,17 @@ function TR_QueueText( x, y, dpth, size, str ){
 
 function TR_DrawText(){
 	//draw the active glyph vert buffers
+	let triG = graphics.triGraphics;
 	
-	TRI_G_drawTriangles( graphics.triGraphics, txtR_dbB.texName,
+	TRI_G_Setup(triG);
+	
+	//GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
+	//GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
+	//GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
+	
+	TRIG_SetDefaultOrthoCamMat(triG);
+	
+	TRI_G_drawTriangles( triG, txtR_dbB.texName,
 		txtR_dbB.material.sceneName, txtR_dbB, 0 );
 	
 }

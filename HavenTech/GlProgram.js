@@ -11,7 +11,7 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 	this.vertShaderFilename = 'shaders/' + nameIn + 'VertShader.vsh';
 	this.fragShaderFilename = 'shaders/' + nameIn + 'FragShader.fsh';
 	
-	this.unifLocs = {}; //dictionary of uniform names to glUniformLocations
+	this.unifVals = {}; //dictionary of glUniformLocations to last values
 	
 	//used to pass vertex attribute array perameters
 	//frayen attributeID to (gl program attribute location  and  allocated gl vertex Attribute buffers)
@@ -64,75 +64,59 @@ function GLP_vertShaderLoaded(textFile, thisP){
 	loadTextFile( thisP.fragShaderFilename, GLP_fragShaderLoaded, thisP );
 }
 
-/*
-const GLP_unifInitCopyAndSetters = {
-	'4fv': [Vect3_NewZero, Vect3_Copy, gl.uniform4fv],
-	'3fv': [Vect3_NewZero, Vect3_Copy, gl.uniform3fv],
-	'1f' : [0, function(d, i){ d = i; }, gl.uniform1f],
-	'1i' : [0, function(d, i){ d = i; }, gl.uniform1i]
-};
-function GLP_setUniformType( glp, unifName, type, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(this.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = GLP_unifInitCopyAndSetters[type][0]();
-	if( !Vect3_Cmp( glp.unifLocs[unifName + 'val'], value ) ){
-		GLP_unifInitCopyAndSetters[type][1]( glp.unifLocs[unifName + 'val'], value);
-		GLP_unifInitCopyAndSetters[type][2]( gl, glp.unifLocs[unifName], value );
+
+function GLP_setUnif_F4( glp, unifLoc, value ){
+	let shouldSet = true;
+	if( glp.unifVals[unifLoc] == undefined ){
+		glp.unifVals[unifLoc] = value;
+	}else{
+		if( Vect3_Cmp( glp.unifVals[unifLoc], value ) )
+			shouldSet = false;		
+		Vect_Copy( glp.unifVals[unifLoc], value);
 	}
+	if( shouldSet )
+		gl.uniform4fv( unifLoc, value );
 }
-*/
-	
-function GLP_setVec4Uniform( glp, unifName, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = Vect_NewZero(4);
-	if( !Vect3_Cmp( glp.unifLocs[unifName + 'val'], value ) ){
-		Vect3_Copy( glp.unifLocs[unifName + 'val'], value);
-		gl.uniform4fv( glp.unifLocs[unifName], value );
-	}
-}
-function GLP_setVec3Uniform( glp, unifName, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = Vect3_NewZero();
-	if( !Vect3_Cmp( glp.unifLocs[unifName + 'val'], value ) ){
-		Vect3_Copy( glp.unifLocs[unifName + 'val'], value);
-		gl.uniform3fv( glp.unifLocs[unifName], value );
+function GLP_setUnif_F3( glp, unifName, value ){
+	if( glp.unifVals[unifName] == undefined )
+		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
+	if( glp.unifVals[unifName + 'val'] == undefined )
+		glp.unifVals[unifName + 'val'] = Vect3_NewZero();
+	if( !Vect3_Cmp( glp.unifVals[unifName + 'val'], value ) ){
+		Vect3_Copy( glp.unifVals[unifName + 'val'], value);
+		gl.uniform3fv( glp.unifVals[unifName], value );
 	}
 }
 function GLP_setVec2Uniform( glp, unifName, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = Vect_NewZero(2);
-	if( !Vect3_Cmp( glp.unifLocs[unifName + 'val'], value ) ){
-		Vect3_Copy( glp.unifLocs[unifName + 'val'], value);
-		gl.uniform2fv( glp.unifLocs[unifName], value );
+	if( glp.unifVals[unifName] == undefined )
+		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
+	if( glp.unifVals[unifName + 'val'] == undefined )
+		glp.unifVals[unifName + 'val'] = Vect_NewZero(2);
+	if( !Vect3_Cmp( glp.unifVals[unifName + 'val'], value ) ){
+		Vect3_Copy( glp.unifVals[unifName + 'val'], value);
+		gl.uniform2fv( glp.unifVals[unifName], value );
 	}
 }
 	
 function GLP_setFloatUniform( glp, unifName, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = 0;
-	if( glp.unifLocs[unifName + 'val'] != value ){
-		glp.unifLocs[unifName + 'val'] = value;
-		gl.uniform1f( glp.unifLocs[unifName], value );
+	if( glp.unifVals[unifName] == undefined )
+		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
+	if( glp.unifVals[unifName + 'val'] == undefined )
+		glp.unifVals[unifName + 'val'] = 0;
+	if( glp.unifVals[unifName + 'val'] != value ){
+		glp.unifVals[unifName + 'val'] = value;
+		gl.uniform1f( glp.unifVals[unifName], value );
 	}
 }
 	
 function GLP_setIntUniform( glp, unifName, value ){
-	if( glp.unifLocs[unifName] == undefined )
-		glp.unifLocs[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifLocs[unifName + 'val'] == undefined )
-		glp.unifLocs[unifName + 'val'] = 0;
-	if( glp.unifLocs[unifName + 'val'] != value ){
-		glp.unifLocs[unifName + 'val'] = value;
-		gl.uniform1i( glp.unifLocs[unifName], value );
+	if( glp.unifVals[unifName] == undefined )
+		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
+	if( glp.unifVals[unifName + 'val'] == undefined )
+		glp.unifVals[unifName + 'val'] = 0;
+	if( glp.unifVals[unifName + 'val'] != value ){
+		glp.unifVals[unifName + 'val'] = value;
+		gl.uniform1i( glp.unifVals[unifName], value );
 	}
 }
 function GLP_cleanup(glp){

@@ -2,6 +2,10 @@
 function LineGraphics(loadCompleteCallback){
 
 	this.glProgram = new GlProgram('frayenLine', null, loadCompleteCallback);
+	
+	this.projMatrixUnif = null;
+	
+	this.diffColUnif_F4 = null;
 }
 
 
@@ -15,14 +19,12 @@ function LINE_G_Setup(lineG){
 	if( !lineG.projMatrixUnif )
 		lineG.projMatrixUnif = gl.getUniformLocation( lineG.glProgram.glProgId, 'projection');
 
-	if( !lineG.mMatrixUnif ){
-		lineG.mMatrixUnif = gl.getUniformLocation( lineG.glProgram.glProgId, 'mMatrix');
-	}
-
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 	
-	GLP_setVec4Uniform(lineG.glProgram, 'diffuseColor', temp);
+	lineG.diffColUnif_F4 = gl.getUniformLocation( lineG.glProgram.glProgId, 'diffuseColor' );
+	
+	GLP_setVec4Uniform(lineG.glProgram, lineG.diffColUnif_F4, temp);
 	
 	//CheckGLError( "glProgram::end frag shader loaded " );
 }
