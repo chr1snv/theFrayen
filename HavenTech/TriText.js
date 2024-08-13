@@ -170,8 +170,9 @@ function TR_QueueText( x, y, dpth, size, str ){
 
 let tr_highlightedColor = new Float32Array([1,1,0, 1]);
 
-let tr_ptrRay = new Ray( Vect3_New(), Vect3_New() );
-tr_ptrRay.norm[2] = 1;
+let tr_ptrRay = new Ray( Vect3_New(), Vect3_NewZero() );
+tr_ptrRay.norm[2] = -1;
+let ndcSpaceAABB = new AABB( Vect3_New(), Vect3_New() );
 function TR_RaycastPointer(pLoc){
 	//cast the given location into the aabb's to find
 	//which text objects it intersects with
@@ -183,9 +184,11 @@ function TR_RaycastPointer(pLoc){
 	for( let i = 0; i < subRngKeys.length; ++i ){
 		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
 		let aabb = subRng.obj.AABB;
-		console.log( "aabbMin " + Vect_ToFixedPrecisionString( aabb.minCoord, 4 ) + " max " + Vect_ToFixedPrecisionString( aabb.maxCoord, 4 ) );
-		console.log( "tr_ptrRay " + Vect_ToFixedPrecisionString( tr_ptrRay.origin, 4 ) );
-		if( AABB_RayIntersects(aabb, tr_ptrRay, 0 ) > 0 ){
+		Matrix_Multiply_Vect3( ndcSpaceAABB.minCoord, gOM, aabb.minCoord );
+		Matrix_Multiply_Vect3( ndcSpaceAABB.maxCoord, gOM, aabb.maxCoord );
+		//console.log( "aabbMin " + Vect_ToFixedPrecisionString( aabb.minCoord, 4 ) + " max " + Vect_ToFixedPrecisionString( aabb.maxCoord, 4 ) );
+		//console.log( "tr_ptrRay " + Vect_ToFixedPrecisionString( tr_ptrRay.origin, 4 ) );
+		if( AABB_RayIntersects(ndcSpaceAABB, tr_ptrRay, 0 ) > 0 ){
 			//change the text color
 			subRng.overrideColor = tr_highlightedColor;
 		}else{
