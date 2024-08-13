@@ -31,8 +31,8 @@ const SailModes = {
 
 let sgMode = SailModes.Menu;
 
-function SAIL_sceneSpecificUpdate( time){
-	
+function SAIL_sceneSpecificUpdate( time ){
+
 	if( ocean.ready )
 		OCN_Update( ocean, time );
 
@@ -42,7 +42,15 @@ function SAIL_sceneSpecificUpdate( time){
 		case SailModes.Menu:
 			if( mDown || touch.menuTouch != null )
 				sgMode = SailModes.Gameplay;
+			
+			//menu heading text
+			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL" );
+			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
+			
 		case SailModes.Gameplay:
+		
+			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:" );
+		
 			WNT_Update( time );
 			
 			BOAT_Update( time );
@@ -53,6 +61,8 @@ function SAIL_sceneSpecificUpdate( time){
 				sgMode = SailModes.Menu;
 	}
 	
+	TR_RaycastPointer( mCoords );
+
 }
 
 
@@ -70,7 +80,7 @@ function SAIL_sceneSpecificObjects( objMap ){
 function SAIL_sceneSpecificDraw( ){
 
 	if( sgMode == SailModes.Menu ){
-	
+
 		//menu background overlay
 		cenPos        = [ 0        , 0    ];
 		wdthHight     = [ 1        , 1    ];
@@ -78,15 +88,6 @@ function SAIL_sceneSpecificDraw( ){
 		maxUv         = [ 1        , 0    ];
 		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
 
-
-		//menu heading text
-		TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL" );
-		TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
-		//TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
-
-	}else{
-		TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:" );
-	
 	}
 
 

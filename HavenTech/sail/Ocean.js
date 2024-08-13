@@ -28,5 +28,5 @@ function OCN_Update( ocn, time ){
 
 function OCN_QMReady( qm, ocn ){
 	ocn.ready = true;
-	
+
 }

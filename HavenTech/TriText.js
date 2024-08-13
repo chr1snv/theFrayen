@@ -3,6 +3,7 @@ function TXTR_StrVertBufObj(numVerts){
 	this.vertBufferForMat = [new Float32Array(numVerts*vertCard)];
 	this.normBufferForMat = [new Float32Array(numVerts*normCard)];
 	this.uvBufferForMat = [new Float32Array(numVerts*uvCard)];
+	this.AABB = null;
 }
 
 
@@ -102,6 +103,8 @@ function TR_QueueText( x, y, dpth, size, str ){
 		let uvBufIdx = 0;
 		escpSeqActive = false;
 		let escpdLen = 0;
+		let strMin = Vect3_NewScalar( Number.POSITIVE_INFINITY );
+		let strMax = Vect3_NewScalar( Number.NEGATIVE_INFINITY );
 		//generate the mesh for the glyph positions to draw
 		let lNum = 0; //line number
 		for( let i = 0; i < str.length; ++i ){
@@ -131,11 +134,14 @@ function TR_QueueText( x, y, dpth, size, str ){
 			let glyphNorms = glyphM.normBufferForMat[0];
 			let glyphUvs   = glyphM.uvBufferForMat[0];
 			let numGlyphVerts = glyphVerts.length;
-			for( let j = 0; j < numGlyphVerts; ++j ){
-				Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j*vertCard );
+			//Vect3_SetScalar( strMin, Number.POSITIVE_INFINITY );
+			//Vect3_SetScalar( strMax, Number.NEGATIVE_INFINITY );
+			for( let j = 0; j < numGlyphVerts; j+=vertCard ){
+				Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j );
 				tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size) + x;
 				tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size) + y;
 				tmpGlyphVert[2] += dpth;
+				Vect_minMax( strMin, strMax, tmpGlyphVert );
 				Vect3_CopyToArr(strVertBufObj.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
 
 				Vect_CopyToFromArr( strVertBufObj.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
@@ -147,6 +153,7 @@ function TR_QueueText( x, y, dpth, size, str ){
 			}
 			escpdLen += 1;
 		}
+		strVertBufObj.AABB = new AABB( strMin, strMax );
 		
 		
 		
@@ -159,6 +166,33 @@ function TR_QueueText( x, y, dpth, size, str ){
 	txtR_dbB.sortedSubRngKeys.push(  glyphStrKey );
 	txtR_dbB.numBufSubRanges += 1;
 
+}
+
+let tr_highlightedColor = new Float32Array([1,1,0, 1]);
+
+let tr_ptrRay = new Ray( Vect3_New(), Vect3_New() );
+tr_ptrRay.norm[2] = 1;
+function TR_RaycastPointer(pLoc){
+	//cast the given location into the aabb's to find
+	//which text objects it intersects with
+	
+	tr_ptrRay.origin[0] = ((pLoc.x / graphics.screenWidth) - 0.5)* 2;
+	tr_ptrRay.origin[1] = ((pLoc.y / graphics.screenHeight) - 0.5)* -2;
+	
+	let subRngKeys = txtR_dbB.sortedSubRngKeys;
+	for( let i = 0; i < subRngKeys.length; ++i ){
+		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
+		let aabb = subRng.obj.AABB;
+		console.log( "aabbMin " + Vect_ToFixedPrecisionString( aabb.minCoord, 4 ) + " max " + Vect_ToFixedPrecisionString( aabb.maxCoord, 4 ) );
+		console.log( "tr_ptrRay " + Vect_ToFixedPrecisionString( tr_ptrRay.origin, 4 ) );
+		if( AABB_RayIntersects(aabb, tr_ptrRay, 0 ) > 0 ){
+			//change the text color
+			subRng.overrideColor = tr_highlightedColor;
+		}else{
+			subRng.overrideColor = null;
+		}
+			
+	}
 }
 
 function TR_DrawText(){

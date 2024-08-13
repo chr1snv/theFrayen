@@ -154,6 +154,11 @@ function R2RayIntersection( o1, d1, o2, d2 ){
 	}
 }
 
+//uses binary subdivision to iterativly estimate 
+//the closest point along the ray to a given point
+function Ray_ClosestPointToPoint(point){
+}
+
 function RayPointAtTime(point, ori, norm, t){
 	point[0] = norm[0] * t + ori[0];
 	point[1] = norm[1] * t + ori[1];
@@ -168,11 +173,7 @@ function Ray(origin, direction){
 	//they span world oct tree nodes they don't need to be checked again
 	this.lastNode = null;
 
-	//uses binary subdivision to iterativly estimate 
-	//the closest point along the ray to a given point
-	this.ClosestPointToPoint = function(point){
-	}
-
+	/*
 	//returns the point along the ray at the given 
 	//multiple of the ray direction (normal)
 	this.PointAtTime = function( point, t ){
@@ -183,4 +184,6 @@ function Ray(origin, direction){
 		//Vect3_MultiplyScalar( point, t );
 		//Vect3_Add( point, this.origin );
 	}
+	*/
+
 }

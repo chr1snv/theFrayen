@@ -97,7 +97,7 @@ function GLP_setVec2Uniform( glp, unifName, value ){
 		gl.uniform2fv( glp.unifVals[unifName], value );
 	}
 }
-	
+
 function GLP_setFloatUniform( glp, unifName, value ){
 	if( glp.unifVals[unifName] == undefined )
 		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
@@ -108,7 +108,7 @@ function GLP_setFloatUniform( glp, unifName, value ){
 		gl.uniform1f( glp.unifVals[unifName], value );
 	}
 }
-	
+
 function GLP_setIntUniform( glp, unifName, value ){
 	if( glp.unifVals[unifName] == undefined )
 		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
@@ -131,14 +131,14 @@ function GLP_cleanupVertexAttribBuffs(glp){
 	delete( glp.attribLocBufPtrs );
 	glp.attribLocBufPtrs = {};
 }
-	
+
 function GLP_cleanupVertexAttribBuff(glp, attribInstID){
 	if( glp.attribLocBufPtrs[attribInstID] != undefined ){
 		gl.deleteBuffer( glp.attribLocBufPtrs[attribInstID][1] );
 		delete glp.attribLocBufPtrs[attribInstID];
 	}
 }
-	
+
 function GLP_vertexAttribBuffEnable( glp, attribInstID, rsize ){
 	//attaches buffer to gl.ARRAY_BUFFER target
 	gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
@@ -146,7 +146,7 @@ function GLP_vertexAttribBuffEnable( glp, attribInstID, rsize ){
 	//links the buffer bound to gl.ARRAY_BUFFER to the program attribute location
 	gl.vertexAttribPointer(glp.attribLocBufPtrs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
 }
-	
+
 function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, attribLoc, rsize, overallLen, dynamic ){
 
 	if( glp.attribLocBufPtrs[attribInstID] == undefined ){
@@ -172,9 +172,9 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 	//binds buffer bound to gl.ARRAY_BUFFER to AttribLocation and specifies format
 	//gl.vertexAttribPointer(this.attribLocBufPtrs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
 }
-	
 
-	
+
+
 function GLP_vertexAttribSetFloats( glp, attribInstID, rsize, arr, attribLoc, dynamic ){
 	if( glp.attribLocBufPtrs[attribInstID] == undefined ){
 		//gl.deleteBuffer(Object buffer) when done using

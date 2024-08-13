@@ -205,15 +205,15 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 			boneQueue.push(newNode);
 		}
 	}
-	
-	
+
+
 }
 
 function SkelA_writeCombinedBoneMatsToGL(hvnsc){
 	//write the combined bone matricies to gl
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
-	
+
 	gl.texImage2D(
 		gl.TEXTURE_2D, 
 		0,					//level

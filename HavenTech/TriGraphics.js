@@ -13,22 +13,22 @@ function TriGraphics(loadCompleteCallback){
 	this.glProgram = new GlProgram('frayen', this, TRIG_LoadComp);
 
 	this.textures = {};
-	
-	
+
+
 	this.texturingEnabled_UnifF1 = null;
 	this.lightingEnabled_Unif_I1 = null;
-	
+
 	this.texturingEnabled_UnifF1 = null;
 	this.diffColUnif_F4 = null;
-	
+
 	this.projMatrixUnif          = null;
 	this.mMatrixUnif             = null;
-	
+
 	this.positionAttribLoc     = null;
 	this.normAttribLoc         = null;
 	this.texCoordAttribLoc     = null;
 	this.indexWeightsAttribLoc = null;
-	
+
 }
 
 function TRIG_LoadComp(triG){
@@ -65,7 +65,7 @@ function TRI_G_Setup(triG){
 
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
-	
+
 	GLP_setIntUniform(triG.glProgram, 'boneMatrixTexture', 1); //possibly binds to gl TEXTURE1 unit
 	//GLP_setIntUniform(triG.glProgram, 'texSampler', 0);
 
@@ -80,7 +80,7 @@ function TRI_G_Setup(triG){
 	gl.enableVertexAttribArray(triG.positionAttribLoc);
 	gl.enableVertexAttribArray(triG.normAttribLoc);
 	gl.enableVertexAttribArray(triG.texCoordAttribLoc);
-	
+
 	//gl.enableVertexAttribArray(triG.indexWeightsAttribLoc);
 
 
@@ -136,7 +136,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 		}
 
 		triG.textures[textureName].Bind();
-		
+
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 1 );
 	}else{
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
@@ -144,7 +144,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 
 	GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
 	gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
-	
+
 	TRIG_SetDefaultOrthoCamMat(triG);
 
 	//generate the 4 corners from the centerpoint and width/height
@@ -285,7 +285,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	}
 
 	//CheckGLError("TRI_G_drawTriangles after set vertexAttribPointers");
-
+	let overrideColorSet = false;
 	for( let i = 0; i < buf.numBufSubRanges; ++i ){
 		let subRange = buf.bufSubRanges[ bufSubRangeKeys[i] ];
 		let startIdx = subRange.startIdx;
@@ -297,8 +297,17 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 			GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
 		}
 		
+		if( subRange.overrideColor ){
+			GLP_setUnif_F4( triG.glProgram, triG.diffColUnif_F4, subRange.overrideColor );
+			overrideColorSet = true;
+		}else if( overrideColorSet ){
+			GLP_setUnif_F4( triG.glProgram, triG.diffColUnif_F4, buf.diffuseCol);
+			overrideColorSet = false;
+		}
+		
+		
 
-		//set the screenspace orthographic matrix
+		//set the model matrix
 		//transpose=true requires webgl2.0
 		Matrix_Transpose( transMat, subRange.toWorldMatrix );
 		gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );//, 0, 4*4 );
