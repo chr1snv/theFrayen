@@ -9,6 +9,8 @@ var sailScripts = [
 function SAIL_ScriptLoadCmp(){
 	ocean = new Ocean(mainScene);
 
+	BOAT_Init();
+
 	sailLdCmpCb();
 }
 
@@ -40,16 +42,21 @@ function SAIL_sceneSpecificUpdate( time ){
 	//handle menu input
 	switch( sgMode ){
 		case SailModes.Menu:
-			if( mDown || touch.menuTouch != null )
-				sgMode = SailModes.Gameplay;
+			if( mDown ){
+				//|| touch.menuTouch != null )
+				for( let i = 0; i < numMOvrdStrs; ++i )
+					if( mOvrdStrs[i] == "START" )
+						sgMode = SailModes.Gameplay;
+			}
 			
 			//menu heading text
-			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL" );
-			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START" );
+			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL", false );
+			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START", true );
 			
+			break;
 		case SailModes.Gameplay:
 		
-			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:" );
+			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
 		
 			WNT_Update( time );
 			
@@ -57,6 +64,13 @@ function SAIL_sceneSpecificUpdate( time ){
 			
 			RGTTA_Update( time );
 			
+			
+			if( mDown ){
+				//|| touch.menuTouch != null )
+				for( let i = 0; i < numMOvrdStrs; ++i )
+					if( mOvrdStrs[i] == ":Gear:" )
+						sgMode = SailModes.Menu;
+			}
 			if( mDownCoords.x < 40 && mDownCoords.y < 40 )
 				sgMode = SailModes.Menu;
 	}

@@ -58,16 +58,16 @@ function TouchScreenControls(){
 					touch.movementTouch = null;
 					touch.movementDelta[0] = 0;
 					touch.movementDelta[1] = 0;
-					
+					break;
 				case touch.lookTouch.identifier:
 					touch.lookTouch = null;
 					touch.lookDelta[0] = 0;
 					touch.lookDelta[1] = 0;
-					
+					break;
 				case touch.rollTouch.identifier:
 					touch.rollTouch = null;
 					touch.rollDelta = 0;
-					
+					break;
 				case touch.menuTouch.identifier:
 					touch.menuTouch = null;
 			}

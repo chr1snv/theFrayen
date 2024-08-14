@@ -246,10 +246,11 @@ function SkelA_GenerateBoneTree(skelA){
 	}
 }
 
-function SkelA_GenerateMesh(skelA, mesh, time ){
+function SkelA_UpdateTransforms( skelA, time, script=false ){
 	//apply skelA transformation to the mesh vertices, generating a new set of vertex positions
 
-	if( time == skelA.lastUpdateTime )
+	//prevent unessecary update or scene time update for script controlled objects
+	if( time == skelA.lastUpdateTime  || (skelA.scriptControlled && !script) || !skelA.hvnsc || !skelA.hvnsc.combinedBoneMats )
 		return false;
 
 	let wrappedTime = time * 25;

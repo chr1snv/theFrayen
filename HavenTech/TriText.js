@@ -4,6 +4,8 @@ function TXTR_StrVertBufObj(numVerts){
 	this.normBufferForMat = [new Float32Array(numVerts*normCard)];
 	this.uvBufferForMat = [new Float32Array(numVerts*uvCard)];
 	this.AABB = null;
+	this.str = "";
+	this.interactive = false;
 }
 
 
@@ -38,9 +40,11 @@ function TXTR_Init(){
 
 }
 
-function TXTR_AllocSubRngBuffer(numVerts, subBufId){
+function TXTR_AllocSubRngBuffer(numVerts, subBufId, str, interactive){
 
 	let obj = new TXTR_StrVertBufObj(numVerts);
+	obj.str = str;
+	obj.interactive = interactive
 
 	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
 	let textR_sbb = new BufSubRange( txtR_dbB.bufferIdx, numVerts, obj, 0 );
@@ -63,7 +67,7 @@ const lVertSpc = 0.2;
 
 //draw text at certian size
 let tmpGlyphVert = Vect3_New();
-function TR_QueueText( x, y, dpth, size, str ){
+function TR_QueueText( x, y, dpth, size, str, interactive ){
 	
 	//check if its something that wasn't rendered last frame
 	let glyphStrKey = "" + x + ":" + y + ":" + dpth + ":" + size + " " + str;
@@ -97,7 +101,7 @@ function TR_QueueText( x, y, dpth, size, str ){
 		}
 		
 		//allocate glyph vert buffer for the string
-		let strVertBufObj = TXTR_AllocSubRngBuffer( strNumVerts, glyphStrKey );
+		let strVertBufObj = TXTR_AllocSubRngBuffer( strNumVerts, glyphStrKey, str, interactive );
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
 		let uvBufIdx = 0;
@@ -170,12 +174,17 @@ function TR_QueueText( x, y, dpth, size, str ){
 
 let tr_highlightedColor = new Float32Array([1,1,0, 1]);
 
+const MAX_M_OVRED_OBJS = 10;
+let mOvrdStrs = new Array(MAX_M_OVRED_OBJS);
+let numMOvrdStrs = 0;
+
 let tr_ptrRay = new Ray( Vect3_New(), Vect3_NewZero() );
 tr_ptrRay.norm[2] = -1;
 let ndcSpaceAABB = new AABB( Vect3_New(), Vect3_New() );
 function TR_RaycastPointer(pLoc){
 	//cast the given location into the aabb's to find
 	//which text objects it intersects with
+	numMOvrdStrs = 0;
 	
 	tr_ptrRay.origin[0] = ((pLoc.x / graphics.screenWidth) - 0.5)* 2;
 	tr_ptrRay.origin[1] = ((pLoc.y / graphics.screenHeight) - 0.5)* -2;
@@ -183,6 +192,8 @@ function TR_RaycastPointer(pLoc){
 	let subRngKeys = txtR_dbB.sortedSubRngKeys;
 	for( let i = 0; i < subRngKeys.length; ++i ){
 		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
+		if( !subRng.obj.interactive ) //skip non interactable text objects
+			continue;
 		let aabb = subRng.obj.AABB;
 		Matrix_Multiply_Vect3( ndcSpaceAABB.minCoord, gOM, aabb.minCoord );
 		Matrix_Multiply_Vect3( ndcSpaceAABB.maxCoord, gOM, aabb.maxCoord );
@@ -191,6 +202,7 @@ function TR_RaycastPointer(pLoc){
 		if( AABB_RayIntersects(ndcSpaceAABB, tr_ptrRay, 0 ) > 0 ){
 			//change the text color
 			subRng.overrideColor = tr_highlightedColor;
+			mOvrdStrs[ numMOvrdStrs++ ] = subRng.obj.str;
 		}else{
 			subRng.overrideColor = null;
 		}

@@ -1,11 +1,6 @@
 
 function Overlay_DrawInputHint(){
-	framesSinceLastFPSOutputTime += 1;
-	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
-		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
-		lastSceneFPSOutputTime = sceneTime;
-		framesSinceLastFPSOutputTime = 0;
-	}
+	
 	
 	let timeSinceShowingInputHelperOverlay = sceneTime-lastInputTime;
 	if( timeSinceShowingInputHelperOverlay > noInputDisplayHelpOverlayTime ){

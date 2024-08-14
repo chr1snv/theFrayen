@@ -637,7 +637,7 @@ function QM_UpdateTransformedVerts(qm, time){
 	
 	//update the coordinates with the animation / simulation type
 	if( qm.skelAnimation != null )
-		updated = SkelA_GenerateMesh(qm.skelAnimation, qm, time );
+		updated = SkelA_UpdateTransforms(qm.skelAnimation, time );
 	
 	//if there are skel anim transforms, they occur in the vertex shader
 	qm.transformedVerts = transformedVertCoords;
@@ -783,7 +783,7 @@ function QM_Reset(qm){
 	qm.lastMeshUpdateTime = -0.5;
 	qm.hasntDrawn = true;
 	if(qm.skelAnimation) //should be once per armature in a graphics reset function
-		qm.skelAnimation.lastUpdateTime = 0;
+		qm.skelAnimation.lastUpdateTime = -0.5;
 }
 
 

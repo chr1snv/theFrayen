@@ -356,6 +356,13 @@ function MainLoop()
 	
 	if( !document.fullscreenElement )
 		DrawSoundCanvas();
+		
+	framesSinceLastFPSOutputTime += 1;
+	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
+		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
+		lastSceneFPSOutputTime = sceneTime;
+		framesSinceLastFPSOutputTime = 0;
+	}
 
 	//graphics.Flush();
 }
