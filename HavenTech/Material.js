@@ -36,7 +36,7 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.isHit = false;
 	this.isValid = false;
 
-	this.textureLoaded = function( thisP, tex ){
+	this.textureLoaded = function( tex, thisP ){
 		thisP.texture = tex;
 	}
 
@@ -84,8 +84,13 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 					let isDiffuse = false;
 					let isNormal = false;
 					let isEmit = false;
+					let wrapType = 1; //repeat
 					while(++i < materialFileLines.length){
 						temp = materialFileLines[i].split(' ');
+						if(temp[0] == 'wrapType' ){
+							if( temp[1] == 'clamp' )
+								wrapType = 0;
+						}
 						if(temp[0] == 'difTexAisAlpha')
 							thisP.diffuseTextureAlpha = true;
 						else if(temp[0] == 'difTex'){ // the texture is diffuse type
@@ -110,9 +115,10 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 								thisP.normalTextureName  = textureName;
 							if(isEmit)
 								thisP.emitTextureName    = textureName;
-								
+							
 							//preload the texture
-							graphics.GetTexture(textureName, thisP.sceneName, thisP, thisP.textureLoaded);
+							//function(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters)
+							graphics.GetCached(textureName, thisP.sceneName, Texture, wrapType, thisP.textureLoaded, thisP);
 						}
 						if(temp[0] == 'e') // sort of unnesscary, as soon as the file
 							break;			//name is read reading this texture is done

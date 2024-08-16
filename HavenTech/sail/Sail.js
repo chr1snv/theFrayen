@@ -8,6 +8,8 @@ var sailScripts = [
 
 function SAIL_ScriptLoadCmp(){
 	ocean = new Ocean(mainScene);
+	
+	RGTTA_Init();
 
 	BOAT_Init();
 
@@ -92,6 +94,8 @@ function SAIL_sceneSpecificObjects( objMap ){
 
 
 function SAIL_sceneSpecificDraw( ){
+
+	RGTTA_Draw();
 
 	if( sgMode == SailModes.Menu ){
 

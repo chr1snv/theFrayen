@@ -154,6 +154,9 @@ def writeMaterial(assetDirectory, mat):
 
                 #write the texture type
                 out.write('tex\n')
+                #bpy.data.scenes[0].objects[2].material_slots[0].material.node_tree.nodes['Image Texture'].extension
+                if node.extension == 'EXTEND' :
+	                out.write( 'wrapType clamp\n' )
                 try:
                     if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
                         diffuseTextureFilename = filename

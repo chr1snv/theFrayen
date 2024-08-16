@@ -104,7 +104,7 @@ function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
 }
 
 
-function triGTexReady(triG, tex){
+function triGTexReady( tex, triG ){
 	triG.textures[tex.texName] = tex;
 }
 
@@ -131,7 +131,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
+			graphics.GetCached(textureName, sceneName, Texture, 0, triGTexReady, triG);
 			return;
 		}
 
@@ -200,7 +200,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	//set texture or color for material
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-			graphics.GetTexture(textureName, sceneName, triG, triGTexReady);
+			graphics.GetCached(textureName, sceneName, Texture, 0, triGTexReady, triG);
 			return;
 		}
 

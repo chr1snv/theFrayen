@@ -592,7 +592,7 @@ function HVNSC_Draw(hvnsc){
 
 	if( hvnsc.boneMatTexture != null )
 		SkelA_writeCombinedBoneMatsToGL(hvnsc);
-		
+	
 	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
 	let dbBKeys = Object.keys( drawBatchBuffers );
 	for( let i = 0; i < dbBKeys.length; ++i ){

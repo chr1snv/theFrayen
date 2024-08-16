@@ -4,13 +4,14 @@
 //called to create a new texture,
 //the texture ready callback is called to return the result to the caller when loading is complete
 
-function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback ){
+function Texture( nameIn, sceneNameIn, wrapType, textureReadyCallback, readyCallbackParams ){
 
     this.textureHandle = 0;
     this.texName = nameIn;
     this.sceneName = sceneNameIn;
     this.maxXCoord = 0.0;
     this.maxYCoord = 0.0;
+    this.wrapType = wrapType;
     this.isValid   = false;
 
     //thisP.textureHandle = null;
@@ -44,6 +45,11 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        let wrapType = gl.REPEAT;
+        if( this.wrapType == 0 )
+        	wrapType = gl.CLAMP_TO_EDGE;
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapType );
         }else{
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.textureHandle);
@@ -88,7 +94,7 @@ function Texture( nameIn, sceneNameIn, readyCallbackParams, textureReadyCallback
         //so when it is asked for again the cached data can be fetched
         graphics.AppendTexture( thisP.texName, thisP.sceneName, thisP );
         if(textureReadyCallback)
-            textureReadyCallback(readyCallbackParams, thisP); //when the image is loaded, return
+            textureReadyCallback(thisP, readyCallbackParams); //when the image is loaded, return
     }
 
     //if the texture doesn't load from the server correctly

@@ -44,7 +44,7 @@ function TXTR_AllocSubRngBuffer(numVerts, subBufId, str, interactive){
 
 	let obj = new TXTR_StrVertBufObj(numVerts);
 	obj.str = str;
-	obj.interactive = interactive
+	obj.interactive = interactive;
 
 	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
 	let textR_sbb = new BufSubRange( txtR_dbB.bufferIdx, numVerts, obj, 0 );
