@@ -3,84 +3,79 @@
 
 let rgtaScene = null;
 function RGTTA_Init(){
-
 	rgtaScene = new HavenScene( "islandRegatta", RGTTA_SceneLoaded );
+}
 
+function RGTTA_AllocSubRngBuffer(dbB, numVerts, subBufId, obj){
+	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
+	let sbb = new BufSubRange( dbB.bufferIdx, numVerts, obj, 0 );
+	Matrix_SetIdentity( sbb.toWorldMatrix );
+	dbB.bufSubRanges[subBufId] = sbb;
+	
+	dbB.bufferIdx += numVerts;
+	
+	let subRngKeys = Object.keys( dbB.bufSubRanges );
+	for(let i = 0; i < subRngKeys.length; ++i ){
+		dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
+	}
+	//txtR_dbB.regenAndUploadEntireBuffer = true;
+	
+	return sbb;
+}
+
+function InitAndAllocOneObjBuffer(obj){
+	let matIdx = 0;
+	//qm, drawBatch, matIdx, subBatchBuffer
+	QM_SL_GenerateDrawVertsNormsUVsForMat( obj, null, matIdx, null );
+	
+	let material = obj.materials[matIdx];
+	let dbB = new DrawBatchBuffer( material );
+	let numVerts = obj.vertBufferForMat[matIdx].length;
+	let subBufId = 0;
+	RGTTA_AllocSubRngBuffer( dbB, numVerts, subBufId, obj );
+	//enable the sub batch buffer to draw this frame
+	if( dbB.sortedSubRngKeys == null )
+		dbB.sortedSubRngKeys = [];
+	dbB.sortedSubRngKeys.push( subBufId );
+	dbB.numBufSubRanges += 1;
+	
+	return dbB;
 }
 
 
 let bouy_dbB = null;
 
+let windIndc_dbB = null;
+
 let bouy = null;
+let wndIndc = null;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
 	bouy = graphics.cachedObjs[QuadMesh.name]["islandRegatta"]["inflatableBouy"][0];
+	bouy_dbB = InitAndAllocOneObjBuffer(bouy);
 
-	let bouyMaterial = bouy.materials[0];
-
-	bouy_dbB = new DrawBatchBuffer( bouyMaterial );
-
-
-	let numVerts = bouy.vertBufferForMat[0].length;
-	
-	QM_SL_GenerateDrawVertsNormsUVsForMat( bouy, null, 0, null );
-
-	RGTTA_AllocSubRngBuffer( numVerts, 0, bouy );
-	
-	//enable the sub batch buffer to draw this frame
-	if( bouy_dbB.sortedSubRngKeys == null )
-		bouy_dbB.sortedSubRngKeys = [];
-	bouy_dbB.sortedSubRngKeys.push(  0 );
-	bouy_dbB.numBufSubRanges += 1;
+	wndIndc = graphics.cachedObjs[QuadMesh.name]["islandRegatta"]["windIndc"][0];
+	windIndc_dbB = InitAndAllocOneObjBuffer(wndIndc);
 
 }
 
-
-function RGTTA_AllocSubRngBuffer(numVerts, subBufId, obj){
-
-	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
-	let bouy_sbb = new BufSubRange( bouy_dbB.bufferIdx, numVerts, obj, 0 );
-	Matrix_SetIdentity( bouy_sbb.toWorldMatrix );
-	bouy_dbB.bufSubRanges[subBufId] = bouy_sbb;
-	
-	bouy_dbB.bufferIdx += numVerts;
-	
-	let subRngKeys = Object.keys( bouy_dbB.bufSubRanges );
-	for(let i = 0; i < subRngKeys.length; ++i ){
-		bouy_dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
-	}
-	//txtR_dbB.regenAndUploadEntireBuffer = true;
-	
-	return obj;
-}
 
 
 let currentBouy = 0;
 function RGTTA_Update( time ){
 
 
-
 }
 
 
-
+//expected to be called when triG and 3d cam matrix is already setup
 function RGTTA_Draw( time ){
 
 	if( !bouy_dbB )
 		return null;
 
-	let triG = graphics.triGraphics;
-
-	TRI_G_Setup(triG);
-	
-	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
-
-	//GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
-	//GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
-	//GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
-
-	TRI_G_drawTriangles( triG, bouy_dbB.texName,
+	TRI_G_drawTriangles( graphics.triGraphics, bouy_dbB.texName,
 		bouy_dbB.material.sceneName, bouy_dbB, 0 );
 
 }

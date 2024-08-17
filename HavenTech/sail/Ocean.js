@@ -12,6 +12,8 @@ function Ocean(){
 	this.resolutionToDist = 16;
 	this.halfResolutionDist = 32;
 	
+	this.ready = false;
+	
 	this.quadmesh = new QuadMesh( "oceanSurface", "sailDefault", null, OCN_QMReady, this );
 }
 

@@ -2,13 +2,13 @@
 var sailScripts = [
 	'sail/Ocean.js',
 	'sail/Boat.js',
-	'sail/WindAndTide.js',
+	//'sail/WindAndTide.js',
 	'sail/Regatta.js'
 ];
-
+let ocean = null;
 function SAIL_ScriptLoadCmp(){
 	ocean = new Ocean(mainScene);
-	
+
 	RGTTA_Init();
 
 	BOAT_Init();
@@ -37,7 +37,7 @@ let sgMode = SailModes.Menu;
 
 function SAIL_sceneSpecificUpdate( time ){
 
-	if( ocean.ready )
+	if( ocean && ocean.ready )
 		OCN_Update( ocean, time );
 
 
@@ -45,7 +45,6 @@ function SAIL_sceneSpecificUpdate( time ){
 	switch( sgMode ){
 		case SailModes.Menu:
 			if( mDown ){
-				//|| touch.menuTouch != null )
 				for( let i = 0; i < numMOvrdStrs; ++i )
 					if( mOvrdStrs[i] == "START" )
 						sgMode = SailModes.Gameplay;
@@ -60,15 +59,14 @@ function SAIL_sceneSpecificUpdate( time ){
 		
 			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
 		
-			WNT_Update( time );
+			//WNT_Update( time );
 			
-			BOAT_Update( time );
+			BOAT_Update( time,  );
 			
 			RGTTA_Update( time );
 			
 			
 			if( mDown ){
-				//|| touch.menuTouch != null )
 				for( let i = 0; i < numMOvrdStrs; ++i )
 					if( mOvrdStrs[i] == ":Gear:" )
 						sgMode = SailModes.Menu;
@@ -95,22 +93,27 @@ function SAIL_sceneSpecificObjects( objMap ){
 
 function SAIL_sceneSpecificDraw( ){
 
+	//3d mode
 	RGTTA_Draw();
 
+	//2d orthographic mode
 	if( sgMode == SailModes.Menu ){
-
 		//menu background overlay
 		cenPos        = [ 0        , 0    ];
 		wdthHight     = [ 1        , 1    ];
 		minUv         = [ 0        , 1    ];
 		maxUv         = [ 1        , 0    ];
 		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
-
 	}
-
-
+	//sets up orthographic matrix
 	TR_DrawText();
 
+	if( sgMode == SailModes.Gameplay && windIndc_dbB != null ){
+		TRI_G_drawTriangles( graphics.triGraphics, windIndc_dbB.texName,
+			windIndc_dbB.material.sceneName, windIndc_dbB, 0 );
+	}
+
+	//cleanup
 	TR_DeactivateFrameGlyphs();
 
 }

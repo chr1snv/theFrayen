@@ -214,21 +214,22 @@ function TR_DrawText(){
 	//draw the active glyph vert buffers
 	let triG = graphics.triGraphics;
 	
-	TRI_G_Setup(triG);
+	//TRI_G_Setup(triG);
 	
 	//GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
 	//GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
 	//GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
-	
+
 	TRIG_SetDefaultOrthoCamMat(triG);
-	
+
 	TRI_G_drawTriangles( triG, txtR_dbB.texName,
 		txtR_dbB.material.sceneName, txtR_dbB, 0 );
-	
+
 }
 
 function TR_DeactivateFrameGlyphs(){
-	//set the buffer as not active for the frame
+	//set the buffer as not active for the next frame 
+	//(until/unless next frame the same string is asked to draw)
 	txtR_dbB.sortedSubRngKeys = [];
 	txtR_dbB.numBufSubRanges = 0;
 	

@@ -135,7 +135,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 			return;
 		}
 
-		triG.textures[textureName].Bind();
+		TEX_Bind( triG.textures[textureName] );
 
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 1 );
 	}else{
@@ -204,7 +204,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 			return;
 		}
 
-		triG.textures[textureName].Bind();
+		TEX_Bind( triG.textures[textureName] );
 
 		GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 1 );
 	}else{
@@ -243,7 +243,7 @@ function TRI_G_drawTriangles( triG, textureName, sceneName, buf, totalNumBones )
 	else
 		gl.disableVertexAttribArray(triG.indexWeightsAttribLoc);
 	//CheckGLError("TRI_G_drawTriangles after GLP_vertexAttribBuffAllocateOrEnableAndBind");
-	
+
 
 	//CheckGLError("TRI_G_drawTriangles before upload verts attributes if necessary");
 	//upload verts attributes if necessary
