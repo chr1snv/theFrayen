@@ -61,7 +61,7 @@ function SAIL_sceneSpecificUpdate( time ){
 		
 			//WNT_Update( time );
 			
-			BOAT_Update( time,  );
+			BOAT_Update( time, 180/180*Math.PI );
 			
 			RGTTA_Update( time );
 			

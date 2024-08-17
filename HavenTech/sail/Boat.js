@@ -38,13 +38,17 @@ function BOAT_Init(){
 
 //670 port downwind wing on wing 	(270-180deg)
 
+let boatHeading = 0;
+
 let tillerDirection = 0;
 let tillerInputAmt = 0.5;
 const restoreAmt = 0.01;
 
 let lastAnimFrame = 0;
-let animFrameDiffAmt = 0.1;
-function BOAT_Update(time, relWndHdg ){
+let maxAnimFrameDiffStep = 0.1;
+function BOAT_Update(time, wndHdg ){
+
+	let relWndHdg = (wndHdg-180*Math.PI) - boatHeading;
 
 	//handle input
 	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true ){
@@ -58,29 +62,32 @@ function BOAT_Update(time, relWndHdg ){
 	}
 	
 	//find which sail position animation the boat should use for forward motion
-	let animTargFrame = 230;
-	if( relWndHdg < 45 ){
-		animTargFrame = 230;
-	}else if( relWndHdg < 90 ){
-		animTargFrame = 200;
-	}else if( relWndHdg < 180 ){
-		animTargFrame = 170;
-	}else if( relWndHdg < 270 ){
-		animTargFrame = 130;
+	let animTargFrame = 230/ANIM_FRAME_RATE;
+	if( relWndHdg < 45/180*Math.PI ){ //230 stb close hauled 				(45-0deg)
+		animTargFrame = 230/ANIM_FRAME_RATE;
+	}else if( relWndHdg < 90/180*Math.PI ){ //200 stb reach 					(90-45deg)
+		animTargFrame = 200/ANIM_FRAME_RATE;
+	}else if( relWndHdg < 180/180*Math.PI ){ //170 stb wing on wing 				(180-90deg)
+		animTargFrame = 170/ANIM_FRAME_RATE;
+	}else if( relWndHdg < 270/180*Math.PI ){ //130 port wing on wing 			(270-180deg)
+		animTargFrame = 130/ANIM_FRAME_RATE;
 	}
 	
-	else if( relWndHdg < 315 ){
-		animTargFrame = 635;
-	}else if( relWndHdg < 360 ){
-		animTargFrame = 560;
+	else if( relWndHdg < 315/180*Math.PI ){ //635 port reach 					(270-315deg)
+		animTargFrame = 635/ANIM_FRAME_RATE;
+	}else if( relWndHdg < 360/180*Math.PI ){ //560 port close hauled 			(360-315deg)
+		animTargFrame = 560/ANIM_FRAME_RATE;
 	}
 	//update the animation of the boat sails to the correct frame
-	lastAnimFrame = Math.sign( animTargFrame - lastAnimFrame ) * animFrameDiffAmt;
+	let frameDiff = animTargFrame - lastAnimFrame;
+	if( Math.abs( frameDiff ) > maxAnimFrameDiffStep )
+		frameDiff = Math.sign( frameDiff ) * maxAnimFrameDiffStep;
+	lastAnimFrame += frameDiff;
 	SkelA_UpdateTransforms( jibArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( girlArm, lastAnimFrame, true );
 	
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
-	Matrix_SetEulerTransformation( windIndc_dbB.bufSubRanges[0].toWorldMatrix, [1,1,1], [0,45/180*Math.PI, relWndHdg], [0, -0.5, 0] );
+	Matrix_SetEulerTransformation( windIndc_dbB.bufSubRanges[0].toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
 }

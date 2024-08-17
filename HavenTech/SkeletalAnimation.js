@@ -246,6 +246,7 @@ function SkelA_GenerateBoneTree(skelA){
 	}
 }
 
+const ANIM_FRAME_RATE = 25;
 function SkelA_UpdateTransforms( skelA, time, script=false ){
 	//apply skelA transformation to the mesh vertices, generating a new set of vertex positions
 
@@ -253,7 +254,7 @@ function SkelA_UpdateTransforms( skelA, time, script=false ){
 	if( time == skelA.lastUpdateTime  || (skelA.scriptControlled && !script) || !skelA.hvnsc || !skelA.hvnsc.combinedBoneMats )
 		return false;
 
-	let wrappedTime = time * 25;
+	let wrappedTime = time * ANIM_FRAME_RATE;
 	if( skelA.loop && wrappedTime > skelA.duration )
 		wrappedTime = wrappedTime % skelA.duration;
 
