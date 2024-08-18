@@ -221,10 +221,14 @@ function TND_subNdObjDictForAxs(t, axs, subNdIdx, numNdAxs, srcCoords){
 	return obDict;
 }
 
+//remove an object from a leaf tree node
+//(possibly atteming to unsubdividing the node if after it is removed
+//the node contains < MaxTreeNodeObjects/2 )
 function TND_RemoveFromThisNode( t, object ){
 	//if this isn't the root node and doesn't have a parent, 
 	//then the node has been removed from the tree and don't need
-	//to update its object refrences
+	//to update its object refrences here
+	//because this tree node is discarded (to be garbage collected)
 	if( t.root == t || t.parent ){
 		
 		let objIdx = t.objectDictionary[object.uid.val];
@@ -324,6 +328,8 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 			//add objects to parent
 			let nLvsMDpth = [0,0];
 			for( let i = 0; i < objUids.length; ++i ){
+				let obj = siblingSubNdObjs[objUids[i]];
+				obj.numOctTreeNodesAddedTo = 
 				TND_AddObject( par, nLvsMDpth, siblingSubNdObjs[objUids[i]] );
 			}
 			return 1;
@@ -337,12 +343,14 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 
 //add an object to the node, if it is full - subdivide it 
 //and place objects in the sub nodes
-//returns num new nodes generated, (8, 0 or -1 if failed to add)
-//ret vals nLvsNLvls [num new leaves, num new depth levels, num new objs]
-//-1 too many objects (sub divide was likely tried on earlier add and failed)
-//-2 need to subdivide though the max depth has been reached
-//-3 need to subdivided though the min node size has been reached
-//-4 already subdivided (shouldn't happen)
+//returns 
+//	the tree nodesAddedTo (by )
+//	nLvsNLvls [num new leaves, num new depth levels, num new objs] (by refrence)
+// adding an object may fail for the following reasons
+//		-1 too many objects (sub divide was likely tried earlier add and failed)
+//		-2 need to subdivide though the max depth has been reached
+//		-3 need to subdivided though the min node size has been reached
+//		-4 already subdivided (shouldn't happen)
 function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 
 	let objAABB = object.AABB;
@@ -354,33 +362,49 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 	//(if necessary the smaller object should be parented to the one with enclosing aabb)
 	if( t.subNodes[0] == null ){ //not yet subdivided, try to add to self
 		
-		if( t.objInsertIdx >= MaxTreeNodeObjects ){ //sub divide was likely tried on earlier add and failed
-			
+		if( t.objInsertIdx >= MaxTreeNodeObjects ){ 
+			//sub divide was likely tried when adding to this node earlier and failed 
+			//causing the number of objects in this node to already be maxed out
 			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; }
-		if( t.objectDictionary[ object.uid.val ] != undefined ){
+			if( addCmpCallback != undefined ) 
+				addCmpCallback(addCmpArgs); 
+			return; 
+		}
 			
+		if( t.objectDictionary[ object.uid.val ] != undefined ){ 
+			//maybe this check should be after TND_addToThisNode
+			DTPrintf( "not really sure if this is a valid reason for AddObject fail", "ot add error", "color:red", t.depth );
 			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; }
+			if( addCmpCallback != undefined ) 
+				addCmpCallback(addCmpArgs); 
+			return; 
+		}
 		
+		//there should be capacity in this node to add the object, attempt to add it
 		TND_addToThisNode(t, nLvsMDpth, object);
 		
-		if( nLvsMDpth[0] < 0 ){ //obj's overlapped
+		if( nLvsMDpth[0] < 0 ){ //the obj's overlapped (failed to add to this node)
 			
-			if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs);
+			if( addCmpCallback != undefined ) 
+				addCmpCallback(addCmpArgs);
 			return;
 		}
 		
 		if( t.objInsertIdx >= MaxTreeNodeObjects ){ //need to try to subdivide
 			
 			//only leaf nodes should contain objects to avoid overlap ambiguity 
-			//and so rays only need check leaves while traversing
-			if( t.depth+1 > MaxTreeDepth ){ //limit depth to avoid running out of memory (if a mistake causes allot of object adding/tree division)
+			//(and so during raycasting rays only need check leaves while traversing)
+			if( t.depth+1 > MaxTreeDepth ){
+				//limit depth to avoid running out of memory 
+				//(if a mistake causes allot of object adding adding and tree division 
+				//this should prevent infinite looping and running out of memory)
 				
 				nLvsMDpth[0] = -2; nLvsMDpth[1] = 0;  //signify the max depth has been reached
 				TND_RemoveFromThisNode(t, object);
 				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return; 
+				if( addCmpCallback != undefined ) 
+					addCmpCallback(addCmpArgs); 
+				return; 
 			}
 
 			//split the node until there are only MaxTreeNodeObjects per node
@@ -394,7 +418,9 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 				nLvsMDpth[0] = -3; nLvsMDpth[1] = 0;
 				TND_RemoveFromThisNode(t, object);
 				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) addCmpCallback(addCmpArgs); return;
+				if( addCmpCallback != undefined ) 
+					addCmpCallback(addCmpArgs); 
+				return;
 			}
 			
 			
@@ -426,8 +452,9 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 								objsAttemptedToAdd[ obUid ] += subNdIdx + " ";
 								
 								let nNLvsMDpth = [0,0];
+								let obToAdd = xObDict[obUid];
 								
-								TND_AddObject( nd, nNLvsMDpth, xObDict[obUid] );
+								TND_AddObject( nd, nNLvsMDpth, obToAdd );
 								
 								if( nNLvsMDpth[0] >= 0 ){ //added the object
 									objsAdded[obUid] = obUid;
@@ -439,7 +466,7 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 										maxObjsInNde = nd.objInsertIdx;
 									
 								}else{// subDiv AddObject failed
-									DPrintf("failed to add " + xObDict[obUid].meshName + " " + xObDict[obUid].uid.val + " to nd " + nd.uid.val );
+									DTPrintf("failed to add " + xObDict[obUid].meshName + " " + xObDict[obUid].uid.val + " to nd " + nd.uid.val, "ot add error", "color:red", t.depth );
 								}
 							}//else xObDict[ obUid ].notAddedStr
 						}
@@ -461,6 +488,9 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 				nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
 				t.subNodes = [null,null,null,null,  null,null,null,null]
 				TND_RemoveFromThisNode(t, object);
+				if( addCmpCallback != undefined ) 
+					addCmpCallback(addCmpArgs);
+				return;
 			}else{
 				
 				/*
@@ -509,14 +539,21 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 					
 				//}
 				
-			}
+			} //end successfully subdivided and added obj to sub node
+			
+		}//end need to try to subdivide
+		else{ //didn't subdivide, added to the initially passed in node t
+			//object.treeNodes updated in the subdivision
+			//TND_AddObject( nd, nNLvsMDpth, obToAdd ); -> TND_addToThisNode
+			//call above
 		}
 		
 		
 		nLvsMDpth[1] = t.maxDepth;
 		// "ot add success"
 
-	}else{ //already subdivided, decide which sub nodes it should be added to
+	}//end added to this node or created new sub nodes and 
+	else{ //already subdivided, decide which sub nodes it should be added to
 		
 		let maxNewDpth = t.maxDepth;
 		for(let i = 0; i < t.subNodes.length; ++i){
@@ -529,6 +566,7 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 					
 					let snNLvsMDpth = [0,0];
 					TND_AddObject( subnode, snNLvsMDpth, object, addCmpCallback, addCmpArgs );
+					
 					if( snNLvsMDpth[0] > 0 ) //num new leaves > 0
 						nLvsMDpth[0] += snNLvsMDpth[0];
 					if( snNLvsMDpth[1] > nLvsMDpth[1] ) //max depth from add obj > maxNewDpth
@@ -546,7 +584,9 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 	
 	if( addCmpCallback != undefined )
 		addCmpCallback(addCmpArgs);
+		
 	
+	return;
 }
 
 function TND_SubNode( t, point ){

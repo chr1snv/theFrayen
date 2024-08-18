@@ -7,7 +7,7 @@
 mCoordDelta = {x:0, y:0};
 mCoords		= {x:0, y:0};
 mDown		= false;
-mDownCoords = {x:0, y:0}; 
+mDownCoords = {x:0, y:0};
 keys		= {};
 keysDown    = {};
 

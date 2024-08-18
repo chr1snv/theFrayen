@@ -108,22 +108,22 @@ function MDL_AddToOctTree( mdl, octTreeIn, addCompletedCallback )
 		return;
 
 	MDL_RemoveFromOctTree( mdl );
-	mdl.octTreeAddedTo = octTreeIn;
 	let nLvsMDpth = [0,0];
-	TND_AddObject(mdl.octTreeAddedTo, nLvsMDpth, mdl, addCompletedCallback);
+	TND_AddObject( octTreeIn, nLvsMDpth, mdl, addCompletedCallback );
 
 }
 
 function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
 {
-	if( mdl.octTreeAddedTo != null ){
-	
-		let OctTreeRemoveCompleted = function( thisP ){
-			thisP.octTreeAddedTo = null;
-		}
-		
-		mdl.octTreeAddedTo.Remove( removeCompleted, mdl );
+	let treeNodesAddedTo = Object.keys(mdl.treeNodes);
+	while( treeNodesAddedTo.length > 0 ){
+		TND_RemoveFromThisNode( mdl.treeNodes[mdl.treeNodesAddedTo[0]], mdl );
+		treeNodesAddedTo = Object.keys(mdl.treeNodes);
 	}
+	mdl.treeNodes = {};
+	
+	if( removeCompletedCallback != null )
+		removeCompletedCallback(mdl);
 }
 
 //animation functions
