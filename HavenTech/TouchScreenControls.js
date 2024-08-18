@@ -15,8 +15,10 @@ function TouchScreenControls(){
 		for(let i = 0; i < e.touches.length; ++i){
 			//new touch
 			canvas.relMouseCoords(e.touches[i]);
-			if( i == 0 )
+			if( i == 0 ){
 				touch.menuTouch = e.touches[i];
+				canvasMouseMoveHandler( touch.menuTouch );
+			}
 			if( e.touches[i].canvasY < e.touches[i].target.height * 0.2 ){
 				touch.rollTouch = e.touches[i];
 			}else if( e.touches[i].canvasX < e.touches[i].target.width * floatP5){

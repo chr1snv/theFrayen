@@ -35,47 +35,60 @@ const SailModes = {
 
 let sgMode = SailModes.Menu;
 
+let lastFrameMenuTouch = null;
 function SAIL_sceneSpecificUpdate( time ){
 
 	if( ocean && ocean.ready )
 		OCN_Update( ocean, time );
 
 
-	//handle menu input
+	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
 		case SailModes.Menu:
-			if( mDown ){
+
+			//menu heading text
+			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL", false );
+			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START", true );
+			TR_QueueText( -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
+
+			break;
+		case SailModes.Gameplay:
+
+			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
+
+			//WNT_Update( time );
+
+			BOAT_Update( time, 180/180*Math.PI );
+
+			RGTTA_Update( time );
+
+	}
+
+
+	//handle menu input
+	let touchMDown = (lastFrameMenuTouch == null && touch.menuTouch != null);
+	TR_RaycastPointer( mCoords );
+	
+	switch( sgMode ){
+		case SailModes.Menu:
+			if( mDown || touchMDown ){
 				for( let i = 0; i < numMOvrdStrs; ++i )
 					if( mOvrdStrs[i] == "START" )
 						sgMode = SailModes.Gameplay;
 			}
-			
-			//menu heading text
-			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL", false );
-			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START", true );
-			
 			break;
 		case SailModes.Gameplay:
-		
-			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
-		
-			//WNT_Update( time );
-			
-			BOAT_Update( time, 180/180*Math.PI );
-			
-			RGTTA_Update( time );
-			
-			
-			if( mDown ){
+			if( mDown || touchMDown ){
 				for( let i = 0; i < numMOvrdStrs; ++i )
 					if( mOvrdStrs[i] == ":Gear:" )
 						sgMode = SailModes.Menu;
 			}
-			if( mDownCoords.x < 40 && mDownCoords.y < 40 )
+			if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
+			 (touchMDown && mCoords.x < 40 && mCoords.y < 40) )
 				sgMode = SailModes.Menu;
 	}
-	
-	TR_RaycastPointer( mCoords );
+
+	lastFrameMenuTouch = touch.menuTouch;
 
 }
 
