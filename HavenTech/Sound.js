@@ -345,8 +345,8 @@ function SND_updateACtx(){
 	
 }
 
-let soundCanvas = document.getElementById('soundCanvas');
-let sCtx = soundCanvas.getContext('2d');
+let soundCanvasElm = document.getElementById('soundCanvas');
+let sCtx = soundCanvasElm.getContext('2d');
 
 const sTextColor = '#999999';
 
