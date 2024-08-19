@@ -243,20 +243,24 @@ function playBuffer(){
 	
 	let bandpass = new BiquadFilterNode( aCtx, {type:"bandpass", frequency:100} );
 	
-	node.connect(bandpass).connect(aCtx.destination);
+	node.connect(bandpass)
+	bandpass.connect(aCtx.destination);
 	node.start(aCtx.currentTime);
 }
 
+/*
 function playBassSineTone(note, time, duration){
 	let osc = aCtx.createOscillator();
 	osc.frequency( noteFrequencies[note] );
-	lfo.connect(amp.gain);
-	osc.connect(amp).connect(aCtx.destination);
-	lfo.start();
+	//lfo.connect(amp.gain);
+	osc.connect(amp);
+	amp.connect(aCtx.destination);
+	//lfo.start();
 	osc.start(time);
 	osc.stop(time+duration);
 	return osc;
 }
+*/
 
 function playSineToneNode(freq, time, duration) {
     let osc = aCtx.createOscillator();
@@ -264,7 +268,8 @@ function playSineToneNode(freq, time, duration) {
     
     let gain = aCtx.createGain();
     gain.gain.value = 0.4;
-    osc.connect(gain).connect(aCtx.destination);
+    osc.connect(gain);
+    gain.connect(aCtx.destination);
     
     osc.start(aCtx.currentTime + time);
     osc.stop(aCtx.currentTime + time + duration);
