@@ -134,8 +134,8 @@ function relMouseCoords(e){
 	let currentElement = this;
 	
 	do{
-	    totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-	    totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+	    totalOffsetX += currentElement.offsetLeft;// - currentElement.scrollLeft;
+	    totalOffsetY += currentElement.offsetTop;// - currentElement.scrollTop;
 	}
 	while(currentElement = currentElement.offsetParent)
 	    
