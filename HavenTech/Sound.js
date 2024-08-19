@@ -262,7 +262,8 @@ function playSineToneNode(freq, time, duration) {
     let osc = aCtx.createOscillator();
     osc.frequency.value = freq;
     
-    let gain = new GainNode( aCtx, { gain:0.4, } );
+    let gain = aCtx.createGain();
+    gain.gain.value = 0.4;
     osc.connect(gain).connect(aCtx.destination);
     
     osc.start(aCtx.currentTime + time);
