@@ -214,10 +214,15 @@ function SkelA_writeCombinedBoneMatsToGL(hvnsc){
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
 
+	let internalFormat = gl.RGBA;
+	if( gl.glType == "webgl2" ){
+		internalFormat = gl.RGBA32F;
+	}
+
 	gl.texImage2D(
 		gl.TEXTURE_2D, 
 		0,					//level
-		gl.RGBA,			//internal format
+		internalFormat,			//internal format
 		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
 		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone
 		0,					//border
@@ -399,15 +404,17 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	if( skelAnims.length < 1 )
 		return;
 
-	// create a texture to hold the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
-	let texFloatExt = gl.getExtension('OES_texture_float');
-	if (!texFloatExt) {
-		DPrintf("OES_texture_float not supported");
-		texFloatExt = gl.getExtension('OES_texture_float_linear');
-		if(!texFloatExt){
-			DPrintf("OES_texture_float_linear not supported either");
-			//return; // the extension doesn't exist on this device
-		}else{
+	if( gl.glType == "webgl" ){
+		// create a texture to hold the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
+		let texFloatExt = gl.getExtension('OES_texture_float');
+		if (!texFloatExt) {
+			DPrintf("OES_texture_float not supported");
+			texFloatExt = gl.getExtension('OES_texture_float_linear');
+			if(!texFloatExt){
+				DPrintf("OES_texture_float_linear not supported either");
+				//return; // the extension doesn't exist on this device
+			}else{
+			}
 		}
 	}
 
@@ -435,10 +442,15 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
 
+	let internalFormat = gl.RGBA;
+	if( gl.glType == "webgl2" ){
+		internalFormat = gl.RGBA32F;
+	}
+
 	gl.texImage2D(
-		gl.TEXTURE_2D, 
+		gl.TEXTURE_2D,
 		0,					//level
-		gl.RGBA,			//internal format
+		internalFormat,			//internal format
 		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
 		totalNumBones,		//one row per bone
 		0,					//border

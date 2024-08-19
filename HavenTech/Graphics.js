@@ -201,9 +201,8 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			GRPH_AddCachedObjCallbackAndCallIfReady( cachedObjStatusAndCallbacks, objReadyCallback, readyCallbackParameters );
 		}
 	}
-	
-	
-	
+
+
 	//initialization code
 	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true});
 	//gl = WebGLDebugUtils.makeDebugContext(gl);
