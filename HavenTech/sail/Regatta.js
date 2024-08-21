@@ -2,7 +2,7 @@
 //maintains the status of the sailing competition
 
 let rgtaScene = null;
-let rgtaSceneName = "islandRegatta1";
+let rgtaSceneName = "islandRegatta";
 function RGTTA_Init(){
 	rgtaScene = new HavenScene( rgtaSceneName, RGTTA_SceneLoaded );
 }
