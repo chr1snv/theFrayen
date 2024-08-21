@@ -846,8 +846,9 @@ function QM_matFileLoaded(matFile, thisP){
 	}
 	let numMaterials = thisP.materialNames.length;
 	if( numMaterials < 1 ){
-		DPrintf('QuadMesh: ' + thisP.meshName + 
-			', failed to read any materials, loading default material');
+		//( str, tag, color, depth )
+		DTPrintf('QuadMesh: ' + thisP.meshName + 
+			', failed to read any materials, loading default material', "quadM ld");
 		thisP.materialNames.push("default");
 		thisP.materialsToLoad = 1;
 		numMaterials = 1;
@@ -1153,9 +1154,9 @@ function QM_meshFileLoaded(meshFile, thisP)
 
 
 
-	DPrintf('Quadmesh: ' + thisP.meshName +
+	DTPrintf('Quadmesh: ' + thisP.meshName +
 			', successfully read in faces: ' + thisP.faces.length + 
-			', verts: ' + thisP.vertPositions.length/3 );
+			', verts: ' + thisP.vertPositions.length/3, "quadM ld" );
 			
 	if( ipoAnimName != '' )
 		graphics.GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);

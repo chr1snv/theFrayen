@@ -208,19 +208,24 @@ def writeMaterial(assetDirectory, mat):
 
     #write out the shader settings
     ##############################
+    
+    noBaseCol = False
 
     #output the shader diffuse color and amount
     print( 'base color: %s' % str(p.base_color) )
     [r, g, b] = p.base_color
+    if( r == 0 and g == 0 and b == 0):
+        noBaseCol = True
     out.write('difCol\t\t %f %f %f\n' % (r, g, b))
     #output the shader specular color amount and hardness
     out.write('specMixHrd\t %f %f\n' % (p.specular, p.roughness))
     #output the material alpha value
     out.write('alph\t\t %f\n' % (p.alpha))
-    #output the material emission amount
-    emColor = p.emission_color
-    out.write('lumCol\t\t %f %f %f\n' % (emColor[0], emColor[1], emColor[2]))
-
+    #output the material emission color
+    [r, g, b] = p.emission_color
+    out.write('lumCol\t\t %f %f %f\n' % (r, g, b))
+    if( p.emission_strength > 0 and noBaseCol ):
+        out.write('shadeless')
     out.close()
 
 def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):

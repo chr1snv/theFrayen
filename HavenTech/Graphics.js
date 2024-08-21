@@ -35,7 +35,7 @@ const matrixCard   = 4*4;
 function Graphics( canvasIn, loadCompleteCallback ){
 	this.canvas = canvasIn;
 	
-	WebGLDebugUtils.init(this.canvas);
+	//WebGLDebugUtils.init(this.canvas);
 
 	//maps used to keep track of primative graphics objects
 	this.textures        = {};
@@ -231,13 +231,13 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	
 	
 	//load and compile the point, line, and triangle drawing gl programs
-	this.pointGraphics = new PointGraphics(loadLineGraphics);
+	this.pointGraphics = new PointGraphics(loadLineGraphics, 0);
 	this.glPrograms['point'] = this.pointGraphics.glProgram;
 	this.currentProgram = this.pointGraphics.glProgram.glShaderProgramRefId;
 	this.currentProgramName = 'point';
 	
 	function loadLineGraphics(){
-		graphics.lineGraphics = new LineGraphics(loadTriGraphics);
+		graphics.lineGraphics = new LineGraphics(loadTriGraphics, 100);
 		graphics.glPrograms['line'] = graphics.lineGraphics.glProgram;
 		CheckGLError( "after load line gl program" );
 		graphics.currentProgram = graphics.lineGraphics.glProgram.glShaderProgramRefId;
@@ -245,7 +245,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	}
 	
 	function loadTriGraphics(){
-		graphics.triGraphics = new TriGraphics(loadCompleteCallback);
+		graphics.triGraphics = new TriGraphics(loadCompleteCallback, 200);
 		graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
 		CheckGLError( "after load tri gl program" );
 		graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;

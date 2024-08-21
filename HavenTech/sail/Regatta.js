@@ -2,8 +2,9 @@
 //maintains the status of the sailing competition
 
 let rgtaScene = null;
+let rgtaSceneName = "islandRegatta1";
 function RGTTA_Init(){
-	rgtaScene = new HavenScene( "islandRegatta", RGTTA_SceneLoaded );
+	rgtaScene = new HavenScene( rgtaSceneName, RGTTA_SceneLoaded );
 }
 
 function RGTTA_AllocSubRngBuffer(dbB, numVerts, subBufId, obj){
@@ -52,10 +53,10 @@ let wndIndc = null;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
-	bouy = graphics.cachedObjs[QuadMesh.name]["islandRegatta"]["inflatableBouy"][0];
+	bouy = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["inflatableBouy"][0];
 	bouy_dbB = InitAndAllocOneObjBuffer(bouy);
 
-	wndIndc = graphics.cachedObjs[QuadMesh.name]["islandRegatta"]["windIndc"][0];
+	wndIndc = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["windIndc"][0];
 	windIndc_dbB = InitAndAllocOneObjBuffer(wndIndc);
 
 }
@@ -74,8 +75,9 @@ function RGTTA_Draw( time ){
 
 	if( !bouy_dbB )
 		return null;
+		
+	//HVNSC_Draw( rgtaScene );
 
-	TRI_G_drawTriangles( graphics.triGraphics, bouy_dbB.texName,
-		bouy_dbB.material.sceneName, bouy_dbB, 0 );
+	TRI_G_drawTriangles( graphics.triGraphics, bouy_dbB, 0 );
 
 }

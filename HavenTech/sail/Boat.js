@@ -89,5 +89,6 @@ function BOAT_Update(time, wndHdg ){
 	
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
+	if( windIndc_dbB != null )
 	Matrix_SetEulerTransformation( windIndc_dbB.bufSubRanges[0].toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
 }

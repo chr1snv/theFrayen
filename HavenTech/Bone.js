@@ -190,7 +190,7 @@ function Bone_Parse(bone, skelAnimFileLines, SLIdx){
 	//generate cached matrices for fast lookup
 
 	if( Vect3_Length(bone.head) > epsilon )
-		console.log("non zero bone head");
+		DTPrintf( "non zero bone head", "bn ld" );
 
 	//roll_Mat
 	Matrix_SetYRot(         bone.roll_Mat,     bone.roll);

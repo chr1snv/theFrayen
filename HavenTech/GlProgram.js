@@ -65,58 +65,50 @@ function GLP_vertShaderLoaded(textFile, thisP){
 }
 
 
-function GLP_setUnif_F4( glp, unifLoc, value ){
+function GLP_setUnif_F4( glp, unifLoc, unifLocInt, value ){
 	let shouldSet = true;
-	if( glp.unifVals[unifLoc] == undefined ){
-		glp.unifVals[unifLoc] = value;
+	if( glp.unifVals[unifLocInt] == undefined ){
+		glp.unifVals[unifLocInt] = Vect_New(value.length);
 	}else{
-		if( Vect3_Cmp( glp.unifVals[unifLoc], value ) )
+		if( Vect3_Cmp( glp.unifVals[unifLocInt], value ) )
 			shouldSet = false;		
-		Vect_Copy( glp.unifVals[unifLoc], value);
+		Vect_Copy( glp.unifVals[unifLocInt], value);
 	}
 	if( shouldSet )
 		gl.uniform4fv( unifLoc, value );
 }
-function GLP_setUnif_F3( glp, unifName, value ){
-	if( glp.unifVals[unifName] == undefined )
-		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifVals[unifName + 'val'] == undefined )
-		glp.unifVals[unifName + 'val'] = Vect3_NewZero();
-	if( !Vect3_Cmp( glp.unifVals[unifName + 'val'], value ) ){
-		Vect3_Copy( glp.unifVals[unifName + 'val'], value);
-		gl.uniform3fv( glp.unifVals[unifName], value );
+function GLP_setUnif_F3( glp, unifLoc, unifLocInt, value ){
+	if( glp.unifVals[unifLocInt] == undefined )
+		glp.unifVals[unifLocInt] = Vect3_NewZero();
+	if( !Vect3_Cmp( glp.unifVals[unifLocInt], value ) ){
+		Vect3_Copy( glp.unifVals[unifLocInt], value);
+		gl.uniform3fv( unifLoc, value );
 	}
 }
-function GLP_setVec2Uniform( glp, unifName, value ){
-	if( glp.unifVals[unifName] == undefined )
-		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifVals[unifName + 'val'] == undefined )
-		glp.unifVals[unifName + 'val'] = Vect_NewZero(2);
-	if( !Vect3_Cmp( glp.unifVals[unifName + 'val'], value ) ){
-		Vect3_Copy( glp.unifVals[unifName + 'val'], value);
-		gl.uniform2fv( glp.unifVals[unifName], value );
+function GLP_setUnif_F2( glp, unifLoc, unifLocInt, value ){
+	if( glp.unifVals[unifLocInt] == undefined )
+		glp.unifVals[unifLocInt] = Vect_NewZero(2);
+	if( !Vect3_Cmp( glp.unifVals[unifLocInt], value ) ){
+		Vect3_Copy( glp.unifVals[unifLocInt], value);
+		gl.uniform2fv( unifLoc, value );
 	}
 }
 
-function GLP_setFloatUniform( glp, unifName, value ){
-	if( glp.unifVals[unifName] == undefined )
-		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifVals[unifName + 'val'] == undefined )
-		glp.unifVals[unifName + 'val'] = 0;
-	if( glp.unifVals[unifName + 'val'] != value ){
-		glp.unifVals[unifName + 'val'] = value;
-		gl.uniform1f( glp.unifVals[unifName], value );
+function GLP_setUnif_F1( glp, unifLoc, unifLocInt, value ){
+	if( glp.unifVals[unifLocInt] == undefined )
+		glp.unifVals[unifLocInt] = NaN;
+	if( glp.unifVals[unifLocInt] != value ){
+		glp.unifVals[unifLocInt] = value;
+		gl.uniform1f( unifLoc, value );
 	}
 }
 
-function GLP_setIntUniform( glp, unifName, value ){
-	if( glp.unifVals[unifName] == undefined )
-		glp.unifVals[unifName] = gl.getUniformLocation(glp.glProgId, unifName);
-	if( glp.unifVals[unifName + 'val'] == undefined )
-		glp.unifVals[unifName + 'val'] = 0;
-	if( glp.unifVals[unifName + 'val'] != value ){
-		glp.unifVals[unifName + 'val'] = value;
-		gl.uniform1i( glp.unifVals[unifName], value );
+function GLP_setUnif_I1( glp, unifLoc, unifLocInt, value ){
+	if( glp.unifVals[unifLocInt] == undefined )
+		glp.unifVals[unifLocInt] = NaN;
+	if( glp.unifVals[unifLocInt] != value ){
+		glp.unifVals[unifLocInt] = value;
+		gl.uniform1i( unifLoc, value );
 	}
 }
 function GLP_cleanup(glp){

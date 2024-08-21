@@ -36,7 +36,7 @@ let txtR_dbB = null;
 function TXTR_Init(){
 
 	//load the text meshes
-	textScene = new HavenScene("text", TXTR_TextSceneLoaded);
+	textScene = new HavenScene("textMeshes", TXTR_TextSceneLoaded);
 
 }
 
@@ -172,7 +172,7 @@ function TR_QueueText( x, y, dpth, size, str, interactive ){
 
 }
 
-let tr_highlightedColor = new Float32Array([1,1,0, 1]);
+let tr_highlightedColor = new Float32Array([1,1,0]);
 
 const MAX_M_OVRED_OBJS = 10;
 let mOvrdStrs = new Array(MAX_M_OVRED_OBJS);
@@ -222,8 +222,7 @@ function TR_DrawText(){
 
 	TRIG_SetDefaultOrthoCamMat(triG);
 
-	TRI_G_drawTriangles( triG, txtR_dbB.texName,
-		txtR_dbB.material.sceneName, txtR_dbB, 0 );
+	TRI_G_drawTriangles( triG, txtR_dbB, 0 );
 
 }
 

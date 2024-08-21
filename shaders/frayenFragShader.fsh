@@ -1,14 +1,16 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision lowp float;
+precision mediump float;
 
 //constant variables
 uniform bool      texturingEnabled;
 uniform sampler2D texSampler;
 
-uniform vec4      diffuseColor;
-uniform vec2      specularAmtExponent;
+uniform float     alpha;
+
+uniform vec3      diffuseColor;
+uniform vec2      specularAmtHrdnessExp;
 
 uniform float     subSurfaceExponent;
 
@@ -33,18 +35,27 @@ varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 void main() {
 
 	//calculate the diffuse color
-	vec4 diffuseCol = diffuseColor;
+	vec4 diffuseAndAlphaCol = vec4(diffuseColor,alpha);
 	vec3 specularCol = vec3(1,1,1);
+	
+
+	
 	if( texturingEnabled ){
-		diffuseCol = texture2D( texSampler, texCoordVarying );
+		diffuseAndAlphaCol = texture2D( texSampler, texCoordVarying );
 	}
 
 	if( !lightingEnabled ){
-		gl_FragColor = diffuseCol;
-	}else{
-		vec3 fragToCamVecUnit = normalize( camWorldPos - worldSpaceFragPosition.xyz );
+
+		if( texturingEnabled )
+			gl_FragColor = diffuseAndAlphaCol;
+		else
+			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
 	
-		gl_FragColor = vec4(emissionAndAmbientColor,0);//diffuseColvec4(diffuseCol.xyz*emissionAndAmbientColor,0);
+	}else{
+	
+		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
+		
+		vec3 fragToCamVecUnit = normalize( camWorldPos - worldSpaceFragPosition.xyz );
 		
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
 		
@@ -58,14 +69,14 @@ void main() {
 			vec3 fragPosToLightVecUnit = normalize(lightPos[0]-worldSpaceFragPosition);
 			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
 			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
-			gl_FragColor += vec4( diffuseCol.xyz * diffuseLightAmt, diffuseCol.w);
+			gl_FragColor += vec4( diffuseAndAlphaCol.xyz * diffuseLightAmt, 0);
 			
 			//specular calculation
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
 			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
-			float specularLightAmt = pow( toCamLightAmt*specularAmtExponent[0],  5.0*specularAmtExponent[1]);//specularExponent );
+			float specularLightAmt = pow( toCamLightAmt*specularAmtHrdnessExp[0],  5.0*specularAmtHrdnessExp[1]);//specularExponent );
 			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
-			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, 1);
+			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
 			
 		}
 		if( 1 < numLights ){

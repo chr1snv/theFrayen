@@ -47,11 +47,11 @@ function AllocateBatchAttrBuffers(dbB){
 
 }
 
-function GetSkelBatchBuffer(shdrName, numAttrs, attrCards){
-	let dbB = drawBatchBuffers[shdrName];
+function GetSkelBatchBuffer(hvnsc, shdrName, numAttrs, attrCards){
+	let dbB = hvnsc.drawBatchBuffers[shdrName];
 	if( dbB == undefined ){
 		dbB = new SkelDrawBatchBuffer( numAttrs, attrCards);
-		drawBatchBuffers[shdrName] = dbB;
+		hvnsc.drawBatchBuffers[shdrName] = dbB;
 	}
 	return dbB;
 }
@@ -99,18 +99,8 @@ function DrawBatchBuffer(material){
 	this.sortedSubRngKeys = null;
 	this.numBufSubRanges = 0;
 	
-	this.diffuseCol = Vect_New(4);
 	
-	//set the texture or material properties for the draw batch
-	if( material.texture ){
-		this.texName = material.texture.texName;
-	}else{
-		//this.texName = null;
-		Vect3_Copy( this.diffuseCol, material.diffuseCol);
-		this.diffuseCol[3] = material.diffuseMix;
-	}
 }
-let drawBatchBuffers = {};
 
 /*
 function AllocateBatchBufferArrays(dbB){
@@ -132,11 +122,11 @@ function AllocateBatchBufferArrays(dbB){
 }
 */
 
-function GetDrawBatchBufferForMaterial(material){
-	let dbB = drawBatchBuffers[material.uid.val];
+function GetDrawBatchBufferForMaterial(hvnsc, material){
+	let dbB = hvnsc.drawBatchBuffers[material.uid.val];
 	if( dbB == undefined ){
 		dbB = new DrawBatchBuffer(material);
-		drawBatchBuffers[material.uid.val] = dbB;
+		hvnsc.drawBatchBuffers[material.uid.val] = dbB;
 	}
 	return dbB;
 }
@@ -148,11 +138,11 @@ function GetDrawBatchBufferForMaterial(material){
 
 //reset indicies between frames incase the objects
 //within the camera frustum to be drawn are different
-function ResetDrawAndSubBatchBufferIdxs(){
+function ResetDrawAndSubBatchBufferIdxs(hvnsc){
 	//sub batch buffer
-	let dbbKeys = Object.keys(drawBatchBuffers);
+	let dbbKeys = Object.keys(hvnsc.drawBatchBuffers);
 	for( let i = 0; i < dbbKeys.length; ++i ){
-		let dbb = drawBatchBuffers[dbbKeys[i]];
+		let dbb = hvnsc.drawBatchBuffers[dbbKeys[i]];
 		dbb.lastBufferIdx = dbb.bufferIdx;
 		dbb.numSubBufferUpdatesToBeValid = 0;
 		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
@@ -219,12 +209,12 @@ function GenSortedSubBatchBufferList(dbB){
 	}
 }
 
-function SortSubBatches(){
+function SortSubBatches(hvnsc){
 	//called each frame between finding all objects to draw in the frame
 	//and getting verticies from them if necessary
-	let dbbKeys = Object.keys(drawBatchBuffers);
+	let dbbKeys = Object.keys(hvnsc.drawBatchBuffers);
 	for( let i = 0; i < dbbKeys.length; ++i ){
-		let drawBatch = drawBatchBuffers[dbbKeys[i]];
+		let drawBatch = hvnsc.drawBatchBuffers[dbbKeys[i]];
 		
 		GenSortedSubBatchBufferList(drawBatch);
 		
@@ -274,11 +264,11 @@ function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
 }
 
 //as sub batch buffers may
-function DefragmentBatchBufferAllocations(){
+function DefragmentBatchBufferAllocations(hvnsc){
 /*
-	let dbbKeys = Object.keys(drawBatchBuffers);
+	let dbbKeys = Object.keys(hvnsc.drawBatchBuffers);
 	for( let i = 0; i < dbbKeys.length; ++i ){
-		let dbb = drawBatchBuffers[dbbKeys[i]];
+		let dbb = hvnsc.drawBatchBuffers[dbbKeys[i]];
 		dbb.lastBufferIdx = dbb.bufferIdx;
 		dbb.numSubBufferUpdatesToBeValid = 0;
 		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
@@ -297,11 +287,11 @@ function DefragmentBatchBufferAllocations(){
 	*/
 }
 
-function CleanUpDrawBatchBuffers(){
-	for( dbB in drawBatchBuffers ){
+function CleanUpDrawBatchBuffers(hvnsc){
+	for( dbB in hvnsc.drawBatchBuffers ){
 		delete( dbB );
 	}
-	drawBatchBuffers = {};
+	hvnsc.drawBatchBuffers = {};
 	//there aren't any skeletal animation debug draw batch buffers 
 	//( they are in draw batch buffers with the key 'line' instead of a material uid )
 }
@@ -334,6 +324,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 	//the main structure for holding scene elements
 	const tDim = 100;
 	this.octTree = null;
+	
+	this.drawBatchBuffers = {};
 
 	//using the camera frustum only objects within view 
 	//can be drawn / simulated in high fidelity
@@ -436,7 +428,6 @@ function HVNSC_Update( hvnsc, time ){
 	}
 	//DTPrintf( "nodeMap size " + nodeMap.size, "hvnsc debug", "color:white", 0 );
 
-	sceneSpecificUpdate( hvnsc.scnId, time ); //run the game code
 
 }
 
@@ -495,19 +486,19 @@ function HVNSC_Draw(hvnsc){
 	//let cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 	//cam.GenWorldToFromScreenSpaceMats();
 	
-	ResetDrawAndSubBatchBufferIdxs();
+	ResetDrawAndSubBatchBufferIdxs(hvnsc);
 	
 	if(AnimTransformDrawingEnabled){
 		//get the number of armatures and line verts for them
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
 			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+			let drawBatch = GetSkelBatchBuffer( hvnsc, 'line', 2, skelAttrCards );
 			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts );
 		}
 		//gather the line vert positions
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
 			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
-			let drawBatch = GetSkelBatchBuffer( 'line', 2, skelAttrCards );
+			let drawBatch = GetSkelBatchBuffer( hvnsc, 'line', 2, skelAttrCards );
 			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
 			if( drawBatch.buffers[0] == null )
 				AllocateBatchAttrBuffers(drawBatch);
@@ -530,15 +521,15 @@ function HVNSC_Draw(hvnsc){
 		for( let matID = 0; matID < qm.materials.length; ++matID ){
 			let material = qm.materials[matID];
 			//get the material buffer and sub buffer for object verts to ensure enough space is allocated
-			//in SortSubBatches...()
+			//in SortSubBatches...(hvnsc)
 			if( qm.faceVertsCtForMat[matID] > 0 ){ //ignore materials with no verts assigned
-				let drawBatch = GetDrawBatchBufferForMaterial( material );
+				let drawBatch = GetDrawBatchBufferForMaterial( hvnsc, material );
 				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matID], qm, matID );
 			}
 		}
 	}
 	
-	SortSubBatches();
+	SortSubBatches(hvnsc);
 
 	//for each object in view
 	//update the model matrix, and sub buffer verts,norms,uvs,bnWghts if necessary
@@ -552,7 +543,7 @@ function HVNSC_Draw(hvnsc){
 			if( qm.faceVertsCtForMat[matIdx] < 1 ) //ignore materials with no verts assigned
 				continue;
 
-			let drawBatch = GetDrawBatchBufferForMaterial( material );
+			let drawBatch = GetDrawBatchBufferForMaterial( hvnsc, material );
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matIdx], obj );
 
 			if( qm.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
@@ -592,13 +583,15 @@ function HVNSC_Draw(hvnsc){
 
 	if( hvnsc.boneMatTexture != null )
 		SkelA_writeCombinedBoneMatsToGL(hvnsc);
+		
+	
 	
 	TRI_G_setCamMatrix( graphics.triGraphics, cam.worldToScreenSpaceMat, cam.camTranslation );
-	let dbBKeys = Object.keys( drawBatchBuffers );
+	let dbBKeys = Object.keys( hvnsc.drawBatchBuffers );
 	for( let i = 0; i < dbBKeys.length; ++i ){
 		if( dbBKeys[i] == 'line' )
 			continue;
-		let dbB = drawBatchBuffers[dbBKeys[i]];
+		let dbB = hvnsc.drawBatchBuffers[dbBKeys[i]];
 		//if(dbB.bufferIdx > MAX_VERTS )
 		//	dbB.bufferIdx = MAX_VERTS;
 		if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
@@ -611,12 +604,12 @@ function HVNSC_Draw(hvnsc){
 				console.log("probably skelAnim lines");
 			
 			
-			TRI_G_drawTriangles( graphics.triGraphics, dbB.texName, 
-				dbB.material.sceneName, dbB, numAnimMatricies );
+			TRI_G_drawTriangles( graphics.triGraphics, dbB, numAnimMatricies );
 		}
 		//if( dbB.isAnimated )
 		//	dbB.bufferIdx = 0; //repeat refilling values
 	}
+	
 	
 	if(AnimTransformDrawingEnabled){
 		//if there are armature buffers draw them
@@ -624,13 +617,11 @@ function HVNSC_Draw(hvnsc){
 			graphics.enableDepthTest(false);
 			LINE_G_Setup(graphics.lineGraphics);
 			LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat );
-			LINE_G_drawLines( graphics.lineGraphics, drawBatchBuffers['line'] );
+			LINE_G_drawLines( graphics.lineGraphics, hvnsc.drawBatchBuffers['line'] );
 			graphics.enableDepthTest(true);
 		}
 	}
 	
-	
-	sceneSpecificDraw(hvnsc.scnId);
 	
 	/*  //old rasterization code here
 	
@@ -679,7 +670,7 @@ function HVNSC_HitModel(hvnsc, screenCoords){
 //check if finished asynchronously loading the scene
 function HVNSC_checkIfIsLoaded(hvnsc){
 	if( hvnsc.pendingObjsAdded <= 5 ){
-		DPrintf("models left to load " + hvnsc.pendingObjsAdded );
+		DTPrintf("models left to load " + hvnsc.pendingObjsAdded, "hvnsc ld" );
 		//let notYetLoadedObjsStr = '';
 		//let objsToLoad = Object.keys(hvnsc.pendingObjsToLoad);
 		//for( let i = 0; i < objsToLoad.length; ++i )

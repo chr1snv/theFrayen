@@ -16,6 +16,9 @@ function IPrintf(str){
 
 //these have to be 0 at startup
 //the document.cookie value is used to set them to 1 if set for a tag type
+
+//these indicies with an array would be more efficent than the
+//string lookup in dictionary message types
 const Deb_Mouse 			 = 0;
 const Deb_CheckGLError 		 = 1;
 const Deb_AddObj 			 = 2;
@@ -42,10 +45,12 @@ const Deb_loop				 = 18;
 const Deb_consolidate		 = 18;
 const Deb_test				 = 18;
 
+
 const enabledDebugTags = { 
 	"CheckGLError":0,
 	
 	"hvnsc debug":0,
+	"hvnsc ld":0,
 	
 	"mouse":0,
 	"add obj":0,
@@ -60,6 +65,10 @@ const enabledDebugTags = {
 	"ot subdiv success":0,
 	
 	"quadM updt":0,
+	
+	"quadM ld":0,
+	
+	"bn ld":0,
 	
 	
 	"ot updt":0,

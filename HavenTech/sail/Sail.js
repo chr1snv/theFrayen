@@ -122,8 +122,7 @@ function SAIL_sceneSpecificDraw( ){
 	TR_DrawText();
 
 	if( sgMode == SailModes.Gameplay && windIndc_dbB != null ){
-		TRI_G_drawTriangles( graphics.triGraphics, windIndc_dbB.texName,
-			windIndc_dbB.material.sceneName, windIndc_dbB, 0 );
+		TRI_G_drawTriangles( graphics.triGraphics, windIndc_dbB, 0 );
 	}
 
 	//cleanup

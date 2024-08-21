@@ -44,7 +44,7 @@ function Vect_SetScalar( v, val ){
 		v[i] = val;
 }
 
-function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v2[2] == v2[2]); }
+function Vect3_Cmp(v1, v2) { return (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2]); }
 
 function Vect3_Zero(v1) { v1[0] = v1[1] = v1[2] = 0.0; }
 
@@ -239,9 +239,9 @@ function Vect3_minMaxFromArr( m, M, arr, i ){
 }
 
 function Vect3_parse( v, lnPrts, sIdx ){
-	v[0] = lnPrts[sIdx];
-	v[1] = lnPrts[sIdx+1];
-	v[2] = lnPrts[sIdx+2];
+	v[0] = parseFloat( lnPrts[sIdx] );
+	v[1] = parseFloat( lnPrts[sIdx+1] );
+	v[2] = parseFloat( lnPrts[sIdx+2] );
 }
 function Vect3_containsNaN( v ) {
 	for( let i = 0; i < v.length; ++i ){

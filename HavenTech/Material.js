@@ -21,7 +21,7 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.sceneName = sceneNameIn;
 	this.glMaterialProgramRefId = graphics.currentProgram;
 
-	this.emitAmount = 0.0;
+	this.lumCol = Vect3_New();
 
 	this.subSurfaceExponent = 0;
 
@@ -53,8 +53,8 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 		//read in the material settings from a file
 
 		//initialize diffuse color and specular color
-		this.diffuseCol =  [ 1.0, 1.0, 1.0 ];
-		this.specularCol = [ 1.0, 1.0, 1.0 ];
+		this.diffuseCol =  Vect3_NewAllOnes();
+		this.specularCol = Vect3_NewAllOnes();
 		
 		//calculate the material file filename
 		let filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtMat";
@@ -83,6 +83,8 @@ function MAT_materialTextLoaded(materialFile, thisP){
 		for( let i = 0; i < materialFileLines.length; ++i ){
 			let temp = materialFileLines[i].split(' ');
 			temp[0] = temp[0].split('\t')[0];
+			if( temp[0] == 'shadeless' )
+				thisP.isShadeless = true;
 			if(temp[0] == 'difCol'){ //read in diffuse color
 				Vect3_parse( thisP.diffuseCol, temp, 1 );
 				/*
@@ -100,8 +102,13 @@ function MAT_materialTextLoaded(materialFile, thisP){
 			if(temp[0] == 'alph'){ // read in alpha amount
 				thisP.alpha = parseFloat( temp[1] );
 			}
-			if(temp[0] == 'lumCol'){ // read in emit amount
-				thisP.emitAmount = parseFloat( temp[1] );
+			if(temp[0] == 'lumAmt'){
+				thisP.lumAmt = parseFloat( temp[1] );
+			}
+			if(temp[0] == 'lumCol'){ // read in emit color
+				thisP.lumCol[0] = parseFloat( temp[1] );
+				thisP.lumCol[1] = parseFloat( temp[2] );
+				thisP.lumCol[2] = parseFloat( temp[3] );
 			}
 
 			if(temp[0] == 'tex'){ //read in texture information

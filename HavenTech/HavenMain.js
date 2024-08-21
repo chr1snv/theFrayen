@@ -262,8 +262,8 @@ function stop(){
 	runSceneButtonElm.onclick = loadScene;
 
 	TR_CleanupFrameGlyphs();
-
-	CleanUpDrawBatchBuffers();
+	if( typeof mainScene != 'undefined' )
+		CleanUpDrawBatchBuffers(mainScene);
 	GRPH_Cleanup(graphics);
 	delete( mainScene );
 
@@ -338,9 +338,11 @@ function MainLoop()
 		HandleDefaultCameraControls( sceneTime );
 	
 	HVNSC_Update( mainScene, sceneTime );
+	sceneSpecificUpdate( mainScene.scnId, sceneTime ); //run the game code
 
 
 	HVNSC_Draw( mainScene );
+	sceneSpecificDraw(mainScene.scnId);
 
 	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
 	
