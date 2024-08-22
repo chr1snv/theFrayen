@@ -1,11 +1,35 @@
 
-function LineGraphics(loadCompleteCallback){
+function LineGraphics(loadCompleteCallback, unifLocOffset){
 
-	this.glProgram = new GlProgram('frayenLine', null, loadCompleteCallback);
+	this.loadCompleteCallback = loadCompleteCallback;
+
+	this.glProgram = new GlProgram('frayenLine', this, LINE_G_LoadComp);
 	
 	this.projMatrixUnif = null;
 	
-	this.diffColUnif_F4 = null;
+	//this.diffColUnif_F4 = null;
+	
+	this.positionAttrib_F3 = null;
+	this.ptColAttrib_F4 = null;
+	
+}
+
+function LINE_G_LoadComp(lineG){
+
+	//gl.useProgram from shader compilation
+
+	lineG.projMatrixUnif = gl.getUniformLocation( lineG.glProgram.glProgId, 'projection');
+	
+	//lineG.pointSizeAttrib_F      = gl.getUniformLocation( this.glProgram.glProgId, 'pointSize' );
+	//lineG.pointSizeUnif_FLoc     = 0 + unifLocOffset;
+	//lineG.pointFalloffUnif_F   = gl.getUniformLocation( this.glProgram.glProgId, 'pointFalloff' );
+	//lineG.pointFalloffUnif_FLoc  = 0 + unifLocOffset;
+
+	lineG.positionAttrib_F3    =  gl.getAttribLocation(lineG.glProgram.glProgId, 'position' );
+	lineG.ptColAttrib_F4       =  gl.getAttribLocation(lineG.glProgram.glProgId, 'ptCol' );
+	
+	if( lineG.loadCompleteCallback != null )
+		lineG.loadCompleteCallback( lineG );
 }
 
 
@@ -16,15 +40,10 @@ function LINE_G_Setup(lineG){
 	gl.useProgram(progId);
 	//CheckGLError( "after enable line glProgram " );
 
-	if( !lineG.projMatrixUnif )
-		lineG.projMatrixUnif = gl.getUniformLocation( lineG.glProgram.glProgId, 'projection');
-
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 	
-	lineG.diffColUnif_F4 = gl.getUniformLocation( lineG.glProgram.glProgId, 'diffuseColor' );
-	
-	GLP_setVec4Uniform(lineG.glProgram, lineG.diffColUnif_F4, temp);
+	//GLP_setUnif_F3(lineG.glProgram, lineG.diffColUnif_F4, lineG.diffColUnif_F4Loc, temp);
 	
 	//CheckGLError( "glProgram::end frag shader loaded " );
 }
@@ -42,12 +61,13 @@ function LINE_G_drawLines( lineG, buf ){
 
 	let bufID = (buf.bufID);
 	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
-		GLP_vertexAttribSetFloats( lineG.glProgram, bufID,        vertCard,      buf.buffers[0],       'position',     1);//buf.isAnimated );
-		GLP_vertexAttribSetFloats( lineG.glProgram, bufID+1,      colCard,      buf.buffers[1],       'ptCol',         1);//buf.isAnimated );
+		//GLP_vertexAttribSetFloats( triG.glProgram, 0,  3, tqvrts, triG.positionAttrib );
+		GLP_vertexAttribSetFloats( lineG.glProgram, bufID,        vertCard,      buf.buffers[0], lineG.positionAttrib_F3 );//buf.isAnimated );
+		GLP_vertexAttribSetFloats( lineG.glProgram, bufID+1,      colCard,      buf.buffers[1], lineG.ptColAttrib_F4 );//buf.isAnimated );
 		buf.bufferUpdated = false;
 	}else{
-		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID ,  vertCard, (buf.bufferIdx)*vertCard);
-		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID+1, colCard, (buf.bufferIdx)*colCard);
+		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID ,  vertCard, (buf.bufferIdx)*vertCard );
+		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID+1, colCard, (buf.bufferIdx)*colCard );
 	}
 
 	let bufSubRangeKeys = Object.keys(buf.bufSubRanges);
@@ -63,7 +83,8 @@ function LINE_G_drawLines( lineG, buf ){
 		//gl.uniformMatrix4fv( lineG.mMatrixUnif, false, transMat );//, 0, 4*4 );
 
 		gl.drawArrays( gl.LINES, startIdx, subRange.len );
-		//CheckGLError("drawLines, after drawArrays");
+		//if( CheckGLError("drawLines, after drawArrays") )
+		//	DTPrintf("LineG drawArrays error", "trig");
 	}
 	
 }

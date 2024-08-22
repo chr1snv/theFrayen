@@ -27,26 +27,26 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 
 	//once the fragment shader has been loaded, compile and configure it
 function GLP_fragShaderLoaded(textFile, thisP){
-	CheckGLError( "glProgram::begin frag shader loaded " );
+	//CheckGLError( "glProgram::begin frag shader loaded " );
 	let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER); //gl.deleteShader(Object program) when done using
 	gl.shaderSource(fragmentShader, textFile);
 	gl.compileShader(fragmentShader);
-	if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
-		alert( 'fragment shader log: ' + gl.getShaderInfoLog(fragmentShader) );
+	//if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(fragmentShader))
+	//	alert( 'fragment shader log: ' + gl.getShaderInfoLog(fragmentShader) );
 	gl.attachShader(thisP.glProgId, fragmentShader); //gl.detachShader(Object program, Object shader) when done using
-	CheckGLError( "glProgram::end frag shader attached " );
+	//CheckGLError( "glProgram::end frag shader attached " );
 
-	gl.validateProgram(thisP.glProgId);
+	//gl.validateProgram(thisP.glProgId);
 	gl.linkProgram(thisP.glProgId);
-	if(!gl.getProgramParameter(thisP.glProgId, gl.LINK_STATUS) && gl.getProgramInfoLog(thisP.glProgId))
-		alert('gl glProgId status: ' + gl.getProgramInfoLog(thisP.glProgId));
+	//if(!gl.getProgramParameter(thisP.glProgId, gl.LINK_STATUS) && gl.getProgramInfoLog(thisP.glProgId))
+	//	alert('gl glProgId status: ' + gl.getProgramInfoLog(thisP.glProgId));
 	gl.useProgram(thisP.glProgId);
-	CheckGLError( "glProgram::end frag shader validated " );
+	//CheckGLError( "glProgram::end frag shader validated " );
 
 	//clear the render buffer
 	//thisP.Clear();
 
-	CheckGLError( "glProgram::after clear " );
+	//CheckGLError( "glProgram::after clear " );
 	
 	
 	thisP.programReadyCallback(thisP.readyCallbackParams);
@@ -57,8 +57,8 @@ function GLP_vertShaderLoaded(textFile, thisP){
 	let vertexShader = gl.createShader(gl.VERTEX_SHADER); //gl.deleteShader(Object program) when done using
 	gl.shaderSource(vertexShader, textFile);
 	gl.compileShader(vertexShader);
-	if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
-		alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
+	//if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) && gl.getShaderInfoLog(vertexShader))
+	//	alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
 	gl.attachShader(thisP.glProgId, vertexShader);
 
 	loadTextFile( thisP.fragShaderFilename, GLP_fragShaderLoaded, thisP );
@@ -66,16 +66,13 @@ function GLP_vertShaderLoaded(textFile, thisP){
 
 
 function GLP_setUnif_F4( glp, unifLoc, unifLocInt, value ){
-	let shouldSet = true;
-	if( glp.unifVals[unifLocInt] == undefined ){
+	if( glp.unifVals[unifLocInt] == undefined )
 		glp.unifVals[unifLocInt] = Vect_New(value.length);
-	}else{
-		if( Vect3_Cmp( glp.unifVals[unifLocInt], value ) )
-			shouldSet = false;		
+	if( !Vect3_Cmp( glp.unifVals[unifLocInt], value ) ){
 		Vect_Copy( glp.unifVals[unifLocInt], value);
-	}
-	if( shouldSet )
 		gl.uniform4fv( unifLoc, value );
+		//CheckGLError( "GLP_setUnif_F4" );
+	}
 }
 function GLP_setUnif_F3( glp, unifLoc, unifLocInt, value ){
 	if( glp.unifVals[unifLocInt] == undefined )
@@ -83,6 +80,7 @@ function GLP_setUnif_F3( glp, unifLoc, unifLocInt, value ){
 	if( !Vect3_Cmp( glp.unifVals[unifLocInt], value ) ){
 		Vect3_Copy( glp.unifVals[unifLocInt], value);
 		gl.uniform3fv( unifLoc, value );
+		//CheckGLError( "GLP_setUnif_F3" );
 	}
 }
 function GLP_setUnif_F2( glp, unifLoc, unifLocInt, value ){
@@ -91,6 +89,7 @@ function GLP_setUnif_F2( glp, unifLoc, unifLocInt, value ){
 	if( !Vect3_Cmp( glp.unifVals[unifLocInt], value ) ){
 		Vect3_Copy( glp.unifVals[unifLocInt], value);
 		gl.uniform2fv( unifLoc, value );
+		//CheckGLError( "GLP_setUnif_F2" );
 	}
 }
 
@@ -100,6 +99,7 @@ function GLP_setUnif_F1( glp, unifLoc, unifLocInt, value ){
 	if( glp.unifVals[unifLocInt] != value ){
 		glp.unifVals[unifLocInt] = value;
 		gl.uniform1f( unifLoc, value );
+		//CheckGLError( "GLP_setUnif_F1" );
 	}
 }
 
@@ -109,6 +109,7 @@ function GLP_setUnif_I1( glp, unifLoc, unifLocInt, value ){
 	if( glp.unifVals[unifLocInt] != value ){
 		glp.unifVals[unifLocInt] = value;
 		gl.uniform1i( unifLoc, value );
+		//CheckGLError( "GLP_setUnif_I1" );
 	}
 }
 function GLP_cleanup(glp){

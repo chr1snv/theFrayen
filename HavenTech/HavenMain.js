@@ -176,6 +176,8 @@ let autoRunCountdown = 0;
 let stopAutoStart = false;
 function havenMain(){
 
+	animDebugToggle(); //init variable to the checkbox state
+
 	//uncomment and run module unit tests here
 	//ray2Tests();
 

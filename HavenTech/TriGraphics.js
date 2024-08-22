@@ -65,6 +65,8 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
 
 function TRIG_LoadComp(triG){
 
+	//gl.useProgram from shader compilation
+
 	//fragment shader flags
 	triG.lightingEnabled_Unif_I1             = gl.getUniformLocation( triG.glProgram.glProgId, 'lightingEnabled' );
 	triG.texturingEnabled_UnifF1             = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled' );
@@ -124,7 +126,7 @@ function TRI_G_Setup(triG){
 	//CheckGLError( "glProgram::before lighting enabled " );
 
 	//lighting setup
-	GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
+	//GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
 
 	//enable program vertexAttrib arrays
 	gl.enableVertexAttribArray(triG.positionAttrib);
@@ -249,8 +251,6 @@ let transMat = Matrix_New();
 //let tempMat = Matrix_New();
 function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 
-	if( buf.material.alpha != 1 )
-		console.log("non one alpha");
 	GLP_setUnif_F1( triG.glProgram, triG.alphaUnif_F, triG.alphaUnif_FLoc, buf.material.alpha );
 
 	//set texture or color for material
@@ -368,7 +368,8 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 			console.log("subRangeEndIdx > vertBufferEndIdx");
 		//CheckGLError("TRI_G_drawTriangles before gl.drawArrays");
 		gl.drawArrays( gl.TRIANGLES, startIdx, subRange.len );
-		//CheckGLError("TRI_G_drawTriangles after gl.drawArrays");
+		//if( CheckGLError("TRI_G_drawTriangles after gl.drawArrays") )
+		//	DTPrintf("TriG drawArrays error", "trig");
 		
 		buf.regenAndUploadEntireBuffer = false;
 	}

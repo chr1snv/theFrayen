@@ -107,6 +107,7 @@ function SAIL_sceneSpecificObjects( objMap ){
 function SAIL_sceneSpecificDraw( ){
 
 	//3d mode
+	TRI_G_Setup(graphics.triGraphics);
 	RGTTA_Draw();
 
 	//2d orthographic mode

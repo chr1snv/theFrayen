@@ -3,8 +3,8 @@
 //frayen line drawing vert shader
 
 uniform mat4 projection;
-uniform float pointSize;
-uniform float pointFalloff;
+//uniform float pointSize;
+//uniform float pointFalloff;
 
 attribute vec3 position;//in vec3 position;
 attribute vec4 ptCol;//in vec4 ptCol;
