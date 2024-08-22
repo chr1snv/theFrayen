@@ -6,9 +6,11 @@ h4 {margin:0px;}
 
 /*table {width:720px;}*/
 
+/*
 table td, table td * {
     vertical-align: top;
 }
+*/
 
 button{
 	border:none;
