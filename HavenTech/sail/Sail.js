@@ -38,8 +38,10 @@ let sgMode = SailModes.Menu;
 let lastFrameMenuTouch = null;
 function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris ){
 
-	if( ocean && ocean.ready )
+	if( ocean && ocean.ready ){
 		OCN_Update( ocean, time );
+		rb3DTris.objs[ ocean.uid.val ] = ocean;
+	}
 
 
 	//setup strings to draw and handle gameplay input
