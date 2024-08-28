@@ -64,12 +64,12 @@ function RGTTA_SceneLoaded( hvnsc ){
 
 
 let currentBouy = 0;
-function RGTTA_Update( time ){
+function RGTTA_Update( time, rb3DTris, rb2DTris ){
 
-
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb2DTris );
 }
 
-
+/*
 //expected to be called when triG and 3d cam matrix is already setup
 function RGTTA_Draw( time ){
 
@@ -81,3 +81,4 @@ function RGTTA_Draw( time ){
 	TRI_G_drawTriangles( graphics.triGraphics, bouy_dbB, 0 );
 
 }
+*/

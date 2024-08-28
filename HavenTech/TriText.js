@@ -30,9 +30,12 @@ function TXTR_TextSceneLoaded(txtScene){
 	}
 	
 	//txtR_dbB = new DrawBatchBuffer( textMaterial );
+	txtr_ldCmpCb();
 }
+let txtr_ldCmpCb = null;
+function TXTR_Init(ldCmpCb){
 
-function TXTR_Init(){
+	txtr_ldCmpCb = ldCmpCb;
 
 	//load the text meshes
 	textScene = new HavenScene("textMeshes", TXTR_TextSceneLoaded);

@@ -67,12 +67,18 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris )
 
 			//WNT_Update( time );
 
-			BOAT_Update( time, 180/180*Math.PI );
+			//BOAT_Update( time, 180/180*Math.PI );
 
-			RGTTA_Update( time );
+			RGTTA_Update( time, rb3DTris, rb2DTris );
 
 	}
-
+	
+	BOAT_Update( time, 180/180*Math.PI );//to allow animation when scene is started
+	rb2DTris.objs[windIndc.uid.val] = windIndc;
+	//let drawBatch = GetDrawBatchBufferForMaterial( rb2DTris, windIndc.materials[0] );
+	//let subBB = GetDrawSubBatchBuffer( drawBatch, 0, windIndc.faceVertsCtForMat[0], windIndc, 0 );
+	//subBB.toWorldMatrix = windIndc.toWorldMatrix;
+	//QM_SL_GenerateDrawVertsNormsUVsForMat( windIndc, drawBatch, 0, subBB );
 
 	//handle menu input
 	let touchMDown = (lastFrameMenuTouch == null && touch.menuTouch != null);

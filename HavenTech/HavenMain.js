@@ -173,9 +173,8 @@ function animPlayToggle(){
 }
 
 function graphicsLoaded(){
-	TXTR_Init(); //load text meshes
+	TXTR_Init(function(){ loadScene(); }); //load text meshes
 	
-	loadScene();
 }
 
 //entrance point, starts graphics, starts loading the scene
@@ -351,6 +350,12 @@ function MainLoop()
 	RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris );
 	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
 		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines );
+		
+	//generate the camera matrix
+	cam = mainScene.cameras[ mainScene.activeCameraIdx ];
+	cam.GenWorldToFromScreenSpaceMats();
+	rastBatch3dTris.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
+	rastBatch3dLines.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris, rastBatch3dLines );
 	sceneSpecificUpdateAndGatherObjsToDraw( mainScene.scnId, sceneTime, rastBatch2dTris, rastBatch3dTris ); //run the game code

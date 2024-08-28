@@ -103,12 +103,6 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 	if(!CheckIsValidFor( hvnsc, 'Update' ) )
 		return;
 
-	//generate the camera matrix
-	cam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
-	cam.GenWorldToFromScreenSpaceMats();
-	
-	rastB3DTris.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
-	rastB3DLines.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
 
 	//get the nodes within view
 	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated

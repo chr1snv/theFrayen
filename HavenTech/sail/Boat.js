@@ -1,7 +1,10 @@
 
 
 //auto tack/jib animation frame selection based on the boat velocity / heading to the
-//wind and tide 
+//wind and tide
+
+let windIndc = null;
+let windIndcQm = null;
 
 let jibArm = null;
 let mainArm = null;
@@ -17,9 +20,18 @@ function BOAT_Init(){
 	girlArm = graphics.cachedObjs[SkeletalAnimation.name]["girl_35_boatAnimsIntegrated"]["Armature"][0];
 	girlArm.scriptControlled = true;
 	
+	//no longer needed because "scriptControlled" requires this to be done per frame
 	SkelA_UpdateTransforms( jibArm, 0, true );
 	SkelA_UpdateTransforms( mainArm, 0, true );
 	SkelA_UpdateTransforms( girlArm, 0, true );
+	
+	
+	windIndcQm = graphics.cachedObjs[QuadMesh.name]["textMeshes"]["windIndc"][0];
+	for( let mdl in textScene.models ){
+		let model = textScene.models[mdl];
+		if( model.quadmesh.meshName == "windIndc" )
+			windIndc = model;
+	}
 }
 
 //130 port wing on wing 			(270-180deg)
@@ -46,7 +58,7 @@ const restoreAmt = 0.01;
 
 let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
-function BOAT_Update(time, wndHdg ){
+function BOAT_Update( time, wndHdg ){
 
 	let relWndHdg = (wndHdg-180*Math.PI) - boatHeading;
 
@@ -89,6 +101,6 @@ function BOAT_Update(time, wndHdg ){
 	
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
-	if( windIndc_dbB != null )
-	Matrix_SetEulerTransformation( windIndc_dbB.bufSubRanges[0].toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
+	if( windIndc != null )
+		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
 }

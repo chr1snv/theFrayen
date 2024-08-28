@@ -418,6 +418,11 @@ var rastBatch3dLines = new RasterBatch( RastB_DrawLines );
 function RasterBatch( drawFunc ){
 
 	this.DrawFunc = drawFunc;
+	
+	this.ambientColor = Vect_New(3);
+	this.numLights = 0;
+	this.lights = null;
+	
 
 	this.camWorldToScreenSpaceMat = null;
 

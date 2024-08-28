@@ -209,28 +209,6 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 
 }
 
-function SkelA_writeCombinedBoneMatsToGL(hvnsc){
-	//write the combined bone matricies to gl
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
-
-	let internalFormat = gl.RGBA;
-	if( gl.glType == "webgl2" ){
-		internalFormat = gl.RGBA32F;
-	}
-
-	gl.texImage2D(
-		gl.TEXTURE_2D, 
-		0,					//level
-		internalFormat,			//internal format
-		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
-		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone
-		0,					//border
-		gl.RGBA,			//format
-		gl.FLOAT,			//type
-		hvnsc.combinedBoneMats
-	);
-}
 
 function SkelA_GenerateBoneTree(skelA){
 	//helper function to calculate bone parent and child
@@ -400,6 +378,36 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
 }
 
+/*
+function SkelA_EnableSceneBoneMat(hvnsc){
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
+}
+*/
+
+function SkelA_writeCombinedBoneMatsToGL(hvnsc){
+	//write the combined bone matricies to gl
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
+
+	let internalFormat = gl.RGBA;
+	if( gl.glType == "webgl2" ){
+		internalFormat = gl.RGBA32F;
+	}
+
+	gl.texImage2D(
+		gl.TEXTURE_2D, 
+		0,					//level
+		internalFormat,			//internal format
+		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
+		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone
+		0,					//border
+		gl.RGBA,			//format
+		gl.FLOAT,			//type
+		hvnsc.combinedBoneMats
+	);
+}
+
 function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	if( skelAnims.length < 1 )
 		return;
@@ -432,7 +440,7 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 	//allocate the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
 	havenScene.combinedBoneMats = new Float32Array( matrixCard * totalNumBones );
 
-	Matrix_SetIdentity(havenScene.combinedBoneMats);
+	Matrix_SetIdentity(havenScene.combinedBoneMats); //puts an identity matrix at matrix index 0
 
 	havenScene.boneMatTexture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE1);
