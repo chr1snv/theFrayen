@@ -137,12 +137,12 @@ function Vect3_Project( targ, v ){
 }
 
 //returns the distance between the two vectors or points (assuming the vectors are distances from the same origin to two points)
+let v3Diff = Vect3_New();
 function Vect3_Distance(v1, v2) {
-	let diff = new Float32Array(3);
-	Vect3_Copy(diff, v1);
-	Vect3_Subtract(diff, v2); //diff is now the vector from v2 to v1
+	Vect3_Copy(v3Diff, v1);
+	Vect3_Subtract(v3Diff, v2); //diff is now the vector from v2 to v1
 
-	return Vect3_Length(diff);
+	return Vect3_Length(v3Diff);
 }
 
 //return the inverse vector

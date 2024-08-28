@@ -35,6 +35,8 @@ const matrixCard   = 4*4;
 function Graphics( canvasIn, loadCompleteCallback ){
 	this.canvas = canvasIn;
 	
+	this.loadCompleteCallback = loadCompleteCallback;
+	
 	//WebGLDebugUtils.init(this.canvas);
 
 	//maps used to keep track of primative graphics objects
@@ -95,6 +97,12 @@ function Graphics( canvasIn, loadCompleteCallback ){
 		gl.width                       = width;
 		gl.height                      = height;
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+		
+		//generate the 2d camera orthographic matrix
+		glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
+			-1,1,//-graphics.screenHeight, graphics.screenHeight,
+			-1, 1);
+		rastBatch2dTris.worldToScreenSpaceMat = gOM;
 	}
 
 	//returns width / height ( multiply fovy by this to get fovh )
@@ -174,33 +182,9 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	
 	
 	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests
-	let cachedObjStatusAndCallbacks;
 	
-	this.GetCached = function(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
-		//concatName = filename + sceneName;
-		if( this.cachedObjs[ObjConstructor.name] == undefined )
-			this.cachedObjs[ObjConstructor.name] = {};
-		if( this.cachedObjs[ObjConstructor.name][sceneName] == undefined )
-			this.cachedObjs[ObjConstructor.name][sceneName] = {};
-		cachedObjStatusAndCallbacks = this.cachedObjs[ObjConstructor.name][sceneName][filename];
-		if(cachedObjStatusAndCallbacks === undefined){
-			//component hasn't been requested to load, 
-			//load the new component
-			//and store a new callback for it to be returned (asynchronous load)
-			
-			cachedObjStatusAndCallbacks =
-				[	null,
-					false, 
-					[objReadyCallback, readyCallbackParameters] 
-				];
-			this.cachedObjs[ObjConstructor.name][sceneName][filename] = cachedObjStatusAndCallbacks;
-			cachedObjStatusAndCallbacks[0] = 
-				new ObjConstructor(filename, sceneName, ObjConstructorArgs, 
-						GRPH_ObjReadyCallback, cachedObjStatusAndCallbacks);
-		}else{
-			GRPH_AddCachedObjCallbackAndCallIfReady( cachedObjStatusAndCallbacks, objReadyCallback, readyCallbackParameters );
-		}
-	}
+	
+	
 
 
 	//initialization code
@@ -224,36 +208,67 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	//enable depth testing
 	this.enableDepthMask(true); //calls gl.depthMask(gl.TRUE)
 	gl.depthFunc(gl.LESS);
-	
+
 	//enable blending (for transparent materials)
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.enable(gl.BLEND);
-	
-	
+
+
 	//load and compile the point, line, and triangle drawing gl programs
-	this.pointGraphics = new PointGraphics(loadLineGraphics, 0);
+	this.pointGraphics = new PointGraphics(GRPH_loadLineGraphics, 0);
 	this.glPrograms['point'] = this.pointGraphics.glProgram;
 	this.currentProgram = this.pointGraphics.glProgram.glShaderProgramRefId;
 	this.currentProgramName = 'point';
-	
-	function loadLineGraphics(){
-		graphics.lineGraphics = new LineGraphics(loadTriGraphics, 100);
-		graphics.glPrograms['line'] = graphics.lineGraphics.glProgram;
-		CheckGLError( "after load line gl program" );
-		graphics.currentProgram = graphics.lineGraphics.glProgram.glShaderProgramRefId;
-		graphics.currentProgramName = 'line';
-	}
-	
-	function loadTriGraphics(){
-		graphics.triGraphics = new TriGraphics(loadCompleteCallback, 200);
-		graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
-		CheckGLError( "after load tri gl program" );
-		graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;
-		graphics.currentProgramName = 'tri';
-	}
 
 
+} //end graphics
+
+function GRPH_loadLineGraphics(){
+	graphics.lineGraphics = new LineGraphics(GRPH_loadTriGraphics, 100);
+	graphics.glPrograms['line'] = graphics.lineGraphics.glProgram;
+	CheckGLError( "after load line gl program" );
+	graphics.currentProgram = graphics.lineGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgramName = 'line';
 }
+
+function GRPH_loadTriGraphics(){
+	graphics.triGraphics = new TriGraphics(graphics.loadCompleteCallback, 200);
+	graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
+	CheckGLError( "after load tri gl program" );
+	graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgramName = 'tri';
+}
+
+function GRPH_GetCached(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
+	//concatName = filename + sceneName;
+	if( graphics.cachedObjs[ObjConstructor.name] == undefined )
+		graphics.cachedObjs[ObjConstructor.name] = {};
+	if( graphics.cachedObjs[ObjConstructor.name][sceneName] == undefined )
+		graphics.cachedObjs[ObjConstructor.name][sceneName] = {};
+	let cachedObjStatusAndCallbacks = graphics.cachedObjs[ObjConstructor.name][sceneName][filename];
+	if(typeof cachedObjStatusAndCallbacks == 'undefined'){
+		//component hasn't been requested to load, 
+		//load the new component
+		//and store a new callback for it to be returned (asynchronous load)
+		
+		cachedObjStatusAndCallbacks =
+			[	null,
+				false, 
+				[objReadyCallback, readyCallbackParameters] 
+			];
+		graphics.cachedObjs[ObjConstructor.name][sceneName][filename] = cachedObjStatusAndCallbacks;
+		//this has to be assigned below because if in the above array constructor
+		//cachedObjStatusAndCallbacks passed in to the ObjConstructor is still undefined
+		cachedObjStatusAndCallbacks[0] =
+		new ObjConstructor(filename, sceneName, ObjConstructorArgs, 
+				GRPH_ObjReadyCallback, cachedObjStatusAndCallbacks);
+		graphics.cachedObjs[ObjConstructor.name][sceneName][filename] = cachedObjStatusAndCallbacks;
+			
+	}else{
+		GRPH_AddCachedObjCallbackAndCallIfReady( cachedObjStatusAndCallbacks, objReadyCallback, readyCallbackParameters );
+	}
+}
+
 
 function GRPH_ObjReadyCallback( obj, cachedObjStatusAndCallbacks ){
 	cachedObjStatusAndCallbacks[0] = obj;
@@ -262,12 +277,15 @@ function GRPH_ObjReadyCallback( obj, cachedObjStatusAndCallbacks ){
 	for( let i = 0; i < callbacksAndArgs.length; i+=2 ){
 		callbacksAndArgs[i](obj, callbacksAndArgs[i+1]);
 	}
+	cachedObjStatusAndCallbacks[2] = []; // clear called callbacks
+	//so that if GRPH_GetCached is called again it doesn't call them another time
+	
 }
 
 function GRPH_AddCachedObjCallbackAndCallIfReady( objStatusAndCallbacks, objReadyCallback, readyCallbackParameters ){
-	if( objStatusAndCallbacks[1] )
+	if( objStatusAndCallbacks[1] ) //already loaded ( pass the object and parameters to the callback )
 		objReadyCallback( objStatusAndCallbacks[0], readyCallbackParameters );
-	else{ //not yet loaded
+	else{ //not yet loaded add callback and parameters to queue
 		objStatusAndCallbacks[2].push(objReadyCallback);
 		objStatusAndCallbacks[2].push(readyCallbackParameters);
 	}

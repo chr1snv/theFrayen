@@ -43,18 +43,19 @@ function sceneSpecificLoad(scnId, cmpCb){
 		
 		loadScriptLoop();
 	}else{
-		cmpCb(); 
+		cmpCb();
 	}
 }
 
 
-function sceneSpecificUpdate(scnId, time){
+function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, rb2D, rb3D){
 	switch( scnId ){
 		case ScnIds.Sail:
-			SAIL_sceneSpecificUpdate(time);
+			SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, rb2D, rb3D);
 	}
 }
 
+/*
 function sceneSpecificObjects( scnId, objMap ){
 
 	switch( scnId ){
@@ -63,8 +64,9 @@ function sceneSpecificObjects( scnId, objMap ){
 	}
 
 }
+*/
 
-
+/*
 function sceneSpecificDraw( scnId ){
 
 	switch( scnId ){
@@ -73,3 +75,4 @@ function sceneSpecificDraw( scnId ){
 	}
 
 }
+*/

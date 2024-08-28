@@ -29,10 +29,9 @@ function TXTR_TextSceneLoaded(txtScene){
 		textMaterial = model.quadmesh.materials[0];
 	}
 	
-	txtR_dbB = new DrawBatchBuffer( textMaterial );
+	//txtR_dbB = new DrawBatchBuffer( textMaterial );
 }
 
-let txtR_dbB = null;
 function TXTR_Init(){
 
 	//load the text meshes
@@ -40,6 +39,7 @@ function TXTR_Init(){
 
 }
 
+/*
 function TXTR_AllocSubRngBuffer(numVerts, subBufId, str, interactive){
 
 	let obj = new TXTR_StrVertBufObj(numVerts);
@@ -61,18 +61,23 @@ function TXTR_AllocSubRngBuffer(numVerts, subBufId, str, interactive){
 	
 	return obj;
 }
+*/
 
 const xKernSpc = 0.5;
 const lVertSpc = 0.2;
 
 //draw text at certian size
 let tmpGlyphVert = Vect3_New();
-function TR_QueueText( x, y, dpth, size, str, interactive ){
-	
+function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
+
+	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
+
 	//check if its something that wasn't rendered last frame
 	let glyphStrKey = "" + x + ":" + y + ":" + dpth + ":" + size + " " + str;
-	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
 	
+	
+	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
+
 		//count the number of verts and generate them for each glyph
 		let strNumVerts = 0;
 		let escpSeqActive = false;
@@ -100,8 +105,14 @@ function TR_QueueText( x, y, dpth, size, str, interactive ){
 			}
 		}
 		
+		let strObj = new TRI_G_VertBufObj(strNumVerts, str, interactive);
+		
 		//allocate glyph vert buffer for the string
-		let strVertBufObj = TXTR_AllocSubRngBuffer( strNumVerts, glyphStrKey, str, interactive );
+		//GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
+		let sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
+		Matrix_SetIdentity( sbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
+		let strVertBufObj = sbb.obj;
+		
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
 		let uvBufIdx = 0;
@@ -158,17 +169,22 @@ function TR_QueueText( x, y, dpth, size, str, interactive ){
 			escpdLen += 1;
 		}
 		strVertBufObj.AABB = new AABB( strMin, strMax );
+		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
 		
 		
 		
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
+	}else{
+		//restore the number of verts for the sub batch buffer to draw
+		let subb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
+		subb.len = subb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
 	}
 	
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
 		txtR_dbB.sortedSubRngKeys = [];
 	txtR_dbB.sortedSubRngKeys.push(  glyphStrKey );
-	txtR_dbB.numBufSubRanges += 1;
+	//txtR_dbB.numBufSubRanges += 1;
 
 }
 
@@ -181,16 +197,18 @@ let numMOvrdStrs = 0;
 let tr_ptrRay = new Ray( Vect3_New(), Vect3_NewZero() );
 tr_ptrRay.norm[2] = -1;
 let ndcSpaceAABB = new AABB( Vect3_New(), Vect3_New() );
-function TR_RaycastPointer(pLoc){
+function TR_RaycastPointer(rb2DTris, pLoc){
 	//cast the given location into the aabb's to find
 	//which text objects it intersects with
 	numMOvrdStrs = 0;
+	
+	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 	
 	tr_ptrRay.origin[0] = ((pLoc.x / graphics.screenWidth) - 0.5)* 2;
 	tr_ptrRay.origin[1] = ((pLoc.y / graphics.screenHeight) - 0.5)* -2;
 	
 	let subRngKeys = txtR_dbB.sortedSubRngKeys;
-	for( let i = 0; i < subRngKeys.length; ++i ){
+	for( let i = 0; i < txtR_dbB.numBufSubRanges; ++i ){
 		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
 		if( !subRng.obj.interactive ) //skip non interactable text objects
 			continue;
@@ -210,6 +228,7 @@ function TR_RaycastPointer(pLoc){
 	}
 }
 
+/*
 function TR_DrawText(){
 	//draw the active glyph vert buffers
 	let triG = graphics.triGraphics;
@@ -225,7 +244,9 @@ function TR_DrawText(){
 	TRI_G_drawTriangles( triG, txtR_dbB, 0 );
 
 }
+*/
 
+/*
 function TR_DeactivateFrameGlyphs(){
 	//set the buffer as not active for the next frame 
 	//(until/unless next frame the same string is asked to draw)
@@ -237,6 +258,7 @@ function TR_DeactivateFrameGlyphs(){
 	//	glyphStrVertBuffers[ vrtBufKeys[i] ][1] = false;
 	//}
 }
+*/
 
 function TR_CleanupFrameGlyphs(){
 }

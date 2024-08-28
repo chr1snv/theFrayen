@@ -35,6 +35,8 @@ function Matrix_SetIdentity( m )
 	m[2*4+0] = 0; m[2*4+1] = 0; m[2*4+2] = 1; m[2*4+3] = 0;
 	m[3*4+0] = 0; m[3*4+1] = 0; m[3*4+2] = 0; m[3*4+3] = 1;
 }
+let IdentityMatrix = Matrix_New();
+Matrix_SetIdentity( IdentityMatrix );
 function Matrix_Copy( m, m2 ){
 	for( var i = 0; i < 4*4; ++i )
 		m[i] = m2[i];

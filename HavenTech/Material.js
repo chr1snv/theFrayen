@@ -13,6 +13,8 @@
 
 function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallbackParams )
 {
+	let programaticlyCreatedFromTexture = (args != null);
+
 	this.materialReadyCallback = materialReadyCallback;
 	this.readyCallbackParams = readyCallbackParams;
 
@@ -31,18 +33,23 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.specularAmtExponent[0] = 0; this.specularAmtExponent[1] = 1;
 	this.emitMix = 0;
 	this.diffuseTextureAlpha = false;
+	if( programaticlyCreatedFromTexture )
+		this.diffuseTextureAlpha = true;
+	
+	this.numTexturesToLoad = 0;
 
 	this.IsTransparent = function() { return this.alpha < 1.0 || this.diffuseTextureAlpha; }
 
 	this.isShadeless = false;
+	if( programaticlyCreatedFromTexture )
+		this.isShadeless = true;
 
 	this.isHit = false;
 	this.isValid = false;
 
-	this.textureLoaded = function( tex, thisP ){
-		thisP.texture = tex;
-	}
 
+	if( programaticlyCreatedFromTexture )
+		this.emitMix = 1;
 
 	if(this.materialName == "hit"){
 		//this is a hit geometry material
@@ -59,12 +66,26 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 		//calculate the material file filename
 		let filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtMat";
 
-		//open the material file
-		loadTextFile(filename, MAT_materialTextLoaded, this);
+		//open the material file (unless its a programatically created material)
+		if( !programaticlyCreatedFromTexture ){
+			loadTextFile(filename, MAT_materialTextLoaded, this);
+		}else{
+			this.numTexturesToLoad += 1;
+			GRPH_GetCached(nameIn, this.sceneName, Texture, 1, MAT_textureLoaded, this);
+		}
+			
 	}
 
 
 }
+
+function MAT_textureLoaded( tex, thisP ){
+	thisP.texture = tex;
+	thisP.numTexturesToLoad -= 1;
+	if( thisP.numTexturesToLoad <= 0 )
+		thisP.isValid = true;
+}
+
 
 function MAT_materialTextLoaded(materialFile, thisP){
 	if( materialFile === undefined ){
@@ -147,10 +168,12 @@ function MAT_materialTextLoaded(materialFile, thisP){
 							thisP.normalTextureName  = textureName;
 						if(isEmit)
 							thisP.emitTextureName    = textureName;
-						
+
+
 						//preload the texture
+						thisP.numTexturesToLoad += 1;
 						//function(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters)
-						graphics.GetCached(textureName, thisP.sceneName, Texture, wrapType, thisP.textureLoaded, thisP);
+						GRPH_GetCached(textureName, thisP.sceneName, Texture, wrapType, MAT_textureLoaded, thisP);
 					}
 					if(temp[0] == 'e') // sort of unnesscary, as soon as the file
 						break;			//name is read reading this texture is done
@@ -172,7 +195,9 @@ function MAT_materialTextLoaded(materialFile, thisP){
 			thisP.emitMix = 0.0;
 		//only set the valid flag if everything loaded correctly
 
-		thisP.isValid = true;
+		if( this.numTexturesToLoad == 0 )
+			thisP.isValid = true;
+		//otherwise not valid until texture loads
 	}
 
 	thisP.materialReadyCallback( thisP, thisP.readyCallbackParams );
@@ -182,7 +207,7 @@ function MAT_materialTextLoaded(materialFile, thisP){
 function MAT_GetTexCoordBounds(mat){
 
 
-	let texture = graphics.GetCached( mat.diffuseTextureName, mat.sceneName, Texture, mat.wrapType, mat.textureLoaded, thisP);
+	let texture = GRPH_GetCached( mat.diffuseTextureName, mat.sceneName, Texture, mat.wrapType, mat.textureLoaded, thisP);
 	let texture = graphics.GetTexture( this.diffuseTextureName, this.sceneName );
 	if( texture == NULL )
 		return texture;

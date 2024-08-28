@@ -156,10 +156,6 @@ function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
 }
 
 
-function triGTexReady( tex, triG ){
-	triG.textures[tex.texName] = tex;
-}
-
 function TRIG_SetDefaultOrthoCamMat(triG){
 
 	Matrix_Transpose( transMat, identMatrix );
@@ -174,18 +170,28 @@ function TRIG_SetDefaultOrthoCamMat(triG){
 
 }
 
-let tquvs = new Float32Array(6*2);
-let tqvrts = new Float32Array(6*3);
-// Draw a textured screenspace rectangle
-function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center, widthHeight, minUv, maxUv, depth ){
+function TRI_G_VertBufObj(numVerts, strIn="", interactiveIn=false){
+	this.vertBufferForMat = [new Float32Array(numVerts*vertCard)];
+	this.normBufferForMat = [new Float32Array(numVerts*normCard)];
+	this.uvBufferForMat   = [new Float32Array(numVerts*uvCard)  ];
+	this.AABB = null;
+	this.str = strIn;
+	this.interactive = interactiveIn;
+}
 
+
+// Draw a textured screenspace rectangle
+function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, sceneName, center, widthHeight, minUv, maxUv, depth, sspTInstNum=0 ){
+
+
+	/*
 	GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
 	
 	GLP_setUnif_F1( triG.glProgram, triG.alphaUnif_F, triG.alphaUnif_FLoc, 1 );
 
 	if( textureName != null ){
 		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-			graphics.GetCached(textureName, sceneName, Texture, 0, triGTexReady, triG);
+			GRPH_GetCached(textureName, sceneName, Texture, 0, triGTexReady, triG);
 			return;
 		}
 
@@ -200,6 +206,35 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	gl.disableVertexAttribArray(triG.indexWeightsAttrib);
 
 	TRIG_SetDefaultOrthoCamMat(triG);
+	*/
+
+
+	//create a material for the texture
+	if( graphics.cachedObjs[Material.name] == undefined ||
+		graphics.cachedObjs[Material.name][sceneName] == undefined ||
+		graphics.cachedObjs[Material.name][sceneName][textureName] == undefined){
+		
+		GRPH_GetCached( textureName, sceneName, Material, true, null, null );
+		
+		return;
+	}
+	//wait for the texture to load
+	let material = graphics.cachedObjs[Material.name][sceneName][textureName][0];
+	if( !material.isValid )
+		return;
+	
+	
+	let drawBatch = GetDrawBatchBufferForMaterial( rB2DTris, material );
+	let vertBufObj = null;
+	if( drawBatch.numBufSubRanges < sspTInstNum+1 ){
+		vertBufObj = new TRI_G_VertBufObj( 6 );
+	}
+	let subBB = GetDrawSubBatchBuffer( drawBatch, sspTInstNum, 6, vertBufObj, 0 );
+	vertBufObj = subBB.obj;
+	subBB.toWorldMatrix = IdentityMatrix;
+	
+	let tquvs = vertBufObj.uvBufferForMat[0];
+	let tqvrts = vertBufObj.vertBufferForMat[0];
 
 	//generate the 4 corners from the centerpoint and width/height
 	let mm = [(center[0] - widthHeight[0]/2), (center[1] - widthHeight[1]/2)]; //left bottom
@@ -224,8 +259,11 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	tquvs[3*2+0] = maxUv[0]; tquvs[3*2+1] = maxUv[1]; //right top
 	tquvs[4*2+0] = minUv[0]; tquvs[4*2+1] = minUv[1]; //left  bottom
 	tquvs[5*2+0] = maxUv[0]; tquvs[5*2+1] = minUv[1]; //right bottom
+	drawBatch.numSubBufferUpdatesToBeValid -= 1;
 
+	
 
+	/*
 	GLP_vertexAttribSetFloats( triG.glProgram, 0,  3, tqvrts, triG.positionAttrib );
 	//CheckGLError("draw square, after position attributeSetFloats");
 	GLP_vertexAttribSetFloats( triG.glProgram, 1,    3, tqvrts, triG.normAttrib );
@@ -236,6 +274,7 @@ function TRI_G_drawScreenSpaceTexturedQuad(triG, textureName, sceneName, center,
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	//CheckGLError("draw square, after drawArrays");
 	//gl.flush();
+	*/
 }
 
 function TRI_G_setCamMatrix( triG, camMat, camWorldPos ){
@@ -282,12 +321,18 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 	let isDynamic = buf.vertexAnimated;
 	let numVerts = buf.bufferIdx;
 	let bufID = (buf.bufID);
+	
+	//if resized the gl attribute buffer, need to re upload all sub buffer attributes
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID,   triG.positionAttrib,     vertCard,      numVerts*vertCard,      isDynamic) )
+		buf.regenAndUploadEntireBuffer = true;
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+1, triG.normAttrib,         normCard,      numVerts*normCard,      isDynamic) )
+		buf.regenAndUploadEntireBuffer = true;
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+2, triG.texCoordAttrib,     uvCard,        numVerts*uvCard,        isDynamic) )
+		buf.regenAndUploadEntireBuffer = true;
 		
-	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID,   triG.positionAttrib,     vertCard,      numVerts*vertCard,      isDynamic);
-	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+1, triG.normAttrib,         normCard,      numVerts*normCard,      isDynamic);
-	GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+2, triG.texCoordAttrib,     uvCard,        numVerts*uvCard,        isDynamic);
 	if( buf.hasSkelAnim ){
-		GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeightsAttrib, bnIdxWghtCard, numVerts*bnIdxWghtCard, false);
+		if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeightsAttrib, bnIdxWghtCard, numVerts*bnIdxWghtCard, false) )
+			buf.regenAndUploadEntireBuffer = true;
 		gl.enableVertexAttribArray(triG.indexWeightsAttrib);
 		GLP_setUnif_F1( triG.glProgram, triG.numBones_F, triG.numBones_FLoc, totalNumBones );
 	}
@@ -303,7 +348,7 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 		let subRange = buf.bufSubRanges[ bufSubRangeKeys[i] ];
 		let startIdx = subRange.startIdx;
 		
-		if( subRange.vertsNotYetUploaded ){
+		if( subRange.vertsNotYetUploaded || buf.regenAndUploadEntireBuffer ){
 			
 			//vertexAttribSetSubFloats = function( attribInstID, offset, arr )
 			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID,   startIdx*vertCard,      subRange.obj.vertBufferForMat[subRange.objMatIdx] );

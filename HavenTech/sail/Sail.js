@@ -36,7 +36,7 @@ const SailModes = {
 let sgMode = SailModes.Menu;
 
 let lastFrameMenuTouch = null;
-function SAIL_sceneSpecificUpdate( time ){
+function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris ){
 
 	if( ocean && ocean.ready )
 		OCN_Update( ocean, time );
@@ -47,14 +47,21 @@ function SAIL_sceneSpecificUpdate( time ){
 		case SailModes.Menu:
 
 			//menu heading text
-			TR_QueueText( -0.3, 0.28, 0.02, 0.3, "SAIL", false );
-			TR_QueueText( -0.4, -0.2, 0.02, 0.1, "START", true );
-			TR_QueueText( -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
+			TR_QueueText( rb2DTris, -0.3, 0.28, 0.02, 0.3, "SAIL", false );
+			TR_QueueText( rb2DTris, -0.4, -0.2, 0.02, 0.1, "START", true );
+			TR_QueueText( rb2DTris, -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
+			
+			//menu background overlay
+			cenPos        = [ 0        , 0    ];
+			wdthHight     = [ 1        , 1    ];
+			minUv         = [ 0        , 1    ];
+			maxUv         = [ 1        , 0    ];
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
 
 			break;
 		case SailModes.Gameplay:
 
-			TR_QueueText( -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
+			TR_QueueText( rb2DTris, -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
 
 			//WNT_Update( time );
 
@@ -67,7 +74,7 @@ function SAIL_sceneSpecificUpdate( time ){
 
 	//handle menu input
 	let touchMDown = (lastFrameMenuTouch == null && touch.menuTouch != null);
-	TR_RaycastPointer( mCoords );
+	TR_RaycastPointer( rb2DTris, mCoords );
 	
 	switch( sgMode ){
 		case SailModes.Menu:
@@ -92,18 +99,19 @@ function SAIL_sceneSpecificUpdate( time ){
 
 }
 
-
+/*
 function SAIL_sceneSpecificObjects( objMap ){
 
 	if( ocean.ready )
-		objMap.set( ocean.uid.val, ocean );
+		objMap[ ocean.uid.val ] = ocean;
 
 	//if( windIndc.ready )
 	//	objMap.set( windIndc.uid.val, windIndc );
 
 }
+*/
 
-
+/*
 function SAIL_sceneSpecificDraw( ){
 
 	//3d mode
@@ -117,7 +125,7 @@ function SAIL_sceneSpecificDraw( ){
 		wdthHight     = [ 1        , 1    ];
 		minUv         = [ 0        , 1    ];
 		maxUv         = [ 1        , 0    ];
-		TRI_G_drawScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
+		TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
 	}
 	//sets up orthographic matrix
 	TR_DrawText();
@@ -130,3 +138,4 @@ function SAIL_sceneSpecificDraw( ){
 	TR_DeactivateFrameGlyphs();
 
 }
+*/

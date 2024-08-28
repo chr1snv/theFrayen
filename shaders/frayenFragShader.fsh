@@ -35,13 +35,15 @@ varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 void main() {
 
 	//calculate the diffuse color
-	vec4 diffuseAndAlphaCol = vec4(diffuseColor,alpha);
+	vec4 diffuseAndAlphaCol;
 	vec3 specularCol = vec3(1,1,1);
 	
 
 	
 	if( texturingEnabled ){
 		diffuseAndAlphaCol = texture2D( texSampler, texCoordVarying );
+	}else{
+		diffuseAndAlphaCol = vec4(diffuseColor,alpha);
 	}
 
 	if( !lightingEnabled ){
@@ -86,6 +88,8 @@ void main() {
 	}
 	
 	//gl_FragColor.a = 1.0;
+	if (gl_FragColor.a <= 0.0) discard;
+
 
 	/*
 	float z = gl_FragCoord.z;

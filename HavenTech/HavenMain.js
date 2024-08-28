@@ -145,10 +145,12 @@ function showHideSettings(){
 		settingsTableElm.style.display="contents";
 		settingsButtonElm.innerHTML = "V Settings";
 		orientationTextDivE.style.display="inline-block";
+		posDbgText = true;
 	}else{
 		orientationTextDivE.style.display="none";
 		settingsTableElm.style.display="none";
 		settingsButtonElm.innerHTML = "> Settings";
+		posDbgText = false;
 	}
 }
 
@@ -170,6 +172,12 @@ function animPlayToggle(){
 	AnimPlaybackEnabled = animPlayElm.checked;
 }
 
+function graphicsLoaded(){
+	TXTR_Init(); //load text meshes
+	
+	loadScene();
+}
+
 //entrance point, starts graphics, starts loading the scene
 //(which then starts the main update and rendering loop)
 let autoRunCountdown = 0;
@@ -188,8 +196,12 @@ function havenMain(){
 
 	statusElm.innerHTML = "Graphics init";
 
-	graphics = new Graphics(document.getElementById('frayenCanvas'), 
-		function(){ statusElm.innerHTML = "Loading scene"; loadScene();/*"Auto run starting";/*sceneChanged();*/ } ); //get the selected scene from the dropdown and load it
+	graphics = new Graphics( document.getElementById('frayenCanvas'), 
+		function(){ 
+			statusElm.innerHTML = "Loading scene"; 
+			graphicsLoaded();/*"Auto run starting";/*sceneChanged();*/ 
+		} 
+	); //get the selected scene from the dropdown and load it
 		
 	canvWidthElm.value = window.innerWidth * 0.9;
 	canvHeightElm.value = window.innerHeight;
@@ -201,7 +213,6 @@ function havenMain(){
 	//sceneChanged(); //get the selected scene from the dropdown and load it
 	//window.setTimeout( autoRunCount, 1000 );
 	
-	TXTR_Init(); //load text meshes
 }
 function stopAutostart(){
 	stopAutoStart = true;
@@ -302,21 +313,17 @@ function sceneLoaded(havenScene)
 	
 	
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
-	UpadateMousePosText();
-	UpdateCamTransText(cam);
+	if( posDbgText ){
+		UpadateMousePosText();
+		UpdateCamTransText(cam);
+	}
 	sceneLoadedTime = Date.now();
 	running = true;
 }
 
 let simPhys = true;
 
-let lastInputTime = -10;
-const noInputDisplayHelpOverlayTime = 3; //display help if no user input for 3 seconds
-const numTimesBtwnInputHelpOverlayReset = 2;
-const resetTimeBtwnInputHelpOverlay = 60;
-let numInputHelpOverlayTimesLeft = 2;
-let wasntShowingHelpInputOverlay = true;
-
+var posDbgText = false;
 //the main rendering and update function called each frame
 var fpsElm = document.getElementById("fps");
 var lastSceneFPSOutputTime = 0;
@@ -332,35 +339,67 @@ function MainLoop()
 		sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
 	//graphics.Clear();
 	//graphics.ClearDepth();
-	
+
 	if( keysDown[keyCodes.KEY_P] == true )
 		simPhys = !simPhys;
-	
+
 	if( mainScene.scnId < 0 ) //default user input
 		HandleDefaultCameraControls( sceneTime );
-	
-	HVNSC_Update( mainScene, sceneTime );
-	sceneSpecificUpdate( mainScene.scnId, sceneTime ); //run the game code
 
 
-	HVNSC_Draw( mainScene );
-	sceneSpecificDraw(mainScene.scnId);
+	RastB_ClearObjsAndInitListsForNewFrame( rastBatch2dTris );
+	RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris );
+	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
+		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines );
 
-	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
-	
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris, rastBatch3dLines );
+	sceneSpecificUpdateAndGatherObjsToDraw( mainScene.scnId, sceneTime, rastBatch2dTris, rastBatch3dTris ); //run the game code
+
+
+	//generate verticies and upload to gl if necessary
+	RastB_PrepareBatchToDraw( rastBatch2dTris );
 	if( mainScene.scnId < 0 )
-		Overlay_DrawInputHint();
+		Overlay_DrawInputHint(rastBatch2dTris);
+	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
+		RastB_PrepareBatchToDraw( rastBatch3dLines );
+	RastB_PrepareBatchToDraw( rastBatch3dTris );
 	
+	if( mainScene.boneMatTexture != null ){
+		SkelA_writeCombinedBoneMatsToGL(mainScene);
+		rastBatch3dTris.combinedBoneMats = mainScene.combinedBoneMats;
+	}
+		
+	//SkelA_EnableSceneBoneMat(mainScene);
+
+
+	//clear the render buffer and reset rendering state
+	graphics.Clear();
+	//graphics.ClearDepth();
+	//graphics.Flush();
+	//graphics.ClearLights();
+
+	//enable vertex attribute objects and call glDrawArrays to rasterize
+	//have to draw menu after 3d scene because of transparent textures
+	//(the transparent area still writes z location)
+	rastBatch2dTris.DrawFunc(rastBatch2dTris); 
+	rastBatch3dTris.DrawFunc(rastBatch3dTris);
+	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
+		rastBatch3dLines.DrawFunc(rastBatch3dLines);
+
+
+
+
+
 	SND_UserInputsToNotes();
-	
+
 	HVNINPT_ClearKeysDown();
-	
-	
+
+
 	SND_updateACtx();
-	
+
 	if( !document.fullscreenElement )
 		DrawSoundCanvas();
-		
+
 	framesSinceLastFPSOutputTime += 1;
 	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
 		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
@@ -369,6 +408,10 @@ function MainLoop()
 	}
 
 	//graphics.Flush();
+
+	//loop this function again when time for next frame
+	mainLoopAnimRequestHandle = window.requestAnimFrame(MainLoop);
+
 }
 
 let mouseXSenE = document.getElementById("mouseXSen");
@@ -485,7 +528,8 @@ function HandleDefaultCameraControls( updateTime ){
 	//update mouse position text
 	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*cam.numHorizRays);
 	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*cam.numVertRays);
-	UpadateMousePosText();
+	if( posDbgText )
+		UpadateMousePosText();
 
 
 	//update text
@@ -493,7 +537,8 @@ function HandleDefaultCameraControls( updateTime ){
 		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){
 		lastInputTime = sceneTime;
 		//update the camera position / orientation text
-		UpdateCamTransText(cam);
+		if( posDbgText )
+			UpdateCamTransText(cam);
 	}
 
 	//send the updates to the camera

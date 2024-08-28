@@ -636,7 +636,7 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 		if( t.nodePctOfHalfScreenWidth > 0.1 ){
 		
 			if( t.objInsertIdx > 0 ){ //this node has objects
-				retNodeMap.set( t.uid.val, t ); //return the node
+				retNodeMap[t.uid.val] = t; //return the node
 			}else{ //attempt to recurse into subnodes 
 				for( let i = 0; i < t.subNodes.length; ++i ){
 					if( t.subNodes[i] ){
@@ -650,9 +650,9 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 	}
 }
 
-function TND_addObjsInNodeToMap( t, objMap ){
+function TND_addObjsInNodeToMap( t, objs ){
 	for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
-		objMap.set(t.objects[ i ].uid.val, t.objects[ i ]);
+		objs[t.objects[ i ].uid.val] = t.objects[ i ];
 }
 
 //function TND_GetObjectsInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap ){

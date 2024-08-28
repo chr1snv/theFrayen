@@ -84,7 +84,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 
 
 	//request the quadmesh from the graphics class to get it to load it
-	graphics.GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
+	GRPH_GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
 				MDL_getQuadMeshCb,
 				{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }
 				//pack parameters into object to pass to callback above

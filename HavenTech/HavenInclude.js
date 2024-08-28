@@ -50,6 +50,7 @@ var incFiles = ['DPrintf.js',
 				'SkeletalAnimation.js',
 				
 				'HavenScene.js',
+				'RasterBatch.js',
 				
 				'HierarchyView.js',
 				'HavenMain.js',
@@ -70,6 +71,8 @@ var incFiles = ['DPrintf.js',
 
 var statusElm = document.getElementById("status");
 
+let htmlHead = document.getElementsByTagName('head')[0];
+
 includedScripts = {};
 
 let numScriptsLoaded = 0;
@@ -79,7 +82,6 @@ let loadScriptCmpCb = function(){ havenMain(); }
 function loadScriptLoop(){
 	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 
-	let head = document.getElementsByTagName('head')[0];
 	while( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
 		let scriptName = 'HavenTech/'+incFileList[incFileIdx++];
@@ -87,7 +89,7 @@ function loadScriptLoop(){
 			includedScripts[scriptName] = 1;
 			let script = CreateScript( scriptName );
 			//scriptsToAttach.push( script );
-			head.appendChild( script );
+			htmlHead.appendChild( script );
 		}
 	}
 

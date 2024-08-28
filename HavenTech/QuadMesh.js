@@ -840,7 +840,7 @@ function QM_matFileLoaded(matFile, thisP){
 				matNameString += ' ' + temp[i];
 			thisP.materialNames.push(matNameString);
 			//preload the material
-			graphics.GetCached( matNameString, thisP.sceneName, Material, null,
+			GRPH_GetCached( matNameString, thisP.sceneName, Material, null,
 			QM_materialReady, [thisP, thisP.materialNames.length-1] );
 		}
 	}
@@ -853,7 +853,7 @@ function QM_matFileLoaded(matFile, thisP){
 		thisP.materialsToLoad = 1;
 		numMaterials = 1;
 		//preload the material
-		graphics.GetCached( 'default', 'default', Material, null,
+		GRPH_GetCached( 'default', 'default', Material, null,
 		QM_materialReady, [thisP, numMaterials-1] );
 	}
 
@@ -1159,11 +1159,11 @@ function QM_meshFileLoaded(meshFile, thisP)
 			', verts: ' + thisP.vertPositions.length/3, "quadM ld" );
 			
 	if( ipoAnimName != '' )
-		graphics.GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
+		GRPH_GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
 	if( meshKeyAnimName != '' )
-		graphics.GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
+		GRPH_GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
 	if( skelAnimName != '' )
-		graphics.GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
+		GRPH_GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
 
 	//initialize the aabb if not animated
 	QM_UpdateAABB( thisP, 0.0);

@@ -159,11 +159,13 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 			usage = gl.DYNAMIC_DRAW;
 		gl.bufferData(gl.ARRAY_BUFFER, overallLen*4, usage); //(size is in bytes, float 32/8 -> 4 )
 		glp.attribLocBufPtrs[attribInstID][2] = overallLen;
+		return true;
 	}
 	
 	//vertexAttribPointer(index, size, type, normalized, stride, offset)
 	//binds buffer bound to gl.ARRAY_BUFFER to AttribLocation and specifies format
 	//gl.vertexAttribPointer(this.attribLocBufPtrs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
+	return false;
 }
 
 
