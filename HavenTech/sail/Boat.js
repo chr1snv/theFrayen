@@ -74,22 +74,36 @@ function BOAT_Update( time, wndHdg ){
 	let relWndHdg = (wndHdg-180*Math.PI) - boatHeading;
 
 	//handle input
+	let input = false;
 	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true ){
-		if( tillerDirection > -1 )
-			tillerDirection -= tillerInputAmt;
-	}else if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true ){
-		if( tillerDirection < 1 )
-			tillerDirection += tillerInputAmt;
-	}else{
-		if( tillerDirection < restoreAmt * 2 )
+		tillerDirection -= tillerInputAmt;
+		input = true;
+	}
+	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true ){
+		tillerDirection += tillerInputAmt;
+		input = true;
+	}
+	if( touch.menuTouch ){
+		tillerDirection += tillerInputAmt * touch.menuTouch.movementDelta.x * touchMoveSenValue;
+		input = true;
+	}
+	if( mDown ){
+		let mDeltaX = mCoords.x- mDownCoords.x;
+		tillerDirection += tillerInputAmt * mDeltaX * mouseXSenValue/20;
+		console.log( mDeltaX );
+		input = true;
+	}
+
+	if( !input ){
+		if( Math.abs(tillerDirection) < restoreAmt * 2 )
 			tillerDirection = 0;
 		else
 			tillerDirection += -Math.sign( tillerDirection ) * restoreAmt;
 	}
 	tillerDirection = Math.max( -maxTillerDirection, Math.min( maxTillerDirection, tillerDirection ) );
-	
+
 	boatHeading += tillerDirection;
-	
+
 	//find which sail position animation the boat should use for forward motion
 	let animTargFrame = 230/ANIM_FRAME_RATE;
 	if( relWndHdg < 45/180*Math.PI ){ //230 stb close hauled 				(45-0deg)
@@ -101,7 +115,7 @@ function BOAT_Update( time, wndHdg ){
 	}else if( relWndHdg < 270/180*Math.PI ){ //130 port wing on wing 			(270-180deg)
 		animTargFrame = 130/ANIM_FRAME_RATE;
 	}
-	
+
 	else if( relWndHdg < 315/180*Math.PI ){ //635 port reach 					(270-315deg)
 		animTargFrame = 635/ANIM_FRAME_RATE;
 	}else if( relWndHdg < 360/180*Math.PI ){ //560 port close hauled 			(360-315deg)
@@ -115,22 +129,22 @@ function BOAT_Update( time, wndHdg ){
 	SkelA_UpdateTransforms( jibArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( girlArm, lastAnimFrame, true );
-	
+
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
 	if( windIndc != null )
 		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
-	
+
 	let delTime = time-lastBoatUpdateTime;
-	
+
 	AngleToVec2Unit( boatDirVec, boatHeading );
 	boatPosition[1] += boatDirVec[0]*boatSpeed * delTime;
 	boatPosition[0] += boatDirVec[1]*boatSpeed * delTime;
-	
-	
+
+
 	let boatScale = Vect3_AllOnesConst;
 	let boatRotation = [0,0,boatHeading];
 	Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
-	
+
 	lastBoatUpdateTime = time;
 }

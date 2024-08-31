@@ -37,15 +37,15 @@ let sgMode = SailModes.Menu;
 let lastFrameMenuTouch = null;
 function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
 
-	if( ocean && ocean.ready ){
-		OCN_Update( ocean, time );
-		rb3DTris_array[0].objs[ ocean.uid.val ] = ocean;
-	}
-	
+
 	let numActiveBatches = 1;
 
 	BOAT_Update( time, 180/180*Math.PI );//to allow animation when scene is started
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
+
+	if( ocean && ocean.ready ){
+		OCN_Update( ocean, rb3DTris_array[0], time, boatHeading );
+	}
 
 	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
@@ -55,7 +55,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.3, 0.28, 0.02, 0.3, "SAIL", false );
 			TR_QueueText( rb2DTris, -0.4, -0.2, 0.02, 0.1, "START", true );
 			TR_QueueText( rb2DTris, -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
-			
+
 			//menu background overlay
 			cenPos        = [ 0        , 0    ];
 			wdthHight     = [ 1        , 1    ];

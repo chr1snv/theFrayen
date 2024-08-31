@@ -63,37 +63,7 @@ function canvasMouseUpHandler(e){
 }
 
 
-//https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
-function updatePosition(e) {
 
-	if(document.pointerLockElement === canvas ||
-	  document.mozPointerLockElement === canvas) {
-		//console.log('The pointer lock status is now locked');
-	} else {
-		//console.log('The pointer lock status is now unlocked');
-		if(!mDown)
-			return;
-	}
-
-	mCoordDelta.x = e.movementX;
-	mCoordDelta.y = e.movementY;
-	/*
-	if (x > canvas.width + RADIUS) {
-	x = -RADIUS;
-	}
-	if (y > canvas.height + RADIUS) {
-	y = -RADIUS;
-	}
-	if (x < -RADIUS) {
-	x = canvas.width + RADIUS;
-	}
-	if (y < -RADIUS) {
-	y = canvas.height + RADIUS;
-	}
-	*/
-	//DPrintf( "X position: " + x + ", Y position: " + y);
-
-}
 
 function canvasMouseMoveHandler(e){
 

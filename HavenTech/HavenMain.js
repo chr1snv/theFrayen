@@ -80,13 +80,13 @@ var canvas = document.getElementById('frayenCanvas');
 function requestPointerLock(){
 
 	//request mouse pointer lock
+	//https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
 	canvas.rqstPtrLck = 
 	canvas.requestPointerLock ||
 	canvas.mozRequestPointerLock;
 
 	ptrLck = canvas.rqstPtrLck();
 
-//document.addEventListener("mousemove", updatePosition, false);
 }
 //release the mouse
 function releasePointerLock(){

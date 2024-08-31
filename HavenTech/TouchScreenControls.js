@@ -33,6 +33,12 @@ function TouchScreenControls(){
 	this.OnTouchMove = function(e){
 		e.preventDefault();
 		for(let i = 0; i < e.touches.length; ++i){
+			if( touch.menuTouch  && 
+				touch.menuTouch.identifier == e.touches[i].identifier ){
+				touch.movementDelta[0] += e.touches[i].screenX - touch.menuTouch.screenX;
+				touch.movementDelta[1] += e.touches[i].screenY - touch.menuTouch.screenY;
+				touch.movementTouch = e.touches[i];
+			}
 			if( touch.movementTouch  && 
 				touch.movementTouch.identifier == e.touches[i].identifier ){
 				touch.movementDelta[0] += e.touches[i].screenX - touch.movementTouch.screenX;

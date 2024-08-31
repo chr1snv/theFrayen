@@ -433,12 +433,12 @@ function RasterBatch( drawFunc ){
 	this.camFov = 90 / 180 * Math.PI;
 
 	this.objs = {};
-	
+
 	this.ambientColor = Vect_New(3);
 	this.numLights = 0;
 	this.lights = null;
-	
-	
+
+
 	this.boneMatTexture = null;
 	this.armatureDict = {};
 	this.armatures = [];
