@@ -248,6 +248,8 @@ function loadScene()
 	var newSceneName = sceneSelectorElm.children[idx].text;
 
 	stop();
+	
+	RastB_numActive3DBatches = 0;
 
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
@@ -258,7 +260,7 @@ function loadScene()
 	statusElm.innerHTML = "Reading Scene";
 	runSceneButtonElm.innerHTML = "Stop";
 	runSceneButtonElm.onclick = stop;
-	
+
 	//loadSceneSounds(newSceneName);
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
@@ -278,6 +280,8 @@ function stop(){
 		CleanUpDrawBatchBuffers(mainScene);
 	GRPH_Cleanup(graphics);
 	delete( mainScene );
+
+
 
 }
 
@@ -347,34 +351,42 @@ function MainLoop()
 
 
 	RastB_ClearObjsAndInitListsForNewFrame( rastBatch2dTris );
-	RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris );
-	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
-		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines );
-		
-	//generate the camera matrix
-	cam = mainScene.cameras[ mainScene.activeCameraIdx ];
-	cam.GenWorldToFromScreenSpaceMats();
-	rastBatch3dTris.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
-	rastBatch3dLines.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
+	rastBatch2dTris.camWorldPos = Vect3_ZeroConst;
+	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris_array[i] );
+		if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
+			RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines_array[i] );
+	}
 
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris, rastBatch3dLines );
-	sceneSpecificUpdateAndGatherObjsToDraw( mainScene.scnId, sceneTime, rastBatch2dTris, rastBatch3dTris ); //run the game code
+	//generate the camera matrix
+	let mainCam = mainScene.cameras[ mainScene.activeCameraIdx ];
+	mainCam.GenWorldToFromScreenSpaceMats();
+	rastBatch3dTris_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dTris_array[0].camFov = mainCam.fov;
+	rastBatch3dTris_array[0].camWorldPos = mainCam.camTranslation;
+
+	rastBatch3dLines_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dLines_array[0].camFov = mainCam.fov;
+	rastBatch3dLines_array[0].camWorldPos = mainCam.camTranslation;
+
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[0], rastBatch3dLines_array[0] );
+	RastB_numActive3DBatches = 
+		sceneSpecificUpdateAndGatherObjsToDraw( 
+			mainScene.scnId, sceneTime, mainCam, rastBatch2dTris, 
+			rastBatch3dTris_array, rastBatch3dLines_array ); //run the game code
 
 
 	//generate verticies and upload to gl if necessary
 	RastB_PrepareBatchToDraw( rastBatch2dTris );
 	if( mainScene.scnId < 0 )
 		Overlay_DrawInputHint(rastBatch2dTris);
-	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
-		RastB_PrepareBatchToDraw( rastBatch3dLines );
-	RastB_PrepareBatchToDraw( rastBatch3dTris );
-	
-	if( mainScene.boneMatTexture != null ){
-		SkelA_writeCombinedBoneMatsToGL(mainScene);
-		rastBatch3dTris.combinedBoneMats = mainScene.combinedBoneMats;
+
+
+	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+		RastB_PrepareBatchToDraw( rastBatch3dTris_array[i] );
+		if( AnimTransformDrawingEnabled )
+			RastB_PrepareBatchToDraw( rastBatch3dLines_array[i] );
 	}
-		
-	//SkelA_EnableSceneBoneMat(mainScene);
 
 
 	//clear the render buffer and reset rendering state
@@ -386,12 +398,12 @@ function MainLoop()
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent area still writes z location)
-	rastBatch2dTris.DrawFunc(rastBatch2dTris); 
-	rastBatch3dTris.DrawFunc(rastBatch3dTris);
-	if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
-		rastBatch3dLines.DrawFunc(rastBatch3dLines);
-
-
+	rastBatch2dTris.DrawFunc(rastBatch2dTris);
+	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i]);
+		if( AnimTransformDrawingEnabled )
+			rastBatch3dLines_array[i].DrawFunc(rastBatch3dLines_array[i]);
+	}
 
 
 

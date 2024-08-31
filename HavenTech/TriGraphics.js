@@ -139,9 +139,12 @@ function TRI_G_Setup(triG){
 	//CheckGLError( "glProgram::end frag shader loaded " );
 }
 
-
 let trigLightPosVec = new Array(8*vertCard);
-function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
+function TRI_G_SetupLights(triG, rastB ){
+
+	let lights = rastB.lights;
+	let numLights = rastB.numLights;
+	let ambientColor = rastB.ambientColor
 
 	triG.ambientColor = ambientColor;
 
@@ -155,7 +158,7 @@ function TRI_G_SetupLights(triG, lights, numLights, ambientColor){
 
 }
 
-
+/*
 function TRIG_SetDefaultOrthoCamMat(triG){
 
 	Matrix_Transpose( transMat, identMatrix );
@@ -169,6 +172,7 @@ function TRIG_SetDefaultOrthoCamMat(triG){
 	gl.uniformMatrix4fv(triG.projMatrixUnif, false, transMat);//, 0, 4*4 );
 
 }
+*/
 
 function TRI_G_VertBufObj(numVerts, strIn="", interactiveIn=false){
 	this.vertBufferForMat = [new Float32Array(numVerts*vertCard)];

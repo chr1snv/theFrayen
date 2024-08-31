@@ -650,9 +650,18 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 	}
 }
 
-function TND_addObjsInNodeToMap( t, objs ){
-	for( let i = 0; i < t.objInsertIdx; ++i ) //loop through the objects
-		objs[t.objects[ i ].uid.val] = t.objects[ i ];
+function TND_addObjsAndArmaturesInNodeToRasterBatch( objs, armatures, t ){
+	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
+		let obj = t.objects[ i ];
+		objs[t.objects[ i ].uid.val] = obj;
+		let qm = obj.quadmesh;
+		if( qm ){
+			let skelAnim = obj.quadmesh.skelAnimation;
+			if( skelAnim != null ){
+				armatures[skelAnim.uid.val] = skelAnim;
+			}
+		}
+	}
 }
 
 //function TND_GetObjectsInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retObjMap ){

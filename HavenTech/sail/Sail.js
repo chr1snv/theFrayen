@@ -2,7 +2,6 @@
 var sailScripts = [
 	'sail/Ocean.js',
 	'sail/Boat.js',
-	//'sail/WindAndTide.js',
 	'sail/Regatta.js'
 ];
 let ocean = null;
@@ -36,13 +35,17 @@ const SailModes = {
 let sgMode = SailModes.Menu;
 
 let lastFrameMenuTouch = null;
-function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris ){
+function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
 
 	if( ocean && ocean.ready ){
 		OCN_Update( ocean, time );
-		rb3DTris.objs[ ocean.uid.val ] = ocean;
+		rb3DTris_array[0].objs[ ocean.uid.val ] = ocean;
 	}
+	
+	let numActiveBatches = 1;
 
+	BOAT_Update( time, 180/180*Math.PI );//to allow animation when scene is started
+	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
@@ -65,25 +68,15 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris )
 
 			TR_QueueText( rb2DTris, -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
 
-			//WNT_Update( time );
-
-			//BOAT_Update( time, 180/180*Math.PI );
-
-			RGTTA_Update( time, rb3DTris, rb2DTris );
-
+			RGTTA_Update( time, cam, boatMatrix, rb3DTris_array[1], rb3DLines_array[1] );
+			numActiveBatches = 2;
 	}
-	
-	BOAT_Update( time, 180/180*Math.PI );//to allow animation when scene is started
-	rb2DTris.objs[windIndc.uid.val] = windIndc;
-	//let drawBatch = GetDrawBatchBufferForMaterial( rb2DTris, windIndc.materials[0] );
-	//let subBB = GetDrawSubBatchBuffer( drawBatch, 0, windIndc.faceVertsCtForMat[0], windIndc, 0 );
-	//subBB.toWorldMatrix = windIndc.toWorldMatrix;
-	//QM_SL_GenerateDrawVertsNormsUVsForMat( windIndc, drawBatch, 0, subBB );
+
 
 	//handle menu input
 	let touchMDown = (lastFrameMenuTouch == null && touch.menuTouch != null);
 	TR_RaycastPointer( rb2DTris, mCoords );
-	
+
 	switch( sgMode ){
 		case SailModes.Menu:
 			if( mDown || touchMDown ){
@@ -105,45 +98,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, rb2DTris, rb3DTris )
 
 	lastFrameMenuTouch = touch.menuTouch;
 
+	return numActiveBatches;
 }
 
-/*
-function SAIL_sceneSpecificObjects( objMap ){
 
-	if( ocean.ready )
-		objMap[ ocean.uid.val ] = ocean;
-
-	//if( windIndc.ready )
-	//	objMap.set( windIndc.uid.val, windIndc );
-
-}
-*/
-
-/*
-function SAIL_sceneSpecificDraw( ){
-
-	//3d mode
-	TRI_G_Setup(graphics.triGraphics);
-	RGTTA_Draw();
-
-	//2d orthographic mode
-	if( sgMode == SailModes.Menu ){
-		//menu background overlay
-		cenPos        = [ 0        , 0    ];
-		wdthHight     = [ 1        , 1    ];
-		minUv         = [ 0        , 1    ];
-		maxUv         = [ 1        , 0    ];
-		TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
-	}
-	//sets up orthographic matrix
-	TR_DrawText();
-
-	if( sgMode == SailModes.Gameplay && windIndc_dbB != null ){
-		TRI_G_drawTriangles( graphics.triGraphics, windIndc_dbB, 0 );
-	}
-
-	//cleanup
-	TR_DeactivateFrameGlyphs();
-
-}
-*/

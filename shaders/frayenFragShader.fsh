@@ -47,7 +47,7 @@ void main() {
 	}
 
 	if( !lightingEnabled ){
-
+		//color is either from texture or assigned from uniform variable
 		if( texturingEnabled )
 			gl_FragColor = diffuseAndAlphaCol;
 		else
@@ -57,7 +57,6 @@ void main() {
 	
 		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
 		
-		vec3 fragToCamVecUnit = normalize( camWorldPos - worldSpaceFragPosition.xyz );
 		
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
 		
@@ -72,6 +71,7 @@ void main() {
 			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
 			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
 			gl_FragColor += vec4( diffuseAndAlphaCol.xyz * diffuseLightAmt, 0);
+			
 			
 			//specular calculation
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));

@@ -2,16 +2,16 @@
 //"camera" world to screen space projection matrix to render to the screen
 
 //reason for it is to keep as much data buffered in gl between frames 
-//(minimize vertex attribute and uniform changes)
+//(minimize vertex attribute and vertex/pixel uniform changes)
 //to maximize performance across the cpu / gpu transfer bandwith/latency bottleneck
-//and group together verticies to be drawn with common gl state
+//by grouping together verticies to be drawn with common gl state
 //to minimize number of gl calls to draw a frame
 
 
 let triAttrCards   = [vertCard, normCard, bnIdxWghtCard];
 let skelAttrCards  = [vertCard, colCard];
 let nextSkelBuffId = 0;
-function SkelDrawBatchBuffer(numAttrs, attrCards){
+function LineDrawBatchBuffer(numAttrs, attrCards){
 	this.bufID = nextSkelBuffId;
 	nextSkelBuffId += numAttrs;
 	
@@ -26,7 +26,7 @@ function SkelDrawBatchBuffer(numAttrs, attrCards){
 	this.bufferUpdated   = true;
 }
 
-function AllocateBatchAttrBuffers(dbB){
+function AllocateLineBatchAttrBuffers(dbB){
 
 	for( let i = 0; i < dbB.attrCards.length; ++i ){
 		dbB.buffers[i] = new Float32Array( dbB.bufferIdx*dbB.attrCards[i] );
@@ -34,10 +34,10 @@ function AllocateBatchAttrBuffers(dbB){
 
 }
 
-function GetSkelBatchBuffer(rastBatch, shdrName, numAttrs, attrCards){
+function GetLineBatchBuffer(rastBatch, shdrName, numAttrs, attrCards){
 	let dbB = rastBatch.drawBatchBuffers[shdrName];
 	if( dbB == undefined ){
-		dbB = new SkelDrawBatchBuffer( numAttrs, attrCards);
+		dbB = new LineDrawBatchBuffer( numAttrs, attrCards);
 		rastBatch.drawBatchBuffers[shdrName] = dbB;
 	}
 	return dbB;
@@ -52,7 +52,7 @@ function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
 	//this.lastStartIdx = 0;
 	this.obj = objIn;
 	this.objMatIdx = objMatIdxIn;
-	this.maxLen = 0;
+	this.maxLen = 0; //over multiple frames the most number of vertices
 	this.startIdx = startIdxIn;
 	this.len      = lenIn;
 	this.toWorldMatrix   = Matrix_New();
@@ -65,28 +65,25 @@ function DrawBatchBuffer(material){
 	this.bufID = nextBufID; //the gl BufferId in TriGraphics
 	nextBufID += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
 	this.material        = material;
-	//this.vertBuffer      = null;
-	//this.normBuffer      = null;
-	//this.uvBuffer        = null;
-	//this.bnIdxWghtBuffer = null;
-	
+
+
 	this.bufferIdx       = 0;
 	this.lastBufferIdx   = 0;
-	
+
 	this.lastAllocatedSize = 0; //should be a power of two
-	
+
 	this.regenAndUploadEntireBuffer   = true;
 	this.vertexAnimated             = false; //for static / dynamic gl attrib buffer usage
 	this.hasSkelAnim                = false;
 	this.texName                    = null;
-	
+
 	this.numSubBufferUpdatesToBeValid = 0;
-	
+
 	this.bufSubRanges = {};
 	this.sortedSubRngKeys = null;
 	this.numBufSubRanges = 0;
-	
-	
+
+
 }
 
 /*
@@ -149,14 +146,15 @@ function RastB_ResetDrawAndSubBatchBufferIdxs(rastBatch){
 function CmpSbbObjs(a,b){
 	let objA = cmpSbb.bufSubRanges[a].obj;
 	let objB = cmpSbb.bufSubRanges[b].obj;
-	let distToA = Vect3_Distance( cam.position, objA.AABB.center);
-	let distToB = Vect3_Distance( cam.position, objB.AABB.center);
+	let distToA = Vect3_Distance( cmpCamOri, objA.AABB.center);
+	let distToB = Vect3_Distance( cmpCamOri, objB.AABB.center);
 	return distToA-distToB;
 }
 
 //each frame sort objects by their distance to the camera,
 //if a object stays in the same position for many frames move it's
 //actual position in the attribBufferArray
+let cmpCamOri = null;
 let cmpSbb = null;
 /*
 function CmpSBBList(a,b){
@@ -185,12 +183,13 @@ function CmpSBBList(a,b){
 }
 */
 let sortedSubRngKeysTemp = new Array(32);
-function GenSortedSubBatchBufferList(dbB){
+function GenSortedSubBatchBufferList(dbB, camPos){
 	//sort the sub batches by object distance to camera (front to back)
-	
+
 	dbB.sortedSubRngKeys = Object.keys(dbB.bufSubRanges);
 	dbB.numBufSubRanges = dbB.sortedSubRngKeys.length;
 	cmpSbb = dbB;
+	cmpCamOri = camPos;
 	dbB.sortedSubRngKeys.sort( CmpSbbObjs );
 	/*
 	let nextPotSz = Math.pow(2,Math.ceil(Math.log2(dbB.sortedSubRngKeys.length)));
@@ -210,14 +209,14 @@ function GenSortedSubBatchBufferList(dbB){
 }
 
 
-function SortSubBatches(rastBatch){
+function SortSubBatches(rastBatch, camPos ){
 	//called each frame between finding all objects to draw in the frame
 	//and getting verticies from them if necessary
 	for( let key in rastBatch.drawBatchBuffers ){
 		let drawBatch = rastBatch.drawBatchBuffers[key];
-		
-		GenSortedSubBatchBufferList(drawBatch);
-		
+
+		GenSortedSubBatchBufferList( drawBatch, camPos );
+
 //		if( drawBatch.vertBuffer == null)
 //			AllocateBatchBufferArrays(drawBatch);
 //		else{
@@ -226,7 +225,7 @@ function SortSubBatches(rastBatch){
 				drawBatch.regenAndUploadEntireBuffer = true;//AllocateBatchBufferArrays(drawBatch);
 //		}
 	}
-	
+
 }
 
 function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatIdx ){
@@ -312,7 +311,8 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 		}
 	}
 	
-	SortSubBatches(rastBatch); //sorts sub batches by distance from camera and checks if
+	//let camPos = rastBatch.camWorldToScreenSpaceMat;
+	SortSubBatches(rastBatch, rastBatch.camWorldPos ); //sorts sub batches by distance from camera and checks if
 	//the vertex gl attribute buffers need to be resized (in which case make sure each object is ready to upload to gl)
 
 	
@@ -362,11 +362,12 @@ function RastB_DrawTris( rastBatch ){
 	TRI_G_Setup(graphics.triGraphics);
 
 	if( rastBatch.ambientColor )
-		TRI_G_SetupLights(graphics.triGraphics, rastBatch.lights, rastBatch.numLights, rastBatch.ambientColor);
+		TRI_G_SetupLights(graphics.triGraphics, rastBatch );
 
+	if( rastBatch.boneMatTexture != null )
+		SkelA_EnableBoneMatTexture(rastBatch.boneMatTexture);
 
-
-	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, cam.camTranslation );
+	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
 	for( let key in rastBatch.drawBatchBuffers ){
 		
 		let dbB = rastBatch.drawBatchBuffers[key];
@@ -396,7 +397,7 @@ function RastB_DrawLines( rastBatch ){
 	//if( rastBatch.armatureInsertIdx > 0 ){
 		graphics.enableDepthTest(false);
 		LINE_G_Setup(graphics.lineGraphics);
-		LINE_G_setCamMatrix( graphics.lineGraphics, cam.worldToScreenSpaceMat );
+		LINE_G_setCamMatrix( graphics.lineGraphics, rastBatch.worldToScreenSpaceMat );
 		LINE_G_drawLines( graphics.lineGraphics, rastBatch.drawBatchBuffers['line'] );
 		graphics.enableDepthTest(true);
 	//}
@@ -406,30 +407,43 @@ function RastB_DrawLines( rastBatch ){
 function RastB_ClearObjsAndInitListsForNewFrame(rb){
 	//clear the list of objects to be rendered in this frame
 	rb.objs = {};
-	
+	this.armatureDict = {};
+	this.armatures = [];
 	//reset the number of verticies to be drawn (to be re-counted for this frame)
 	RastB_ResetDrawAndSubBatchBufferIdxs(rb);
 }
 
-//initalized in GRPH_initRastBatches after Line and Tri graphics gl programs loaded
+//worldToScreenSpaceMat initalized in GRPH_initRastBatches after Line and Tri graphics gl programs loaded
 var rastBatch2dTris  = new RasterBatch( RastB_DrawTris );
-var rastBatch3dTris  = new RasterBatch( RastB_DrawTris );
-var rastBatch3dLines = new RasterBatch( RastB_DrawLines );
+
+//one draw batch per camera i.e. mainScene and regattaScene for sailing game
+var rastBatch3dTris_array = new Array(2);
+rastBatch3dTris_array[0] = new RasterBatch( RastB_DrawTris );
+rastBatch3dTris_array[1] = new RasterBatch( RastB_DrawTris );
+var rastBatch3dLines_array = new Array(2);
+rastBatch3dLines_array[0] = new RasterBatch( RastB_DrawLines );
+rastBatch3dLines_array[1] = new RasterBatch( RastB_DrawLines );
+var RastB_numActive3DBatches = 1;
 function RasterBatch( drawFunc ){
 
 	this.DrawFunc = drawFunc;
+
+	this.worldToScreenSpaceMat = Matrix_New();
+	this.camWorldPos = Vect_New(3);
+	this.camFov = 90 / 180 * Math.PI;
+
+	this.objs = {};
 	
 	this.ambientColor = Vect_New(3);
 	this.numLights = 0;
 	this.lights = null;
 	
-
-	this.camWorldToScreenSpaceMat = null;
-
-	this.objs = {};
 	
+	this.boneMatTexture = null;
+	this.armatureDict = {};
+	this.armatures = [];
 	this.combinedBoneMats = null;
 
-	this.drawBatchBuffers = {};
+	this.drawBatchBuffers = {}; //per material collection of objects/(primatives) to draw
 
 }

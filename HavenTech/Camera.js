@@ -3,68 +3,68 @@
 var gOM = new Float32Array(4*4);
 function glOrtho(left, right, bottom, top, nearVal, farVal)
 {
-    //generates an orthographic (rectangular non perspective)
-    //projection matrix for the camera
+	//generates an orthographic (rectangular non perspective)
+	//projection matrix for the camera
 
-    let tx = -(right+left)/(right-left);
-    let ty = -(top+bottom)/(top-bottom);
-    let tz = -(farVal+nearVal)/(farVal-nearVal);
-    let xs =  2/(right-left);
-    let ys =  2/(top-bottom);
-    let zs = -2/(farVal-nearVal);
-    
-    gOM[0*4+0]=xs;gOM[0*4+1]=0 ;gOM[0*4+2]=0; gOM[0*4+3]=tx;
-    gOM[1*4+0]=0; gOM[1*4+1]=ys;gOM[1*4+2]=0; gOM[1*4+3]=ty;
-    gOM[2*4+0]=0; gOM[2*4+1]=0; gOM[2*4+2]=zs;gOM[2*4+3]=tz;
-    gOM[3*4+0]=0; gOM[3*4+1]=0; gOM[3*4+2]=0;gOM[3*4+3]=1;
-    
-    //return Float32Array([ xs,  0,  0, tx,
-    //                       0, ys,  0, ty,
-    //                       0,  0, zs, tz,
-    //                       0,  0,  0,  1 ] );
+	let tx = -(right+left)/(right-left);
+	let ty = -(top+bottom)/(top-bottom);
+	let tz = -(farVal+nearVal)/(farVal-nearVal);
+	let xs =  2/(right-left);
+	let ys =  2/(top-bottom);
+	let zs = -2/(farVal-nearVal);
+
+	gOM[0*4+0]=xs;gOM[0*4+1]=0 ;gOM[0*4+2]=0; gOM[0*4+3]=tx;
+	gOM[1*4+0]=0; gOM[1*4+1]=ys;gOM[1*4+2]=0; gOM[1*4+3]=ty;
+	gOM[2*4+0]=0; gOM[2*4+1]=0; gOM[2*4+2]=zs;gOM[2*4+3]=tz;
+	gOM[3*4+0]=0; gOM[3*4+1]=0; gOM[3*4+2]=0;gOM[3*4+3]=1;
+
+	//return Float32Array([ xs,  0,  0, tx,
+	//                       0, ys,  0, ty,
+	//                       0,  0, zs, tz,
+	//                       0,  0,  0,  1 ] );
 }
 var gPM = new Float32Array(4*4);
 function gluPerspective(fovy, aspect, zNear, zFar)
 {
-    //generates the perspective projection matrix
-    //to convert verticies from camera space positions in the frustum
-    //to render/fragment shader coordinates in ndc/clip/screenSpace (a rectangular volume x,y with depth, range -1,1)
-    
-    let frusLen = (zFar-zNear);
-    
-    //tan(theta) = opposite/adjacent or (vertical far frustum half height) / (frustum depth)
-    let f = 1/Math.tan(fovy*0.5); //f = frustum depth / inverse vertical far frustum half height
-    //( goes to inf as fovy -> pi (180 deg)
-    //if aspect (width/height) is 1 (square rendered image) xs and ys will be equal
-    let xs = (f/aspect);                     //x scale factor
-    let ys = (f);                            //y scale factor
-    let zs =  (zFar+zNear)/frusLen;    //z scale factor
-    let tz = -2*(zNear*zFar)/frusLen;//((2*zFar)*zNear)/(zNear-zFar);
-    gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0;  gPM[0*4+3]=0;
-    gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0;  gPM[1*4+3]=0;
-    gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=-zs; gPM[2*4+3]=tz;
-    gPM[3*4+0]=0; gPM[3*4+1]=0; gPM[3*4+2]=-1;  gPM[3*4+3]=0;
-    
-    //let w = z - 
-    
-    //depth_pct = (z-zNear)/frustumDepth
-    //x_projected = x / ( depth_pct * farFrustumWidth  + (1-depth_pct) * nearFrustumWidth  )
-    //y_projected = y / ( depth_pct * farFrustumHeight + (1-depth_pct) * nearFrustumHeight )
-    //z_projected = depth_pct
-    //need to put equations in the form
-    //x_proj =  a*x / w  +  b*y / w  +  c*z / w  +  d*1 / w
-    //     w =  a*x      +  b*y      +  c*z      +  d*1
-    
-    //solve for the z scaling
-    //-1 = A + B/zNear
-    //-1 = A / zNear + B / zNear
-    //A / zNear = 1 + B / zNear
-    //A = zNear + B
-    
-    // 1 = A + B/zFar
-    // -A = 1 + B/zFar
-    // A = -1 - B/zFar
-    
+	//generates the perspective projection matrix
+	//to convert verticies from camera space positions in the frustum
+	//to render/fragment shader coordinates in ndc/clip/screenSpace (a rectangular volume x,y with depth, range -1,1)
+
+	let frusLen = (zFar-zNear);
+
+	//tan(theta) = opposite/adjacent or (vertical far frustum half height) / (frustum depth)
+	let f = 1/Math.tan(fovy*0.5); //f = frustum depth / inverse vertical far frustum half height
+	//( goes to inf as fovy -> pi (180 deg)
+	//if aspect (width/height) is 1 (square rendered image) xs and ys will be equal
+	let xs = (f/aspect);                     //x scale factor
+	let ys = (f);                            //y scale factor
+	let zs =  (zFar+zNear)/frusLen;    //z scale factor
+	let tz = -2*(zNear*zFar)/frusLen;//((2*zFar)*zNear)/(zNear-zFar);
+	gPM[0*4+0]=xs;gPM[0*4+1]=0 ;gPM[0*4+2]=0;  gPM[0*4+3]=0;
+	gPM[1*4+0]=0; gPM[1*4+1]=ys;gPM[1*4+2]=0;  gPM[1*4+3]=0;
+	gPM[2*4+0]=0; gPM[2*4+1]=0; gPM[2*4+2]=-zs; gPM[2*4+3]=tz;
+	gPM[3*4+0]=0; gPM[3*4+1]=0; gPM[3*4+2]=-1;  gPM[3*4+3]=0;
+
+	//let w = z - 
+
+	//depth_pct = (z-zNear)/frustumDepth
+	//x_projected = x / ( depth_pct * farFrustumWidth  + (1-depth_pct) * nearFrustumWidth  )
+	//y_projected = y / ( depth_pct * farFrustumHeight + (1-depth_pct) * nearFrustumHeight )
+	//z_projected = depth_pct
+	//need to put equations in the form
+	//x_proj =  a*x / w  +  b*y / w  +  c*z / w  +  d*1 / w
+	//     w =  a*x      +  b*y      +  c*z      +  d*1
+
+	//solve for the z scaling
+	//-1 = A + B/zNear
+	//-1 = A / zNear + B / zNear
+	//A / zNear = 1 + B / zNear
+	//A = zNear + B
+
+	// 1 = A + B/zFar
+	// -A = 1 + B/zFar
+	// A = -1 - B/zFar
+
 }
 
 //derivation of perspective transform matrix
@@ -98,7 +98,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	this.cameraName = nameIn;
 	this.sceneName  = sceneNameIn;
 
-	this.position = Vect3_CopyNew( positionIn ); //animated / set position in the map
+	this.position = Vect3_CopyNew( positionIn ); //spawn position or ipoAnim position of the camera (camTranslation factors in this)
 	this.rotation = Vect3_CopyNew( rotationIn );
 	this.fov        = fovIn;      //the horizontal field of view
 
@@ -108,7 +108,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	this.stereo     = stereoIn;
 	this.stereoIPD  = ipdCMIn;    //the ipd in centimeters
 
-	this.userPosition = Vect3_NewZero(); //user input position
+	this.userPosition = Vect3_NewZero(); //user input position (offset added to this.position to get this.camTranslation)
 	this.userRotation = Quat_New_Identity(); //user input rotation
 
 	this.isAnimated = false;
@@ -133,7 +133,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	this.getRotation = function(rotOut) 
 	{
 		if(!this.ipoAnimation || !IPOA_GetRotation( this.ipoAnimation, rotOut, this.lastUpdateTime))
-		    Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
+			Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
 		//apply the user input rotation
 		Quat_Copy( rotTmp, rotOut );
 		Quat_MultQuat( rotOut, rotTmp, this.userRotation );
@@ -142,7 +142,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	this.getLocation = function(locOut)
 	{
 		if(!this.ipoAnimation || !IPOA_GetLocation( this.ipoAnimation, locOut, this.lastUpdateTime))
-		    Vect3_Copy( locOut, this.position);
+			Vect3_Copy( locOut, this.position);
 		Vect3_Add( locOut, this.userPosition);
 	}
 
@@ -160,8 +160,8 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	//world space to camera space matrix 
 	//( invert the projection matrix (camera space to screen space) * camera to world space matrix )
 	{
-		
-		
+
+
 		//calculate the inverse position transformation matrix for the camera
 		//(the transformation matrix for the camera would be the matrix required
 		//to transform the camera to its position in the world, but we want the
@@ -170,8 +170,8 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 		this.genCameraToWorldMatrix();
 		Matrix_Copy( tempMat, this.camToWorldMat ); //save before inverting
 		Matrix_Inverse( this.worldToCamMat, tempMat );
-		
-		
+
+
 		//multiply the inverseTransformationMatrix by the 
 		//perspective (or othographic) matrix to get the camera projection matrix
 		if( this.fov == 0.0 ) //zero deg fov, orthographic (no change in size with depth) projection assumed
@@ -314,7 +314,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 			autoAdjRays=this.autoRaysPerFrame 
 		){
 		this.numRaysPerFrame = newNumRaysPerFrame;
-		
+
 		this.minAutoRaysPerFrame = minRays;
 		this.maxAutoRaysPerFrame = maxRays;
 		this.autoRaysPerFrame = true;
@@ -331,7 +331,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 		}
 	}
 	this.changeNumRaysPerFrame(5000, 8000, 500, 5000, true);
-	
+
 	let avgPctRaysPerFrame = 1;
 	let avgPctRaysFrameWeightIfDecrease = 0.4;
 	let avgPctRaysFrameWeightIfIncrease = 0.001;
@@ -341,16 +341,16 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 		let elaspedMills = newTime - startTime;
 		if ( elaspedMills < 1 )
 			elaspedMills = 1; //prevent divide by zero
-		
+
 		let pctRaysInAllowedTime = allowedFrameMills/elaspedMills;
-		
+
 		if(pctRaysInAllowedTime < 1)
 			avgPctRaysPerFrame = (avgPctRaysPerFrame*(1-avgPctRaysFrameWeightIfDecrease))+(pctRaysInAllowedTime*avgPctRaysFrameWeightIfDecrease);
 		else
 			avgPctRaysPerFrame = (avgPctRaysPerFrame*(1-avgPctRaysFrameWeightIfIncrease))+(pctRaysInAllowedTime*avgPctRaysFrameWeightIfIncrease);
-			
+
 		let newNumRaysPerFrame = avgPctRaysPerFrame*0.8*this.numRaysPerFrame;
-		
+
 		//prevent increasing unbounded increase when looking at empty space, and too low of a limit
 		newNumRaysPerFrame = Math.min ( Math.max( newNumRaysPerFrame, this.minAutoRaysPerFrame ), this.maxAutoRaysPerFrame )
 		
@@ -359,10 +359,10 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 			raysPerFrameElm.value = newNumRaysPerFrame;
 			this.changeNumRaysPerFrame(newNumRaysPerFrame, this.numRaysToAccum);
 		}
-		
+
 	}
 
-	
+
 	this.onlyRaysNearCursor = false;
 
 
@@ -372,7 +372,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 
 function CAM_IpoReady(ipoAnim, cam){
 	cam.ipoAnimation = ipoAnim;
-	
+
 	cam.camReadyCallback(cam, cam.camReadyParameters );
 }
 

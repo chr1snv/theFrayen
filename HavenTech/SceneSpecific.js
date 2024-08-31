@@ -47,12 +47,13 @@ function sceneSpecificLoad(scnId, cmpCb){
 	}
 }
 
-
-function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, rb2D, rb3D){
+//returns the number of active rasterBatches
+function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3DTris_array, rb3DLines_array){
 	switch( scnId ){
 		case ScnIds.Sail:
-			SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, rb2D, rb3D);
+			return SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
 	}
+	return 1;
 }
 
 /*

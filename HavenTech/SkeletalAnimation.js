@@ -14,6 +14,7 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 
 	this.skelAnimName = nameIn;
 	this.sceneName = sceneNameIn;
+	this.uid = NewUID();
 	
 	this.lastUpdateTime = -0.5;
 
@@ -27,6 +28,9 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	
 	this.lineDrawBuffer = null;
 	this.linePts = null;
+	
+	this.combinedBoneMatOffset = 0;
+	this.rastB = null;
 
 	this.scale          = Vect3_NewAllOnes();
 	this.rotation       = Vect3_NewZero();
@@ -188,7 +192,7 @@ function SkelA_GenerateFrameTransformations(skelA, time){
 		Matrix_Copy(skelA.transformationMatricies[currentIdx], pose_mat);
 		
 		//write this bones combined matrix to combinedBoneMats
-		Matrix_MultToArrTransp( skelA.hvnsc.combinedBoneMats,
+		Matrix_MultToArrTransp( skelA.rastB.combinedBoneMats,
 			(currentIdx + skelA.combinedBoneMatOffset)*matrixCard,
 			skelA.transformationMatricies[currentIdx],
 			bone.worldToBoneSpaceMat );
@@ -234,7 +238,7 @@ function SkelA_UpdateTransforms( skelA, time, script=false ){
 	//apply skelA transformation to the mesh vertices, generating a new set of vertex positions
 
 	//prevent unessecary update or scene time update for script controlled objects
-	if( time == skelA.lastUpdateTime  || (skelA.scriptControlled && !script) || !skelA.hvnsc || !skelA.hvnsc.combinedBoneMats )
+	if( time == skelA.lastUpdateTime  || (skelA.scriptControlled && !script) || !skelA.rastB || !skelA.rastB.combinedBoneMats )
 		return false;
 
 	let wrappedTime = time * ANIM_FRAME_RATE;
@@ -378,14 +382,14 @@ function SkelA_AnimFileLoaded(skelAnimFile, skelA){
 	skelA.loadCompCallback(skelA, skelA.loadCompCbParams);
 }
 
-/*
-function SkelA_EnableSceneBoneMat(hvnsc){
-	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
-}
-*/
 
-function SkelA_writeCombinedBoneMatsToGL(hvnsc){
+function SkelA_EnableBoneMatTexture(bmT){
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, bmT);
+}
+
+
+function SkelA_writeBatchBoneMatsToGL(hvnsc){
 	//write the combined bone matricies to gl
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
@@ -400,7 +404,7 @@ function SkelA_writeCombinedBoneMatsToGL(hvnsc){
 		0,					//level
 		internalFormat,			//internal format
 		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
-		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone
+		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone (height is num matricies)
 		0,					//border
 		gl.RGBA,			//format
 		gl.FLOAT,			//type
@@ -408,9 +412,10 @@ function SkelA_writeCombinedBoneMatsToGL(hvnsc){
 	);
 }
 
-function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
+function SkelA_AllocateBatchBoneMatTexture(skelAnims, rastBatch){
 	if( skelAnims.length < 1 )
 		return;
+
 
 	if( gl.glType == "webgl" ){
 		// create a texture to hold the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
@@ -428,28 +433,30 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 
 
 
+
 	let skelAnimCacheKeys = Object.keys(skelAnims);
 	let totalNumBones = 1; //offset by 1 for the identity Matrix
 	for( let i = 0; i < skelAnimCacheKeys.length; ++i ){
 		let skelAnim = skelAnims[skelAnimCacheKeys[i]];
 		skelAnim.combinedBoneMatOffset = totalNumBones; //increment the offset
 		totalNumBones += skelAnim.bones.length;
-		skelAnim.hvnsc = havenScene;
+		skelAnim.rastB = rastBatch;
 	}
 
 	//allocate the combined toBoneSpaceMatrix and toAnimatedWorldSpace matrices
-	havenScene.combinedBoneMats = new Float32Array( matrixCard * totalNumBones );
+	rastBatch.combinedBoneMats = new Float32Array( matrixCard * totalNumBones );
 
-	Matrix_SetIdentity(havenScene.combinedBoneMats); //puts an identity matrix at matrix index 0
+	Matrix_SetIdentity(rastBatch.combinedBoneMats); //puts an identity matrix at matrix index 0
 
-	havenScene.boneMatTexture = gl.createTexture();
+	rastBatch.boneMatTexture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, havenScene.boneMatTexture);
+	gl.bindTexture(gl.TEXTURE_2D, rastBatch.boneMatTexture);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,		gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,		gl.CLAMP_TO_EDGE);
 
+/*
 	let internalFormat = gl.RGBA;
 	if( gl.glType == "webgl2" ){
 		internalFormat = gl.RGBA32F;
@@ -464,7 +471,8 @@ function SkelA_AllocateCombinedBoneMatTexture(skelAnims, havenScene){
 		0,					//border
 		gl.RGBA,			//format
 		gl.FLOAT,			//type
-		havenScene.combinedBoneMats
+		rastBatch.combinedBoneMats
 	);
+*/
 
 }

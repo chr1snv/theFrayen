@@ -51,13 +51,24 @@ function BOAT_Init(){
 //670 port downwind wing on wing 	(270-180deg)
 
 let boatHeading = 0;
+let boatSpeed = 0.5;
 
+let boatDirVec = Vect_New(2);
+
+let boatPosition = Vect3_NewZero();
+
+var boatMatrix = Matrix_New();
+
+let maxTillerDirection = 0.2;
 let tillerDirection = 0;
-let tillerInputAmt = 0.5;
+let tillerInputAmt = 0.005;
 const restoreAmt = 0.01;
 
 let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
+
+let lastBoatUpdateTime = -1;
+
 function BOAT_Update( time, wndHdg ){
 
 	let relWndHdg = (wndHdg-180*Math.PI) - boatHeading;
@@ -70,8 +81,14 @@ function BOAT_Update( time, wndHdg ){
 		if( tillerDirection < 1 )
 			tillerDirection += tillerInputAmt;
 	}else{
-		tillerDirection += -Math.sign( tillerDirection ) * restoreAmt;
+		if( tillerDirection < restoreAmt * 2 )
+			tillerDirection = 0;
+		else
+			tillerDirection += -Math.sign( tillerDirection ) * restoreAmt;
 	}
+	tillerDirection = Math.max( -maxTillerDirection, Math.min( maxTillerDirection, tillerDirection ) );
+	
+	boatHeading += tillerDirection;
 	
 	//find which sail position animation the boat should use for forward motion
 	let animTargFrame = 230/ANIM_FRAME_RATE;
@@ -103,4 +120,17 @@ function BOAT_Update( time, wndHdg ){
 	//scale, rot, trans
 	if( windIndc != null )
 		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
+	
+	let delTime = time-lastBoatUpdateTime;
+	
+	AngleToVec2Unit( boatDirVec, boatHeading );
+	boatPosition[1] += boatDirVec[0]*boatSpeed * delTime;
+	boatPosition[0] += boatDirVec[1]*boatSpeed * delTime;
+	
+	
+	let boatScale = Vect3_AllOnesConst;
+	let boatRotation = [0,0,boatHeading];
+	Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
+	
+	lastBoatUpdateTime = time;
 }

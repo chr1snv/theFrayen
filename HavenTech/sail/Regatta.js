@@ -44,29 +44,29 @@ function InitAndAllocOneObjBuffer(obj){
 }
 
 
-let bouy_dbB = null;
+//let bouy_dbB = null;
 
-let windIndc_dbB = null;
-
-let bouy = null;
-let wndIndc = null;
+//let bouy = null;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
-	bouy = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["inflatableBouy"][0];
-	bouy_dbB = InitAndAllocOneObjBuffer(bouy);
-
-	wndIndc = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["windIndc"][0];
-	windIndc_dbB = InitAndAllocOneObjBuffer(wndIndc);
+	//bouy = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["inflatableBouy"][0];
+	//bouy_dbB = InitAndAllocOneObjBuffer(bouy);
 
 }
 
 
 
 let currentBouy = 0;
-function RGTTA_Update( time, rb3DTris, rb2DTris ){
+function RGTTA_Update( time, cam, boatMatrix, rb3DTris, rb3DLines ){
 
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb2DTris );
+	//setup the regatta scene camera from the boat camera and boat translation
+	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
+	Matrix_Multiply_Vect3( rb3DTris.camWorldPos, boatMatrix, Vect3_ZeroConst );
+	rb3DTris.fov = cam.fov;
+
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb3DLines );
+
 }
 
 /*

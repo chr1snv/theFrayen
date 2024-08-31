@@ -22,13 +22,13 @@ function TXTR_TextSceneLoaded(txtScene){
 		//console.log( txtScene.models[mdlKeys[i]].meshName );
 		glyphMeshes[glyphName] = model.quadmesh;
 	}
-	
+
 	//get the letter material from the first object
 	if( mdlKeys.length > 0 ){
 		let model = txtScene.models[mdlKeys[0]];
 		textMaterial = model.quadmesh.materials[0];
 	}
-	
+
 	//txtR_dbB = new DrawBatchBuffer( textMaterial );
 	txtr_ldCmpCb();
 }
@@ -107,15 +107,15 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 				QM_SL_GenerateDrawVertsNormsUVsForMat( glyphMeshes[ltr], null, 0, null );
 			}
 		}
-		
+
 		let strObj = new TRI_G_VertBufObj(strNumVerts, str, interactive);
-		
+
 		//allocate glyph vert buffer for the string
 		//GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
 		let sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
 		Matrix_SetIdentity( sbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
 		let strVertBufObj = sbb.obj;
-		
+
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
 		let uvBufIdx = 0;
@@ -126,11 +126,11 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		//generate the mesh for the glyph positions to draw
 		let lNum = 0; //line number
 		for( let i = 0; i < str.length; ++i ){
-		
+
 			//apply offsets to each
 			let posX = escpdLen*xKernSpc;
 			let posY = lNum*lVertSpc;
-			
+
 			let ltr = str[i];
 			if( ltr == ":" ){
 				if( !escpSeqActive ){
@@ -145,8 +145,8 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 				escpStr += ltr;
 				continue;
 			}
-			
-			
+
+
 			let glyphM = glyphMeshes[ltr];
 			let glyphVerts = glyphM.vertBufferForMat[0];
 			let glyphNorms = glyphM.normBufferForMat[0];
@@ -173,16 +173,16 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		}
 		strVertBufObj.AABB = new AABB( strMin, strMax );
 		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
-		
-		
-		
+
+
+
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
 	}else{
 		//restore the number of verts for the sub batch buffer to draw
 		let subb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
 		subb.len = subb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
 	}
-	
+
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
 		txtR_dbB.sortedSubRngKeys = [];
@@ -204,12 +204,12 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 	//cast the given location into the aabb's to find
 	//which text objects it intersects with
 	numMOvrdStrs = 0;
-	
+
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
-	
+
 	tr_ptrRay.origin[0] = ((pLoc.x / graphics.screenWidth) - 0.5)* 2;
 	tr_ptrRay.origin[1] = ((pLoc.y / graphics.screenHeight) - 0.5)* -2;
-	
+
 	let subRngKeys = txtR_dbB.sortedSubRngKeys;
 	for( let i = 0; i < txtR_dbB.numBufSubRanges; ++i ){
 		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
@@ -227,7 +227,7 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 		}else{
 			subRng.overrideColor = null;
 		}
-			
+
 	}
 }
 
@@ -235,9 +235,9 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 function TR_DrawText(){
 	//draw the active glyph vert buffers
 	let triG = graphics.triGraphics;
-	
+
 	//TRI_G_Setup(triG);
-	
+
 	//GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
 	//GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
 	//GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );

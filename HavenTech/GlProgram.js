@@ -114,6 +114,7 @@ function GLP_setUnif_I1( glp, unifLoc, unifLocInt, value ){
 }
 function GLP_cleanup(glp){
 	GLP_cleanupVertexAttribBuffs(glp);
+	//gl.deleteTexture
 }
 function GLP_cleanupVertexAttribBuffs(glp){
 	//frees bound vertex attributes

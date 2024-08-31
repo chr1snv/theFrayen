@@ -96,8 +96,8 @@ function CheckIsValidFor( hvnsc, operationName ){
 let frus_temp3 = Vect_New(3);
 let frus_temp3Remap = Vect_New(3);
 
-let cam = null;
-let nodeMap = {};
+
+let treeNodesInFrame = {};
 function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris, rastB3DLines ){
 
 	if(!CheckIsValidFor( hvnsc, 'Update' ) )
@@ -106,12 +106,12 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 
 	//get the nodes within view
 	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated
-	nodeMap = {};
-	TND_GetNodesInFrustum( hvnsc.octTree, cam.worldToScreenSpaceMat, cam.fov, cam.camTranslation, nodeMap );
+	treeNodesInFrame = {};
+	TND_GetNodesInFrustum( hvnsc.octTree, rastB3DTris.worldToScreenSpaceMat, rastB3DTris.camFov, rastB3DTris.camWorldPos, treeNodesInFrame );
 
-	//let nodeKeys = Object.keys(nodeMap);
-	for( let key in nodeMap ){//for( let i = 0; i < nodeKeys.length; ++i ){
-		let node = nodeMap[key];//nodeKeys[i]];
+	//let nodeKeys = Object.keys(treeNodesInFrame);
+	for( let key in treeNodesInFrame ){//for( let i = 0; i < nodeKeys.length; ++i ){
+		let node = treeNodesInFrame[key];//nodeKeys[i]];
 		if( simPhys ){
 //			DTPrintf("=====Apply User input " + time.toPrecision(3), "loop");
 //			//if( queuedMouseEvents.length < 1 ){
@@ -146,10 +146,10 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 			TND_Update(node, time);
 
 		}
-		
-		TND_addObjsInNodeToMap( node, rastB3DTris.objs );
+
+		TND_addObjsAndArmaturesInNodeToRasterBatch( rastB3DTris.objs, rastB3DTris.armatureDict, node );
 	}
-	//DTPrintf( "nodeMap size " + nodeMap.size, "hvnsc debug", "color:white", 0 );
+	//DTPrintf( "treeNodesInFrame size " + treeNodesInFrame.size, "hvnsc debug", "color:white", 0 );
 
 	rastB3DTris.ambientColor = hvnsc.ambientColor;
 	rastB3DTris.lights = hvnsc.lights;
@@ -157,22 +157,33 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 
 
 	if(AnimTransformDrawingEnabled){
-		let drawBatch = GetSkelBatchBuffer( rastB3DLines, 'line', 2, skelAttrCards );
+		let drawBatch = GetLineBatchBuffer( rastB3DLines, 'line', 2, skelAttrCards );
 		//get the number of armatures and line verts for them
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
 			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
 			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts );
 		}
-		
+
 		//gather the line vert positions
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
 			let numLineVerts = hvnsc.armatures[i].bones.length * numLineVertsPerBone;
 			let subBB = GetDrawSubBatchBuffer( drawBatch, i, numLineVerts);
 
 			if( drawBatch.buffers[0] == null )
-				AllocateBatchAttrBuffers(drawBatch);
+				AllocateLineBatchAttrBuffers(drawBatch);
 			SkelA_ArmatureDebugDraw( hvnsc.armatures[i], drawBatch, subBB );
 		}
+	}
+
+	let i = 0;
+	for( let armature in rastB3DTris.armatureDict )
+		rastB3DTris.armatures[i++] = rastB3DTris.armatureDict[armature];
+	if( rastB3DTris.armatures.length > 0 && rastB3DTris.boneMatTexture == null ){
+		SkelA_AllocateBatchBoneMatTexture(rastB3DTris.armatures, rastB3DTris);
+	}
+
+	if( rastB3DTris.armatures.length > 0 ){
+		SkelA_writeBatchBoneMatsToGL(rastB3DTris);
 	}
 
 }
@@ -189,7 +200,7 @@ function HVNSC_HitModel(hvnsc, screenCoords){
 		return "";
 	hvnsc.cameras[activeCameraIdx].GenerateWorldCoordRay(
 									rayOrig, rayDir, screenCoords);
-	
+
 	let temp;
 	Vect3_Copy(temp, rayDir);
 	Vect3_Add(temp, rayOrig);
@@ -220,7 +231,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		}
 
 		//allocate the float texture for armatures
-		SkelA_AllocateCombinedBoneMatTexture(hvnsc.armatures, hvnsc);
+		SkelA_AllocateBatchBoneMatTexture(hvnsc.armatures, hvnsc);
 
 		//HVNSC_Update( hvnsc, 0.0 ); //init animated objs
 		hvnsc.isValid = true;

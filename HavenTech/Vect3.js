@@ -31,10 +31,12 @@ function Vect3_NewVals( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[
 function Vect3_New() { return new Float32Array(3);}
 function Vect_New(n) { return new Float32Array(n);}
 function Vect_NewZero(n) { return new Float32Array(n);}
+const Vect3_ZeroConst = new Float32Array([0,0,0]);
 //NewZero the same as New though if ported to another language / implementation need to make sure the values are initalized to zero
 function Vect3_NewZero() { return new Float32Array(3);}//[0,0,0]); };
 function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v;}
 function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
+const Vect3_AllOnesConst = new Float32Array([1,1,1]);
 function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } //use _Copy function below when possible
 
 function Vect3_SetVals( v, s1, s2, s3 ){ v[0] = s1; v[1] = s2; v[2] = s3; }

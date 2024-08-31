@@ -51,6 +51,14 @@ function mnMax( mM, val ){
 	mM[1] = mM[1] > val ? mM[1] : val;
 }
 
+function AngleToVec2Unit( v2, ang ){
+	v2[0] = Math.cos(ang);
+	v2[1] = Math.sin(ang);
+	let len = v2[0]*v2[0]+v2[1]*v2[1];
+	v2[0] /= len;
+	v2[1] /= len;
+}
+
 function SystemOfEquationSolver(){
 
 	
