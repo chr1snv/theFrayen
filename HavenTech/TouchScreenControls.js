@@ -1,6 +1,7 @@
 
 function TouchScreenControls(){
 
+	this.menuDelta     = new Float32Array(2);
 	this.movementDelta = new Float32Array(2);
 	this.lookDelta     = new Float32Array(2);
 	this.rollDelta     = 0;
@@ -35,9 +36,9 @@ function TouchScreenControls(){
 		for(let i = 0; i < e.touches.length; ++i){
 			if( touch.menuTouch  && 
 				touch.menuTouch.identifier == e.touches[i].identifier ){
-				touch.movementDelta[0] += e.touches[i].screenX - touch.menuTouch.screenX;
-				touch.movementDelta[1] += e.touches[i].screenY - touch.menuTouch.screenY;
-				touch.movementTouch = e.touches[i];
+				touch.menuDelta[0] += e.touches[i].screenX - touch.menuTouch.screenX;
+				touch.menuDelta[1] += e.touches[i].screenY - touch.menuTouch.screenY;
+				touch.menuTouch = e.touches[i];
 			}
 			if( touch.movementTouch  && 
 				touch.movementTouch.identifier == e.touches[i].identifier ){
@@ -78,6 +79,8 @@ function TouchScreenControls(){
 					break;
 				case touch.menuTouch.identifier:
 					touch.menuTouch = null;
+					touch.menuDelta[0] = 0;
+					touch.menuDelta[1] = 0;
 			}
 		}
 	}
@@ -120,8 +123,11 @@ function TouchScreenControls(){
 			touch.rollTouch = null;
 			touch.rollDelta = 0;
 		}
-		if( menuTouchCancelled )
+		if( menuTouchCancelled ){
 			touch.menuTouch = null;
+			touch.menuDelta[0] = 0;
+			touch.menuDelta[1] = 0;
+		}
 
 	}
 

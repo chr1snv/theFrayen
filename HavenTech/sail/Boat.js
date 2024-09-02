@@ -90,8 +90,8 @@ function BOAT_Update( time, wndHdg ){
 		tillerDirection += tillerInputAmt;
 		input = true;
 	}
-	if( touch.menuTouch ){
-		tillerDirection += tillerInputAmt * touch.menuTouch.movementDelta.x * touchMoveSenValue;
+	if( touch.menuTouch != null ){
+		tillerDirection += tillerInputAmt * touch.menuDelta[0] * touchMoveSenValue;
 		input = true;
 	}
 	if( mDown ){
