@@ -14,15 +14,15 @@ let nextSkelBuffId = 0;
 function LineDrawBatchBuffer(numAttrs, attrCards){
 	this.bufID = nextSkelBuffId;
 	nextSkelBuffId += numAttrs;
-	
+
 	this.attrCards = attrCards;
-	
+
 	this.buffers = new Array(numAttrs);
-	
+
 	this.bufferIdx = 0;
-	
+
 	this.bufSubRanges = {};
-	
+
 	this.bufferUpdated   = true;
 }
 
@@ -434,7 +434,7 @@ function RasterBatch( drawFunc ){
 
 	this.objs = {};
 
-	this.ambientColor = Vect_New(3);
+	this.ambientColor = Vect3_NewVals(0.4,0.3,0);
 	this.numLights = 0;
 	this.lights = null;
 

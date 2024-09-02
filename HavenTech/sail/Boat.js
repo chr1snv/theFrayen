@@ -19,14 +19,15 @@ function BOAT_Init(){
 	mainArm.scriptControlled = true;
 	girlArm = graphics.cachedObjs[SkeletalAnimation.name]["girl_35_boatAnimsIntegrated"]["Armature"][0];
 	girlArm.scriptControlled = true;
-	
+
 	//no longer needed because "scriptControlled" requires this to be done per frame
 	SkelA_UpdateTransforms( jibArm, 0, true );
 	SkelA_UpdateTransforms( mainArm, 0, true );
 	SkelA_UpdateTransforms( girlArm, 0, true );
-	
-	
+
+
 	windIndcQm = graphics.cachedObjs[QuadMesh.name]["textMeshes"]["windIndc"][0];
+	windIndcQm.isAnimated = true;
 	for( let mdl in textScene.models ){
 		let model = textScene.models[mdl];
 		if( model.quadmesh.meshName == "windIndc" )
@@ -51,13 +52,19 @@ function BOAT_Init(){
 //670 port downwind wing on wing 	(270-180deg)
 
 let boatHeading = 0;
-let boatSpeed = 0.5;
+let boatSpeed = 1;
 
 let boatDirVec = Vect_New(2);
+
+let boatPosOffset = Vect3_NewVals(6.58775,-5,0);
+let boatToWorldTranslation = Vect3_New();
 
 let boatPosition = Vect3_NewZero();
 
 var boatMatrix = Matrix_New();
+let boatMatrixTemp = Matrix_New();
+let boatMatrixTranslate = Matrix_New();
+let boatMatrixRotate = Matrix_New();
 
 let maxTillerDirection = 0.2;
 let tillerDirection = 0;
@@ -71,7 +78,7 @@ let lastBoatUpdateTime = -1;
 
 function BOAT_Update( time, wndHdg ){
 
-	let relWndHdg = (wndHdg-180*Math.PI) - boatHeading;
+	let relWndHdg = (wndHdg-(1/180)*Math.PI) - boatHeading;
 
 	//handle input
 	let input = false;
@@ -133,7 +140,7 @@ function BOAT_Update( time, wndHdg ){
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
 	if( windIndc != null )
-		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [65/180*Math.PI, 0, relWndHdg], [0, 0.8, 0] );
+		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [120/180*Math.PI, relWndHdg, 0], [0, 0.8, 0] );
 
 	let delTime = time-lastBoatUpdateTime;
 
@@ -144,7 +151,13 @@ function BOAT_Update( time, wndHdg ){
 
 	let boatScale = Vect3_AllOnesConst;
 	let boatRotation = [0,0,boatHeading];
-	Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
+	Matrix_SetIdentity( boatMatrixTranslate );
+	Matrix_SetTranslate( boatMatrixTranslate, boatPosition );
+	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );
+	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate );
+	Matrix_SetTranslate( boatMatrixTranslate, boatPosOffset );
+	Matrix_Multiply( boatMatrix, boatMatrixTranslate, boatMatrixTemp );
+	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
 
 	lastBoatUpdateTime = time;
 }

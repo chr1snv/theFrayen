@@ -12,15 +12,15 @@ function RGTTA_AllocSubRngBuffer(dbB, numVerts, subBufId, obj){
 	let sbb = new BufSubRange( dbB.bufferIdx, numVerts, obj, 0 );
 	Matrix_SetIdentity( sbb.toWorldMatrix );
 	dbB.bufSubRanges[subBufId] = sbb;
-	
+
 	dbB.bufferIdx += numVerts;
-	
+
 	let subRngKeys = Object.keys( dbB.bufSubRanges );
 	for(let i = 0; i < subRngKeys.length; ++i ){
 		dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
 	}
 	//txtR_dbB.regenAndUploadEntireBuffer = true;
-	
+
 	return sbb;
 }
 
@@ -28,7 +28,7 @@ function InitAndAllocOneObjBuffer(obj){
 	let matIdx = 0;
 	//qm, drawBatch, matIdx, subBatchBuffer
 	QM_SL_GenerateDrawVertsNormsUVsForMat( obj, null, matIdx, null );
-	
+
 	let material = obj.materials[matIdx];
 	let dbB = new DrawBatchBuffer( material );
 	let numVerts = obj.vertBufferForMat[matIdx].length;
@@ -39,7 +39,7 @@ function InitAndAllocOneObjBuffer(obj){
 		dbB.sortedSubRngKeys = [];
 	dbB.sortedSubRngKeys.push( subBufId );
 	dbB.numBufSubRanges += 1;
-	
+
 	return dbB;
 }
 
@@ -69,16 +69,3 @@ function RGTTA_Update( time, cam, boatMatrix, rb3DTris, rb3DLines ){
 
 }
 
-/*
-//expected to be called when triG and 3d cam matrix is already setup
-function RGTTA_Draw( time ){
-
-	if( !bouy_dbB )
-		return null;
-		
-	//HVNSC_Draw( rgtaScene );
-
-	TRI_G_drawTriangles( graphics.triGraphics, bouy_dbB, 0 );
-
-}
-*/
