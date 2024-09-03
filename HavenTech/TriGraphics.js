@@ -14,52 +14,68 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
 
 	this.textures = {};
 
-	//flags - vertex 
-	this.skelSkinningEnbUnif_I1                 = null;
-	this.skelSkinningEnbUnif_I1Loc              = 0 + unifLocOffset;
-	//flags - fragment
-	this.texturingEnabled_UnifF1                = null;
-	this.texturingEnabled_UnifF1Loc             = 1 + unifLocOffset;
-	this.lightingEnabled_Unif_I1                = null;
-	this.lightingEnabled_Unif_I1Loc             = 2 + unifLocOffset;
-	
-	//uniforms - fragment
-	this.alphaUnif_F                            = null;
-	this.alphaUnif_FLoc                         = 3 + unifLocOffset;
-	this.diffColUnif_F3                         = null;
-	this.diffColUnif_F3Loc                      = 4 + unifLocOffset;
-	this.emisAndAmbColorUnif_F3                 = null;
-	this.emisAndAmbColorUnif_F3Loc              = 5 + unifLocOffset;
-	this.specularAmtHrdnessExp_F2               = null;
-	this.specularAmtHrdnessExp_F2Loc            = 6 + unifLocOffset;
-	//uniforms - fragment lighting
-	this.subSurfaceExponent_F                   = null;
-	this.subSurfaceExponent_FLoc                = 7 + unifLocOffset;
-	this.camWorldPos_F3                         = null;
-	this.camWorldPos_F3Loc                      = 8 + unifLocOffset;
-	this.numLightsUnif_I                        = null;
-	this.numLightsUnif_ILoc                     = 9 + unifLocOffset;
-	this.LightPos_F3v3                          = null;
-	this.LightPos_F3v3Loc                       = 10+ unifLocOffset;
-	//uniforms - vertex
-	this.boneMatrixTextureSamplerTexUnitUnif    = null;
-	this.boneMatrixTextureSamplerTexUnitUnifLoc = 11+ unifLocOffset;
-	this.numBones_F                             = null;
-	this.numBones_FLoc                          = 12+ unifLocOffset;
-	this.projMatrixUnif                         = null;
-	this.projMatrixUnifLoc                      = 13+ unifLocOffset;
-	this.mMatrixUnif                            = null;
-	this.mMatrixUnifLoc                         = 14+ unifLocOffset;
+    //flags - vertex 
+          this.skelSkinningEnb_fU_I1_1_Loc         = null;
+          this.skelSkinningEnb_fU_I1_1             = 0  + unifLocOffset;
+    //flags - fragment
+         this.texturingEnabled_fU_I1_1_Loc         = null;
+         this.texturingEnabled_fU_I1_1             = 1  + unifLocOffset;
+         
+          this.lightingEnabled_fU_I1_1_Loc         = null;
+          this.lightingEnabled_fU_I1_1             = 2  + unifLocOffset;
 
-	//attributes per vertex
-	this.positionAttrib                         = null;
-	this.positionAttribLoc                      = 15 + unifLocOffset;
-	this.normAttrib                             = null;
-	this.normAttribLoc                          = 16 + unifLocOffset;
-	this.texCoordAttrib                         = null;
-	this.texCoordAttribLoc                      = 17 + unifLocOffset;
-	this.indexWeightsAttrib                     = null;
-	this.indexWeightsAttribLoc                  = 18 + unifLocOffset;
+
+    //uniforms - fragment
+                    this.alpha_fU_F1_1_Loc         = null;
+                    this.alpha_fU_F1_1             = 3  + unifLocOffset;
+
+                  this.diffCol_fU_F3_1_Loc         = null;
+                  this.diffCol_fU_F3_1             = 4  + unifLocOffset;
+
+          this.emisAndAmbColor_fU_F3_1_Loc         = null;
+          this.emisAndAmbColor_fU_F3_1             = 5  + unifLocOffset;
+
+    this.specularAmtHrdnessExp_fU_F2_1_Loc         = null;
+    this.specularAmtHrdnessExp_fU_F2_1             = 6  + unifLocOffset;
+
+               this.screenDims_fU_F2_1_Loc         = null;
+               this.screenDims_fU_F2_1             = 7  + unifLocOffset;
+
+    //uniforms - fragment lighting
+       this.subSurfaceExponent_fU_F1_1_Loc         = null;
+       this.subSurfaceExponent_fU_F1_1             = 8  + unifLocOffset;
+
+              this.camWorldPos_fU_F3_1_Loc         = null;
+              this.camWorldPos_fU_F3_1             = 9  + unifLocOffset;
+
+                this.numLights_fU_I1_1_Loc         = null;
+                this.numLights_fU_I1_1             = 10 + unifLocOffset;
+
+                 this.LightPos_fU_F3_3_Loc         = null;
+                 this.LightPos_fU_F3_3             = 11 + unifLocOffset;
+
+    //uniforms - vertex
+ this.boneMatrixTextureSampler_vU_TI_1_Loc         = null;
+ this.boneMatrixTextureSampler_vU_TI_1             = 12 + unifLocOffset;
+
+                 this.numBones_vU_F1_1_Loc         = null;
+                 this.numBones_vU_F1_1             = 13 + unifLocOffset;
+
+                     this.proj_vU_M1_1_Loc         = null;
+                     this.proj_vU_M1_1             = 14 + unifLocOffset;
+
+                      this.mdl_vU_M1_1_Loc         = null;
+                      this.mdl_vU_M1_1             = 15 + unifLocOffset;
+
+
+    //attributes per vertex
+                 this.position_vA_F3_A_Loc         = null;
+
+                     this.norm_vA_F3_A_Loc         = null;
+
+                 this.texCoord_vA_F2_A_Loc         = null;
+
+             this.indexWeights_vA_F4_A_Loc         = null;
 
 }
 
@@ -67,35 +83,37 @@ function TRIG_LoadComp(triG){
 
 	//gl.useProgram from shader compilation
 
-	//fragment shader flags
-	triG.lightingEnabled_Unif_I1             = gl.getUniformLocation( triG.glProgram.glProgId, 'lightingEnabled' );
-	triG.texturingEnabled_UnifF1             = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled' );
 	//vertex shader flags
-	triG.skelSkinningEnbUnif_I1              = gl.getUniformLocation( triG.glProgram.glProgId, 'skelSkinningEnb' );
-	
+          triG.skelSkinningEnb_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'skelSkinningEnb'         );
+	//fragment shader flags
+          triG.lightingEnabled_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'lightingEnabled'         );
+         triG.texturingEnabled_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled'        );
+
+
 	//fragment shader color uniforms
-	triG.alphaUnif_F                         = gl.getUniformLocation( triG.glProgram.glProgId, 'alpha' );
-	triG.diffColUnif_F3                      = gl.getUniformLocation( triG.glProgram.glProgId, 'diffuseColor' );
-	triG.emisAndAmbColorUnif_F3              = gl.getUniformLocation( triG.glProgram.glProgId, 'emissionAndAmbientColor' );
-	triG.specularAmtHrdnessExp_F2            = gl.getUniformLocation( triG.glProgram.glProgId, 'specularAmtHrdnessExp' );
+                    triG.alpha_fU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'alpha'                   );
+                  triG.diffCol_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'diffuseColor'            );
+          triG.emisAndAmbColor_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'emissionAndAmbientColor' );
+    triG.specularAmtHrdnessExp_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'specularAmtHrdnessExp'   );
+               triG.screenDims_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'screenDims'              );
 	//fragment shader lighting uniforms
-	triG.subSurfaceExponent_F                = gl.getUniformLocation( triG.glProgram.glProgId, 'subSurfaceExponent' );
-	triG.camWorldPos_F3                      = gl.getUniformLocation( triG.glProgram.glProgId, 'camWorldPos' );
-	triG.numLightsUnif_I                     = gl.getUniformLocation( triG.glProgram.glProgId, 'numLights' );
-	triG.LightPos_F3v3                       = gl.getUniformLocation( triG.glProgram.glProgId, 'lightPos' );
+       triG.subSurfaceExponent_fU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'subSurfaceExponent'      );
+              triG.camWorldPos_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'camWorldPos'             );
+                triG.numLights_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'numLights'               );
+                 triG.LightPos_fU_F3_3_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'lightPos'                );
 
 
-	triG.boneMatrixTextureSamplerTexUnitUnif = gl.getUniformLocation( triG.glProgram.glProgId, 'boneMatrixTexture' );
+ triG.boneMatrixTextureSampler_vU_TI_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'boneMatrixTexture'       );
 	//vertex shader matrix uniforms
-	triG.projMatrixUnif                      = gl.getUniformLocation( triG.glProgram.glProgId, 'projMatrix');
-	triG.mMatrixUnif                         = gl.getUniformLocation( triG.glProgram.glProgId, 'mMatrix');
-	triG.numBones_F                          = gl.getUniformLocation( triG.glProgram.glProgId, 'numBones' );
+                     triG.proj_vU_M1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'projMatrix'              );
+                      triG.mdl_vU_M1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'mMatrix'                 );
+                 triG.numBones_vU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'numBones'                );
 
 	//vertex shader per vertex attributes
-	triG.positionAttrib                      = gl.getAttribLocation(triG.glProgram.glProgId, 'position');
-	triG.normAttrib                          = gl.getAttribLocation(triG.glProgram.glProgId, 'norm');
-	triG.texCoordAttrib                      = gl.getAttribLocation(triG.glProgram.glProgId, 'texCoord');
-	triG.indexWeightsAttrib                  = gl.getAttribLocation(triG.glProgram.glProgId, 'indexWeights');
+                 triG.position_vA_F3_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'position'                );
+                     triG.norm_vA_F3_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'norm'                    );
+                 triG.texCoord_vA_F2_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'texCoord'                );
+             triG.indexWeights_vA_F4_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'indexWeights'            );
 
 
 	if( triG.loadCompleteCallback != null )
@@ -118,22 +136,24 @@ function TRI_G_Setup(triG){
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 
-	GLP_setUnif_I1(triG.glProgram, triG.boneMatrixTextureSamplerTexUnitUnif, triG.boneMatrixTextureSamplerTexUnitUnifLoc, 1); //possibly binds to gl TEXTURE1 unit
+	GLP_setUnif_I1(triG.glProgram, triG.boneMatrixTextureSampler_vU_TI_1_Loc, triG.boneMatrixTextureSampler_vU_TI_1, 1); //possibly binds to gl TEXTURE1 unit
 	//GLP_setIntUniform(triG.glProgram, 'texSampler', 0);
 
-	GLP_setUnif_F3(triG.glProgram, triG.diffColUnif_F3, triG.diffColUnif_F3Loc, temp);
+	GLP_setUnif_F3(triG.glProgram, triG.diffCol_fU_F3_1_Loc, triG.diffCol_fU_F3_1, temp);
 	//triG.glProgram.setVec4Uniform('ambient', temp);
 	//CheckGLError( "glProgram::before lighting enabled " );
 
 	//lighting setup
-	//GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
+	//GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_fU_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
 
 	//enable program vertexAttrib arrays
-	gl.enableVertexAttribArray(triG.positionAttrib);
-	gl.enableVertexAttribArray(triG.normAttrib);
-	gl.enableVertexAttribArray(triG.texCoordAttrib);
+	gl.enableVertexAttribArray(triG.position_vA_F3_1_Loc );
+	gl.enableVertexAttribArray(triG.norm_vA_F3_1_Loc     );
+	gl.enableVertexAttribArray(triG.texCoord_vA_F2_1_Loc );
 
 	//gl.enableVertexAttribArray(triG.indexWeightsAttrib);
+	
+	GLP_setUnif_F2( triG.glProgram, triG.screenDims_fU_F2_1_Loc, triG.screenDims_fU_F2_1, [graphics.screenWidth/2, graphics.screenHeight/2]);
 
 
 	//CheckGLError( "glProgram::end frag shader loaded " );
@@ -148,12 +168,12 @@ function TRI_G_SetupLights(triG, rastB ){
 
 	triG.ambientColor = ambientColor;
 
-	GLP_setUnif_I1( triG.glProgram, triG.numLightsUnif_I, triG.numLightsUnif_ILoc, numLights );
+	GLP_setUnif_I1( triG.glProgram, triG.numLights_fU_I1_1_Loc, triG.numLights_fU_I1_1, numLights );
 
 	for( let l = 0; l < numLights; ++l ){
 		Vect_CopyToFromArr( trigLightPosVec, l*3, lights[l].pos, 0, 3 );
 	}
-	GLP_setUnif_F3( triG.glProgram, triG.LightPos_F3v3, triG.LightPos_F3v3Loc, trigLightPosVec );
+	GLP_setUnif_F3( triG.glProgram, triG.LightPos_fU_F3_3_Loc, triG.LightPos_fU_F3_3, trigLightPosVec );
 	//triG.glProgram.setVec4Uniform( 'lightPos', trigLightPosVec );
 
 }
@@ -189,7 +209,7 @@ function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, scene
 
 
 	/*
-	GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
+	GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_fU_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
 	
 	GLP_setUnif_F1( triG.glProgram, triG.alphaUnif_F, triG.alphaUnif_FLoc, 1 );
 
@@ -206,7 +226,7 @@ function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, scene
 		GLP_setUnif_F1( triG.glProgram, triG.texturingEnabled_UnifF1, triG.texturingEnabled_UnifF1Loc, 0 );
 	}
 
-	GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnbUnif_I1, triG.skelSkinningEnbUnif_I1Loc, 0 );
+	GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnbUnif_fU_I1, triG.skelSkinningEnbUnif_fU_I1_Loc, 0 );
 	gl.disableVertexAttribArray(triG.indexWeightsAttrib);
 
 	TRIG_SetDefaultOrthoCamMat(triG);
@@ -216,7 +236,7 @@ function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, scene
 	//create a material for the texture
 	if( graphics.cachedObjs[Material.name] == undefined ||
 		graphics.cachedObjs[Material.name][sceneName] == undefined ||
-		graphics.cachedObjs[Material.name][sceneName][textureName] == undefined){
+		graphics.cachedObjs[Material.name][sceneName][textureName] == undefined ){
 		
 		GRPH_GetCached( textureName, sceneName, Material, true, null, null );
 		
@@ -283,8 +303,8 @@ function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, scene
 
 function TRI_G_setCamMatrix( triG, camMat, camWorldPos ){
 	Matrix_Transpose( transMat, camMat );
-	gl.uniformMatrix4fv( triG.projMatrixUnif, false, transMat );
-	GLP_setUnif_F3( triG.glProgram, triG.camWorldPos_F3, triG.camWorldPos_F3Loc, camWorldPos );
+	gl.uniformMatrix4fv( triG.proj_vU_M1_1_Loc, false, transMat );
+	GLP_setUnif_F3( triG.glProgram, triG.camWorldPos_fU_F3_1_Loc, triG.camWorldPos_fU_F3_1, camWorldPos );
 }
 
 const TRI_G_VERT_ATTRIB_UID_START = 3;
@@ -294,28 +314,28 @@ let transMat = Matrix_New();
 //let tempMat = Matrix_New();
 function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 
-	GLP_setUnif_F1( triG.glProgram, triG.alphaUnif_F, triG.alphaUnif_FLoc, buf.material.alpha );
+	    GLP_setUnif_F1( triG.glProgram,                 triG.alpha_fU_F1_1_Loc,                 triG.alpha_fU_F1_1, buf.material.alpha );
 
 	//set texture or color for material
 	if( buf.material.texture != null ){
 
-		TEX_Bind(  buf.material.texture );
+		TEX_Bind( buf.material.texture );
 
-		GLP_setUnif_F1( triG.glProgram, triG.texturingEnabled_UnifF1,  triG.texturingEnabled_UnifF1Loc, 1 );
+		GLP_setUnif_I1( triG.glProgram,      triG.texturingEnabled_fU_I1_1_Loc,      triG.texturingEnabled_fU_I1_1, 1 );
 	}else{
-		GLP_setUnif_F1( triG.glProgram, triG.texturingEnabled_UnifF1,  triG.texturingEnabled_UnifF1Loc, 0 );
-		GLP_setUnif_F3( triG.glProgram, triG.diffColUnif_F3,           triG.diffColUnif_F3Loc,               buf.material.diffuseCol);
+		GLP_setUnif_I1( triG.glProgram,      triG.texturingEnabled_fU_I1_1_Loc,      triG.texturingEnabled_fU_I1_1, 0 );
+		GLP_setUnif_F3( triG.glProgram,               triG.diffCol_fU_F3_1_Loc,               triG.diffCol_fU_F3_1, buf.material.diffuseCol);
 	}
 
 	//set lighting model uniforms
 	if( buf.material.isShadeless ){
-		GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1,  triG.lightingEnabled_Unif_I1Loc,  0 );
-		GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3,   triG.emisAndAmbColorUnif_F3Loc,   buf.material.lumCol );
+		GLP_setUnif_I1( triG.glProgram,       triG.lightingEnabled_fU_I1_1_Loc,       triG.lightingEnabled_fU_I1_1,  0 );
+		GLP_setUnif_F3( triG.glProgram,       triG.emisAndAmbColor_fU_F3_1_Loc,       triG.emisAndAmbColor_fU_F3_1,  buf.material.lumCol );
 	}else{
-		GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_Unif_I1,  triG.lightingEnabled_Unif_I1Loc,  1 );
-		GLP_setUnif_F2( triG.glProgram, triG.specularAmtHrdnessExp_F2, triG.specularAmtHrdnessExp_F2Loc, buf.material.specularAmtExponent );
-		GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3,   triG.emisAndAmbColorUnif_F3Loc,   triG.ambientColor );
-		GLP_setUnif_F1( triG.glProgram, triG.subSurfaceExponent_F,     triG.subSurfaceExponent_FLoc,     buf.material.subSurfaceExponent );
+		GLP_setUnif_I1( triG.glProgram,       triG.lightingEnabled_fU_I1_1_Loc,       triG.lightingEnabled_fU_I1_1,  1 );
+		GLP_setUnif_F2( triG.glProgram, triG.specularAmtHrdnessExp_fU_F2_1_Loc, triG.specularAmtHrdnessExp_fU_F2_1,  buf.material.specularAmtExponent );
+		GLP_setUnif_F3( triG.glProgram,       triG.emisAndAmbColor_fU_F3_1_Loc,       triG.emisAndAmbColor_fU_F3_1,  triG.ambientColor );
+		GLP_setUnif_F1( triG.glProgram,    triG.subSurfaceExponent_fU_F1_1_Loc,    triG.subSurfaceExponent_fU_F2_1,   buf.material.subSurfaceExponent );
 	}
 
 
@@ -327,21 +347,21 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 	let bufID = (buf.bufID);
 	
 	//if resized the gl attribute buffer, need to re upload all sub buffer attributes
-	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID,   triG.positionAttrib,     vertCard,      numVerts*vertCard,      isDynamic) )
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID,       triG.position_vA_F3_A_Loc,     vertCard,      numVerts*vertCard,      isDynamic) )
 		buf.regenAndUploadEntireBuffer = true;
-	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+1, triG.normAttrib,         normCard,      numVerts*normCard,      isDynamic) )
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+1,         triG.norm_vA_F3_A_Loc,     normCard,      numVerts*normCard,      isDynamic) )
 		buf.regenAndUploadEntireBuffer = true;
-	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+2, triG.texCoordAttrib,     uvCard,        numVerts*uvCard,        isDynamic) )
+	if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram,     bufID+2,     triG.texCoord_vA_F2_A_Loc,       uvCard,      numVerts*uvCard,        isDynamic) )
 		buf.regenAndUploadEntireBuffer = true;
 		
 	if( buf.hasSkelAnim ){
-		if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeightsAttrib, bnIdxWghtCard, numVerts*bnIdxWghtCard, false) )
+		if( GLP_vertexAttribBuffResizeAllocateOrEnableAndBind(triG.glProgram, bufID+3, triG.indexWeights_vA_F4_A_Loc, bnIdxWghtCard, numVerts*bnIdxWghtCard, false) )
 			buf.regenAndUploadEntireBuffer = true;
-		gl.enableVertexAttribArray(triG.indexWeightsAttrib);
-		GLP_setUnif_F1( triG.glProgram, triG.numBones_F, triG.numBones_FLoc, totalNumBones );
+		gl.enableVertexAttribArray(triG.indexWeights_vA_F4_A_Loc);
+		GLP_setUnif_F1( triG.glProgram, triG.numBones_vU_F1_1_Loc, triG.numBones_vU_F1_1, totalNumBones );
 	}
 	else
-		gl.disableVertexAttribArray(triG.indexWeightsAttrib);
+		gl.disableVertexAttribArray(triG.indexWeights_vA_F4_A_Loc);
 	//CheckGLError("TRI_G_drawTriangles after GLP_vertexAttribBuffAllocateOrEnableAndBind");
 
 
@@ -355,9 +375,9 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 		if( subRange.vertsNotYetUploaded || buf.regenAndUploadEntireBuffer ){
 			
 			//vertexAttribSetSubFloats = function( attribInstID, offset, arr )
-			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID,   startIdx*vertCard,      subRange.obj.vertBufferForMat[subRange.objMatIdx] );
-			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID+1, startIdx*normCard,      subRange.obj.normBufferForMat[subRange.objMatIdx] );
-			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID+2, startIdx*uvCard,        subRange.obj.uvBufferForMat[subRange.objMatIdx]   );
+			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID,   startIdx*vertCard,      subRange.obj.vertBufferForMat     [subRange.objMatIdx] );
+			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID+1, startIdx*normCard,      subRange.obj.normBufferForMat     [subRange.objMatIdx] );
+			GLP_vertexAttribSetSubFloats( triG.glProgram,     bufID+2, startIdx*uvCard,        subRange.obj.uvBufferForMat       [subRange.objMatIdx] );
 			if( subRange.skelAnim != null )
 				GLP_vertexAttribSetSubFloats( triG.glProgram, bufID+3, startIdx*bnIdxWghtCard, subRange.obj.bnIdxWghtBufferForMat[subRange.objMatIdx] );
 			subRange.vertsNotYetUploaded = false;
@@ -390,16 +410,16 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 		let startIdx = subRange.startIdx;
 		
 		if( subRange.skelAnim != null ){
-			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnbUnif_I1, triG.skelSkinningEnbUnif_I1Loc, 1 );
+			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1, 1 );
 		}else{
-			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnbUnif_I1, triG.skelSkinningEnbUnif_I1Loc,  0 );
+			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1,  0 );
 		}
 		
 		if( subRange.overrideColor ){
-			GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3, triG.emisAndAmbColorUnif_F3Loc, subRange.overrideColor );
+			GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColor_fU_F3_1_Loc, triG.emisAndAmbColor_fU_F3_1, subRange.overrideColor );
 			overrideColorSet = true;
 		}else if( overrideColorSet ){
-			GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3, triG.emisAndAmbColorUnif_F3Loc, buf.material.lumCol );
+			GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColor_fU_F3_1_Loc, triG.emisAndAmbColor_fU_F3_1, buf.material.lumCol );
 			//GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3, buf.material.diffuseCol);
 			overrideColorSet = false;
 		}
@@ -409,12 +429,12 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 		//set the model matrix
 		//transpose=true requires webgl2.0
 		Matrix_Transpose( transMat, subRange.toWorldMatrix );
-		gl.uniformMatrix4fv( triG.mMatrixUnif, false, transMat );//, 0, 4*4 );
+		gl.uniformMatrix4fv( triG.mdl_vU_M1_1_Loc, false, transMat );//, 0, 4*4 );
 
 		let vertBufferEndIdx = buf.bufferIdx;
 		let subRangeEndIdx = startIdx + subRange.len;
-		if( subRangeEndIdx > vertBufferEndIdx )
-			console.log("subRangeEndIdx > vertBufferEndIdx");
+		//if( subRangeEndIdx > vertBufferEndIdx )
+		//	console.log("subRangeEndIdx > vertBufferEndIdx");
 		//CheckGLError("TRI_G_drawTriangles before gl.drawArrays");
 		gl.drawArrays( gl.TRIANGLES, startIdx, subRange.len );
 		//if( CheckGLError("TRI_G_drawTriangles after gl.drawArrays") )

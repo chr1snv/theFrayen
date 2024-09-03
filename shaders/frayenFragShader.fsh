@@ -25,6 +25,8 @@ uniform int       numLights;
 
 uniform vec3      camWorldPos;
 
+uniform vec2      screenDims;
+
 
 //variables passed from the vertex shader
 varying vec3      worldSpaceFragPosition;
@@ -98,11 +100,13 @@ void main() {
 		return;
 	}
 	
-	if( gl_FragColor.a <= 1.0 ){
-		if ( modI((gl_FragCoord.x*1000.0), (10.0*gl_FragColor.a)) <= 1.1 ||
-			modI((gl_FragCoord.y*1000.0), (10.0*gl_FragColor.a)) <= 1.1 )
+	if( gl_FragColor.a <= 0.9 ){
+		if ( modI((gl_FragCoord.x*screenDims.x + gl_FragCoord.z*10.0), (10.0*gl_FragColor.a)) <= 1.0 ||
+			 modI((gl_FragCoord.y*screenDims.y + gl_FragCoord.z*10.0), (10.0*gl_FragColor.a)) <= 1.0 )
 			discard;
 	}
+	//gl_FragColor.r = gl_FragColor.a;
+	
 
 
 	/*

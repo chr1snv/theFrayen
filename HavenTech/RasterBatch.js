@@ -327,7 +327,7 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 		//for each material in the object
 		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
 			let material = qm.materials[matIdx];
-			
+
 			if( qm.faceVertsCtForMat[matIdx] < 1 ) //ignore materials with no verts assigned
 				continue;
 

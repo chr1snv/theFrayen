@@ -56,7 +56,7 @@ let boatSpeed = 1;
 
 let boatDirVec = Vect_New(2);
 
-let boatPosOffset = Vect3_NewVals(6.58775,-5,0);
+
 let boatToWorldTranslation = Vect3_New();
 
 let boatPosition = Vect3_NewZero();
@@ -65,6 +65,11 @@ var boatMatrix = Matrix_New();
 let boatMatrixTemp = Matrix_New();
 let boatMatrixTranslate = Matrix_New();
 let boatMatrixRotate = Matrix_New();
+
+let boatPosOffset = Vect3_NewVals(6.58775,-5,0);
+let boatMatrixPosOffset = Matrix_New();
+Matrix_SetIdentity(boatMatrixPosOffset);
+Matrix_SetTranslate( boatMatrixPosOffset, boatPosOffset );
 
 let maxTillerDirection = 0.2;
 let tillerDirection = 0;
@@ -156,8 +161,8 @@ function BOAT_Update( time, wndHdg ){
 	Matrix_SetTranslate( boatMatrixTranslate, boatPosition );
 	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );
 	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate );
-	Matrix_SetTranslate( boatMatrixTranslate, boatPosOffset );
-	Matrix_Multiply( boatMatrix, boatMatrixTranslate, boatMatrixTemp );
+	
+	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp );
 	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
 
 	lastBoatUpdateTime = time;
