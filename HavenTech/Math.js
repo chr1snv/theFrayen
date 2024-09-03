@@ -59,6 +59,10 @@ function AngleToVec2Unit( v2, ang ){
 	v2[1] /= len;
 }
 
+function MTH_WrapAng0To2PI( ang ){
+	return ang % (2*Math.PI);
+}
+
 function SystemOfEquationSolver(){
 
 	

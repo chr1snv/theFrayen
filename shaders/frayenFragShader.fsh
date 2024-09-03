@@ -31,6 +31,11 @@ varying vec3      worldSpaceFragPosition;
 varying vec3      normalVarying;//in vec3      normalVarying;
 varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
+float modI(float a,float b) {
+    float m=a-floor((a+0.5)/b)*b;
+    return floor(m+0.5);
+}
+
 //out vec4 gl_FragColor; //for gles 3
 void main() {
 
@@ -88,7 +93,16 @@ void main() {
 	}
 	
 	//gl_FragColor.a = 1.0;
-	if (gl_FragColor.a <= 0.0) discard;
+	if (gl_FragColor.a <= 0.0){
+		discard;
+		return;
+	}
+	
+	if( gl_FragColor.a <= 1.0 ){
+		if ( modI((gl_FragCoord.x*1000.0), (10.0*gl_FragColor.a)) <= 1.1 ||
+			modI((gl_FragCoord.y*1000.0), (10.0*gl_FragColor.a)) <= 1.1 )
+			discard;
+	}
 
 
 	/*

@@ -78,7 +78,7 @@ let lastBoatUpdateTime = -1;
 
 function BOAT_Update( time, wndHdg ){
 
-	let relWndHdg = (wndHdg-(1/180)*Math.PI) - boatHeading;
+	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg-(1/180)*Math.PI) - boatHeading );
 
 	//handle input
 	let input = false;
@@ -97,7 +97,7 @@ function BOAT_Update( time, wndHdg ){
 	if( mDown ){
 		let mDeltaX = mCoords.x- mDownCoords.x;
 		tillerDirection += tillerInputAmt * mDeltaX * mouseXSenValue/20;
-		console.log( mDeltaX );
+		//console.log( mDeltaX );
 		input = true;
 	}
 
@@ -110,6 +110,7 @@ function BOAT_Update( time, wndHdg ){
 	tillerDirection = Math.max( -maxTillerDirection, Math.min( maxTillerDirection, tillerDirection ) );
 
 	boatHeading += tillerDirection;
+	boatHeading = MTH_WrapAng0To2PI( boatHeading );
 
 	//find which sail position animation the boat should use for forward motion
 	let animTargFrame = 230/ANIM_FRAME_RATE;
