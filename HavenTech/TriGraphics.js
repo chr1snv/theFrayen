@@ -38,8 +38,8 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
     this.specularAmtHrdnessExp_fU_F2_1_Loc         = null;
     this.specularAmtHrdnessExp_fU_F2_1             = 6  + unifLocOffset;
 
-               this.screenDims_fU_F2_1_Loc         = null;
-               this.screenDims_fU_F2_1             = 7  + unifLocOffset;
+               //this.screenDims_fU_F2_1_Loc         = null;
+               //this.screenDims_fU_F2_1             = 7  + unifLocOffset;
 
     //uniforms - fragment lighting
        this.subSurfaceExponent_fU_F1_1_Loc         = null;
@@ -95,7 +95,7 @@ function TRIG_LoadComp(triG){
                   triG.diffCol_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'diffuseColor'            );
           triG.emisAndAmbColor_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'emissionAndAmbientColor' );
     triG.specularAmtHrdnessExp_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'specularAmtHrdnessExp'   );
-               triG.screenDims_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'screenDims'              );
+               //triG.screenDims_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'screenDims'              );
 	//fragment shader lighting uniforms
        triG.subSurfaceExponent_fU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'subSurfaceExponent'      );
               triG.camWorldPos_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'camWorldPos'             );
@@ -153,7 +153,7 @@ function TRI_G_Setup(triG){
 
 	//gl.enableVertexAttribArray(triG.indexWeightsAttrib);
 	
-	GLP_setUnif_F2( triG.glProgram, triG.screenDims_fU_F2_1_Loc, triG.screenDims_fU_F2_1, [graphics.screenWidth/2, graphics.screenHeight/2]);
+	//GLP_setUnif_F2( triG.glProgram, triG.screenDims_fU_F2_1_Loc, triG.screenDims_fU_F2_1, [1,1]);//[graphics.canvas.width*0.03, graphics.canvas.height*0.03]);
 
 
 	//CheckGLError( "glProgram::end frag shader loaded " );

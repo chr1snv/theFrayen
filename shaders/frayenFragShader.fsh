@@ -1,7 +1,7 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision mediump float;
+precision lowp float;
 
 //constant variables
 uniform bool      texturingEnabled;
@@ -25,7 +25,7 @@ uniform int       numLights;
 
 uniform vec3      camWorldPos;
 
-uniform vec2      screenDims;
+//uniform vec2      screenDims;
 
 
 //variables passed from the vertex shader
@@ -101,8 +101,8 @@ void main() {
 	}
 	
 	if( gl_FragColor.a <= 0.9 ){
-		if ( modI((gl_FragCoord.x*screenDims.x + gl_FragCoord.z*10.0), (10.0*gl_FragColor.a)) <= 1.0 ||
-			 modI((gl_FragCoord.y*screenDims.y + gl_FragCoord.z*10.0), (10.0*gl_FragColor.a)) <= 1.0 )
+		if ( modI((gl_FragCoord.x + (gl_FragCoord.z*10.0)), (10.0*gl_FragColor.a)) <= 1.0 ||
+			 modI((gl_FragCoord.y + (gl_FragCoord.z*10.0)), (10.0*gl_FragColor.a)) <= 1.0 )
 			discard;
 	}
 	//gl_FragColor.r = gl_FragColor.a;
