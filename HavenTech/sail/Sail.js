@@ -68,7 +68,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			TR_QueueText( rb2DTris, -0.9, 0.8, 0.03, 0.1, ":Gear:", true );
 
-			RGTTA_Update( time, cam, boatMatrix, rb3DTris_array[1], rb3DLines_array[1] );
+			RGTTA_Update( time, cam, boatMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
 			numActiveBatches = 2;
 	}
 

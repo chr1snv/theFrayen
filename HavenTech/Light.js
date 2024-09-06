@@ -35,7 +35,7 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
 		Vect3_Copy(this.pos, posIn);
 		Quat_Copy(this.rot, rotIn);
 	}
-	
+
 	if( animIpoName != '' )
 		graphics.GetCached(animIpoName, sceneNameIn, IPOAnimation, null, Light_IpoReady, this);
 

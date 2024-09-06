@@ -55,10 +55,15 @@ function RGTTA_SceneLoaded( hvnsc ){
 
 }
 
+let rgta_startTime = 0;
+function RGTTA_Start(time){
+	rgta_startTime = time;
+}
 
 
+let rgta_elapsedTime = 0;
 let currentBouy = 0;
-function RGTTA_Update( time, cam, boatMatrix, rb3DTris, rb3DLines ){
+function RGTTA_Update( time, cam, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
 
 	//setup the regatta scene camera from the boat camera and boat translation
 	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
@@ -66,6 +71,11 @@ function RGTTA_Update( time, cam, boatMatrix, rb3DTris, rb3DLines ){
 	rb3DTris.fov = cam.fov;
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb3DLines );
+
+	rgta_elapsedTime = time - rgta_startTime;
+	let elapsedMins = Math.floor(rgta_elapsedTime / 60);
+	let elapsedSecs = Math.floor(rgta_elapsedTime - (elapsedMins*60));
+	TR_QueueTime( rb2DTris, 0.4, 0.8, 0.02, 0.1, elapsedMins, elapsedSecs );
 
 }
 

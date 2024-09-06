@@ -174,7 +174,7 @@ function animPlayToggle(){
 
 function graphicsLoaded(){
 	TXTR_Init(function(){ loadScene(); }); //load text meshes
-	
+
 }
 
 //entrance point, starts graphics, starts loading the scene
@@ -248,7 +248,7 @@ function loadScene()
 	var newSceneName = sceneSelectorElm.children[idx].text;
 
 	stop();
-	
+
 	RastB_numActive3DBatches = 0;
 
 
@@ -313,13 +313,30 @@ function sceneLoaded(havenScene)
 	SetCanvasSize( );
 
 	statusElm.innerHTML = "Running";
-	
-	
+
+
 	let cam = mainScene.cameras[mainScene.activeCameraIdx];
 	if( posDbgText ){
 		UpadateMousePosText();
 		UpdateCamTransText(cam);
 	}
+
+
+	rastBatch2dTris.camWorldPos = Vect3_ZeroConst;
+	rastBatch2dTris.ambientColor = [0.1,0.0,0.1];
+	rastBatch2dTris.numLights = 1;
+	let lcol = [0.1,0,0.2]
+	let leng = 1;
+	let lampType = LightType.Point;
+	let lghtLoc = [0,2,1];
+	let lghtRot = [0,0,0];
+	let lspotsz = undefined;
+	let lanim = ''; 
+	rastBatch2dTris.lights = [
+		new Light("menuLight", "menu", 
+				lcol, leng, lampType, lghtLoc, lghtRot, lspotsz, lanim)];
+
+
 	sceneLoadedTime = Date.now();
 	running = true;
 }
@@ -351,7 +368,8 @@ function MainLoop()
 
 
 	RastB_ClearObjsAndInitListsForNewFrame( rastBatch2dTris );
-	rastBatch2dTris.camWorldPos = Vect3_ZeroConst;
+
+
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
 		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris_array[i] );
 		if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )

@@ -42,43 +42,51 @@ function TXTR_Init(ldCmpCb){
 
 }
 
-/*
-function TXTR_AllocSubRngBuffer(numVerts, subBufId, str, interactive){
 
-	let obj = new TXTR_StrVertBufObj(numVerts);
-	obj.str = str;
-	obj.interactive = interactive;
 
-	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
-	let textR_sbb = new BufSubRange( txtR_dbB.bufferIdx, numVerts, obj, 0 );
-	Matrix_SetIdentity( textR_sbb.toWorldMatrix );
-	txtR_dbB.bufSubRanges[subBufId] = textR_sbb;
-	
-	txtR_dbB.bufferIdx += numVerts;
-	
-	let subRngKeys = Object.keys(txtR_dbB.bufSubRanges);
-	for(let i = 0; i < subRngKeys.length; ++i ){
-		txtR_dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
-	}
-	//txtR_dbB.regenAndUploadEntireBuffer = true;
-	
-	return obj;
+function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s ){
+
+    let nextLtrStartX = TR_QueueNumber( rb2DTris, x, y, dpth, size, m );
+        nextLtrStartX =  TR_QueueText( rb2DTris, nextLtrStartX, y, dpth, size, 'M', false );
+        nextLtrStartX = TR_QueueNumber( rb2DTris, nextLtrStartX, y, dpth, size, s );
+                         TR_QueueText( rb2DTris, nextLtrStartX, y, dpth, size, 'S', false );
+
 }
-*/
+function TR_QueueNumber( rb2DTris, x, y, dpth, size, num ){
+	let digitXOffset = 0;
+	let numDigits = 1;
+	if( num > 0 ) 
+		numDigits = Math.floor( Math.log10( num ) ) + 1;
+	let mostSignificantPrinted = 0;
+	let numRemainder = num;
+	for( let i = 0; i < numDigits; ++i ){
+		let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
+		let digit = Math.floor( numRemainder / digitPowerOfTen );
+		TR_QueueText( rb2DTris, x+(xKernSpc*i*size), y, dpth, size, ''+digit, false );
+		numRemainder = numRemainder - (digit * digitPowerOfTen);
+	}
+	return x+(xKernSpc*numDigits*size);
+}
+
 
 const xKernSpc = 0.5;
 const lVertSpc = 0.2;
 
+let strAABBMin = Vect3_New();
+let strAABBMax = Vect3_New();
+
 //draw text at certian size
-let tmpGlyphVert = Vect3_New();
+let maxTextX = 0;
+let tmpGlyphVert = Vect3_NewZero();
 function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 
-	//check if its something that wasn't rendered last frame
-	let glyphStrKey = "" + x + ":" + y + ":" + dpth + ":" + size + " " + str;
-	
-	
+	//check if its something that wasn't rendered in previous frames
+	let glyphStrKey = "" + x + ":" + y + ":" + dpth + ":" + size + ":" + str;
+
+	let sbb = null;
+
 	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
 
 		//count the number of verts and generate them for each glyph
@@ -87,7 +95,9 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		let escpStr = "";
 		for( let i = 0; i < str.length; ++i ){
 			let ltr = str[i];
-			if( ltr == ":" ){
+			if( ltr == '.' ){
+				ltr = 'dot';
+			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
 					escpSeqActive = true;
 					continue;
@@ -100,7 +110,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 				escpStr += ltr;
 				continue;
 			}
-			
+
 			strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
 			//generate the tesselated vert Coords for the glyph if necessary
 			if( glyphMeshes[ltr].materialHasntDrawn[0] ){
@@ -112,8 +122,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 
 		//allocate glyph vert buffer for the string
 		//GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
-		let sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
+		sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
+		//set the matrix directly on the sub batch buffer,
+		//RastB_PrepareBatchToDraw only copies toWorldMatricies from raster batch .objs
+		//(text bypasses it and makes the text ready to draw by calling GetDrawSubBatchBuffer
+		//and setting the length of the sub batch buffer)
 		Matrix_SetIdentity( sbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
+		Matrix_SetTranslate( sbb.toWorldMatrix, [x,y,dpth] );
 		let strVertBufObj = sbb.obj;
 
 		let vertBufIdx = 0;
@@ -121,8 +136,8 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		let uvBufIdx = 0;
 		escpSeqActive = false;
 		let escpdLen = 0;
-		let strMin = Vect3_NewScalar( Number.POSITIVE_INFINITY );
-		let strMax = Vect3_NewScalar( Number.NEGATIVE_INFINITY );
+		let strMinTemp = Vect3_NewScalar( Number.POSITIVE_INFINITY );
+		let strMaxTemp = Vect3_NewScalar( Number.NEGATIVE_INFINITY );
 		//generate the mesh for the glyph positions to draw
 		let lNum = 0; //line number
 		for( let i = 0; i < str.length; ++i ){
@@ -132,7 +147,9 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			let posY = lNum*lVertSpc;
 
 			let ltr = str[i];
-			if( ltr == ":" ){
+			if( ltr == '.' ){
+				ltr = 'dot';
+			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
 					escpSeqActive = true;
 					continue;
@@ -152,14 +169,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			let glyphNorms = glyphM.normBufferForMat[0];
 			let glyphUvs   = glyphM.uvBufferForMat[0];
 			let numGlyphVerts = glyphVerts.length;
-			//Vect3_SetScalar( strMin, Number.POSITIVE_INFINITY );
-			//Vect3_SetScalar( strMax, Number.NEGATIVE_INFINITY );
+
 			for( let j = 0; j < numGlyphVerts; j+=vertCard ){
 				Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j );
-				tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size) + x;
-				tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size) + y;
-				tmpGlyphVert[2] += dpth;
-				Vect_minMax( strMin, strMax, tmpGlyphVert );
+				tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size);// + x;
+				tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size);// + y;
+				//tmpGlyphVert[2] += dpth;
+				Vect_minMax( strMinTemp, strMaxTemp, tmpGlyphVert );
 				Vect3_CopyToArr(strVertBufObj.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
 
 				Vect_CopyToFromArr( strVertBufObj.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
@@ -171,23 +187,28 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			}
 			escpdLen += 1;
 		}
-		strVertBufObj.AABB = new AABB( strMin, strMax );
+		//transform the min and max of the aabb so that RayIntersects in 
+		//RaycastPointer allows for detecting when the pointer selects interactable strings
+		Matrix_Multiply_Vect3( strAABBMin, sbb.toWorldMatrix, strMinTemp );
+		Matrix_Multiply_Vect3( strAABBMax, sbb.toWorldMatrix, strMaxTemp );
+		strVertBufObj.AABB = new AABB( strAABBMin, strAABBMax );
 		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
 
-
-
+		sbb.obj.textEndX = strAABBMax[0];
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
 	}else{
 		//restore the number of verts for the sub batch buffer to draw
-		let subb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
-		subb.len = subb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
+		sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
+		sbb.len = sbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
 	}
 
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
 		txtR_dbB.sortedSubRngKeys = [];
-	txtR_dbB.sortedSubRngKeys.push(  glyphStrKey );
+	txtR_dbB.sortedSubRngKeys.push( glyphStrKey );
 	//txtR_dbB.numBufSubRanges += 1;
+
+	return sbb.obj.textEndX;
 
 }
 
@@ -231,37 +252,6 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 	}
 }
 
-/*
-function TR_DrawText(){
-	//draw the active glyph vert buffers
-	let triG = graphics.triGraphics;
-
-	//TRI_G_Setup(triG);
-
-	//GLP_setIntUniform( triG.glProgram, 'lightingEnabled', 0 );
-	//GLP_setFloatUniform( triG.glProgram, 'texturingEnabled', 0 );
-	//GLP_setIntUniform( triG.glProgram, 'skelSkinningEnb', 0 );
-
-	TRIG_SetDefaultOrthoCamMat(triG);
-
-	TRI_G_drawTriangles( triG, txtR_dbB, 0 );
-
-}
-*/
-
-/*
-function TR_DeactivateFrameGlyphs(){
-	//set the buffer as not active for the next frame 
-	//(until/unless next frame the same string is asked to draw)
-	txtR_dbB.sortedSubRngKeys = [];
-	txtR_dbB.numBufSubRanges = 0;
-	
-	//let vrtBufKeys = Object.keys(glyphStrVertBuffers);
-	//for( let i = 0; vrtBufKeys.length; ++i ){
-	//	glyphStrVertBuffers[ vrtBufKeys[i] ][1] = false;
-	//}
-}
-*/
 
 function TR_CleanupFrameGlyphs(){
 }

@@ -97,7 +97,7 @@ let frus_temp3 = Vect_New(3);
 let frus_temp3Remap = Vect_New(3);
 
 
-let treeNodesInFrame = {};
+let treeNodesInFrame = new Map();
 function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris, rastB3DLines ){
 
 	if(!CheckIsValidFor( hvnsc, 'Update' ) )
@@ -106,12 +106,12 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 
 	//get the nodes within view
 	//only call update on in view nodes and nodes/objects that need to be actively simulated/updated
-	treeNodesInFrame = {};
+	treeNodesInFrame.clear();
 	TND_GetNodesInFrustum( hvnsc.octTree, rastB3DTris.worldToScreenSpaceMat, rastB3DTris.camFov, rastB3DTris.camWorldPos, treeNodesInFrame );
 
 	//let nodeKeys = Object.keys(treeNodesInFrame);
-	for( let key in treeNodesInFrame ){//for( let i = 0; i < nodeKeys.length; ++i ){
-		let node = treeNodesInFrame[key];//nodeKeys[i]];
+	for( let node of treeNodesInFrame.values() ){//for( let i = 0; i < nodeKeys.length; ++i ){
+		//let node = treeNodesInFrame[key];//nodeKeys[i]];
 		if( simPhys ){
 //			DTPrintf("=====Apply User input " + time.toPrecision(3), "loop");
 //			//if( queuedMouseEvents.length < 1 ){

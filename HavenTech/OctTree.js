@@ -636,7 +636,7 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 		if( t.nodePctOfHalfScreenWidth > 0.1 ){
 		
 			if( t.objInsertIdx > 0 ){ //this node has objects
-				retNodeMap[t.uid.val] = t; //return the node
+				retNodeMap.set(t.uid.val, t); //return the node
 			}else{ //attempt to recurse into subnodes 
 				for( let i = 0; i < t.subNodes.length; ++i ){
 					if( t.subNodes[i] ){
