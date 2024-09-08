@@ -159,7 +159,7 @@ function TRI_G_Setup(triG){
 	//CheckGLError( "glProgram::end frag shader loaded " );
 }
 
-let trigLightPosVec = new Array(8*vertCard);
+let trigLightPosVec = Vect_NewZero(8*vertCard);
 function TRI_G_SetupLights(triG, rastB ){
 
 	let lights = rastB.lights;
