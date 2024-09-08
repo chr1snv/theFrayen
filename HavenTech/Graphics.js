@@ -25,6 +25,9 @@ return false;
 }
 
 //globally used constants
+const trisPerQuad  = 2;
+const vertsPerTri  = 3;
+const vertsPerQuad = 6;
 const vertCard     = 3;
 const normCard     = 3;
 const uvCard       = 2;

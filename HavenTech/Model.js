@@ -64,7 +64,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.modelDrawable = null;
 	this.sceneGraph = null;
 
-	this.overlaps = [0,0,0];
+	//this.overlaps = [0,0,0];
 	this.AABB = AABB;
 
 	this.otType = OT_TYPE_Model;

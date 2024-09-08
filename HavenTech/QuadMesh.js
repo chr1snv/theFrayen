@@ -8,11 +8,11 @@ class Face { //part of mesh stored in mesh octTree
 		this.uid        = NewUID( );
 		this.materialID = 0;
 		this.numFaceVerts = 0;
-		this.uvs        = new Array(4*2);
+		this.uvs        = new Array(4*2); //fixed size (for Faces to be preallocated as an array in the future)
 		this.vertIdxs   = new Array(4).fill(-1);
 		//this.triIdxs    = new Array(2).fill(-1);
 		this.AABB       = new AABB();
-		this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
+		//this.overlaps   = [0,0,0]; //octTree.generateMinAndMaxNodes
 		//this.treeNodes  = {};
 		//this.fNum = -1;
 		//this.otType = OT_TYPE_Face;
@@ -82,27 +82,28 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	Matrix_SetIdentity( this.toWorldMatrix );
 	this.lastToWorldMatrixUpdateTime = -1;
 
-	this.materialNames     = [];
-	this.materials         = [];
 
-	this.faceVertsCtForMat       = null;
-	this.faceIdxsForMatInsertIdx = null;
-	this.faceIdxsForMat          = null; //the indicies of faces for materials
-	
+	//tesselated output data for drawing
 	this.bnIdxWghtBufferForMat = null;
 	this.vertBufferForMat = null;
 	this.normBufferForMat = null;
 	this.uvBufferForMat = null;
 
 	//the mesh data
-	this.tris            = [];
+	//this.tris            = [];
 	this.faces           = [];
-	this.faceVertsCt     = 0;
-	this.vertPositions   = null;
+	this.vertPositions   = null; //size determined by count of verts in file
 	this.vertNormals     = null;
-	this.vertBoneWeights = [];
+	this.vertBoneWeights = null;
 	
-	this.weightGroupIdsToBoneNames = null;
+	this.weightGroupIdsToBoneNames = null; //used in binding btwn quadMesh and skelAnim to generate vertBoneWeights
+	
+	this.materialNames     = [];
+	this.materials         = [];
+
+	this.faceVertsCtForMat       = null; //tot nVrts for a matrl (3 tri, 6 quad) used to determine if should draw
+	this.faceIdxsForMatInsertIdx = null; //1+idx of last face in faceIdxsForMat
+	this.faceIdxsForMat          = null; //the indicies of faces for materials
 
 	//animation base mesh
 	this.keyedPositions  = [];
@@ -491,6 +492,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, matIdx, subBatchB
 	if( qm.keyAnimation && drawBatch != null ){
 		drawBatch.vertexAnimated = true;
 	}
+
 
 
 	let endGenVertIdx = 0; //startIdx; //if no verts are generated
@@ -1095,14 +1097,12 @@ function QM_meshFileLoaded(meshFile, thisP)
 					}
 					
 					if(numFaceVerts == 3){
-						thisP.faceVertsCtForMat[newFace.materialID] += 3;
-						thisP.faceVertsCt += 3;
+						thisP.faceVertsCtForMat[newFace.materialID] += vertsPerTri;
 						//TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
 						//newFace.triIdxs[0] = tIdx++;
 					}
 					else if(numFaceVerts == 4){
-						thisP.faceVertsCtForMat[newFace.materialID] += 6;
-						thisP.faceVertsCt += 6; //since will have to tesselate
+						thisP.faceVertsCtForMat[newFace.materialID] += vertsPerQuad; //6 since will have to tesselate
 						//TRI_Setup(thisP.tris[tIdx], 0, newFace, thisP.vertPositions );
 						//newFace.triIdxs[0] = tIdx++;
 						//TRI_Setup(thisP.tris[tIdx], 1, newFace, thisP.vertPositions );
