@@ -162,53 +162,106 @@ function OCN_NLvlsToNQuads(nLvls){
 	return nLvls*8 + 9; //each level has 9 - the center + 9 for the inner most level
 }
 
+function OCN_FirstVertIdxAtLvl( lvl ){
+	return 16*lvl;
+}
+
 let rotationMatrix = Matrix_New();
 
 const OCN_NUM_LVLS = 2;
 
-const waveAmplitude = 1.2;
-const waveYPeriod = 2;
+const waveAmplitude = 3.2;
+const waveTimePeriodSecs = 1/0.5;
+const waveXDistScale = 100;
 
 const subDivVertsPerSide = 4;
 
 const ocnWidth_Length = 256;
 const ocnUVScale = 10;
 
+//returns the interpolated z based on 2 corresponding edge verts of
+//the previous lower level
+function OCN_idxVertsLwrLvlToInterpZ( j, x1, y1, x2, y2, fstIdxAtLvl, verts ){
+	let fstIdx  = fstIdxAtLvl + y1*lvlVertsWidth + x1;
+	let scndIdx = fstIdxAtLvl + y2*lvlVertsWidth + x2;
+	let firstIdxZ = verts[ fstIdx * vertCard + 2 ];
+	let scndIdxZ = verts[ scndIdx * vertCard + 2 ];
+	let pctOfScnd = j / (lvlVertsWidth-1);
+
+	return firstIdxZ * (1-pctOfScnd) + scndIdxZ * pctOfScnd;
+}
+
 let indx = 0;
 //update center subdivided 3x3 quad patch one level at a time recursively
-
-//8 verts per level before and after sub divided area
 function OCN_UpdateSubDiv( time, verts, norms, lvl, maxLvls ){
 
-	//let lvlStartX = 1*lvl;
-	//let lvlWidth = lvlStartX*2 + 4*lvl;
-	
 	let lvlStartWorldDist = OCN_LvlStartWorldOffset( lvl );
 	let lvlVertWorldDist  = OCN_DistBtwnVertsAtLvl(  lvl );
-	
-	let lvlVertOffset = 16*lvl;
+
+	let lvlVertOffset = OCN_FirstVertIdxAtLvl( lvl );
+
+	let midYAxisVert = false;
+	let midXAxisVert = false;
 
 	for( let j = 0; j < subDivVertsPerSide; ++j ){
+	
+		if( lvl > 0 && ( j == 1 || j == 2 ) )
+			midYAxisVert = true; 
+		else
+			midYAxisVert = false; 
+
 		for( let i = 0; i < subDivVertsPerSide; ++i ){
+
+			if( lvl > 0 && ( i == 1 || i == 2 ) )
+				midXAxisVert = true;
+			else
+				midXAxisVert = false;
+
 			nonVertCardIndex = lvlVertOffset + (j * lvlVertsWidth + i);
 			let vertWrldXPct = (lvlStartWorldDist + lvlVertWorldDist * i) / ocnWidth_Length;
 			let vertWrldYPct = (lvlStartWorldDist + lvlVertWorldDist * j) / ocnWidth_Length;
 			indx = (nonVertCardIndex) * vertCard;
 			//verts[indx + 0] = lvlStartWorldDist + lvlVertWorldDist*i;
 			//verts[indx + 1] = lvlStartWorldDist + lvlVertWorldDist*j;
-			verts[indx + 2] = waveAmplitude*Math.sin( vertWrldXPct*waveYPeriod*time );
+			
+			if( midYAxisVert != midXAxisVert ){ 
+				//vert is on middle of subDiv level edge
+				//need to get positions of previous level verts on edge and lerp btwn them
+				let prevLvl = lvl - 1; 
+				let fstIdxAtPrevLvl = OCN_FirstVertIdxAtLvl( prevLvl );
+				if( midYAxisVert ){ //left or right edge
+					if( i == 0 ){ //left edge
+						verts[indx + 2] = OCN_idxVertsLwrLvlToInterpZ( j, 1, 1, 1, 2, fstIdxAtPrevLvl, verts );
+					}else{ //right edge
+						verts[indx + 2] = OCN_idxVertsLwrLvlToInterpZ( j, 2, 1, 2, 2, fstIdxAtPrevLvl, verts );
+					}
+				}else{ //top or bottom edge
+					if( j == 0 ){ //top edge
+						verts[indx + 2] = OCN_idxVertsLwrLvlToInterpZ( i, 1, 1, 2, 1, fstIdxAtPrevLvl, verts );
+					}else{ //bottom edge
+						verts[indx + 2] = OCN_idxVertsLwrLvlToInterpZ( i, 1, 2, 2, 2, fstIdxAtPrevLvl, verts );
+					}
+				}
+			}else{ // use value calculated at this level
+				verts[indx + 2] = waveAmplitude*Math.sin( (vertWrldXPct*waveXDistScale)+(waveTimePeriodSecs*time) );
+			}
+
+
 
 			//norms[indx + 0] = 0;
 			//norms[indx + 1] = 0;
 			//norms[indx + 2] = 1;//waveAmplitude*Math.sin( j*waveYPeriod );
 
 
-			if( i==1 && j==1 && lvl < maxLvls ){ //subdivided area
-				OCN_UpdateSubDiv( time, verts, norms, lvl+1, maxLvls );
-			}
+			//if( i==1 && j==1 && lvl < maxLvls ){ //subdivided area
+			//	OCN_UpdateSubDiv( time, verts, norms, lvl+1, maxLvls );
+			//}
 
 		}
 	}
+	
+	if( lvl < maxLvls ) //update center subdivided area
+		OCN_UpdateSubDiv( time, verts, norms, lvl+1, maxLvls );
 
 
 }
@@ -222,12 +275,12 @@ function OCN_Update( ocn, rb3D, time, boatHeading ){
 	//let uvs         = ocn.quadmesh.uvs;
 	let norms       = ocn.vertNormals;
 	let indx = 0;
-	
+
 	OCN_UpdateSubDiv( time, vertPositns, norms, 0, OCN_NUM_LVLS );
-	
+
 	ocn.quadmesh.materialHasntDrawn[0] = true; //re run the tesselate function
 	ocn.quadmesh.isAnimated = true;
-	
+
 	Matrix_SetEulerRotate( ocn.quadmesh.toWorldMatrix, [0,0,boatHeading] );
 	ocn.quadmesh.toWorldMatrix[4*2+3] = -4;
 }
