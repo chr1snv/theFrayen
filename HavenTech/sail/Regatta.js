@@ -45,20 +45,21 @@ function InitAndAllocOneObjBuffer(obj){
 }
 
 
-function WaypointInfo( bouyNameIn, roundDirection ){
+function WaypointInfo( bouyNameIn, roundDirection, instrStringIn ){
 	this.bouyName = bouyNameIn;
 	this.bouyQm = null;
 	this.roundDirection = roundDirection;
+	this.instrString = instrStringIn;
 }
 
 //regatta course definition
 let bouyInfos = new Array(4);
-bouyInfos[0] = new WaypointInfo( "inflatableBouy", false );
-bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false );
-bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false );
-bouyInfos[3] = new WaypointInfo( "inflatableBouy", false );
+bouyInfos[0] = new WaypointInfo( "inflatableBouy", false, "Cross the Start Line" );
+bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false, "Round the Windward Bouy" );
+bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, "Downwind offset Bouy" );
+bouyInfos[3] = new WaypointInfo( "inflatableBouy", false, "Cross the Finish Line" );
 
-
+var RGTA_Ready = false;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
@@ -69,6 +70,7 @@ function RGTTA_SceneLoaded( hvnsc ){
 
 	}
 
+	RGTA_Ready = true;
 }
 
 let rgta_startTime = 0;
@@ -94,10 +96,10 @@ function RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris, 
 	rgta_elapsedTime = time - rgta_startTime;
 	let elapsedMins = Math.floor(rgta_elapsedTime / 60);
 	let elapsedSecs = Math.floor(rgta_elapsedTime - (elapsedMins*60));
-	TR_QueueTime( rb2DTris, 0.4, 0.8, 0.02, 0.1, elapsedMins, elapsedSecs );
+	TR_QueueTime( rb2DTris, 0.3, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs );
 	
 	if( currentBouyIdx > bouyInfos.length-1 ){
-		TR_QueueText( rb2DTris, -0.75, 0.8, 0.02, 0.1, "COURSE COMPLETE", false );
+		TR_QueueText( rb2DTris, -0.4, 0.9, 0.02, 0.1, "COURSE COMPLETE", false );
 	}else{
 
 		let currentBouyInfo = bouyInfos[currentBouyIdx];
@@ -120,11 +122,11 @@ function RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris, 
 		let bouyRoundDirStr = "PORT";
 		if( currentBouyRoundDir )
 			bouyRoundDirStr = "STARBORD";
-		TR_QueueText( rb2DTris, -0.75, 0.8, 0.02, 0.1, "ROUND BOUY " + currentBouyIdx + " TO " + bouyRoundDirStr, false );
-		TR_QueueText( rb2DTris, -0.75, 0.7, 0.02, 0.1, "DIST ", false );
-		TR_QueueNumber( rb2DTris, -0.55, 0.7, 0.02, 0.1, distToBouy.toPrecision(2) );
-		TR_QueueText( rb2DTris, -0.75, 0.6, 0.02, 0.1, "HDG ", false );
-		TR_QueueNumber( rb2DTris, -0.55, 0.6, 0.02, 0.1, MTH_WrapAng0To2PI(hdgToBouy).toPrecision(2), 2 );
+		TR_QueueText( rb2DTris, -0.4, 0.9, 0.02, 0.05, currentBouyInfo.instrString, false );
+		TR_QueueText( rb2DTris, -0.45, 0.7, 0.02, 0.1, "DIST ", false );
+		TR_QueueNumber( rb2DTris, -0.25, 0.7, 0.02, 0.1, distToBouy.toPrecision(2) );
+		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "HDG ", false );
+		TR_QueueNumber( rb2DTris, -0.25, 0.6, 0.02, 0.1, MTH_WrapAng0To2PI(hdgToBouy).toPrecision(2), 2 );
 
 		if( distToBouy < roundBouyDist ){
 			currentBouyIdx += 1;

@@ -87,6 +87,9 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 	let sbb = null;
 
 	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
+	
+		let lwrACharCode = "a".charCodeAt(0);
+		let lwrZCharCode = "z".charCodeAt(0);
 
 		//count the number of verts and generate them for each glyph
 		let strNumVerts = 0;
@@ -94,7 +97,10 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		let escpStr = "";
 		for( let i = 0; i < str.length; ++i ){
 			let ltr = str[i];
-			if( ltr == '.' ){
+			let ltrCharCode = ltr.charCodeAt(0);
+			if( !escpSeqActive && ltrCharCode >= lwrACharCode && ltrCharCode <= lwrZCharCode ){
+				ltr = "_"+ltr; //fix for case insensitive url mesh file loading
+			}else if( ltr == '.' ){
 				ltr = 'dot';
 			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
@@ -148,7 +154,10 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			let posY = lNum*lVertSpc;
 
 			let ltr = str[i];
-			if( ltr == '.' ){
+			let ltrCharCode = ltr.charCodeAt(0);
+			if( !escpSeqActive && ltrCharCode >= lwrACharCode && ltrCharCode <= lwrZCharCode ){
+				ltr = "_"+ltr; //fix for case insensitive url mesh file loading
+			}else if( ltr == '.' ){
 				ltr = 'dot';
 			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
