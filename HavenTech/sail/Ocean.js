@@ -116,8 +116,14 @@ function OCN_InitSubDivPositions( verts, norms, faces, lvl, maxLvls ){
 	for( let j = 0; j < subDivVertsPerSide; ++j ){
 		for( let i = 0; i < subDivVertsPerSide; ++i ){
 			nonVertCardIndex = lvlVertOffset + (j * lvlVertsWidth + i);
-			if( i==1 && j==1 && lvl < maxLvls ){ //subdivided area
-				OCN_InitSubDivPositions( verts, norms, faces, lvl+1, maxLvls );
+			if( i==1 && j==1 ){
+				if( lvl < maxLvls ){ //subdivided area
+					OCN_InitSubDivPositions( verts, norms, faces, lvl+1, maxLvls );
+				}else{
+					//omit the innermost quad
+					console.log("not generating center most quad");
+				}
+				
 			}else if( i < 3 && j < 3 ){ //use upper left most vert as start point for face
 				//generate the face, uv positions and tri's
 				let face = new Face();
@@ -282,7 +288,10 @@ function OCN_Update( ocn, rb3D, time, boatHeading ){
 	ocn.quadmesh.isAnimated = true;
 
 	Matrix_SetEulerRotate( ocn.quadmesh.toWorldMatrix, [0,0,boatHeading] );
-	ocn.quadmesh.toWorldMatrix[4*2+3] = -4;
+	ocn.quadmesh.toWorldMatrix[4*2+3] = -4; //move water surface down 4 units
+	
+	ocn.quadmesh.toWorldMatrix[4*0+3] = boatPosOffset[0]; //move water surface sideways under center of boat
+	ocn.quadmesh.toWorldMatrix[4*1+3] = boatPosOffset[1];
 }
 
 
