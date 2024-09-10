@@ -99,7 +99,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			let ltr = str[i];
 			let ltrCharCode = ltr.charCodeAt(0);
 			if( !escpSeqActive && ltrCharCode >= lwrACharCode && ltrCharCode <= lwrZCharCode ){
-				ltr = "_"+ltr; //fix for case insensitive url mesh file loading
+				ltr = ltr+'L'; //fix for case insensitive url mesh file loading
 			}else if( ltr == '.' ){
 				ltr = 'dot';
 			}else if( ltr == ":" ){
@@ -156,7 +156,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			let ltr = str[i];
 			let ltrCharCode = ltr.charCodeAt(0);
 			if( !escpSeqActive && ltrCharCode >= lwrACharCode && ltrCharCode <= lwrZCharCode ){
-				ltr = "_"+ltr; //fix for case insensitive url mesh file loading
+				ltr = ltr+'L'; //fix for case insensitive url mesh file loading
 			}else if( ltr == '.' ){
 				ltr = 'dot';
 			}else if( ltr == ":" ){
