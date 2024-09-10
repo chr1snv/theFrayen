@@ -59,6 +59,10 @@ function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is th
 }
 */
 
+function QuadMeshInstance( qmIn ){
+	this.qm = qmIn;
+}
+
 function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbackParameters)
 {
 	this.quadMeshReadyCallback = quadMeshReadyCallback;

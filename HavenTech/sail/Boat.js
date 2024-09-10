@@ -51,15 +51,15 @@ function BOAT_Init(){
 
 //670 port downwind wing on wing 	(270-180deg)
 
-let boatHeading = 0;
-let boatSpeed = 1;
+var boatHeading = 0;
+let boatSpeed = 3;
 
 let boatDirVec = Vect_New(2);
 
 
 let boatToWorldTranslation = Vect3_New();
 
-let boatPosition = Vect3_NewZero();
+var boatPosition = Vect3_NewZero();
 
 var boatMatrix = Matrix_New();
 let boatMatrixTemp = Matrix_New();

@@ -1,12 +1,4 @@
 
-function TXTR_StrVertBufObj(numVerts){
-	this.vertBufferForMat = [new Float32Array(numVerts*vertCard)];
-	this.normBufferForMat = [new Float32Array(numVerts*normCard)];
-	this.uvBufferForMat = [new Float32Array(numVerts*uvCard)];
-	this.AABB = null;
-	this.str = "";
-	this.interactive = false;
-}
 
 
 let textScene = null;
@@ -52,8 +44,8 @@ function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s ){
                          TR_QueueText( rb2DTris, nextLtrStartX, y, dpth, size, 'S', false );
 
 }
-function TR_QueueNumber( rb2DTris, x, y, dpth, size, num ){
-	let digitXOffset = 0;
+function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0 ){
+
 	let numDigits = 1;
 	if( num > 0 ) 
 		numDigits = Math.floor( Math.log10( num ) ) + 1;
@@ -65,7 +57,14 @@ function TR_QueueNumber( rb2DTris, x, y, dpth, size, num ){
 		TR_QueueText( rb2DTris, x+(xKernSpc*i*size), y, dpth, size, ''+digit, false );
 		numRemainder = numRemainder - (digit * digitPowerOfTen);
 	}
-	return x+(xKernSpc*numDigits*size);
+
+	let nextStrXOffset = x+(xKernSpc*numDigits*size);
+	if( numRemainder > 0 && numDecPlaces > 0 ){
+		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '.' );
+		numRemainder = numRemainder * Math.pow(10, numDecPlaces );
+		nextStrXOffset = TR_QueueNumber( rb2DTris, nextStrXOffset, y, dpth, size, numRemainder );
+	}
+	return nextStrXOffset;
 }
 
 
@@ -110,11 +109,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 				escpStr += ltr;
 				continue;
 			}
-
-			strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
-			//generate the tesselated vert Coords for the glyph if necessary
-			if( glyphMeshes[ltr].materialHasntDrawn[0] ){
-				QM_SL_GenerateDrawVertsNormsUVsForMat( glyphMeshes[ltr], null, 0, null );
+			
+			if( ltr != ' ' ){
+				strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
+				//generate the tesselated vert Coords for the glyph if necessary
+				if( glyphMeshes[ltr].materialHasntDrawn[0] ){
+					QM_SL_GenerateDrawVertsNormsUVsForMat( glyphMeshes[ltr], null, 0, null );
+				}
 			}
 		}
 
@@ -163,29 +164,30 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 				continue;
 			}
 
+			if( ltr != ' ' ){
+				let glyphM = glyphMeshes[ltr];
+				let glyphVerts = glyphM.vertBufferForMat[0];
+				let glyphNorms = glyphM.normBufferForMat[0];
+				let glyphUvs   = glyphM.uvBufferForMat[0];
+				let numGlyphVerts = glyphVerts.length;
 
-			let glyphM = glyphMeshes[ltr];
-			let glyphVerts = glyphM.vertBufferForMat[0];
-			let glyphNorms = glyphM.normBufferForMat[0];
-			let glyphUvs   = glyphM.uvBufferForMat[0];
-			let numGlyphVerts = glyphVerts.length;
+				for( let j = 0; j < numGlyphVerts; j+=vertCard ){
+					Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j );
+					tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size);// + x;
+					tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size);// + y;
+					//tmpGlyphVert[2] += dpth;
+					Vect_minMax( strMinTemp, strMaxTemp, tmpGlyphVert );
+					Vect3_CopyToArr(strVertBufObj.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
 
-			for( let j = 0; j < numGlyphVerts; j+=vertCard ){
-				Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j );
-				tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size);// + x;
-				tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size);// + y;
-				//tmpGlyphVert[2] += dpth;
-				Vect_minMax( strMinTemp, strMaxTemp, tmpGlyphVert );
-				Vect3_CopyToArr(strVertBufObj.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
+					Vect_CopyToFromArr( strVertBufObj.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
+					Vect_CopyToFromArr( strVertBufObj.uvBufferForMat[0], uvBufIdx, glyphUvs, 0, uvCard );
+					vertBufIdx += vertCard;
+					normBufIdx += normCard;
+					uvBufIdx += uvCard;
 
-				Vect_CopyToFromArr( strVertBufObj.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
-				Vect_CopyToFromArr( strVertBufObj.uvBufferForMat[0], uvBufIdx, glyphUvs, 0, uvCard );
-				vertBufIdx += vertCard;
-				normBufIdx += normCard;
-				uvBufIdx += uvCard;
-
+				}
 			}
-			escpdLen += 1;
+			escpdLen += 1; //above continue;'s prevent going to here until characters btwn : :'s have been condensed to one ltr
 		}
 		//transform the min and max of the aabb so that RayIntersects in 
 		//RaycastPointer allows for detecting when the pointer selects interactable strings

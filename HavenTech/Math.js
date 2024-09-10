@@ -59,8 +59,15 @@ function AngleToVec2Unit( v2, ang ){
 	v2[1] /= len;
 }
 
+function Vec2ToAngle( v ){
+	return Math.atan2( v[1], v[0] );
+}
+
 function MTH_WrapAng0To2PI( ang ){
-	return ang % (2*Math.PI);
+	let wrappedAngle = ang % (2*Math.PI);
+	if( wrappedAngle < 0 )
+		wrappedAngle = (2*Math.PI) + wrappedAngle;
+	return wrappedAngle;
 }
 
 function SystemOfEquationSolver(){

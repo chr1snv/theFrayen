@@ -7,6 +7,7 @@ function RGTTA_Init(){
 	rgtaScene = new HavenScene( rgtaSceneName, RGTTA_SceneLoaded );
 }
 
+
 function RGTTA_AllocSubRngBuffer(dbB, numVerts, subBufId, obj){
 	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
 	let sbb = new BufSubRange( dbB.bufferIdx, numVerts, obj, 0 );
@@ -44,14 +45,29 @@ function InitAndAllocOneObjBuffer(obj){
 }
 
 
-//let bouy_dbB = null;
+function WaypointInfo( bouyNameIn, roundDirection ){
+	this.bouyName = bouyNameIn;
+	this.bouyQm = null;
+	this.roundDirection = roundDirection;
+}
 
-//let bouy = null;
+//regatta course definition
+let bouyInfos = new Array(4);
+bouyInfos[0] = new WaypointInfo( "inflatableBouy", false );
+bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false );
+bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false );
+bouyInfos[3] = new WaypointInfo( "inflatableBouy", false );
+
+
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
-	//bouy = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]["inflatableBouy"][0];
-	//bouy_dbB = InitAndAllocOneObjBuffer(bouy);
+
+	for( let i = 0; i < bouyInfos.length; ++i ){
+
+		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
+
+	}
 
 }
 
@@ -60,10 +76,13 @@ function RGTTA_Start(time){
 	rgta_startTime = time;
 }
 
+let roundBouyDist = 3;
 
 let rgta_elapsedTime = 0;
-let currentBouy = 0;
-function RGTTA_Update( time, cam, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
+let currentBouyIdx = 0;
+let currentBouyRoundDir = false; //false port, true starbd
+let vecToBouy = Vect3_New();
+function RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
 
 	//setup the regatta scene camera from the boat camera and boat translation
 	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
@@ -76,6 +95,41 @@ function RGTTA_Update( time, cam, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
 	let elapsedMins = Math.floor(rgta_elapsedTime / 60);
 	let elapsedSecs = Math.floor(rgta_elapsedTime - (elapsedMins*60));
 	TR_QueueTime( rb2DTris, 0.4, 0.8, 0.02, 0.1, elapsedMins, elapsedSecs );
+	
+	if( currentBouyIdx > bouyInfos.length-1 ){
+		TR_QueueText( rb2DTris, -0.75, 0.8, 0.02, 0.1, "COURSE COMPLETE", false );
+	}else{
 
+		let currentBouyInfo = bouyInfos[currentBouyIdx];
+
+		let bouyPosition = currentBouyInfo.bouyQm.origin;
+		Vect3_Copy( vecToBouy, bouyPosition);
+		Vect3_Add( vecToBouy, boatPosition ); //boat position is negative
+		let distToBouy = Vect3_Length( vecToBouy );
+		Vect3_Unit( vecToBouy );
+		let hdgToBouy = Vec2ToAngle(vecToBouy);
+		let boatRelHdgToBouy = MTH_WrapAng0To2PI( hdgToBouy - boatHeading );
+		/*
+		console.log( "vecToBouy "         + vecToBouy[0].toPrecision(2) + " " + vecToBouy[1].toPrecision(2) + 
+					 " distToBouy "       + distToBouy.toPrecision(2) + 
+					 " hdgToBouy "        + hdgToBouy.toPrecision(2) + 
+					 " boatHeading "      + boatHeading.toPrecision(2) +
+					 " boatRelHdgToBouy " + boatRelHdgToBouy.toPrecision(2) );
+		*/
+
+		let bouyRoundDirStr = "PORT";
+		if( currentBouyRoundDir )
+			bouyRoundDirStr = "STARBORD";
+		TR_QueueText( rb2DTris, -0.75, 0.8, 0.02, 0.1, "ROUND BOUY " + currentBouyIdx + " TO " + bouyRoundDirStr, false );
+		TR_QueueText( rb2DTris, -0.75, 0.7, 0.02, 0.1, "DIST ", false );
+		TR_QueueNumber( rb2DTris, -0.55, 0.7, 0.02, 0.1, distToBouy.toPrecision(2) );
+		TR_QueueText( rb2DTris, -0.75, 0.6, 0.02, 0.1, "HDG ", false );
+		TR_QueueNumber( rb2DTris, -0.55, 0.6, 0.02, 0.1, MTH_WrapAng0To2PI(hdgToBouy).toPrecision(2), 2 );
+
+		if( distToBouy < roundBouyDist ){
+			currentBouyIdx += 1;
+		}
+
+	}
 }
 
