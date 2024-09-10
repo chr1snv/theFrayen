@@ -51,14 +51,15 @@ function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0 ){
 		numDigits = Math.floor( Math.log10( num ) ) + 1;
 	let mostSignificantPrinted = 0;
 	let numRemainder = num;
+	let nextStrXOffset = x;
 	for( let i = 0; i < numDigits; ++i ){
 		let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
 		let digit = Math.floor( numRemainder / digitPowerOfTen );
-		TR_QueueText( rb2DTris, x+(xKernSpc*i*size), y, dpth, size, ''+digit, false );
+		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false );
 		numRemainder = numRemainder - (digit * digitPowerOfTen);
 	}
 
-	let nextStrXOffset = x+(xKernSpc*numDigits*size);
+
 	if( numRemainder > 0 && numDecPlaces > 0 ){
 		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '.' );
 		numRemainder = numRemainder * Math.pow(10, numDecPlaces );
@@ -67,6 +68,30 @@ function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0 ){
 	return nextStrXOffset;
 }
 
+const xKernOverrides = {
+	" ":0.3,
+
+	"A":0.6,
+	"C":0.7,
+	"D":0.7,
+	"H":0.7,
+	"I":0.3,
+	"S":0.5,
+	"T":0.6,
+	"R":0.65,
+	"O":0.8,
+	"U":0.6,
+	"M":0.75,
+	"W":1.0,
+	
+	"aL":0.4,
+	"iL":0.25,
+	"fL":0.3,
+	"wL":0.65,
+	"rL":0.4,
+	"sL":0.4,
+	"tL":0.35,
+};
 
 const xKernSpc = 0.5;
 const lVertSpc = 0.2;
@@ -142,16 +167,16 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		let normBufIdx = 0;
 		let uvBufIdx = 0;
 		escpSeqActive = false;
-		let escpdLen = 0;
+		let escpdLen = 0; //the number of glyphs to draw the the screen after evaluating escape sequences
 		let strMinTemp = Vect3_NewScalar( Number.POSITIVE_INFINITY );
 		let strMaxTemp = Vect3_NewScalar( Number.NEGATIVE_INFINITY );
 		//generate the mesh for the glyph positions to draw
 		let lNum = 0; //line number
+		let posX = escpdLen*xKernSpc;
+		let posY = lNum*lVertSpc;
 		for( let i = 0; i < str.length; ++i ){
 
 			//apply offsets to each
-			let posX = escpdLen*xKernSpc;
-			let posY = lNum*lVertSpc;
 
 			let ltr = str[i];
 			let ltrCharCode = ltr.charCodeAt(0);
@@ -196,7 +221,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 
 				}
 			}
+
 			escpdLen += 1; //above continue;'s prevent going to here until characters btwn : :'s have been condensed to one ltr
+			let xKrnOvrd = xKernOverrides[ltr];
+			if( xKrnOvrd )
+				posX += xKrnOvrd;
+			else
+				posX += xKernSpc;
 		}
 		//transform the min and max of the aabb so that RayIntersects in 
 		//RaycastPointer allows for detecting when the pointer selects interactable strings

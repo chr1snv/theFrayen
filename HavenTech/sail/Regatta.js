@@ -56,7 +56,7 @@ function WaypointInfo( bouyNameIn, roundDirection, instrStringIn ){
 let bouyInfos = new Array(4);
 bouyInfos[0] = new WaypointInfo( "inflatableBouy", false, "Cross the Start Line" );
 bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false, "Round the Windward Bouy" );
-bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, "Downwind offset Bouy" );
+bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, "Round the Downwind offset Bouy" );
 bouyInfos[3] = new WaypointInfo( "inflatableBouy", false, "Cross the Finish Line" );
 
 var RGTA_Ready = false;
@@ -99,7 +99,7 @@ function RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris, 
 	TR_QueueTime( rb2DTris, 0.3, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs );
 	
 	if( currentBouyIdx > bouyInfos.length-1 ){
-		TR_QueueText( rb2DTris, -0.4, 0.9, 0.02, 0.1, "COURSE COMPLETE", false );
+		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
 	}else{
 
 		let currentBouyInfo = bouyInfos[currentBouyIdx];
@@ -124,9 +124,9 @@ function RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris, 
 			bouyRoundDirStr = "STARBORD";
 		TR_QueueText( rb2DTris, -0.4, 0.9, 0.02, 0.05, currentBouyInfo.instrString, false );
 		TR_QueueText( rb2DTris, -0.45, 0.7, 0.02, 0.1, "DIST ", false );
-		TR_QueueNumber( rb2DTris, -0.25, 0.7, 0.02, 0.1, distToBouy.toPrecision(2) );
+		TR_QueueNumber( rb2DTris, -0.25, 0.7, 0.02, 0.1, distToBouy.toFixed(2) );
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "HDG ", false );
-		TR_QueueNumber( rb2DTris, -0.25, 0.6, 0.02, 0.1, MTH_WrapAng0To2PI(hdgToBouy).toPrecision(2), 2 );
+		TR_QueueNumber( rb2DTris, -0.25, 0.6, 0.02, 0.1, MTH_WrapAng0To2PI(hdgToBouy).toFixed(2), 2 );
 
 		if( distToBouy < roundBouyDist ){
 			currentBouyIdx += 1;
