@@ -81,9 +81,9 @@ let maxAnimFrameDiffStep = 0.1;
 
 let lastBoatUpdateTime = -1;
 
-function BOAT_Update( time, wndHdg ){
+function BOAT_Update( rb2DTris, time, wndHdg ){
 
-	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg-(1/180)*Math.PI) - boatHeading );
+	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg/*-(1/180)*Math.PI*/) + boatHeading );
 
 	//handle input
 	let input = false;
@@ -117,22 +117,27 @@ function BOAT_Update( time, wndHdg ){
 	boatHeading += tillerDirection;
 	boatHeading = MTH_WrapAng0To2PI( boatHeading );
 
+	let pointOfSail = "STB CLS HLD";
 	//find which sail position animation the boat should use for forward motion
 	let animTargFrame = 230/ANIM_FRAME_RATE;
-	if( relWndHdg < 45/180*Math.PI ){ //230 stb close hauled 				(45-0deg)
-		animTargFrame = 230/ANIM_FRAME_RATE;
-	}else if( relWndHdg < 90/180*Math.PI ){ //200 stb reach 					(90-45deg)
-		animTargFrame = 200/ANIM_FRAME_RATE;
-	}else if( relWndHdg < 180/180*Math.PI ){ //170 stb wing on wing 				(180-90deg)
+	if( relWndHdg < 45/180*Math.PI ){        //170 stb wing on wing
 		animTargFrame = 170/ANIM_FRAME_RATE;
-	}else if( relWndHdg < 270/180*Math.PI ){ //130 port wing on wing 			(270-180deg)
-		animTargFrame = 130/ANIM_FRAME_RATE;
-	}
-
-	else if( relWndHdg < 315/180*Math.PI ){ //635 port reach 					(270-315deg)
-		animTargFrame = 635/ANIM_FRAME_RATE;
-	}else if( relWndHdg < 360/180*Math.PI ){ //560 port close hauled 			(360-315deg)
+		pointOfSail   = "STB WNG ON WNG";
+	}else if( relWndHdg < 90/180*Math.PI ){  //200 stb reach
+		animTargFrame = 200/ANIM_FRAME_RATE;
+		pointOfSail   = "STB REACH";
+	}else if( relWndHdg < 180/180*Math.PI ){ //230 stb close hauled
+		animTargFrame = 230/ANIM_FRAME_RATE;
+		pointOfSail   = "STB CLS HLD";
+	}else if( relWndHdg < 270/180*Math.PI ){ //560 port close hauled
 		animTargFrame = 560/ANIM_FRAME_RATE;
+		pointOfSail = "PRT CLS HLD";
+	}else if( relWndHdg < 315/180*Math.PI ){ //635 port reach
+		animTargFrame = 635/ANIM_FRAME_RATE;
+		pointOfSail = "PRT REACH";
+	}else if( relWndHdg < 360/180*Math.PI ){ //130 port wing on wing
+		animTargFrame = 130/ANIM_FRAME_RATE;
+		pointOfSail   = "PRT WNG ON WNG";
 	}
 	//update the animation of the boat sails to the correct frame
 	let frameDiff = animTargFrame - lastAnimFrame;
@@ -143,10 +148,15 @@ function BOAT_Update( time, wndHdg ){
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( girlArm, lastAnimFrame, true );
 
+
+	TR_QueueNumber( rb2DTris, 0.3, 0.8, 0.03, 0.07,   relWndHdg*180/Math.PI, false );
+	TR_QueueText  ( rb2DTris, 0.3, 0.7, 0.03, 0.07, pointOfSail, false );
+
+
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
 	if( windIndc != null )
-		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [120/180*Math.PI, relWndHdg, 0], [0, 0.8, 0] );
+		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [-120/180*Math.PI, relWndHdg, 0], [0, 0.8, 0] );
 
 	let delTime = time-lastBoatUpdateTime;
 

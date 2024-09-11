@@ -40,7 +40,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 	let numActiveBatches = 1;
 
-	BOAT_Update( time, 180/180*Math.PI );//to allow animation when scene is started
+	BOAT_Update( rb2DTris, time, 180/180*Math.PI );//to allow animation when scene is started
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){

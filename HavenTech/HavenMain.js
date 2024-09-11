@@ -321,6 +321,12 @@ function sceneLoaded(havenScene)
 		UpdateCamTransText(cam);
 	}
 
+	if( mainScene.scnId < 0 ){
+		cntrlsTxtElm.innerText = "Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click fullscreen look : ESC exit";
+	}else if( mainScene.scnId == ScnIds.Sail ){
+		cntrlsTxtElm.innerText = "Touch / Mouse swipe left or right to change course";
+	}
+
 
 	rastBatch2dTris.camWorldPos = Vect3_ZeroConst;
 	rastBatch2dTris.ambientColor = [0.1,0.0,0.1];
@@ -499,6 +505,7 @@ function UpadateMousePosText(){
 
 let mScreenRayCoords = new Float32Array(2);
 
+let cntrlsTxtElm = document.getElementById("cntrlsTxt");
 
 let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
