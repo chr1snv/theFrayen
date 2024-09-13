@@ -36,27 +36,41 @@ function TXTR_Init(ldCmpCb){
 
 
 
-function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s ){
+function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left ){
 
-    let nextLtrStartX = TR_QueueNumber( rb2DTris, x, y, dpth, size, m );
-        nextLtrStartX =  TR_QueueText( rb2DTris, nextLtrStartX, y, dpth, size, 'M', false );
-        nextLtrStartX = TR_QueueNumber( rb2DTris, nextLtrStartX, y, dpth, size, s );
-                         TR_QueueText( rb2DTris, nextLtrStartX, y, dpth, size, 'S', false );
+    let nextLtrStartX = TR_QueueNumber( rb2DTris, x			   , y, dpth, size,  m		   );
+        nextLtrStartX = TR_QueueText(   rb2DTris, nextLtrStartX, y, dpth, size, 'M', false );
+        nextLtrStartX = TR_QueueNumber( rb2DTris, nextLtrStartX, y, dpth, size,  s 		   );
+                        TR_QueueText(   rb2DTris, nextLtrStartX, y, dpth, size, 'S', false );
 
 }
-function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0 ){
+function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Left ){
+	//the specified location x,y is of the int.decimal sperator so that each 10's place stays
+	//in the same spot on screen as values change
 
-	let numDigits = 1;
+	let nextStrXOffset = x;
+
+	let negNum = num < 0;
+	if( negNum ){
+		TR_QueueText( rb2DTris, x-(xKernOverrides["min"]*size), y, dpth, size, ":min:", false);
+		num = -num;
+	}
+
+	let numDigits = 0;
 	if( num > 0 ) 
 		numDigits = Math.floor( Math.log10( num ) ) + 1;
 	let mostSignificantPrinted = 0;
 	let numRemainder = num;
-	let nextStrXOffset = x;
-	for( let i = 0; i < numDigits; ++i ){
-		let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
-		let digit = Math.floor( numRemainder / digitPowerOfTen );
-		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false );
-		numRemainder = numRemainder - (digit * digitPowerOfTen);
+	
+	if( numDigits <= 0 ){
+		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '0', false );
+	}else{
+		for( let i = 0; i < numDigits; ++i ){
+			let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
+			let digit = Math.floor( numRemainder / digitPowerOfTen );
+			nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false );
+			numRemainder = numRemainder - (digit * digitPowerOfTen);
+		}
 	}
 
 
@@ -68,7 +82,14 @@ function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0 ){
 	return nextStrXOffset;
 }
 
+const TxtJustify = {
+	Left: 0,
+	Center: 1,
+	Right: 2
+};
+
 const xKernOverrides = {
+	"min": 0.3,
 	" ":0.3,
 
 	"A":0.6,
@@ -89,10 +110,11 @@ const xKernOverrides = {
 	"aL":0.4,
 	"iL":0.25,
 	"fL":0.3,
-	"wL":0.65,
 	"rL":0.4,
 	"sL":0.4,
 	"tL":0.35,
+	"wL":0.65,
+	"yL":0.4,
 };
 
 const xKernSpc = 0.5;
@@ -104,7 +126,7 @@ let strAABBMax = Vect3_New();
 //draw text at certian size
 let maxTextX = 0;
 let tmpGlyphVert = Vect3_NewZero();
-function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
+function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left ){
 
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 
@@ -231,6 +253,17 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 			else
 				posX += xKernSpc;
 		}
+		
+		//offset toWorldMatrix transform for center and right justification
+		if( justify != TxtJustify.Left ){
+			let strWdth = strMaxTemp[0] - strMinTemp[0];
+			if( justify == TxtJustify.Center ){
+				Matrix_SetTranslate( sbb.toWorldMatrix, [x-strWdth/2,y,dpth] );
+			}else if( justify == TxtJustify.Right ){
+				Matrix_SetTranslate( sbb.toWorldMatrix, [x-strWdth  ,y,dpth] );
+			}
+		}
+
 		//transform the min and max of the aabb so that RayIntersects in 
 		//RaycastPointer allows for detecting when the pointer selects interactable strings
 		Matrix_Multiply_Vect3( strAABBMin, sbb.toWorldMatrix, strMinTemp );
@@ -238,7 +271,14 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive ){
 		strVertBufObj.AABB = new AABB( strAABBMin, strAABBMax );
 		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
 
-		sbb.obj.textEndX = strAABBMax[0];
+
+		if( justify == TxtJustify.Center ){
+			sbb.obj.textEndX = x; //likely not used
+		}else if( justify == TxtJustify.Right ){
+			sbb.obj.textEndX = strAABBMin[0];
+		}else{ //left justify (default)
+			sbb.obj.textEndX = strAABBMax[0];
+		}
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
 	}else{
 		//restore the number of verts for the sub batch buffer to draw

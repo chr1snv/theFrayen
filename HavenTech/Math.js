@@ -70,6 +70,18 @@ function MTH_WrapAng0To2PI( ang ){
 	return wrappedAngle;
 }
 
+//given two 0 to 2 PI counter clockwise angles,
+//return true if a2 is within PI less than a1 (half the unit circle)
+//(need to check the a1 to 0 and wrapped 0 to a1 - PI range)
+//i.e if a1 = 0
+//       a1Min = PI
+function MTH_WrappedAngLessThan( refA, a ){
+	let minRefA = MTH_WrapAng0To2PI( refA - Math.PI );
+	if( a < refA || (minRefA > refA && a > minRefA) )
+		return true;
+	return false;
+}
+
 function SystemOfEquationSolver(){
 
 	

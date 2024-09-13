@@ -68,7 +68,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
-			RGTTA_Update( time, cam, boatPosition, boatMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
+			RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
 			numActiveBatches = 2;
 	}
 
@@ -81,8 +81,13 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Menu:
 			if( mDown || touchMDown ){
 				for( let i = 0; i < numMOvrdStrs; ++i )
-					if( mOvrdStrs[i] == "START" && RGTA_Ready )
+					if( mOvrdStrs[i] == "START" && RGTA_Ready ){
+						//boat position values are negative of boatMapPosition
+						boatPosition[0] =  10; 
+						boatPosition[1] = -10;
+						lastBoatUpdateTime = time;
 						sgMode = SailModes.Gameplay;
+					}
 			}
 			break;
 		case SailModes.Gameplay:

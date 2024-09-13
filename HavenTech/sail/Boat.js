@@ -51,13 +51,14 @@ function BOAT_Init(){
 
 //670 port downwind wing on wing 	(270-180deg)
 
-var boatHeading = 0;
+var boatHeading = 0; // offset by 3/2*Math.PI
 let boatSpeed = 3;
 
 let boatDirVec = Vect_New(2);
 
 
-let boatToWorldTranslation = Vect3_New();
+var boatMapPosition = Vect3_New();
+
 
 var boatPosition = Vect3_NewZero();
 
@@ -79,7 +80,7 @@ const restoreAmt = 0.01;
 let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
 
-let lastBoatUpdateTime = -1;
+var lastBoatUpdateTime = -1;
 
 function BOAT_Update( rb2DTris, time, wndHdg ){
 
@@ -149,8 +150,10 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	SkelA_UpdateTransforms( girlArm, lastAnimFrame, true );
 
 
-	TR_QueueNumber( rb2DTris, 0.3, 0.8, 0.03, 0.07,   relWndHdg*180/Math.PI, false );
-	TR_QueueText  ( rb2DTris, 0.3, 0.7, 0.03, 0.07, pointOfSail, false );
+	let scrnAspc = graphics.GetScreenAspect();
+	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.8, 0.03, 0.03, "RelWndHdg", false, TxtJustify.Right );
+	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.8, 0.03, 0.03,   relWndHdg, 2 );
+	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.7, 0.03, 0.03, pointOfSail, false, TxtJustify.Right );
 
 
 	//rotate the wind indicator to show the relative wind heading
@@ -174,6 +177,9 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	
 	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp );
 	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
+	
+	Vect3_Copy( boatMapPosition, boatPosition ); //position used by regatta in right handed coordinate system
+	Vect3_MultiplyScalar( boatMapPosition, -1 );
 
 	lastBoatUpdateTime = time;
 }

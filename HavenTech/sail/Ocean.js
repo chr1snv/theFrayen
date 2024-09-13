@@ -57,7 +57,7 @@ function OCN_QMReady( qm, ocn ){
 	}
 
 	//allocate tesselation output buffers
-	let nFaceVerts = nQuads*vertsPerQuad; //verts are duplicated per triangle
+	let nFaceVerts = (nQuads-1)*vertsPerQuad; //verts are duplicated per triangle
 	qm.faceVertsCtForMat       = [nFaceVerts]; //total num verts for all triangles for a material (3 for tri, 6 for quad)
 	qm.vertBufferForMat[0] = new Float32Array( qm.faceVertsCtForMat[0]*vertCard );
 	qm.normBufferForMat[0] = new Float32Array( qm.faceVertsCtForMat[0]*normCard );
