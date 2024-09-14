@@ -38,46 +38,84 @@ function TXTR_Init(ldCmpCb){
 
 function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left ){
 
-    let nextLtrStartX = TR_QueueNumber( rb2DTris, x			   , y, dpth, size,  m		   );
-        nextLtrStartX = TR_QueueText(   rb2DTris, nextLtrStartX, y, dpth, size, 'M', false );
-        nextLtrStartX = TR_QueueNumber( rb2DTris, nextLtrStartX, y, dpth, size,  s 		   );
-                        TR_QueueText(   rb2DTris, nextLtrStartX, y, dpth, size, 'S', false );
+	let dgtSpc = xKernSpc * size;
+    let nextLtrStartX = TR_QueueNumber(	rb2DTris, x			   , y, dpth, size,  m			, 0		, justify );
+        nextLtrStartX = TR_QueueText(	rb2DTris, nextLtrStartX, y, dpth, size, ':col:'		, false	, justify );
+    if( s < 10 ){
+						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, 0		, justify );
+						nextLtrStartX += xKernSpc * size;
+	}
+        nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, justify );
+    return nextLtrStartX;
 
 }
-function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Left ){
+function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Center ){
 	//the specified location x,y is of the int.decimal sperator so that each 10's place stays
 	//in the same spot on screen as values change
 
-	let nextStrXOffset = x;
 
 	let negNum = num < 0;
 	if( negNum ){
-		TR_QueueText( rb2DTris, x-(xKernOverrides["min"]*size), y, dpth, size, ":min:", false);
 		num = -num;
 	}
+	let decNum = num - Math.floor( num );
 
-	let numDigits = 0;
-	if( num > 0 ) 
+
+	let numDigits = 1;
+	if( num >= 1 )
 		numDigits = Math.floor( Math.log10( num ) ) + 1;
-	let mostSignificantPrinted = 0;
-	let numRemainder = num;
-	
+
+
+
+	//get the total string widths (to reposition for center or right justification)
+	//of the parts to the left and right of the decimal
+	let intStrWdth = 0;
+	let decStrWdth = 0;
+	if( negNum )
+		intStrWdth += xKernOverrides["min"]*size;
+	intStrWdth += numDigits * xKernSpc * size;
+	if( decNum > 0 )
+		decStrWdth += numDecPlaces;
+
+	let intStrStX = 0;
+	let decStrStX = 0;
+	if( justify == TxtJustify.Center ){
+		intStrStX = x-intStrWdth;
+		decStrStX = x;//+xKernOverrides["min"]*size;
+	}else if( justify == TxtJustify.Left ){
+		intStrStX = x;
+		decStrStX = x + intStrWdth;
+	}else{ //right justify
+		decStrStX = x-decStrWdth;
+		intStrStX = decStrStX-intStrWdth;
+	}
+	let nextStrXOffset = intStrStX;
+
+	//print the string ( with offsets for left, center or right justification )
+	if( negNum ){
+		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ":min:", false, TxtJustify.Left );
+		nextStrXOffset += xKernOverrides["min"]*size;
+	}
+
+
 	if( numDigits <= 0 ){
-		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '0', false );
+		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '0', false, TxtJustify.Left );
+		nextStrXOffset += xKernSpc * size;
 	}else{
+		let numRemainder = num;
 		for( let i = 0; i < numDigits; ++i ){
 			let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
 			let digit = Math.floor( numRemainder / digitPowerOfTen );
-			nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false );
+			TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false, TxtJustify.Left );
+			nextStrXOffset += xKernSpc * size;
 			numRemainder = numRemainder - (digit * digitPowerOfTen);
 		}
 	}
 
-
-	if( numRemainder > 0 && numDecPlaces > 0 ){
-		nextStrXOffset = TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '.' );
-		numRemainder = numRemainder * Math.pow(10, numDecPlaces );
-		nextStrXOffset = TR_QueueNumber( rb2DTris, nextStrXOffset, y, dpth, size, numRemainder );
+	if( decNum > 0 && numDecPlaces > 0 ){
+		nextStrXOffset = TR_QueueText( rb2DTris, decStrStX, y, dpth, size, '.', false, TxtJustify.Left );
+		decNum = decNum * Math.pow(10, numDecPlaces );
+		nextStrXOffset = TR_QueueNumber( rb2DTris, nextStrXOffset, y, dpth, size, decNum, 0, TxtJustify.Left );
 	}
 	return nextStrXOffset;
 }
@@ -108,11 +146,13 @@ const xKernOverrides = {
 	"W":1.0,
 	
 	"aL":0.4,
-	"iL":0.25,
 	"fL":0.3,
+	"iL":0.25,
+	"lL":0.25,
 	"rL":0.4,
 	"sL":0.4,
 	"tL":0.35,
+	"mL":0.7,
 	"wL":0.65,
 	"yL":0.4,
 };
@@ -131,7 +171,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 
 	//check if its something that wasn't rendered in previous frames
-	let glyphStrKey = "" + x + ":" + y + ":" + dpth + ":" + size + ":" + str;
+	let glyphStrKey = "" + x.toFixed(2) + ":" + y.toFixed(2) + ":" + dpth + ":" + size + ":" + str;
 
 	let sbb = null;
 
@@ -284,6 +324,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 		//restore the number of verts for the sub batch buffer to draw
 		sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
 		sbb.len = sbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
+		//
 	}
 
 	//enable the sub batch buffer to draw this frame
