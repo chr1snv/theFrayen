@@ -38,6 +38,9 @@ function TXTR_Init(ldCmpCb){
 
 function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left ){
 
+	//get the number of digits and str len for center and right justified strings
+	let numDigits = 0;
+
 	let dgtSpc = xKernSpc * size;
     let nextLtrStartX = TR_QueueNumber(	rb2DTris, x			   , y, dpth, size,  m			, 0		, justify );
         nextLtrStartX = TR_QueueText(	rb2DTris, nextLtrStartX, y, dpth, size, ':col:'		, false	, justify );
@@ -166,14 +169,14 @@ let strAABBMax = Vect3_New();
 //draw text at certian size
 let maxTextX = 0;
 let tmpGlyphVert = Vect3_NewZero();
-function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left ){
+var queuedTextSbb = null;
+function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null ){
 
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 
 	//check if its something that wasn't rendered in previous frames
-	let glyphStrKey = "" + x.toFixed(2) + ":" + y.toFixed(2) + ":" + dpth + ":" + size + ":" + str;
+	let glyphStrKey = "" + x.toFixed(2) + ":" + y.toFixed(2) + /*":" + dpth + ":" + size +*/ ":" + str;
 
-	let sbb = null;
 
 	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
 	
@@ -218,14 +221,14 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 
 		//allocate glyph vert buffer for the string
 		//GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
-		sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
+		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
 		//set the matrix directly on the sub batch buffer,
 		//RastB_PrepareBatchToDraw only copies toWorldMatricies from raster batch .objs
 		//(text bypasses it and makes the text ready to draw by calling GetDrawSubBatchBuffer
 		//and setting the length of the sub batch buffer)
-		Matrix_SetIdentity( sbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
-		Matrix_SetTranslate( sbb.toWorldMatrix, [x,y,dpth] );
-		let strVertBufObj = sbb.obj;
+		Matrix_SetIdentity( queuedTextSbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
+		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x,y,dpth] );
+		let strVertBufObj = queuedTextSbb.obj;
 
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
@@ -298,34 +301,37 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 		if( justify != TxtJustify.Left ){
 			let strWdth = strMaxTemp[0] - strMinTemp[0];
 			if( justify == TxtJustify.Center ){
-				Matrix_SetTranslate( sbb.toWorldMatrix, [x-strWdth/2,y,dpth] );
+				Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x-strWdth/2,y,dpth] );
 			}else if( justify == TxtJustify.Right ){
-				Matrix_SetTranslate( sbb.toWorldMatrix, [x-strWdth  ,y,dpth] );
+				Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x-strWdth  ,y,dpth] );
 			}
 		}
 
 		//transform the min and max of the aabb so that RayIntersects in 
 		//RaycastPointer allows for detecting when the pointer selects interactable strings
-		Matrix_Multiply_Vect3( strAABBMin, sbb.toWorldMatrix, strMinTemp );
-		Matrix_Multiply_Vect3( strAABBMax, sbb.toWorldMatrix, strMaxTemp );
+		Matrix_Multiply_Vect3( strAABBMin, queuedTextSbb.toWorldMatrix, strMinTemp );
+		Matrix_Multiply_Vect3( strAABBMax, queuedTextSbb.toWorldMatrix, strMaxTemp );
 		strVertBufObj.AABB = new AABB( strAABBMin, strAABBMax );
 		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
 
 
 		if( justify == TxtJustify.Center ){
-			sbb.obj.textEndX = x; //likely not used
+			queuedTextSbb.obj.textEndX = x; //likely not used
 		}else if( justify == TxtJustify.Right ){
-			sbb.obj.textEndX = strAABBMin[0];
+			queuedTextSbb.obj.textEndX = strAABBMin[0];
 		}else{ //left justify (default)
-			sbb.obj.textEndX = strAABBMax[0];
+			queuedTextSbb.obj.textEndX = strAABBMax[0];
 		}
+		
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
 	}else{
 		//restore the number of verts for the sub batch buffer to draw
-		sbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
-		sbb.len = sbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
+		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
+		queuedTextSbb.len = queuedTextSbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
 		//
 	}
+	
+	queuedTextSbb.overrideColor = overideColor;
 
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
@@ -333,7 +339,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	txtR_dbB.sortedSubRngKeys.push( glyphStrKey );
 	//txtR_dbB.numBufSubRanges += 1;
 
-	return sbb.obj.textEndX;
+	return queuedTextSbb.obj.textEndX;
 
 }
 

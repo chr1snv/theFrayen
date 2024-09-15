@@ -28,11 +28,17 @@ function SAIL_sceneSpecificLoad(cmpCb){
 
 
 const SailModes = {
-	Menu: 0,
-	Gameplay: 1
+	Menu		: 0,
+	Gameplay	: 1,
+	Leaderboard	: 2
 };
 
 let sgMode = SailModes.Menu;
+
+let sailMenuBgCenPos    = [ 0        , 0    ];
+let sailMenuBgWdthHight = [ 1        , 1    ];
+let sailMenuBgMinUv     = [ 0        , 1    ];
+let sailMenuBgMaxUv     = [ 1        , 0    ];
 
 let lastFrameMenuTouch = null;
 function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
@@ -57,11 +63,10 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
 
 			//menu background overlay
-			cenPos        = [ 0        , 0    ];
-			wdthHight     = [ 1        , 1    ];
-			minUv         = [ 0        , 1    ];
-			maxUv         = [ 1        , 0    ];
-			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 'menuBg.png', 'sailDefault',  cenPos, wdthHight, minUv, maxUv, 0.01 );
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
+					'menuBg.png', 'sailDefault',  
+					sailMenuBgCenPos, sailMenuBgWdthHight, 
+					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 
 			break;
 		case SailModes.Gameplay:
@@ -70,6 +75,17 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
 			numActiveBatches = 2;
+			break;
+		case SailModes.Leaderboard:
+		
+			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", true, TxtJustify.Center );
+			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Main Menu", true );
+			
+			//menu background overlay
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
+					'menuBg.png', 'sailDefault',  
+					sailMenuBgCenPos, sailMenuBgWdthHight, 
+					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 	}
 
 
@@ -80,14 +96,19 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	switch( sgMode ){
 		case SailModes.Menu:
 			if( mDown || touchMDown ){
-				for( let i = 0; i < numMOvrdStrs; ++i )
+				for( let i = 0; i < numMOvrdStrs; ++i ){
 					if( mOvrdStrs[i] == "START" && RGTA_Ready ){
 						//boat position values are negative of boatMapPosition
 						boatPosition[0] =  10; 
 						boatPosition[1] = -10;
 						lastBoatUpdateTime = time;
+						RGTTA_Start(time);
 						sgMode = SailModes.Gameplay;
 					}
+					if( mOvrdStrs[i] == "LEADERBOARD" ){
+						sgMode = SailModes.Leaderboard;
+					}
+				}
 			}
 			break;
 		case SailModes.Gameplay:
@@ -99,6 +120,14 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
 			 (touchMDown && mCoords.x < 40 && mCoords.y < 40) )
 				sgMode = SailModes.Menu;
+			break;
+		case SailModes.Leaderboard:
+			if( mDown || touchMDown ){
+				for( let i = 0; i < numMOvrdStrs; ++i )
+					if( mOvrdStrs[i] == "Main Menu" ){
+						sgMode = SailModes.Menu;
+					}
+			}
 	}
 
 	lastFrameMenuTouch = touch.menuTouch;

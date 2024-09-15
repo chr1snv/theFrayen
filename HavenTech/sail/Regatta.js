@@ -86,10 +86,15 @@ const RgtaState = {
 };
 let rgtaState = RgtaState.NextBouy;
 
+let secsToShowCourseCompleteText = 2;
+let startTimeCCompTextShown = 0;
 
 let rgta_startTime = 0;
 function RGTTA_Start(time){
 	rgta_startTime = time;
+	startTimeCCompTextShown = Number.MAX_VALUE;
+	rgtaState = RgtaState.NextBouy;
+	currentWaypointIdx = 0;
 }
 
 let dist_Hdg_VecFromWaypoint = [0,0, Vect3_New()];
@@ -100,6 +105,11 @@ function RGTTA_DistAndHdgFromWaypoint( retDistHdgVecFromWayp, waypPos, toPos ){
 	Vect3_Unit( retDistHdgVecFromWayp[2] );
 	retDistHdgVecFromWayp[1] = MTH_WrapAng0To2PI( Vec2ToAngle(retDistHdgVecFromWayp[2]) );
 }
+
+let incompleteObjColor = [1,1,0];
+let completeObjColor   = [0,1,0];
+let beginRoundingTxtColor = incompleteObjColor;
+let endRoundingTxtColor   = incompleteObjColor;
 
 let hitBouyDist = 7;
 let resetPenaltyBouyDist = 20;
@@ -125,12 +135,12 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	let bmpTxtX  = -0.95*srnAspc;
 	let bmpTxtY  =  0.8;
 	let bmpTxtZ  =  0.02;
-	let bmpTxtSz =  0.03;
-	bmpTxtX = TR_QueueText( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, bmpTxtSz, "Boat Map Position", false );
-	bmpTxtX += xKernSpc*5*bmpTxtSz;
-			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, bmpTxtSz, boatMapPosition[0], 2 );
-	bmpTxtX += xKernSpc*6*bmpTxtSz;
-			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, bmpTxtSz, boatMapPosition[1], 2 );
+	let txtSz    =  0.03;
+	bmpTxtX = TR_QueueText( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, "Boat Map Position", false );
+	bmpTxtX += xKernSpc*5*txtSz;
+			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, boatMapPosition[0], 2 );
+	bmpTxtX += xKernSpc*7*txtSz;
+			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, boatMapPosition[1], 2 );
 
 	//setup the regatta scene camera from the boat camera and boat translation
 	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
@@ -146,25 +156,15 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 	if( currentWaypointIdx > bouyInfos.length-1 ){
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
+		if( startTimeCCompTextShown == Number.MAX_VALUE )
+			startTimeCCompTextShown = time;
+		if( ( time - startTimeCCompTextShown ) >= secsToShowCourseCompleteText )
+			sgMode = SailModes.Leaderboard;
 	}else{
 
 		let currentBouyInfo = bouyInfos[currentWaypointIdx];
 		let bouyPosition = currentBouyInfo.bouyQm.origin;
 		RGTTA_DistAndHdgFromWaypoint( dist_Hdg_VecFromWaypoint, bouyPosition, boatMapPosition );
-		//Vect3_Copy( vecToWaypoint, bouyPosition);
-		//Vect3_Add( vecToWaypoint, boatPosition ); //boat position is negative
-		//let distToBouy = Vect3_Length( vecToWaypoint );
-		//Vect3_Unit( vecToWaypoint );
-		//let hdgToBouy = Vec2ToAngle(vecToWaypoint);
-		
-		//let boatRelHdgToBouy = MTH_WrapAng0To2PI( hdgToBouy - boatHeading );
-		/*
-		console.log( "vecToBouy "         + vecToBouy[0].toPrecision(2) + " " + vecToBouy[1].toPrecision(2) + 
-					 " distToBouy "       + distToBouy.toPrecision(2) + 
-					 " hdgToBouy "        + hdgToBouy.toPrecision(2) + 
-					 " boatHeading "      + boatHeading.toPrecision(2) +
-					 " boatRelHdgToBouy " + boatRelHdgToBouy.toPrecision(2) );
-		*/
 
 		let bouyRoundDirStr = "PORT";
 		if( currentBouyRoundDir )
@@ -196,10 +196,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 				//need to cross vec perpendicular to prev bouy, and prpendic to next bouy
 				//without hitting bouy
 				if( !currentBouyInfo.roundDirection ){ //bouy to be rounded to port side of boat
-					let nxtStrXStart = TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.5 , 0.02, 0.03, "Hdg to Wayp to begin rounding"      );
-									   TR_QueueNumber( rb2DTris, -0.4						 , 0.5 , 0.02, 0.03, perpendicAngToPrevBouy.toFixed(2), 2 );
-					nxtStrXStart     = TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.47, 0.02, 0.03, "Hdg to Wayp to complete rounding"   );
-				 					   TR_QueueNumber( rb2DTris, -0.4						 , 0.47, 0.02, 0.03, perpendicAngToNextBouy.toFixed(2), 2 );
+
 					if( rgtaState == RgtaState.NextBouy &&
 						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromWaypoint[1] ) ){
 							rgtaState = RgtaState.BeganRoundingBouy;
@@ -209,15 +206,40 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 							rgtaState = RgtaState.NextBouy;
 						}
 					}
+
+					if( rgtaState == RgtaState.BeganRoundingBouy ){
+						beginRoundingTxtColor = completeObjColor;
+					}
+					if( incrementWaypointIdx ){
+						endRoundingTxtColor = completeObjColor;
+					}
+
+
+					let nxtStrXStart = TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.5 , 0.02, txtSz, 
+														"Hdg frm Wayp to begin rounding", 
+											false, TxtJustify.Left, beginRoundingTxtColor     );
+					nxtStrXStart = Math.ceil( (nxtStrXStart+(xKernSpc*3*txtSz)) * 10 ) / 10;
+									   TR_QueueNumber( rb2DTris, nxtStrXStart				 , 0.5 , 0.02, txtSz,
+									   					perpendicAngToPrevBouy.toFixed(2), 2 );
+									   TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.47, 0.02, txtSz, 
+									   					"Hdg frm Wayp to complete rounding",
+									   		false, TxtJustify.Left, endRoundingTxtColor     );
+									   TR_QueueNumber( rb2DTris, nxtStrXStart				 , 0.47, 0.02, txtSz, 
+									   					perpendicAngToNextBouy.toFixed(2), 2 );
+
 				}
+
 			}
 
 		}
-		
+
 		Vect3_Copy( prevVecToBouy, dist_Hdg_VecFromWaypoint[2] );
 		prevHdgToBouy = dist_Hdg_VecFromWaypoint[1];
 		if( incrementWaypointIdx ){
 			currentWaypointIdx += 1;
+			beginRoundingTxtColor = incompleteObjColor;
+			endRoundingTxtColor   = incompleteObjColor;
+			
 			if( currentWaypointIdx < bouyInfos.length &&
 				bouyInfos[currentWaypointIdx].wayType == WaypointType.RoundBouy ){
 				//pre calculate / calculate once the course angles required for bouy rounding
@@ -244,7 +266,6 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 				//(pi/2 is downwind, 
 				if( !bouyInfos[currentWaypointIdx].roundDirection ){
 					perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy + Math.PI/2 );
-					
 					perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy - Math.PI/2 );
 				}else{
 					perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy - Math.PI/2 );
