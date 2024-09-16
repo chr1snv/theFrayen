@@ -58,7 +58,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Menu:
 
 			//menu heading text
-			TR_QueueText( rb2DTris, -0.3, 0.28, 0.02, 0.3, "SAIL", false );
+			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "SAIL", false, TxtJustify.Center );
 			TR_QueueText( rb2DTris, -0.4, -0.2, 0.02, 0.1, "START", true );
 			TR_QueueText( rb2DTris, -0.4, -0.4, 0.02, 0.1, "LEADERBOARD", true );
 
@@ -78,7 +78,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			break;
 		case SailModes.Leaderboard:
 		
-			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", true, TxtJustify.Center );
+			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", false, TxtJustify.Center );
 			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Main Menu", true );
 			
 			//menu background overlay

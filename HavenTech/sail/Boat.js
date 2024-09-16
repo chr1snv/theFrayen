@@ -28,11 +28,13 @@ function BOAT_Init(){
 
 	windIndcQm = graphics.cachedObjs[QuadMesh.name]["textMeshes"]["windIndc"][0];
 	windIndcQm.isAnimated = true;
+	
 	for( let mdl in textScene.models ){
 		let model = textScene.models[mdl];
 		if( model.quadmesh.meshName == "windIndc" )
 			windIndc = model;
 	}
+	
 }
 
 //130 port wing on wing 			(270-180deg)
@@ -158,8 +160,10 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
-	if( windIndc != null )
-		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [.2,.2,.2], [-120/180*Math.PI, relWndHdg, 0], [0, 0.8, 0] );
+	if( windIndcQm.isValid ){
+		let wIScl = 0.1;
+		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [wIScl,wIScl,wIScl], [-110/180*Math.PI, relWndHdg, 0], [0.4*scrnAspc, 0.8, 0] );
+	}
 
 	let delTime = time-lastBoatUpdateTime;
 

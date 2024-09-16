@@ -73,6 +73,7 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//this.timeUpdate;
 	this.optTransformUpdated;
 
+	this.optTransMat = Matrix_New();
 
 	//modifiers for manipulating the mesh from its default position
 	this.scaleOff    = new Float32Array([1,1,1]);

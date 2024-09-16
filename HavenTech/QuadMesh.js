@@ -59,9 +59,6 @@ function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is th
 }
 */
 
-function QuadMeshInstance( qmIn ){
-	this.qm = qmIn;
-}
 
 function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbackParameters)
 {
@@ -815,7 +812,7 @@ function QM_CallReadyCallbackIfLoaded(qm){
 			qm.normBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*normCard );
 			qm.uvBufferForMat[i]   = new Float32Array( qm.faceVertsCtForMat[i]*uvCard );
 		} 
-	
+		qm.isValid = true;
 		qm.quadMeshReadyCallback(qm, qm.readyCallbackParameters);
 	}
 }
@@ -1153,8 +1150,8 @@ function QM_meshFileLoaded(meshFile, thisP)
 		DPrintf("Quadmesh: verts read mismatch\n");
 	else if ( !(Math.abs(thisP.vertNormals.length - numVerts*3) < 0.01) )
 		DPrintf("Quadmesh: normals read mismatch\n");
-	else
-		thisP.isValid = true;
+	//else
+	//	thisP.isValid = true;
 
 
 

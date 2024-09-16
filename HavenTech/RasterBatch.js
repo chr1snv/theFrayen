@@ -307,6 +307,8 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 			if( qm.faceVertsCtForMat[matID] > 0 ){ //ignore materials with no verts assigned
 				let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
 				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matID], qm, matID );
+				if( obj.optTransformUpdated )
+					Matrix_Copy( subBatchBuffer.toWorldMatrix, obj.optTransMat );
 			}
 		}
 	}
@@ -334,7 +336,7 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 			let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matIdx], obj );
 
-			if( qm.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
+			if( !obj.optTransformUpdated && qm.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
 				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
 			}
 

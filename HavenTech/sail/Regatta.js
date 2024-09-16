@@ -8,43 +8,6 @@ function RGTTA_Init(){
 }
 
 
-function RGTTA_AllocSubRngBuffer(dbB, numVerts, subBufId, obj){
-	//BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn)
-	let sbb = new BufSubRange( dbB.bufferIdx, numVerts, obj, 0 );
-	Matrix_SetIdentity( sbb.toWorldMatrix );
-	dbB.bufSubRanges[subBufId] = sbb;
-
-	dbB.bufferIdx += numVerts;
-
-	let subRngKeys = Object.keys( dbB.bufSubRanges );
-	for(let i = 0; i < subRngKeys.length; ++i ){
-		dbB.bufSubRanges[subRngKeys[i]].vertsNotYetUploaded = true;
-	}
-	//txtR_dbB.regenAndUploadEntireBuffer = true;
-
-	return sbb;
-}
-
-function InitAndAllocOneObjBuffer(obj){
-	let matIdx = 0;
-	//qm, drawBatch, matIdx, subBatchBuffer
-	QM_SL_GenerateDrawVertsNormsUVsForMat( obj, null, matIdx, null );
-
-	let material = obj.materials[matIdx];
-	let dbB = new DrawBatchBuffer( material );
-	let numVerts = obj.vertBufferForMat[matIdx].length;
-	let subBufId = 0;
-	RGTTA_AllocSubRngBuffer( dbB, numVerts, subBufId, obj );
-	//enable the sub batch buffer to draw this frame
-	if( dbB.sortedSubRngKeys == null )
-		dbB.sortedSubRngKeys = [];
-	dbB.sortedSubRngKeys.push( subBufId );
-	dbB.numBufSubRanges += 1;
-
-	return dbB;
-}
-
-
 const WaypointType = {
 	RoundBouy: 0,
 	StartLine: 1
@@ -65,17 +28,20 @@ bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false, WaypointType.Rou
 bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, WaypointType.RoundBouy, "Round the Downwind offset Bouy" );
 bouyInfos[3] = new WaypointInfo( "inflatableBouy",       false, WaypointType.StartLine, "Cross the Finish Line" );
 
+let directionUiQmInst = null;
+
 var RGTA_Ready = false;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
 
 	for( let i = 0; i < bouyInfos.length; ++i ){
-
 		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
-
 	}
-
+	
+	directionUiQmInst = new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
+					modelLoadedParameters=null, modelLoadedCallback=null, isDynamic=false );
+	
 	RGTA_Ready = true;
 }
 
@@ -132,6 +98,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 	let incrementWaypointIdx = false;
 
+
 	let bmpTxtX  = -0.95*srnAspc;
 	let bmpTxtY  =  0.8;
 	let bmpTxtZ  =  0.02;
@@ -162,9 +129,18 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 			sgMode = SailModes.Leaderboard;
 	}else{
 
+
 		let currentBouyInfo = bouyInfos[currentWaypointIdx];
 		let bouyPosition = currentBouyInfo.bouyQm.origin;
 		RGTTA_DistAndHdgFromWaypoint( dist_Hdg_VecFromWaypoint, bouyPosition, boatMapPosition );
+		let dirIndcDir = MTH_WrapAng0To2PI(dist_Hdg_VecFromWaypoint[1] + boatHeading + -0.5*Math.PI);
+		
+		Matrix_SetEulerTransformation( directionUiQmInst.optTransMat, 
+					[.2,.2,.2], 
+					[-120/180*Math.PI, dirIndcDir, 0], 
+					[0, 0.7, 0] );
+		directionUiQmInst.optTransformUpdated = true;
+		rb2DTris.objs[directionUiQmInst.uid.val] = directionUiQmInst;
 
 		let bouyRoundDirStr = "PORT";
 		if( currentBouyRoundDir )
