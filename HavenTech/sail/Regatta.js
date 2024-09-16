@@ -119,7 +119,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	rgta_elapsedTime = time - rgta_startTime;
 	let elapsedMins = Math.floor(rgta_elapsedTime / 60);
 	let elapsedSecs = Math.floor(rgta_elapsedTime - (elapsedMins*60));
-	TR_QueueTime( rb2DTris, 0.6*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs );
+	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, TxtJustify.Right );
 
 	if( currentWaypointIdx > bouyInfos.length-1 ){
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
