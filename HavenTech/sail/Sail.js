@@ -64,7 +64,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
-					'menuBg.png', 'sailDefault',  
+					'menuBg0.png', 'sailDefault',  
 					sailMenuBgCenPos, sailMenuBgWdthHight, 
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 
@@ -83,7 +83,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
-					'menuBg.png', 'sailDefault',  
+					'menuBg2.png', 'sailDefault',  
 					sailMenuBgCenPos, sailMenuBgWdthHight, 
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 	}

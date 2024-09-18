@@ -159,24 +159,28 @@ def writeMaterial(assetDirectory, mat):
 	                out.write( 'wrapType clamp\n' )
                 try:
                     if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
+                        diffuseMix = 1
                         diffuseTextureFilename = filename
-                        out.write('difTex\t %s\n' % (diffuseTextureFilename)) #diffuse texture
+                        out.write('difTex\t %f\n' % (diffuseMix) ) #diffuse texture
                     if node.outputs['Color'].links[0].to_socket.name == 'Normal':
-                        normalAmount = 1#texture.norfac
-                        out.write('normTex\t %f\n' % (normalAmount))  #normal texture
+                        normalMix = 1#texture.norfac
+                        out.write('normTex\t %f\n' % (normalMix) ) #normal texture
                     if node.outputs['Color'].links[0].to_socket.name == 'Emission':
+                        emitTextureFilename = filename
                         emitAmount = 1#texture.dvar
-                        out.write('lumTex\t %f\n' % (emitAmount))    #emissive texture
+                        out.write('lumTex\t %f\n' % (emitAmount)) #emissive texture
                 except:
                     None
                 try:
                     if node.outputs['Alpha'].links[0].to_socket.name == 'Alpha' or\
                        (len(node.outputs['Alpha'].links) >= 1 and node.outputs['Alpha'].links[0].to_socket.name == 'Alpha') :
-                        if(filename == diffuseTextureFilename):
-                            out.write('difTexAisAlpha\n')                 #write out a flag if the alpha channel of the diffuse texture is used
+                        if( filename == diffuseTextureFilename ):
+                            out.write('difTexAisAlpha\n')  #write out a flag if the alpha channel of the diffuse texture is used
+                        elif ( filename == emitTextureFilename ):
+                            out.write('emitTexAisAlpha\n')
                         else:
                             #don't support seperate alpha/diffuse textures
-                            print("Alpha texture is not diffuse Texture ")
+                            print("Alpha texture is not diffuse or emit Texture ")
                             out.write('e\n')
                             continue
                 except:

@@ -213,8 +213,8 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	gl.depthFunc(gl.LESS);
 
 	//enable blending (for transparent materials)
-	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-	//gl.enable(gl.BLEND);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+	gl.enable(gl.BLEND);
 
 
 	//load and compile the point, line, and triangle drawing gl programs

@@ -41,8 +41,34 @@ function RGTTA_SceneLoaded( hvnsc ){
 	
 	directionUiQmInst = new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
 					modelLoadedParameters=null, modelLoadedCallback=null, isDynamic=false );
-	
+
+	new Model( "WaypKeepOutRadius", "WaypKeepOutRadius", "RegattaWaypoints", null, 
+					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypKeepOutRadiusLoaded, isDynamic=false );
+
+	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
+					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
+
 	RGTA_Ready = true;
+}
+
+let kpOutRadiusMdl = null;
+function Rgta_WaypKeepOutRadiusLoaded( kpOutRadius ){
+	kpOutRadiusMdl = kpOutRadius;
+
+	Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+				[hitBouyDist,hitBouyDist,1],
+				[0, 0, 0],
+				[0, 0, 0] );
+	kpOutRadiusMdl.optTransformUpdated = true;
+}
+
+let waypRoundBeginWall = null;
+let waypRoundEndWall   = null;
+function Rgta_WaypRoundBeginWallLoaded( rndWall ){
+	if( waypRoundBeginWall == null )
+		waypRoundBeginWall = rndWall;
+	else
+		waypRoundEndWall = rndWall;
 }
 
 const RgtaState = {
@@ -61,6 +87,13 @@ function RGTTA_Start(time){
 	startTimeCCompTextShown = Number.MAX_VALUE;
 	rgtaState = RgtaState.NextBouy;
 	currentWaypointIdx = 0;
+	
+	//move the waypoint keepout indicator
+	let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+	Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+	[hitBouyDist,hitBouyDist,1],
+	[0, 0, 0],
+	bouyPosition );
 }
 
 let dist_Hdg_VecFromWaypoint = [0,0, Vect3_New()];
@@ -99,15 +132,20 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	let incrementWaypointIdx = false;
 
 
+	rb3DTris.objs[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
+
+
 	let bmpTxtX  = -0.95*srnAspc;
 	let bmpTxtY  =  0.8;
 	let bmpTxtZ  =  0.02;
 	let txtSz    =  0.03;
+	/*
 	bmpTxtX = TR_QueueText( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, "Boat Map Position", false );
 	bmpTxtX += xKernSpc*5*txtSz;
 			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, boatMapPosition[0], 2 );
 	bmpTxtX += xKernSpc*7*txtSz;
 			TR_QueueNumber( rb2DTris, bmpTxtX , bmpTxtY, bmpTxtZ, txtSz, boatMapPosition[1], 2 );
+	*/
 
 	//setup the regatta scene camera from the boat camera and boat translation
 	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
@@ -216,37 +254,47 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 			beginRoundingTxtColor = incompleteObjColor;
 			endRoundingTxtColor   = incompleteObjColor;
 			
-			if( currentWaypointIdx < bouyInfos.length &&
-				bouyInfos[currentWaypointIdx].wayType == WaypointType.RoundBouy ){
-				//pre calculate / calculate once the course angles required for bouy rounding
-				let prevBouyPosition = bouyInfos[currentWaypointIdx-1].bouyQm.origin;
+			if( currentWaypointIdx < bouyInfos.length ){
+			
 				let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
-				let nextBouyPosition = bouyInfos[currentWaypointIdx+1].bouyQm.origin;
-				
-				Vect3_Copy( vecToPrevBouy, prevBouyPosition );
-				Vect3_Subtract( vecToPrevBouy, bouyPosition );
-				Vect3_Unit( vecToPrevBouy );
-				angToPrevBouy = Vec2ToAngle( vecToPrevBouy );
-				
-				Vect3_Copy( vecToNextBouy, nextBouyPosition );
-				Vect3_Subtract( vecToNextBouy, bouyPosition );
-				Vect3_Unit( vecToNextBouy );
-				angToNextBouy = Vec2ToAngle( vecToNextBouy );
-				
-				//map coordinates are right hand rule
-				//with the boat pointing windward
-				//x positive to port
-				//y positve downwind
-				//z positive up
-				//angles are counter clockwise from x positve to y positive
-				//(pi/2 is downwind, 
-				if( !bouyInfos[currentWaypointIdx].roundDirection ){
-					perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy + Math.PI/2 );
-					perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy - Math.PI/2 );
-				}else{
-					perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy - Math.PI/2 );
-					perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy + Math.PI/2 );
+
+				//move the waypoint keepout indicator
+				Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+				[hitBouyDist,hitBouyDist,1],
+				[0, 0, 0],
+				bouyPosition );
+
+				if( bouyInfos[currentWaypointIdx].wayType == WaypointType.RoundBouy ){
+					//pre calculate / calculate once the course angles required for bouy rounding
+					let prevBouyPosition = bouyInfos[currentWaypointIdx-1].bouyQm.origin;
+					let nextBouyPosition = bouyInfos[currentWaypointIdx+1].bouyQm.origin;
+					
+					Vect3_Copy( vecToPrevBouy, prevBouyPosition );
+					Vect3_Subtract( vecToPrevBouy, bouyPosition );
+					Vect3_Unit( vecToPrevBouy );
+					angToPrevBouy = Vec2ToAngle( vecToPrevBouy );
+					
+					Vect3_Copy( vecToNextBouy, nextBouyPosition );
+					Vect3_Subtract( vecToNextBouy, bouyPosition );
+					Vect3_Unit( vecToNextBouy );
+					angToNextBouy = Vec2ToAngle( vecToNextBouy );
+					
+					//map coordinates are right hand rule
+					//with the boat pointing windward
+					//x positive to port
+					//y positve downwind
+					//z positive up
+					//angles are counter clockwise from x positve to y positive
+					//(pi/2 is downwind, 
+					if( !bouyInfos[currentWaypointIdx].roundDirection ){
+						perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy + Math.PI/2 );
+						perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy - Math.PI/2 );
+					}else{
+						perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy - Math.PI/2 );
+						perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy + Math.PI/2 );
+					}
 				}
+
 			}
 		}
 	}

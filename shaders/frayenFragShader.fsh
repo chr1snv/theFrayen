@@ -44,11 +44,12 @@ void main() {
 	//calculate the diffuse color
 	vec4 diffuseAndAlphaCol;
 	vec3 specularCol = vec3(1,1,1);
-	
 
-	
+
+
 	if( texturingEnabled ){
 		diffuseAndAlphaCol = texture2D( texSampler, texCoordVarying );
+		diffuseAndAlphaCol.a *= alpha;
 	}else{
 		diffuseAndAlphaCol = vec4(diffuseColor,alpha);
 	}
@@ -59,17 +60,17 @@ void main() {
 			gl_FragColor = diffuseAndAlphaCol;
 		else
 			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
-	
+
 	}else{
-	
+
 		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
-		
-		
+
+
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
-		
+
 		if( subSurfaceExponent > 0.0 )
 			gl_FragColor += vec4( pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, subSurfaceExponent)* vec3(1.0,0.5,0.0), 0);
-		
+
 
 		//calculate light contributions
 		if( 0 < numLights ){
@@ -78,35 +79,39 @@ void main() {
 			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
 			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
 			gl_FragColor += vec4( diffuseAndAlphaCol.xyz * diffuseLightAmt, 0);
-			
-			
+
+
 			//specular calculation
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
 			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
 			float specularLightAmt = pow( toCamLightAmt*specularAmtHrdnessExp[0],  5.0*specularAmtHrdnessExp[1]);//specularExponent );
 			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
 			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
-			
+
 		}
 		if( 1 < numLights ){
 		}
-		
-		
+
+
 	}
-	
+
+	//use discard instead of alpha blending to avoid z sorting requirement for alpha blend mode
 	//gl_FragColor.a = 1.0;
 	if (gl_FragColor.a <= 0.0){
 		discard;
 		return;
 	}
-	
+
+	/*
 	if( gl_FragColor.a <= 0.9 ){
-		if ( modI((gl_FragCoord.x + (gl_FragCoord.z*10.0)), (10.0*gl_FragColor.a)) <= 1.0 ||
-			 modI((gl_FragCoord.y + (gl_FragCoord.z*10.0)), (10.0*gl_FragColor.a)) <= 1.0 )
+		float stplPxWdth = 2.0;
+		if ( modI((gl_FragCoord.x + (gl_FragCoord.z*stplPxWdth)), (stplPxWdth*gl_FragColor.a)) <= 1.0 ||
+			 modI((gl_FragCoord.y + (gl_FragCoord.z*stplPxWdth)), (stplPxWdth*gl_FragColor.a)) <= 1.0 )
 			discard;
 	}
+	*/
 	//gl_FragColor.r = gl_FragColor.a;
-	
+
 
 
 	/*
@@ -121,6 +126,6 @@ void main() {
 			gl_FragColor = vec4(z,0,0,1.0);
 	}
 	*/
-	
+
 	//FragDepth = z;
 }

@@ -99,7 +99,8 @@ function MAT_materialTextLoaded(materialFile, thisP){
 		//read in the file contents
 		if(thisP.materialName == 'skin')
 			thisP.subSurfaceExponent = 5;
-		
+
+
 		let materialFileLines = materialFile.split('\n');
 		for( let i = 0; i < materialFileLines.length; ++i ){
 			let temp = materialFileLines[i].split(' ');
@@ -141,6 +142,7 @@ function MAT_materialTextLoaded(materialFile, thisP){
 				let wrapType = 1; //repeat
 				while(++i < materialFileLines.length){
 					temp = materialFileLines[i].split(' ');
+					temp[0] = temp[0].split('\t')[0];
 					if(temp[0] == 'wrapType' ){
 						if( temp[1] == 'clamp' )
 							wrapType = 0;
@@ -156,7 +158,7 @@ function MAT_materialTextLoaded(materialFile, thisP){
 						isNormal = true;
 					}
 					if(temp[0] == 'lumTex'){ // the texture is emit type
-						thisP.emitMix = parseFloat( temp[1] );
+						thisP.emitAmount = parseFloat( temp[1] );
 						isEmit = true;
 					}
 					if(temp[0] == 'fileName'){ //read in the texture file name
