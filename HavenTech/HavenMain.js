@@ -351,9 +351,10 @@ let simPhys = true;
 
 var posDbgText = false;
 //the main rendering and update function called each frame
-var fpsElm = document.getElementById("fps");
+//var fpsElm = document.getElementById("fps");
 var lastSceneFPSOutputTime = 0;
 var framesSinceLastFPSOutputTime = 0;
+var lastFps = 0;
 let lrOrUdAnim = false;
 let lrOrUdChangeResetFrames = 3;
 function MainLoop()
@@ -404,6 +405,14 @@ function MainLoop()
 	RastB_PrepareBatchToDraw( rastBatch2dTris );
 	if( mainScene.scnId < 0 )
 		Overlay_DrawInputHint(rastBatch2dTris);
+	
+	framesSinceLastFPSOutputTime += 1;
+	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
+		lastFps = framesSinceLastFPSOutputTime;
+		lastSceneFPSOutputTime = sceneTime;
+		framesSinceLastFPSOutputTime = 0;
+	}
+	TR_QueueNumber( rastBatch2dTris, -0.8*graphics.GetScreenAspect(), 0.97, 0.02, 0.03, lastFps, numDecPlaces=0, justify=TxtJustify.Center );
 
 
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
@@ -441,12 +450,6 @@ function MainLoop()
 	if( !document.fullscreenElement )
 		DrawSoundCanvas();
 
-	framesSinceLastFPSOutputTime += 1;
-	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
-		fpsElm.innerHTML = framesSinceLastFPSOutputTime;
-		lastSceneFPSOutputTime = sceneTime;
-		framesSinceLastFPSOutputTime = 0;
-	}
 
 	//graphics.Flush();
 
