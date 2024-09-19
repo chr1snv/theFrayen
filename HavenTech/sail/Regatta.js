@@ -101,12 +101,16 @@ let rgtaState = RgtaState.NextBouy;
 let secsToShowCourseCompleteText = 2;
 let startTimeCCompTextShown = 0;
 
+var rgta_completeMins = -1;
+var rgta_completeSecs = -1;
 let rgta_startTime = 0;
 function RGTTA_Start(time){
 	rgta_startTime = time;
 	startTimeCCompTextShown = Number.MAX_VALUE;
 	rgtaState = RgtaState.NextBouy;
 	currentWaypointIdx = 0;
+	
+	rgta_completeTime = -1;
 	
 	//move the waypoint keepout indicator
 	if( kpOutRadiusMdl != null ){
@@ -184,6 +188,10 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, TxtJustify.Right );
 
 	if( currentWaypointIdx > bouyInfos.length-1 ){
+		if( rgta_completeMins == -1 ){
+			rgta_completeMins = elapsedMins;
+			rgta_completeSecs = elapsedSecs;
+		}
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
 		if( startTimeCCompTextShown == Number.MAX_VALUE )
 			startTimeCCompTextShown = time;
@@ -214,6 +222,10 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.7 , 0.02, 0.03, dist_Hdg_VecFromWaypoint[0].toFixed(2),  false );
 		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.65, 0.02, 0.03, "Hdg from waypoint", 					false );
 		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.65, 0.02, 0.03, MTH_WrapAng0To2PI(dist_Hdg_VecFromWaypoint[1]).toFixed(2), 2 );
+		
+		let vmg = Vect_Dot( boatMapPositionVel, dist_Hdg_VecFromWaypoint[2] );
+		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.6 , 0.02, 0.03, "Vel to waypoint", 						false );
+		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.6 , 0.02, 0.03, vmg,  2 );
 
 
 		if( dist_Hdg_VecFromWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){

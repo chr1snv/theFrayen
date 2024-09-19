@@ -49,6 +49,12 @@ function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left
 	if( justify == TxtJustify.Right ){
 		colXStrt = x-(xKernOverrides["col"]*size)-(numSecDigits*xKernSpc*size);
 		minXStrt = colXStrt - numMinDigits * xKernSpc*size;
+	}else if( justify == TxtJustify.Left ){
+		minXStrt = x;
+		colXStrt = x+(numMinDigits*xKernSpc*size);
+	}else if( justify == TxtJustify.Center ){
+		colXStrt = x;
+		minXStrt = x-(numMinDigits*xKernSpc*size);
 	}
 	
 

@@ -80,6 +80,10 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		
 			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", false, TxtJustify.Center );
 			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Main Menu", true );
+			if( rgta_completeMins == -1 )
+				TR_QueueText( rb2DTris, -0.43, 0.0, 0.02, 0.05, "No completions yet", false );
+			else
+				TR_QueueTime( rb2DTris, -0.43, 0.0, 0.02, 0.1, rgta_completeMins, rgta_completeSecs, false );
 			
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
