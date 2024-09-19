@@ -34,43 +34,49 @@ varying vec3      normalVarying;//in vec3      normalVarying;
 varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
 float modI(float a,float b) {
-    float m=a-floor((a+0.5)/b)*b;
-    return floor(m+0.5);
+	float m=a-floor((a+0.5)/b)*b;
+	return floor(m+0.5);
 }
 
 //out vec4 gl_FragColor; //for gles 3
 void main() {
 
 	//calculate the diffuse color
-	vec4 diffuseAndAlphaCol;
+	vec4 diffuseAndAlphaCol = vec4(diffuseColor,alpha);
 	vec3 specularCol = vec3(1,1,1);
+	
+	//types of material
+	//diffuse and specular lighting
+	//or no lighting
+	//emission + diffuse + specular
+	//emission always added at end
 
-
-
-	if( texturingEnabled ){
-		diffuseAndAlphaCol = texture2D( texSampler, texCoordVarying );
-		diffuseAndAlphaCol.a *= alpha;
-	}else{
-		diffuseAndAlphaCol = vec4(diffuseColor,alpha);
-	}
 
 	if( !lightingEnabled ){
 		//color is either from texture or assigned from uniform variable
-		if( texturingEnabled )
-			gl_FragColor = diffuseAndAlphaCol;
-		else
-			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
+		if( texturingEnabled ){ //emission only
+			gl_FragColor = texture2D( texSampler, texCoordVarying );
+			gl_FragColor.xyz *= emissionAndAmbientColor;
+		}else{
+			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.a);
+		}
 
 	}else{
+	
+		if( texturingEnabled ){
+			diffuseAndAlphaCol *= texture2D( texSampler, texCoordVarying );
+		}
 
 		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
-
 
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
 
 		if( subSurfaceExponent > 0.0 )
-			gl_FragColor += vec4( pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, subSurfaceExponent)* vec3(1.0,0.5,0.0), 0);
-
+			gl_FragColor += vec4( 
+					pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, 
+						subSurfaceExponent) * vec3(1.0,0.5,0.0), 
+						0
+					);
 
 		//calculate light contributions
 		if( 0 < numLights ){
@@ -84,7 +90,7 @@ void main() {
 			//specular calculation
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
 			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
-			float specularLightAmt = pow( toCamLightAmt*specularAmtHrdnessExp[0],  5.0*specularAmtHrdnessExp[1]);//specularExponent );
+			float specularLightAmt = pow( toCamLightAmt*specularAmtHrdnessExp[0],  5.0*specularAmtHrdnessExp[1]);
 			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
 			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
 
@@ -102,30 +108,5 @@ void main() {
 		return;
 	}
 
-	/*
-	if( gl_FragColor.a <= 0.9 ){
-		float stplPxWdth = 2.0;
-		if ( modI((gl_FragCoord.x + (gl_FragCoord.z*stplPxWdth)), (stplPxWdth*gl_FragColor.a)) <= 1.0 ||
-			 modI((gl_FragCoord.y + (gl_FragCoord.z*stplPxWdth)), (stplPxWdth*gl_FragColor.a)) <= 1.0 )
-			discard;
-	}
-	*/
-	//gl_FragColor.r = gl_FragColor.a;
 
-
-
-	/*
-	float z = gl_FragCoord.z;
-	if( z < 0.0 ){
-		z = -z;
-		vec4(0,z,0,1.0);
-	}else{
-		if( z > 1.0 )
-			gl_FragColor = vec4(0,0,z-1.0,1.0);
-		else
-			gl_FragColor = vec4(z,0,0,1.0);
-	}
-	*/
-
-	//FragDepth = z;
 }

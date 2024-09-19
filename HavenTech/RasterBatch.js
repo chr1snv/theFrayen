@@ -305,6 +305,8 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 			//get the material buffer and sub buffer for object verts to ensure enough space is allocated
 			//in SortSubBatches...(rastBatch)
 			if( qm.faceVertsCtForMat[matID] > 0 ){ //ignore materials with no verts assigned
+				if( obj.optMaterial )
+					material = obj.optMaterial;
 				let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
 				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matID], qm, matID );
 				if( obj.optTransformUpdated )
@@ -332,6 +334,9 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 
 			if( qm.faceVertsCtForMat[matIdx] < 1 ) //ignore materials with no verts assigned
 				continue;
+
+			if( obj.optMaterial )
+					material = obj.optMaterial;
 
 			let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
 			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matIdx], obj );

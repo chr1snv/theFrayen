@@ -29,6 +29,7 @@ bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, WaypointType.Rou
 bouyInfos[3] = new WaypointInfo( "inflatableBouy",       false, WaypointType.StartLine, "Cross the Finish Line" );
 
 let directionUiQmInst = null;
+let directionUiQmInstMat = null;
 
 var RGTA_Ready = false;
 function RGTTA_SceneLoaded( hvnsc ){
@@ -38,17 +39,32 @@ function RGTTA_SceneLoaded( hvnsc ){
 	for( let i = 0; i < bouyInfos.length; ++i ){
 		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
 	}
-	
-	directionUiQmInst = new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
-					modelLoadedParameters=null, modelLoadedCallback=null, isDynamic=false );
+
+	new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
+					modelLoadedParameters=null, modelLoadedCallback=Rgta_directionUiQmInstLd, isDynamic=false );
+
+	GRPH_GetCached( "directionUIMat", "windIndc", Material, false, Rgta_directionUiQmInstMatLd, null );
 
 	new Model( "WaypKeepOutRadius", "WaypKeepOutRadius", "RegattaWaypoints", null, 
 					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypKeepOutRadiusLoaded, isDynamic=false );
 
 	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
 					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
+	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
+					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
 
 	RGTA_Ready = true;
+}
+
+function Rgta_directionUiQmInstMatLd(mat){
+	directionUiQmInstMat = mat;
+	directionUiQmInstMat.diffuseCol = [0,1,0];
+	if( directionUiQmInst != null )
+		directionUiQmInst.optMaterial = directionUiQmInstMat;
+}
+function Rgta_directionUiQmInstLd(mdl){
+	directionUiQmInst = mdl;
+	directionUiQmInst.optMaterial = directionUiQmInstMat;
 }
 
 let kpOutRadiusMdl = null;
@@ -65,10 +81,14 @@ function Rgta_WaypKeepOutRadiusLoaded( kpOutRadius ){
 let waypRoundBeginWall = null;
 let waypRoundEndWall   = null;
 function Rgta_WaypRoundBeginWallLoaded( rndWall ){
-	if( waypRoundBeginWall == null )
+	if( waypRoundBeginWall == null ){
 		waypRoundBeginWall = rndWall;
-	else
+		waypRoundBeginWall.optTransformUpdated = true;
+		waypRoundBeginWall.quadmesh.materials[0].lumCol = [0.4,1,0];
+	}else{
 		waypRoundEndWall = rndWall;
+		waypRoundEndWall.optTransformUpdated = true;
+	}
 }
 
 const RgtaState = {
@@ -89,11 +109,15 @@ function RGTTA_Start(time){
 	currentWaypointIdx = 0;
 	
 	//move the waypoint keepout indicator
-	let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
-	Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
-	[hitBouyDist,hitBouyDist,1],
-	[0, 0, 0],
-	bouyPosition );
+	if( kpOutRadiusMdl != null ){
+		let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+		Matrix_SetEulerTransformation(
+			kpOutRadiusMdl.optTransMat, 
+			[hitBouyDist,hitBouyDist,1],
+			[0, 0, 0],
+			bouyPosition
+		);
+	}
 }
 
 let dist_Hdg_VecFromWaypoint = [0,0, Vect3_New()];
@@ -125,14 +149,14 @@ let angToPrevBouy = 0;
 let angToNextBouy = 0;
 let perpendicAngToPrevBouy = 0;
 let perpendicAngToNextBouy = 0;
+
+let tempPerpendicVec = Vect_New(2);
 function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
 
 	let srnAspc = graphics.GetScreenAspect();
 
 	let incrementWaypointIdx = false;
 
-
-	rb3DTris.objs[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
 
 
 	let bmpTxtX  = -0.95*srnAspc;
@@ -167,6 +191,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 			sgMode = SailModes.Leaderboard;
 	}else{
 
+		if( kpOutRadiusMdl != null )
+			rb3DTris.objs[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
 
 		let currentBouyInfo = bouyInfos[currentWaypointIdx];
 		let bouyPosition = currentBouyInfo.bouyQm.origin;
@@ -210,6 +236,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 				//need to cross vec perpendicular to prev bouy, and prpendic to next bouy
 				//without hitting bouy
 				if( !currentBouyInfo.roundDirection ){ //bouy to be rounded to port side of boat
+				
+					rb3DTris.objs[waypRoundBeginWall.uid.val] = waypRoundBeginWall;
 
 					if( rgtaState == RgtaState.NextBouy &&
 						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromWaypoint[1] ) ){
@@ -293,6 +321,20 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 						perpendicAngToPrevBouy = MTH_WrapAng0To2PI( angToPrevBouy - Math.PI/2 );
 						perpendicAngToNextBouy = MTH_WrapAng0To2PI( angToNextBouy + Math.PI/2 );
 					}
+					
+					//position the waypoint begin and end rounding wall indicators
+					let rndWallLen = hitBouyDist*3;
+					AngleToVec2Unit( tempPerpendicVec, perpendicAngToPrevBouy);
+					Vect_MultScal( tempPerpendicVec, rndWallLen+hitBouyDist );
+					Matrix_SetEulerTransformation( 
+						waypRoundBeginWall.optTransMat,
+						[hitBouyDist*3,1,1],
+						[Math.PI/2, 0, perpendicAngToPrevBouy],
+						[bouyPosition[0]+tempPerpendicVec[0],
+						 bouyPosition[1]+tempPerpendicVec[1],
+						 0 ]
+					);
+					
 				}
 
 			}

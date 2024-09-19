@@ -44,8 +44,10 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	*/
 
 
-	//model is really for an additional transformation
-	//and scripts on an object
+	//model is really for per instance
+	//transformation
+	//material
+	//and scripts on an quadmesh
 
 	this.lclToWrldMat = Matrix_New();
 
@@ -72,8 +74,8 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;
 	this.optTransformUpdated;
-
 	this.optTransMat = Matrix_New();
+	this.optMaterial = null;
 
 	//modifiers for manipulating the mesh from its default position
 	this.scaleOff    = new Float32Array([1,1,1]);

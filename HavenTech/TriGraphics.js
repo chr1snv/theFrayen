@@ -207,32 +207,6 @@ function TRI_G_VertBufObj(numVerts, strIn="", interactiveIn=false){
 // Draw a textured screenspace rectangle
 function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, sceneName, center, widthHeight, minUv, maxUv, depth, sspTInstNum=0 ){
 
-
-	/*
-	GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_fU_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
-	
-	GLP_setUnif_F1( triG.glProgram, triG.alphaUnif_F, triG.alphaUnif_FLoc, 1 );
-
-	if( textureName != null ){
-		if( !triG.textures[textureName] ){ //wait until the texture is loaded to draw it
-			GRPH_GetCached(textureName, sceneName, Texture, 0, triGTexReady, triG);
-			return;
-		}
-
-		TEX_Bind( triG.textures[textureName] );
-
-		GLP_setUnif_F1( triG.glProgram, triG.texturingEnabled_UnifF1, triG.texturingEnabled_UnifF1Loc, 1 );
-	}else{
-		GLP_setUnif_F1( triG.glProgram, triG.texturingEnabled_UnifF1, triG.texturingEnabled_UnifF1Loc, 0 );
-	}
-
-	GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnbUnif_fU_I1, triG.skelSkinningEnbUnif_fU_I1_Loc, 0 );
-	gl.disableVertexAttribArray(triG.indexWeightsAttrib);
-
-	TRIG_SetDefaultOrthoCamMat(triG);
-	*/
-
-
 	//create a material for the texture
 	if( graphics.cachedObjs[Material.name] == undefined ||
 		graphics.cachedObjs[Material.name][sceneName] == undefined ||
@@ -318,14 +292,13 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 
 	//set texture or color for material
 	if( buf.material.texture != null ){
-
 		TEX_Bind( buf.material.texture );
 
 		GLP_setUnif_I1( triG.glProgram,      triG.texturingEnabled_fU_I1_1_Loc,      triG.texturingEnabled_fU_I1_1, 1 );
 	}else{
 		GLP_setUnif_I1( triG.glProgram,      triG.texturingEnabled_fU_I1_1_Loc,      triG.texturingEnabled_fU_I1_1, 0 );
-		GLP_setUnif_F3( triG.glProgram,               triG.diffCol_fU_F3_1_Loc,               triG.diffCol_fU_F3_1, buf.material.diffuseCol);
 	}
+	GLP_setUnif_F3( triG.glProgram,               triG.diffCol_fU_F3_1_Loc,               triG.diffCol_fU_F3_1, buf.material.diffuseCol);
 
 	//set lighting model uniforms
 	if( buf.material.isShadeless ){

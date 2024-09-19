@@ -53,15 +53,15 @@ function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left
 	
 
 	let dgtSpc = xKernSpc * size;
-    let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, 0		, TxtJustify.Left );
-        nextLtrStartX = TR_QueueText(	rb2DTris, colXStrt, y, dpth, size, ':col:'		, false	, TxtJustify.Left );
-        nextLtrStartX += xKernOverrides["col"]*size;
-    if( s < 10 ){
+	let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, 0		, TxtJustify.Left );
+		nextLtrStartX = TR_QueueText(	rb2DTris, colXStrt, y, dpth, size, ':col:'		, false	, TxtJustify.Left );
+		nextLtrStartX += xKernOverrides["col"]*size;
+	if( s < 10 ){
 						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, 0		, TxtJustify.Left );
 						nextLtrStartX += xKernSpc * size;
 	}
-        nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, TxtJustify.Left );
-    return nextLtrStartX;
+		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, TxtJustify.Left );
+	return nextLtrStartX;
 
 }
 function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Center ){
@@ -220,7 +220,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 				escpStr += ltr;
 				continue;
 			}
-			
+
 			if( ltr != ' ' ){
 				strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
 				//generate the tesselated vert Coords for the glyph if necessary

@@ -13,7 +13,14 @@
 
 function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallbackParams )
 {
-	let programaticlyCreatedFromTexture = (args != null);
+	let programaticlyCreatedFromTexture = false;
+	let programaticallyCreatedTextureless = false;
+	if( args != null ){
+		if( args == true )
+			programaticlyCreatedFromTexture = true;
+		else
+			programaticallyCreatedTextureless = true;
+	}
 
 	this.materialReadyCallback = materialReadyCallback;
 	this.readyCallbackParams = readyCallbackParams;
@@ -23,9 +30,13 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.sceneName = sceneNameIn;
 	this.glMaterialProgramRefId = graphics.currentProgram;
 
-	this.lumCol = Vect3_New();
+	
 
 	this.subSurfaceExponent = 0;
+
+	//initialize diffuse color and specular color
+	this.diffuseCol =  Vect3_NewAllOnes();
+	this.specularCol = Vect3_NewAllOnes();
 
 	this.alpha = 1.0;
 	this.normalMix = 0;
@@ -41,8 +52,12 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 	this.IsTransparent = function() { return this.alpha < 1.0 || this.diffuseTextureAlpha; }
 
 	this.isShadeless = false;
-	if( programaticlyCreatedFromTexture )
+	if( programaticlyCreatedFromTexture ){
 		this.isShadeless = true;
+		this.lumCol = Vect3_NewAllOnes();
+	}else{
+		this.lumCol = Vect3_New();
+	}
 
 	this.isHit = false;
 	this.isValid = false;
@@ -56,12 +71,12 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 		this.isHit = true;
 		this.isValid = true;
 		this.materialReadyCallback( this, this.readyCallbackParams );
+	}else if( programaticallyCreatedTextureless ){
+		this.materialReadyCallback( this, this.readyCallbackParams );
 	}else{
 		//read in the material settings from a file
 
-		//initialize diffuse color and specular color
-		this.diffuseCol =  Vect3_NewAllOnes();
-		this.specularCol = Vect3_NewAllOnes();
+		
 		
 		//calculate the material file filename
 		let filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtMat";
@@ -73,11 +88,12 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 			this.numTexturesToLoad += 1;
 			GRPH_GetCached(nameIn, this.sceneName, Texture, 1, MAT_textureLoaded, this);
 		}
-			
+
 	}
 
 
 }
+
 
 function MAT_textureLoaded( tex, thisP ){
 	thisP.texture = tex;

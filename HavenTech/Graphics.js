@@ -278,7 +278,8 @@ function GRPH_ObjReadyCallback( obj, cachedObjStatusAndCallbacks ){
 	cachedObjStatusAndCallbacks[1] = true; //is now ready
 	let callbacksAndArgs = cachedObjStatusAndCallbacks[2];
 	for( let i = 0; i < callbacksAndArgs.length; i+=2 ){
-		callbacksAndArgs[i](obj, callbacksAndArgs[i+1]);
+		if( callbacksAndArgs[i] != null )
+			callbacksAndArgs[i](obj, callbacksAndArgs[i+1]);
 	}
 	cachedObjStatusAndCallbacks[2] = []; // clear called callbacks
 	//so that if GRPH_GetCached is called again it doesn't call them another time
