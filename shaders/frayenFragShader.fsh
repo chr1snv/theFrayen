@@ -14,7 +14,7 @@ uniform vec2      specularAmtHrdnessExp;
 
 uniform float     subSurfaceExponent;
 
-uniform vec3      emissionAndAmbientColor;
+uniform vec3      emissionAndAmbientColor; //may be used to indicate temperature and ph level in therm mode
 
 uniform bool      lightingEnabled;
 uniform vec4      lightColorIntensity[3];

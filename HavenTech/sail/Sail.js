@@ -106,6 +106,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						boatPosition[0] =  10; 
 						boatPosition[1] = -10;
 						lastBoatUpdateTime = time;
+						boatHeading = 0;
 						RGTTA_Start(time);
 						sgMode = SailModes.Gameplay;
 					}
