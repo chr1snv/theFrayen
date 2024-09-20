@@ -629,18 +629,18 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 		
 		//if the node occupies a significant on screen area (check it's sub nodes)
 		//calculate the size of the oct tree node on screen
-		let distFromCam = Vect3_Distance(t.AABB.center, frusOrigin);
+		let distFromCam = Vect3_Distance( t.AABB.center, frusOrigin );
 		//given the distance and field of view in radians, find the length of the diagonal
 		//in -1,1 screen coodrdinates
 		t.nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
 		if( t.nodePctOfHalfScreenWidth > 0.1 ){
 		
 			if( t.objInsertIdx > 0 ){ //this node has objects
-				retNodeMap.set(t.uid.val, t); //return the node
+				retNodeMap.set( t.uid.val, t ); //return the node
 			}else{ //attempt to recurse into subnodes 
 				for( let i = 0; i < t.subNodes.length; ++i ){
 					if( t.subNodes[i] ){
-						TND_GetNodesInFrustum(t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retNodeMap );
+						TND_GetNodesInFrustum( t.subNodes[i], wrldToFrusMat, frusMaxFov, frusOrigin, retNodeMap );
 					}
 				}
 			}
@@ -659,6 +659,13 @@ function TND_addObjsAndArmaturesInNodeToRasterBatch( objs, armatures, t ){
 			let skelAnim = obj.quadmesh.skelAnimation;
 			if( skelAnim != null ){
 				armatures[skelAnim.uid.val] = skelAnim;
+				for( let aQmIdx in skelAnim.animatedMeshes ){
+					let aQm = skelAnim.animatedMeshes[aQmIdx];
+					for( let aObjIdx in aQm.models ){
+						let aObj = aQm.models[ aObjIdx ];
+						objs[aObj.uid.val] = aObj;
+					}
+				}
 			}
 		}
 	}

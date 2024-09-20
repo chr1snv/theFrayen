@@ -130,12 +130,6 @@ function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
 }
 
 //animation functions
-function MDL_quadMeshLoaded( quadMesh, cbObj ){
-	quadMesh.Update(time);
-	cbObj.lastUpdateTime = time;
-	cbObj.quadmesh = quadMesh;
-	cbObj.AABB = quadMesh.AABB;
-}
 
 function MDL_Update( mdl, time, treeNd ){
 	if( mdl.quadmesh == null ){
@@ -202,6 +196,7 @@ function MDL_SetShader( mdl, shaderNameIn, sceneNameIn ){
 	mdl.AddToSceneGraph( currentSceneGraph );
 }
 
+
 function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call modelLoadedCallback
 	let thisP = cbObj[1];
 	thisP.shaderName = quadMesh.materialNames[0];
@@ -209,7 +204,9 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 	thisP.quadmesh = quadMesh;
 	QM_Reset(thisP.quadmesh);
 	QM_Update( thisP.quadmesh, 0 );
+	thisP.lastUpdateTime = 0;
 	thisP.AABB = thisP.quadmesh.AABB;
+	quadMesh.models.push( thisP ); //for use by armature lookup of objects to be animated
 	
 	//if there isn't a modelLoadedCallback callback don't try to call it
 	if( cbObj[3] != null ) //quadmesh is loaded (async loading done)

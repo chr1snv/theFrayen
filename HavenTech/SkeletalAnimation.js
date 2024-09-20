@@ -17,6 +17,8 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.uid = NewUID();
 	
 	this.lastUpdateTime = -0.5;
+	
+	this.animatedMeshes = [];
 
 	this.transformationMatricies = [];
 	this.isValid = false;

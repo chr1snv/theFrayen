@@ -67,6 +67,8 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	this.meshName        = nameIn;
 	this.sceneName       = sceneNameIn;
+	
+	this.models = [];
 
 	this.isValid         = false; //true once loading is complete
 	this.materialHasntDrawn = null;
@@ -877,6 +879,8 @@ function QM_matFileLoaded(matFile, thisP){
 
 function QM_ArmatureReadyCallback(armature, qm){
 	qm.skelAnimation = armature;
+	
+	armature.animatedMeshes.push( qm );
 	
 
 	//finalize the binding between the quadMesh and the skelAnimation

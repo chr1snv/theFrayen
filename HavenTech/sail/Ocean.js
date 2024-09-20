@@ -249,7 +249,8 @@ function OCN_UpdateSubDiv( time, verts, norms, lvl, maxLvls ){
 					}
 				}
 			}else{ // use value calculated at this level
-				verts[indx + 2] = waveAmplitude*Math.sin( (vertWrldXPct*waveXDistScale)+(waveTimePeriodSecs*time) );
+				if( !(lvl == maxLvls && midYAxisVert && midXAxisVert) )
+					verts[indx + 2] = waveAmplitude*Math.sin( (vertWrldXPct*waveXDistScale)+(waveTimePeriodSecs*time) );
 			}
 
 
