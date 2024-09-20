@@ -83,10 +83,13 @@ const restoreAmt = 0.01;
 
 let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
+let animSpeed = 3;
 
 var lastBoatUpdateTime = -1;
 
 function BOAT_Update( rb2DTris, time, wndHdg ){
+
+	let delTime = time-lastBoatUpdateTime;
 
 	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg/*-(1/180)*Math.PI*/) + boatHeading );
 
@@ -135,10 +138,14 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		animTargFrame = 200/ANIM_FRAME_RATE;
 		pointOfSail   = "STB REACH";
 		boatPctOfWindSpeed = 1;
-	}else if( relWndHdg < 180/180*Math.PI ){ //230 stb close hauled
+	}else if( relWndHdg < 170/180*Math.PI ){ //230 stb close hauled
 		animTargFrame = 230/ANIM_FRAME_RATE;
 		pointOfSail   = "STB CLS HLD";
 		boatPctOfWindSpeed = 0.6;
+	}else if( relWndHdg < 190/180*Math.PI ){ //155-157 iorns
+		animTargFrame = 155/ANIM_FRAME_RATE;
+		pointOfSail   = "IORNS";
+		boatPctOfWindSpeed = 0.0;
 	}else if( relWndHdg < 270/180*Math.PI ){ //560 port close hauled
 		animTargFrame = 560/ANIM_FRAME_RATE;
 		pointOfSail = "PRT CLS HLD";
@@ -155,7 +162,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	//update the animation of the boat sails to the correct frame
 	let frameDiff = animTargFrame - lastAnimFrame;
 	if( Math.abs( frameDiff ) > maxAnimFrameDiffStep )
-		frameDiff = Math.sign( frameDiff ) * maxAnimFrameDiffStep;
+		frameDiff = Math.sign( frameDiff ) * animSpeed * delTime;
 	lastAnimFrame += frameDiff;
 	SkelA_UpdateTransforms( jibArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
@@ -175,8 +182,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [wIScl,wIScl,wIScl], [-110/180*Math.PI, relWndHdg, 0], [0.4*scrnAspc, 0.8, 0] );
 	}
 
-	let delTime = time-lastBoatUpdateTime;
-	
+
 	currentBoatSpeed = boatSpeed * boatPctOfWindSpeed;
 
 	AngleToVec2Unit( boatDirVec, boatHeading );
