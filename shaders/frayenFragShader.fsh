@@ -1,7 +1,7 @@
 //#version 300 es
 
 //precision qualifier for the shader code
-precision lowp float;
+precision highp float;
 
 //constant variables
 uniform bool      texturingEnabled;
@@ -90,10 +90,12 @@ void main() {
 			//specular calculation
 			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
 			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
-			float specularLightAmt = pow( toCamLightAmt*specularAmtHrdnessExp[0],  5.0*specularAmtHrdnessExp[1]);
+			float expPow = 5.0*specularAmtHrdnessExp[1];
+			float expVal = clamp(toCamLightAmt*specularAmtHrdnessExp[0], 0.0, 1.0);
+			float specularLightAmt = pow( expVal, expPow );
 			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
 			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
-
+			//gl_FragColor = vec4(expVal,expPow,specularLightAmt,1);
 		}
 		if( 1 < numLights ){
 		}
