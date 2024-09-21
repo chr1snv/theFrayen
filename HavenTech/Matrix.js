@@ -84,7 +84,7 @@ function Matrix_SetBoneRotat( retMat, tail ){
 	// the y axis to the axis of the bone (boneAxisVector)
 	
 	Vect3_Copy(boneAxis, tail);
-	Vect3_Unit(boneAxis);
+	Vect3_Normal(boneAxis);
 	
 	let defAxis = Vect3_NewVals(0.0, 1.0, 0.0);
 	
@@ -97,7 +97,7 @@ function Matrix_SetBoneRotat( retMat, tail ){
 		//find the axis to rotate around (orthogonal to the tail-head and default axis)
 		
 		Vect3_Cross(rotationAxis,  defAxis, boneAxis );
-		Vect3_Unit(rotationAxis);
+		Vect3_Normal(rotationAxis);
 		
 		//generate the rotation quaternion
 		//to be delt with

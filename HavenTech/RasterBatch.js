@@ -23,7 +23,7 @@ function LineDrawBatchBuffer(numAttrs, attrCards){
 
 	this.bufSubRanges = {};
 
-	this.bufferUpdated   = true;
+	this.vertsNotYetUploaded   = true;
 }
 
 function AllocateLineBatchAttrBuffers(dbB){
@@ -55,6 +55,7 @@ function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
 	this.maxLen = 0; //over multiple frames the most number of vertices
 	this.startIdx = startIdxIn;
 	this.len      = lenIn;
+	this.lastTimeDrawn = 0;
 	this.toWorldMatrix   = Matrix_New();
 	this.skelAnim = null;
 	this.vertsNotYetUploaded = true;
@@ -182,11 +183,12 @@ function CmpSBBList(a,b){
 	return distToA<=distToB;
 }
 */
-let sortedSubRngKeysTemp = new Array(32);
+//let sortedSubRngKeysTemp = new Array(32);
 function GenSortedSubBatchBufferList(dbB, camPos){
 	//sort the sub batches by object distance to camera (front to back)
 
 	dbB.sortedSubRngKeys = Object.keys(dbB.bufSubRanges);
+
 	dbB.numBufSubRanges = dbB.sortedSubRngKeys.length;
 	cmpSbb = dbB;
 	cmpCamOri = camPos;
@@ -214,8 +216,8 @@ function SortSubBatches(rastBatch, camPos ){
 	//and getting verticies from them if necessary
 	for( let key in rastBatch.drawBatchBuffers ){
 		let drawBatch = rastBatch.drawBatchBuffers[key];
-
-		GenSortedSubBatchBufferList( drawBatch, camPos );
+		if( drawBatch.bufferIdx  > 0 )
+			GenSortedSubBatchBufferList( drawBatch, camPos );
 
 //		if( drawBatch.vertBuffer == null)
 //			AllocateBatchBufferArrays(drawBatch);
@@ -263,7 +265,7 @@ function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatIdx 
 }
 
 //as sub batch buffers may
-function DefragmentBatchBufferAllocations(rastBatch){
+function RASTB_DefragBufferAllocs(rastBatch){
 /*
 	let dbbKeys = Object.keys(rastBatch.drawBatchBuffers);
 	for( let i = 0; i < dbbKeys.length; ++i ){
@@ -314,7 +316,7 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 			}
 		}
 	}
-	
+
 	//let camPos = rastBatch.camWorldToScreenSpaceMat;
 	SortSubBatches(rastBatch, rastBatch.camWorldPos ); //sorts sub batches by distance from camera and checks if
 	//the vertex gl attribute buffers need to be resized (in which case make sure each object is ready to upload to gl)
@@ -363,7 +365,7 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 	}
 }
 
-function RastB_DrawTris( rastBatch ){
+function RastB_DrawTris( rastBatch, time ){
 
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
@@ -376,7 +378,7 @@ function RastB_DrawTris( rastBatch ){
 
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
 	for( let key in rastBatch.drawBatchBuffers ){
-		
+
 		let dbB = rastBatch.drawBatchBuffers[key];
 		//if(dbB.bufferIdx > MAX_VERTS )
 		//	dbB.bufferIdx = MAX_VERTS;
@@ -390,7 +392,7 @@ function RastB_DrawTris( rastBatch ){
 				console.log("probably skelAnim lines");
 
 
-			TRI_G_drawTriangles( graphics.triGraphics, dbB, numAnimMatricies );
+			TRI_G_drawTriangles( graphics.triGraphics, dbB, numAnimMatricies, time );
 		}
 		//if( dbB.isAnimated )
 		//	dbB.bufferIdx = 0; //repeat refilling values

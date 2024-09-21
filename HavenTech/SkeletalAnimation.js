@@ -120,7 +120,8 @@ function SkelA_ArmatureDebugDraw(skelA, buf, subB){
 
 	}
 	subB.len = skelA.bones.length * 8;
-	buf.bufferUpdated   = true;
+	subB.obj = skelA.animatedMeshes[0];
+	buf.vertsNotYetUploaded   = true;
 }
 
 function SkelA_Cleanup(skelA){

@@ -5,23 +5,23 @@
 function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 {
 	this.programName = nameIn;
-	
+
 	this.glProgId = gl.createProgram();  //should also maybe gl.deleteProgram(Object program) when done using
-	
+
 	this.vertShaderFilename = 'shaders/' + nameIn + 'VertShader.vsh';
 	this.fragShaderFilename = 'shaders/' + nameIn + 'FragShader.fsh';
-	
+
 	this.unifVals = {}; //dictionary of glUniformLocations to last values
-	
+
 	//used to pass vertex attribute array perameters
 	//frayen attributeID to (gl program attribute location  and  allocated gl vertex Attribute buffers)
 	this.attribLocBufPtrs = {};
-	
+
 	this.readyCallbackParams = readyCallbackParams;
 	this.programReadyCallback = programReadyCallback;
 	//start fetching and loading the vertex shader
 	loadTextFile(this.vertShaderFilename, GLP_vertShaderLoaded, this);
-	
+
 }
 
 
@@ -149,11 +149,11 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 		gl.enableVertexAttribArray(glp.attribLocBufPtrs[attribInstID][0]);
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
-		
+
 	}else{
 		gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
 	}
-	
+
 	if( overallLen !=  glp.attribLocBufPtrs[attribInstID][2] ){
 		let usage = gl.STATIC_DRAW;
 		if( dynamic )
@@ -162,7 +162,7 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 		glp.attribLocBufPtrs[attribInstID][2] = overallLen;
 		return true;
 	}
-	
+
 	//vertexAttribPointer(index, size, type, normalized, stride, offset)
 	//binds buffer bound to gl.ARRAY_BUFFER to AttribLocation and specifies format
 	//gl.vertexAttribPointer(this.attribLocBufPtrs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
@@ -177,33 +177,33 @@ function GLP_vertexAttribSetFloats( glp, attribInstID, rsize, arr, attribLoc, dy
 		glp.attribLocBufPtrs[attribInstID] = [attribLoc, gl.createBuffer()];
 		gl.enableVertexAttribArray(glp.attribLocBufPtrs[attribInstID][0]);
 	}
-	
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
-	
+
 	//if( !gl.isBuffer( this.attribLocBufPtrs[attribInstID][1] ) )
 	//	console.log("failed to allocate buffer");
-	
+
 	if( dynamic )
 		gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
 	else
 		gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(glp.attribLocBufPtrs[attribInstID][0], rsize, gl.FLOAT, false, 0, 0);
-	
+
 	//CheckGLError( "glProgram::vertexAttribSetFloats " );
 }
 
 function GLP_vertexAttribSetSubFloats( glp, attribInstID, offset, arr ){
-	
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
-	
+
 	//let buffSize = gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE);
 	//if( offset*4+arr.length*4 > buffSize )
 	//	console.log("offset + size beyond buff len");
-	
+
 	//bufferSubData(target, offset, data) //uploads part of the AttribArray data to gl
 	gl.bufferSubData( gl.ARRAY_BUFFER, offset*4, arr ); //offset is in bytes (float32/8 -> 4)
-	
-	
+
+
 	//CheckGLError( "glProgram::vertexAttribSetFloats " );
 }
 

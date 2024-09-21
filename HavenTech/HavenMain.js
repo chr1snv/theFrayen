@@ -431,13 +431,19 @@ function MainLoop()
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent area still writes z location)
-	rastBatch2dTris.DrawFunc(rastBatch2dTris);
+	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
-		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i]);
+		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
 		if( AnimTransformDrawingEnabled )
-			rastBatch3dLines_array[i].DrawFunc(rastBatch3dLines_array[i]);
+			rastBatch3dLines_array[i].DrawFunc(rastBatch3dLines_array[i], sceneTime);
 	}
 
+
+	RASTB_DefragBufferAllocs(rastBatch2dTris);
+	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+		RASTB_DefragBufferAllocs(rastBatch3dTris_array[i], sceneTime);
+		RASTB_DefragBufferAllocs(rastBatch3dLines_array[i], sceneTime);
+	}
 
 
 	SND_UserInputsToNotes();

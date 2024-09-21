@@ -60,11 +60,11 @@ function LINE_G_drawLines( lineG, buf ){
 
 
 	let bufID = (buf.bufID);
-	if( buf.bufferUpdated ){ //upload the initial / changed coordinates to gl
+	if( buf.vertsNotYetUploaded ){ //upload the initial / changed coordinates to gl
 		//GLP_vertexAttribSetFloats( triG.glProgram, 0,  3, tqvrts, triG.positionAttrib );
 		GLP_vertexAttribSetFloats( lineG.glProgram, bufID,        vertCard,      buf.buffers[0], lineG.positionAttrib_F3 );//buf.isAnimated );
 		GLP_vertexAttribSetFloats( lineG.glProgram, bufID+1,      colCard,      buf.buffers[1], lineG.ptColAttrib_F4 );//buf.isAnimated );
-		buf.bufferUpdated = false;
+		buf.vertsNotYetUploaded = false;
 	}else{
 		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID ,  vertCard, (buf.bufferIdx)*vertCard );
 		GLP_vertexAttribBuffEnable( lineG.glProgram, bufID+1, colCard, (buf.bufferIdx)*colCard );

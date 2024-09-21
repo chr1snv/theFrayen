@@ -186,11 +186,11 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	currentBoatSpeed = boatSpeed * boatPctOfWindSpeed;
 
 	AngleToVec2Unit( boatDirVec, boatHeading );
-	boatMapPositionVel[0] = boatDirVec[0]*currentBoatSpeed;
-	boatMapPositionVel[1] = boatDirVec[1]*currentBoatSpeed;
-	
-	boatPosition[1] += boatMapPositionVel[0] * delTime;
-	boatPosition[0] += boatMapPositionVel[1] * delTime;
+	boatMapPositionVel[0] = boatDirVec[1]*currentBoatSpeed;
+	boatMapPositionVel[1] = boatDirVec[0]*currentBoatSpeed;
+
+	boatPosition[0] += boatMapPositionVel[0] * delTime;
+	boatPosition[1] += boatMapPositionVel[1] * delTime;
 
 	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.75, 0.03, 0.03, "Boat Speed", false, TxtJustify.Right );
 	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.75, 0.03, 0.03,   currentBoatSpeed, 2 );
@@ -201,10 +201,10 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	Matrix_SetTranslate( boatMatrixTranslate, boatPosition );
 	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );
 	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate );
-	
+
 	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp );
 	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
-	
+
 	Vect3_Copy( boatMapPosition, boatPosition ); //position used by regatta in right handed coordinate system
 	Vect3_MultiplyScalar( boatMapPosition, -1 );
 	Vect3_MultiplyScalar( boatMapPositionVel, -1 );

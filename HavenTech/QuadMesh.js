@@ -198,7 +198,7 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
             Vect3_Add(normal, crossProd); //average the contribution of the sub edges of the face
         }
         //normalize the accumulation of normals from the edge pairs of the face 
-        Vect3_Unit(normal); //possibly optional or to be changed so that faces with more / less vertices
+        Vect3_Normal(normal); //possibly optional or to be changed so that faces with more / less vertices
         //contribute more to the per vertex normal
 
         //accumulate the face normal back to each vertex

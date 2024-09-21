@@ -124,13 +124,20 @@ function RGTTA_Start(time){
 	}
 }
 
-let dist_Hdg_VecFromWaypoint = [0,0, Vect3_New()];
+let dist_Hdg_VecFromToWaypoint = [0,0, Vect3_New(), Vect3_New()];
 function RGTTA_DistAndHdgFromWaypoint( retDistHdgVecFromWayp, waypPos, toPos ){
+
+	//generate vec from waypt
 	Vect3_Copy(     retDistHdgVecFromWayp[2], toPos );
 	Vect3_Subtract( retDistHdgVecFromWayp[2], waypPos );
-	retDistHdgVecFromWayp[0] = Vect3_Length( retDistHdgVecFromWayp[2] );
-	Vect3_Unit( retDistHdgVecFromWayp[2] );
+	retDistHdgVecFromWayp[0] = Vect3_Normal( retDistHdgVecFromWayp[2] );
+	
+	//calculate the angle of the vec from waypt
 	retDistHdgVecFromWayp[1] = MTH_WrapAng0To2PI( Vec2ToAngle(retDistHdgVecFromWayp[2]) );
+	
+	//generate unit vect to waypoint
+	Vect3_Copy( retDistHdgVecFromWayp[3], retDistHdgVecFromWayp[2] );
+	Vect3_MultiplyScalar( retDistHdgVecFromWayp[3], -1 );
 }
 
 let incompleteObjColor = [1,1,0];
@@ -204,8 +211,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 		let currentBouyInfo = bouyInfos[currentWaypointIdx];
 		let bouyPosition = currentBouyInfo.bouyQm.origin;
-		RGTTA_DistAndHdgFromWaypoint( dist_Hdg_VecFromWaypoint, bouyPosition, boatMapPosition );
-		let dirIndcDir = MTH_WrapAng0To2PI(dist_Hdg_VecFromWaypoint[1] + boatHeading + -0.5*Math.PI);
+		RGTTA_DistAndHdgFromWaypoint( dist_Hdg_VecFromToWaypoint, bouyPosition, boatMapPosition );
+		let dirIndcDir = MTH_WrapAng0To2PI(dist_Hdg_VecFromToWaypoint[1] + boatHeading + -0.5*Math.PI);
 		
 		Matrix_SetEulerTransformation( directionUiQmInst.optTransMat, 
 					[.2,.2,.2], 
@@ -219,19 +226,19 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 			bouyRoundDirStr = "STARBORD";
 		TR_QueueText(   rb2DTris,  0           , 0.9 , 0.02, 0.05, currentBouyInfo.instrString, 			false, TxtJustify.Center );
 		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.7 , 0.02, 0.03, "Dist to waypoint", 						false );
-		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.7 , 0.02, 0.03, dist_Hdg_VecFromWaypoint[0].toFixed(2),  false );
+		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.7 , 0.02, 0.03, dist_Hdg_VecFromToWaypoint[0].toFixed(2),  false );
 		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.65, 0.02, 0.03, "Hdg from waypoint", 					false );
-		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.65, 0.02, 0.03, MTH_WrapAng0To2PI(dist_Hdg_VecFromWaypoint[1]).toFixed(2), 2 );
+		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.65, 0.02, 0.03, MTH_WrapAng0To2PI(dist_Hdg_VecFromToWaypoint[1]).toFixed(2), 2 );
 		
-		let vmg = Vect_Dot( boatMapPositionVel, dist_Hdg_VecFromWaypoint[2] );
+		let vmg = Vect_Dot( boatMapPositionVel, dist_Hdg_VecFromToWaypoint[3] );
 		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.6 , 0.02, 0.03, "Vel to waypoint", 						false );
 		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.6 , 0.02, 0.03, vmg,  2 );
 
 
-		if( dist_Hdg_VecFromWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
+		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
 			rgtaState = RgtaState.InColisionWithBouy;
 			TR_QueueText( rb2DTris, 0, 0.4, 0.02, 0.07, "IN COLISION WITH BOUY", false, TxtJustify.Center );
-			if( dist_Hdg_VecFromWaypoint[0] > resetPenaltyBouyDist )
+			if( dist_Hdg_VecFromToWaypoint[0] > resetPenaltyBouyDist )
 				rgtaState = RgtaState.NextBouy; //clear colision status
 		}
 
@@ -240,7 +247,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 			if( currentBouyInfo.wayType == WaypointType.StartLine ){
 				if( !currentBouyInfo.roundDirection ){ //bouy is to port of start line
-					if( dist_Hdg_VecFromWaypoint[2][0] < 0 && dist_Hdg_VecFromWaypoint[2][1] < 0 && prevVecToBouy[1] >= 0 )
+					if( dist_Hdg_VecFromToWaypoint[2][0] < 0 && dist_Hdg_VecFromToWaypoint[2][1] < 0 && prevVecToBouy[1] >= 0 )
 						incrementWaypointIdx = true;
 				}
 			}else if( currentBouyInfo.wayType == WaypointType.RoundBouy ){
@@ -252,10 +259,10 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 					rb3DTris.objs[waypRoundBeginWall.uid.val] = waypRoundBeginWall;
 
 					if( rgtaState == RgtaState.NextBouy &&
-						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromWaypoint[1] ) ){
+						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromToWaypoint[1] ) ){
 							rgtaState = RgtaState.BeganRoundingBouy;
 					}else if( rgtaState == RgtaState.BeganRoundingBouy ){
-						if( !MTH_WrappedAngLessThan( perpendicAngToNextBouy, dist_Hdg_VecFromWaypoint[1] ) ){
+						if( !MTH_WrappedAngLessThan( perpendicAngToNextBouy, dist_Hdg_VecFromToWaypoint[1] ) ){
 							incrementWaypointIdx = true;
 							rgtaState = RgtaState.NextBouy;
 						}
@@ -287,8 +294,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 		}
 
-		Vect3_Copy( prevVecToBouy, dist_Hdg_VecFromWaypoint[2] );
-		prevHdgToBouy = dist_Hdg_VecFromWaypoint[1];
+		Vect3_Copy( prevVecToBouy, dist_Hdg_VecFromToWaypoint[2] );
+		prevHdgToBouy = dist_Hdg_VecFromToWaypoint[1];
 		if( incrementWaypointIdx ){
 			currentWaypointIdx += 1;
 			beginRoundingTxtColor = incompleteObjColor;
@@ -311,12 +318,12 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 					
 					Vect3_Copy( vecToPrevBouy, prevBouyPosition );
 					Vect3_Subtract( vecToPrevBouy, bouyPosition );
-					Vect3_Unit( vecToPrevBouy );
+					Vect3_Normal( vecToPrevBouy );
 					angToPrevBouy = Vec2ToAngle( vecToPrevBouy );
 					
 					Vect3_Copy( vecToNextBouy, nextBouyPosition );
 					Vect3_Subtract( vecToNextBouy, bouyPosition );
-					Vect3_Unit( vecToNextBouy );
+					Vect3_Normal( vecToNextBouy );
 					angToNextBouy = Vec2ToAngle( vecToNextBouy );
 					
 					//map coordinates are right hand rule

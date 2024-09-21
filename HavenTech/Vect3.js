@@ -28,18 +28,23 @@
 
 //slow functions, should only use these outside of program loops and pre allocate memory where possible
 function Vect3_NewVals( s1, s2, s3 ){ let v = new Float32Array(3); v[0] = s1; v[1] = s2; v[2] = s3; return v; }
-function Vect3_New() { return new Float32Array(3);}
-function Vect_New(n) { return new Float32Array(n);}
-function Vect3_NewZero() { return new Float32Array([0,0,0]); } ////same as _New with values initalized to zero
-function Vect_NewZero(n) { let retArr = new Float32Array(n); for(let i = 0; i < n; ++i){ retArr[i] = 0; } return retArr;}
-function Vect3_NewScalar(s){ let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v;}
-function Vect3_NewAllOnes(){ return new Float32Array([1,1,1]); }
+function Vect3_NewAllOnes()         { return  new Float32Array([1,1,1]); }
+function Vect3_NewScalar( s )       { let v = new Float32Array(3); v[0] = s; v[1] = s; v[2] = s; return v; }
+function Vect3_New()                { return  new Float32Array(3); }
+function Vect3_NewZero()            { return  new Float32Array([0,0,0]); } ////same as _New with values initalized to zero
+function Vect3_CopyNew( v )         { return  new Float32Array([ v[0], v[1], v[2] ]);  } //use non new Copy function when possible
+
+function Vect_NewZero(n)            { let retArr = new Float32Array(n); for(let i = 0; i < n; ++i){ retArr[i] = 0; } return retArr;}
+function Vect_NewAllOnes(n)         { let retArr = new Float32Array(n); for(let i = 0; i < n; ++i){ retArr[i] = 1; } return retArr;}
+function Vect_New(n)                { return new Float32Array(n); }
+
+
 const Vect3_AllOnesConst = new Float32Array([1,1,1]);
 const Vect3_ZeroConst = new Float32Array([0,0,0]);
-function Vect3_CopyNew( v ) { return new Float32Array([ v[0], v[1], v[2] ]);  } //use _Copy function below when possible
+
 
 function Vect3_SetVals( v, s1, s2, s3 ){ v[0] = s1; v[1] = s2; v[2] = s3; }
-function Vect3_SetScalar( v, val ){ v[0] = val; v[1] = val; v[2] = val; }
+function Vect3_SetScalar( v, val )     { v[0] = val; v[1] = val; v[2] = val; }
 function Vect_SetScalar( v, val ){
 	for( let i = 0; i < v.length; ++i )
 		v[i] = val;
@@ -169,11 +174,7 @@ function Vect3_Normal(v1){
 	}else{
 		v1[0] /= len; v1[1] /= len; v1[2] /= len;
 	}
-}
-//another name/alias for Vect3_Normal
-function Vect3_Unit(v1){
-	const len = Vect3_Length(v1);
-	Vect3_DivideScalar(v1, len);
+	return len;
 }
 
 function Vect3_Orthogonal(v1){
@@ -181,7 +182,7 @@ function Vect3_Orthogonal(v1){
 	//(no vertical component) [used in camera class]
 	const temp = v1[0];
 	v1[0] = -v1[2]; v1[1] = 0; v1[2] = -temp;
-	Vect3_Unit(v1);
+	Vect3_Normal(v1);
 }
 
 //linearly interpolates between the two vectors

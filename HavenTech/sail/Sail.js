@@ -24,6 +24,8 @@ function SAIL_sceneSpecificLoad(cmpCb){
 	loadScriptCmpCb = SAIL_ScriptLoadCmp;
 
 	loadScriptLoop();
+	
+	sgMode = SailModes.Menu;
 }
 
 
