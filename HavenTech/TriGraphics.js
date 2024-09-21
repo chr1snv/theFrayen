@@ -286,7 +286,7 @@ const TRI_G_VERT_ATTRIB_UID_START = 3;
 let transMat = Matrix_New();
 //let camWorldToViewportMatrix = Matrix_New();
 //let tempMat = Matrix_New();
-function TRI_G_drawTriangles( triG, buf, totalNumBones ){
+function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 
 	    GLP_setUnif_F1( triG.glProgram,                 triG.alpha_fU_F1_1_Loc,                 triG.alpha_fU_F1_1, buf.material.alpha );
 
@@ -381,6 +381,8 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 	for( let i = 0; i < buf.numBufSubRanges; ++i ){
 		let subRange = buf.bufSubRanges[ bufSubRangeKeys[i] ];
 		let startIdx = subRange.startIdx;
+		if( subRange.len <= 0 )
+			continue;
 		
 		if( subRange.skelAnim != null ){
 			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1, 1 );
@@ -396,8 +398,8 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 			//GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColorUnif_F3, buf.material.diffuseCol);
 			overrideColorSet = false;
 		}
-		
-		
+
+
 
 		//set the model matrix
 		//transpose=true requires webgl2.0
@@ -410,10 +412,11 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones ){
 		//	console.log("subRangeEndIdx > vertBufferEndIdx");
 		//CheckGLError("TRI_G_drawTriangles before gl.drawArrays");
 		gl.drawArrays( gl.TRIANGLES, startIdx, subRange.len );
+		subRange.lastTimeDrawn = time;
 		//if( CheckGLError("TRI_G_drawTriangles after gl.drawArrays") )
 		//	DTPrintf("TriG drawArrays error", "trig");
-		
+
 		buf.regenAndUploadEntireBuffer = false;
 	}
-	
+
 }

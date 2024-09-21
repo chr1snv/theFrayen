@@ -216,8 +216,10 @@ function SortSubBatches(rastBatch, camPos ){
 	//and getting verticies from them if necessary
 	for( let key in rastBatch.drawBatchBuffers ){
 		let drawBatch = rastBatch.drawBatchBuffers[key];
-		if( drawBatch.bufferIdx  > 0 )
-			GenSortedSubBatchBufferList( drawBatch, camPos );
+		if( drawBatch.bufferIdx  <= 0 )
+			continue;
+
+		GenSortedSubBatchBufferList( drawBatch, camPos );
 
 //		if( drawBatch.vertBuffer == null)
 //			AllocateBatchBufferArrays(drawBatch);
@@ -380,6 +382,9 @@ function RastB_DrawTris( rastBatch, time ){
 	for( let key in rastBatch.drawBatchBuffers ){
 
 		let dbB = rastBatch.drawBatchBuffers[key];
+		if( dbB.bufferIdx <= 0 )
+			continue;
+		
 		//if(dbB.bufferIdx > MAX_VERTS )
 		//	dbB.bufferIdx = MAX_VERTS;
 		if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
