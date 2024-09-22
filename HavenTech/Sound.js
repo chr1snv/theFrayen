@@ -214,16 +214,20 @@ function soundIconClicked(){
 let inputKeyNoteMappings = {};
 let inputKeyNoteMappings_dictKeys = null;
 
+function playNote( freq, duration ){
+	SND_StartSoundContext();
+	playSineToneNode(freq, 0, duration);
+	let noteEndTime = aCtx.currentTime + 0 + duration;
+	if( lastUserInputNoteTime < noteEndTime)
+		lastUserInputNoteTime = noteEndTime;
+}
+
 lastUserInputNoteTime = 0;
 function SND_UserInputsToNotes(){
 	for( let i = 0; i < inputKeyNoteMappings_dictKeys.length; ++i ){
 		let kC = inputKeyNoteMappings_dictKeys[i];
 		if( keysDown[ kC ] == true ){
-			SND_StartSoundContext();
-			playSineToneNode(inputKeyNoteMappings[kC], 0, 0.25);
-			let noteEndTime = aCtx.currentTime + 0 + 0.25;
-			if( lastUserInputNoteTime < noteEndTime)
-				lastUserInputNoteTime = noteEndTime;
+			playNote( inputKeyNoteMappings[kC], 0.25 );
 		}
 	}
 }

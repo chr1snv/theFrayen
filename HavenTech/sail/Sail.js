@@ -111,6 +111,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						boatHeading = 0;
 						RGTTA_Start(time);
 						sgMode = SailModes.Gameplay;
+						playNote( noteFrequencies['G3' ], 0.25 );
 					}
 					if( mOvrdStrs[i] == "LEADERBOARD" ){
 						sgMode = SailModes.Leaderboard;

@@ -247,8 +247,11 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 			if( currentBouyInfo.wayType == WaypointType.StartLine ){
 				if( !currentBouyInfo.roundDirection ){ //bouy is to port of start line
-					if( dist_Hdg_VecFromToWaypoint[2][0] < 0 && dist_Hdg_VecFromToWaypoint[2][1] < 0 && prevVecToBouy[1] >= 0 )
+					if( dist_Hdg_VecFromToWaypoint[2][0] < 0 && dist_Hdg_VecFromToWaypoint[2][1] < 0 && prevVecToBouy[1] >= 0 ){
 						incrementWaypointIdx = true;
+						playNote( noteFrequencies['F3' ], 0.25 );
+						playNote( noteFrequencies['A#3'], 0.25 );
+					}
 				}
 			}else if( currentBouyInfo.wayType == WaypointType.RoundBouy ){
 				
@@ -261,10 +264,12 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 					if( rgtaState == RgtaState.NextBouy &&
 						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromToWaypoint[1] ) ){
 							rgtaState = RgtaState.BeganRoundingBouy;
+							playNote( noteFrequencies['D3' ], 0.25 );
 					}else if( rgtaState == RgtaState.BeganRoundingBouy ){
 						if( !MTH_WrappedAngLessThan( perpendicAngToNextBouy, dist_Hdg_VecFromToWaypoint[1] ) ){
 							incrementWaypointIdx = true;
 							rgtaState = RgtaState.NextBouy;
+							playNote( noteFrequencies['A3' ], 0.25 );
 						}
 					}
 
