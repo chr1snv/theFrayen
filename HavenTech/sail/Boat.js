@@ -143,7 +143,10 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		pointOfSail   = "STB CLS HLD";
 		boatPctOfWindSpeed = 0.6;
 	}else if( relWndHdg < 190/180*Math.PI ){ //155-157 iorns
-		animTargFrame = 155/ANIM_FRAME_RATE;
+		let lerpPct = (time % 0.5) * 4;
+		if( lerpPct > 1 )
+			lerpPct = 1 - (lerpPct-1);
+		animTargFrame = (155 + lerpPct)/ANIM_FRAME_RATE;
 		pointOfSail   = "IORNS";
 		boatPctOfWindSpeed = 0.0;
 	}else if( relWndHdg < 270/180*Math.PI ){ //560 port close hauled
