@@ -100,7 +100,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 		gl.width                       = width;
 		gl.height                      = height;
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-		
+
 		//generate the 2d camera orthographic matrix
 		glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
 			-1,1,//-graphics.screenHeight, graphics.screenHeight,
@@ -128,8 +128,8 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			this.currentTexId = texId;
 			gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);}
 	}
-	
-	
+
+
 	//content access functions
 	this.CopyMaterial = function( newName, newSceneName, oldMaterial ) {}
 	this.GetMaterial = function( filename, sceneName, readyCallbackParams, materialReadyCallback ){
@@ -182,12 +182,10 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			quadMeshReadyCallback( quadMesh, readyCallbackParameters );}
 	}
 	this.UnrefQuadMesh = function(filename, sceneName) {}
-	
-	
+
+
 	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests
-	
-	
-	
+
 
 
 	//initialization code
@@ -212,10 +210,6 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.enableDepthMask(true); //calls gl.depthMask(gl.TRUE)
 	gl.depthFunc(gl.LESS);
 
-	//enable blending (for transparent materials)
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-	gl.enable(gl.BLEND);
-
 
 	//load and compile the point, line, and triangle drawing gl programs
 	this.pointGraphics = new PointGraphics(GRPH_loadLineGraphics, 0);
@@ -225,6 +219,16 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 
 } //end graphics
+
+function GRPH_EnableAlphaBlending(enb){
+	//enable blending (for transparent materials)
+	if( enb ){
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		gl.enable(gl.BLEND);
+	}else{
+		gl.disable(gl.BLEND);
+	}
+}
 
 function GRPH_loadLineGraphics(){
 	graphics.lineGraphics = new LineGraphics(GRPH_loadTriGraphics, 100);

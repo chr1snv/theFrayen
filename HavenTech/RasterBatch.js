@@ -108,10 +108,18 @@ function AllocateBatchBufferArrays(dbB){
 */
 
 function GetDrawBatchBufferForMaterial(rastBatch, material){
-	let dbB = rastBatch.drawBatchBuffers[material.uid.val];
+	let dbB = null;
+	if( material.alpha < 1.0 )
+		dbB = rastBatch.alphaDrawBatchBuffers[material.uid.val];
+	else
+		dbB = rastBatch.drawBatchBuffers[material.uid.val];
+
 	if( dbB == undefined ){
 		dbB = new DrawBatchBuffer(material);
-		rastBatch.drawBatchBuffers[material.uid.val] = dbB;
+		if( material.alpha < 1.0 )
+			rastBatch.alphaDrawBatchBuffers[material.uid.val] = dbB;
+		else
+			rastBatch.drawBatchBuffers[material.uid.val] = dbB;
 	}
 	return dbB;
 }
@@ -119,32 +127,51 @@ function GetDrawBatchBufferForMaterial(rastBatch, material){
 
 //keep the sub batch buffers in place (even if not active (len == 0) until
 //the bufferIdx is > or less than a block allocation threshold amount
-//(to prevent frequent regeneration of verts,norms,uv's
+//(to prevent frequent regeneration of verts,norms,uv's)
+
+function RastB_ResetDBB( dbB ){
+	dbB.lastBufferIdx = dbB.bufferIdx;
+	dbB.numSubBufferUpdatesToBeValid = 0;
+	//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
+	//dbb.bufferIdx = 0;
+
+	for( let skey in dbB.bufSubRanges ){
+		let subRange = dbB.bufSubRanges[ skey ];
+		//subRange.lastStartIdx = subRange.startIdx;
+		if( subRange.maxLen < subRange.len )
+			subRange.maxLen = subRange.len;
+		//subRange.startIdx = 0;
+		subRange.len = 0;
+	}
+}
 
 //reset indicies between frames incase the objects
 //within the camera frustum to be drawn are different
 function RastB_ResetDrawAndSubBatchBufferIdxs(rastBatch){
-	//sub batch buffer
-	for( let key in rastBatch.drawBatchBuffers ){
-		let dbb = rastBatch.drawBatchBuffers[key];
-		dbb.lastBufferIdx = dbb.bufferIdx;
-		dbb.numSubBufferUpdatesToBeValid = 0;
-		//dbb.bufferUpdated = false; //done in TRI_G_drawTriangles
-		//dbb.bufferIdx = 0;
 
-		for( let skey in dbb.bufSubRanges ){
-			let subRange = dbb.bufSubRanges[ skey ];
-			//subRange.lastStartIdx = subRange.startIdx;
-			if( subRange.maxLen < subRange.len )
-				subRange.maxLen = subRange.len;
-			//subRange.startIdx = 0;
-			subRange.len = 0;
-		}
+	for( let key in rastBatch.drawBatchBuffers ){
+		let dbB = rastBatch.drawBatchBuffers[key];
+		RastB_ResetDBB( dbB );
+	}
+	
+	for( let key in rastBatch.alphaDrawBatchBuffers ){
+		let dbB = rastBatch.alphaDrawBatchBuffers[key];
+		RastB_ResetDBB( dbB );
 	}
 
 }
 
-function CmpSbbObjs(a,b){
+//sort objects back to front (for alpha materials)
+function CmpSbbObjsBtoF(a,b){
+	let objA = cmpSbb.bufSubRanges[a].obj;
+	let objB = cmpSbb.bufSubRanges[b].obj;
+	let distToA = Vect3_Distance( cmpCamOri, objA.AABB.center);
+	let distToB = Vect3_Distance( cmpCamOri, objB.AABB.center);
+	return distToB-distToA;
+}
+
+//sort objects front to back
+function CmpSbbObjsFtoB(a,b){
 	let objA = cmpSbb.bufSubRanges[a].obj;
 	let objB = cmpSbb.bufSubRanges[b].obj;
 	let distToA = Vect3_Distance( cmpCamOri, objA.AABB.center);
@@ -184,7 +211,7 @@ function CmpSBBList(a,b){
 }
 */
 //let sortedSubRngKeysTemp = new Array(32);
-function GenSortedSubBatchBufferList(dbB, camPos){
+function GenSortedSubBatchBufferList(dbB, camPos, cmpFunc){
 	//sort the sub batches by object distance to camera (front to back)
 
 	dbB.sortedSubRngKeys = Object.keys(dbB.bufSubRanges);
@@ -192,7 +219,10 @@ function GenSortedSubBatchBufferList(dbB, camPos){
 	dbB.numBufSubRanges = dbB.sortedSubRngKeys.length;
 	cmpSbb = dbB;
 	cmpCamOri = camPos;
-	dbB.sortedSubRngKeys.sort( CmpSbbObjs );
+	dbB.sortedSubRngKeys.sort( cmpFunc );
+	
+	
+	
 	/*
 	let nextPotSz = Math.pow(2,Math.ceil(Math.log2(dbB.sortedSubRngKeys.length)));
 	while( dbB.sortedSubRngKeys.length < nextPotSz )
@@ -211,15 +241,15 @@ function GenSortedSubBatchBufferList(dbB, camPos){
 }
 
 
-function SortSubBatches(rastBatch, camPos ){
+function SortSubBatches(dbBs, camPos, cmpFunc ){
 	//called each frame between finding all objects to draw in the frame
 	//and getting verticies from them if necessary
-	for( let key in rastBatch.drawBatchBuffers ){
-		let drawBatch = rastBatch.drawBatchBuffers[key];
+	for( let key in dbBs ){
+		let drawBatch = dbBs[key];
 		if( drawBatch.bufferIdx  <= 0 )
 			continue;
 
-		GenSortedSubBatchBufferList( drawBatch, camPos );
+		GenSortedSubBatchBufferList( drawBatch, camPos, cmpFunc );
 
 //		if( drawBatch.vertBuffer == null)
 //			AllocateBatchBufferArrays(drawBatch);
@@ -319,8 +349,10 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 		}
 	}
 
-	//let camPos = rastBatch.camWorldToScreenSpaceMat;
-	SortSubBatches(rastBatch, rastBatch.camWorldPos ); //sorts sub batches by distance from camera and checks if
+
+	SortSubBatches(rastBatch.drawBatchBuffers, rastBatch.camWorldPos, CmpSbbObjsFtoB );
+	SortSubBatches(rastBatch.alphaDrawBatchBuffers, rastBatch.camWorldPos, CmpSbbObjsBtoF );
+	//sorts sub batches by distance from camera and checks if
 	//the vertex gl attribute buffers need to be resized (in which case make sure each object is ready to upload to gl)
 
 	
@@ -367,6 +399,23 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 	}
 }
 
+function RastB_DrawBatchTris( dbB, numAnimMatricies, time ){
+	if( dbB.bufferIdx <= 0 )
+		return;
+		
+	//if(dbB.bufferIdx > MAX_VERTS )
+	//	dbB.bufferIdx = MAX_VERTS;
+	if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
+
+		if( dbB.material == undefined )
+			console.log("probably skelAnim lines");
+
+		TRI_G_drawTriangles( graphics.triGraphics, dbB, numAnimMatricies, time );
+	}
+	//if( dbB.isAnimated )
+	//	dbB.bufferIdx = 0; //repeat refilling values
+}
+
 function RastB_DrawTris( rastBatch, time ){
 
 	//enable/switch to the triangle glProgram
@@ -378,29 +427,20 @@ function RastB_DrawTris( rastBatch, time ){
 	if( rastBatch.boneMatTexture != null )
 		SkelA_EnableBoneMatTexture(rastBatch.boneMatTexture);
 
+	let numAnimMatricies = 0;
+	if( rastBatch.combinedBoneMats )
+		numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
+
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
+	GRPH_EnableAlphaBlending(false);
 	for( let key in rastBatch.drawBatchBuffers ){
-
 		let dbB = rastBatch.drawBatchBuffers[key];
-		if( dbB.bufferIdx <= 0 )
-			continue;
-		
-		//if(dbB.bufferIdx > MAX_VERTS )
-		//	dbB.bufferIdx = MAX_VERTS;
-		if( dbB.numSubBufferUpdatesToBeValid <= 0 ){
-
-			let numAnimMatricies = 0;
-			if( rastBatch.combinedBoneMats )
-				numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
-
-			if( dbB.material == undefined )
-				console.log("probably skelAnim lines");
-
-
-			TRI_G_drawTriangles( graphics.triGraphics, dbB, numAnimMatricies, time );
-		}
-		//if( dbB.isAnimated )
-		//	dbB.bufferIdx = 0; //repeat refilling values
+		RastB_DrawBatchTris( dbB, numAnimMatricies, time );
+	}
+	GRPH_EnableAlphaBlending(true);
+	for( let key in rastBatch.alphaDrawBatchBuffers ){
+		let dbB = rastBatch.alphaDrawBatchBuffers[key];
+		RastB_DrawBatchTris( dbB, numAnimMatricies, time );
 	}
 
 }
@@ -458,6 +498,8 @@ function RasterBatch( drawFunc ){
 	this.armatures = [];
 	this.combinedBoneMats = null;
 
-	this.drawBatchBuffers = {}; //per material collection of objects/(primatives) to draw
+	//per material collections of objects/(primatives) to draw
+	this.drawBatchBuffers      = {}; 
+	this.alphaDrawBatchBuffers = {};
 
 }
