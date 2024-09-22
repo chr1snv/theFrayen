@@ -139,10 +139,17 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		pointOfSail   = "STB REACH";
 		boatPctOfWindSpeed = 1;
 	}else if( relWndHdg < 170/180*Math.PI ){ //230 stb close hauled
+		if( lastAnimFrame < 185/ANIM_FRAME_RATE )
+			lastAnimFrame = 185/ANIM_FRAME_RATE;
 		animTargFrame = 230/ANIM_FRAME_RATE;
 		pointOfSail   = "STB CLS HLD";
 		boatPctOfWindSpeed = 0.6;
 	}else if( relWndHdg < 190/180*Math.PI ){ //155-157 iorns
+		if( lastAnimFrame < 155/ANIM_FRAME_RATE )
+			lastAnimFrame = 155/ANIM_FRAME_RATE;
+		else if( lastAnimFrame > 156/ANIM_FRAME_RATE )
+			lastAnimFrame = 156/ANIM_FRAME_RATE;
+	
 		let lerpPct = (time % 0.5) * 4;
 		if( lerpPct > 1 )
 			lerpPct = 1 - (lerpPct-1);
@@ -150,10 +157,14 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		pointOfSail   = "IORNS";
 		boatPctOfWindSpeed = 0.0;
 	}else if( relWndHdg < 270/180*Math.PI ){ //560 port close hauled
+	if( lastAnimFrame < 500/ANIM_FRAME_RATE )
+			lastAnimFrame = 500/ANIM_FRAME_RATE;
 		animTargFrame = 560/ANIM_FRAME_RATE;
 		pointOfSail = "PRT CLS HLD";
 		boatPctOfWindSpeed = 0.6;
 	}else if( relWndHdg < 315/180*Math.PI ){ //635 port reach
+		if( lastAnimFrame < 156/ANIM_FRAME_RATE )
+			lastAnimFrame = 670/ANIM_FRAME_RATE;
 		animTargFrame = 635/ANIM_FRAME_RATE;
 		pointOfSail = "PRT REACH";
 		boatPctOfWindSpeed = 1;
