@@ -50,22 +50,24 @@ function GetLineBatchBuffer(rastBatch, shdrName, numAttrs, attrCards){
 
 function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
 	//this.lastStartIdx = 0;
-	this.obj = objIn;
-	this.objMatIdx = objMatIdxIn;
-	this.maxLen = 0; //over multiple frames the most number of vertices
-	this.startIdx = startIdxIn;
-	this.len      = lenIn;
-	this.lastTimeDrawn = 0;
-	this.toWorldMatrix   = Matrix_New();
-	this.skelAnim = null;
+	this.obj                 = objIn;
+	this.objMatIdx           = objMatIdxIn;
+	this.maxLen              = 0; //over multiple frames the most number of vertices
+	this.startIdx            = startIdxIn;
+	this.len                 = lenIn;
+	this.lastTimeDrawn       = 0;
+	this.toWorldMatrix       = Matrix_New();
+	this.skelAnim            = null;
 	this.vertsNotYetUploaded = true;
+	this.overrideColor       = null;
+	this.nonHighlightedColor = null;
 }
 //const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
 function DrawBatchBuffer(material){
-	this.bufID = nextBufID; //the gl BufferId in TriGraphics
-	nextBufID += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
-	this.material        = material;
+	this.bufID         = nextBufID; //the gl BufferId in TriGraphics
+	nextBufID    += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
+	this.material      = material;
 
 
 	this.bufferIdx       = 0;

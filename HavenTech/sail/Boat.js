@@ -54,8 +54,9 @@ function BOAT_Init(){
 //670 port downwind wing on wing 	(270-180deg)
 
 var boatHeading = 0; // offset by 3/2*Math.PI
-let boatSpeed = 3;
+let boatSpeed = 7;
 var currentBoatSpeed = 0;
+let sailSpeedLerpPctInOneSec = 1.0/3;
 
 let boatDirVec = Vect_New(2);
 
@@ -76,10 +77,10 @@ let boatMatrixPosOffset = Matrix_New();
 Matrix_SetIdentity(boatMatrixPosOffset);
 Matrix_SetTranslate( boatMatrixPosOffset, boatPosOffset );
 
-let maxTillerDirection = 0.2;
+let maxTillerDirection = 1.7;
 let tillerDirection = 0;
-let tillerInputAmt = 0.005;
-const restoreAmt = 0.01;
+let tillerInputAmt = 0.01;
+const restoreAmt = 1.8;
 
 let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
@@ -94,35 +95,37 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg/*-(1/180)*Math.PI*/) + boatHeading );
 
 	//handle input
+	let inputAmt = tillerInputAmt * currentBoatSpeed;
 	let input = false;
 	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true ){
-		tillerDirection -= tillerInputAmt;
+		tillerDirection -= inputAmt;
 		input = true;
 	}
 	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true ){
-		tillerDirection += tillerInputAmt;
+		tillerDirection += inputAmt;
 		input = true;
 	}
 	if( touch.menuTouch != null ){
-		tillerDirection += tillerInputAmt * touch.menuDelta[0] * touchMoveSenValue;
+		tillerDirection += inputAmt * touch.menuDelta[0] * touchMoveSenValue;
 		input = true;
 	}
 	if( mDown ){
 		let mDeltaX = mCoords.x- mDownCoords.x;
-		tillerDirection += tillerInputAmt * mDeltaX * mouseXSenValue/20;
+		tillerDirection += inputAmt * mDeltaX * mouseXSenValue/20;
 		//console.log( mDeltaX );
 		input = true;
 	}
 
 	if( !input ){
-		if( Math.abs(tillerDirection) < restoreAmt * 2 )
+		let dampingAmt = -tillerDirection * restoreAmt * delTime;
+		if( Math.sign(dampingAmt + tillerDirection) != Math.sign(tillerDirection) )
 			tillerDirection = 0;
 		else
-			tillerDirection += -Math.sign( tillerDirection ) * restoreAmt;
+			tillerDirection += dampingAmt;
 	}
 	tillerDirection = Math.max( -maxTillerDirection, Math.min( maxTillerDirection, tillerDirection ) );
 
-	boatHeading += tillerDirection;
+	boatHeading += tillerDirection * delTime;
 	boatHeading = MTH_WrapAng0To2PI( boatHeading );
 	
 	let boatPctOfWindSpeed = 1.0;
@@ -155,7 +158,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 			lerpPct = 1 - (lerpPct-1);
 		animTargFrame = (155 + lerpPct)/ANIM_FRAME_RATE;
 		pointOfSail   = "IORNS";
-		boatPctOfWindSpeed = 0.0;
+		boatPctOfWindSpeed = -0.3;
 	}else if( relWndHdg < 270/180*Math.PI ){ //560 port close hauled
 	if( lastAnimFrame < 500/ANIM_FRAME_RATE )
 			lastAnimFrame = 500/ANIM_FRAME_RATE;
@@ -185,7 +188,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	let scrnAspc = graphics.GetScreenAspect();
 	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.8, 0.03, 0.03, "RelWndHdg", false, TxtJustify.Right );
-	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.8, 0.03, 0.03,   relWndHdg, 2 );
+	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.8, 0.03, 0.03,   relWndHdg * 180 / Math.PI, 2 );
 	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.7, 0.03, 0.03, pointOfSail, false, TxtJustify.Right );
 
 
@@ -196,8 +199,11 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [wIScl,wIScl,wIScl], [-110/180*Math.PI, relWndHdg, 0], [0.4*scrnAspc, 0.8, 0] );
 	}
 
-
-	currentBoatSpeed = boatSpeed * boatPctOfWindSpeed;
+	//sail boat inertia gives the percent that the boat keeps its speed over 1 second
+	//delTime is the frame time ( typically fractions of a second )
+	//boat original speed percent is 
+	let SailSpeedPct = delTime * sailSpeedLerpPctInOneSec;
+	currentBoatSpeed = (currentBoatSpeed * (1-SailSpeedPct) ) + (boatSpeed * boatPctOfWindSpeed * SailSpeedPct);
 
 	AngleToVec2Unit( boatDirVec, boatHeading );
 	boatMapPositionVel[0] = boatDirVec[1]*currentBoatSpeed;

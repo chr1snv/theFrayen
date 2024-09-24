@@ -36,7 +36,7 @@ function TXTR_Init(ldCmpCb){
 
 
 
-function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left ){
+function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left, overideColor=null ){
 
 	//get the number of digits and str len for center and right justified strings
 	let numMinDigits = 1;
@@ -59,18 +59,18 @@ function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left
 	
 
 	let dgtSpc = xKernSpc * size;
-	let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, 0		, TxtJustify.Left );
-		nextLtrStartX = TR_QueueText(	rb2DTris, colXStrt, y, dpth, size, ':col:'		, false	, TxtJustify.Left );
+	let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, 0		, TxtJustify.Left, overideColor );
+		nextLtrStartX = TR_QueueText(	rb2DTris, colXStrt, y, dpth, size, ':col:'		, false	, TxtJustify.Left, overideColor );
 		nextLtrStartX += xKernOverrides["col"]*size;
 	if( s < 10 ){
-						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, 0		, TxtJustify.Left );
+						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, 0		, TxtJustify.Left, overideColor );
 						nextLtrStartX += xKernSpc * size;
 	}
-		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, TxtJustify.Left );
+		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, TxtJustify.Left, overideColor );
 	return nextLtrStartX;
 
 }
-function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Center ){
+function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justify=TxtJustify.Center, overideColor=null ){
 	//the specified location x,y is of the int.decimal sperator so that each 10's place stays
 	//in the same spot on screen as values change
 
@@ -114,29 +114,29 @@ function TR_QueueNumber( rb2DTris, x, y, dpth, size, num, numDecPlaces=0, justif
 
 	//print the string ( with offsets for left, center or right justification )
 	if( negNum ){
-		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ":min:", false, TxtJustify.Left );
+		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ":min:", false, TxtJustify.Left, overideColor );
 		nextStrXOffset += xKernOverrides["min"]*size;
 	}
 
 
 	if( numDigits <= 0 ){
-		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '0', false, TxtJustify.Left );
+		TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, '0', false, TxtJustify.Left, overideColor );
 		nextStrXOffset += xKernSpc * size;
 	}else{
 		let numRemainder = num;
 		for( let i = 0; i < numDigits; ++i ){
 			let digitPowerOfTen = Math.pow(10, (numDigits-1)-i);
 			let digit = Math.floor( numRemainder / digitPowerOfTen );
-			TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false, TxtJustify.Left );
+			TR_QueueText( rb2DTris, nextStrXOffset, y, dpth, size, ''+digit, false, TxtJustify.Left, overideColor );
 			nextStrXOffset += xKernSpc * size;
 			numRemainder = numRemainder - (digit * digitPowerOfTen);
 		}
 	}
 
 	if( decNum > 0 && numDecPlaces > 0 ){
-		nextStrXOffset = TR_QueueText( rb2DTris, decStrStX, y, dpth, size, '.', false, TxtJustify.Left );
+		nextStrXOffset = TR_QueueText( rb2DTris, decStrStX, y, dpth, size, '.', false, TxtJustify.Left, overideColor );
 		decNum = decNum * Math.pow(10, numDecPlaces );
-		nextStrXOffset = TR_QueueNumber( rb2DTris, nextStrXOffset, y, dpth, size, decNum, 0, TxtJustify.Left );
+		nextStrXOffset = TR_QueueNumber( rb2DTris, nextStrXOffset, y, dpth, size, decNum, 0, TxtJustify.Left, overideColor );
 	}
 	return nextStrXOffset;
 }
@@ -351,6 +351,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	}
 	
 	queuedTextSbb.overrideColor = overideColor;
+	queuedTextSbb.nonHighlightedColor = overideColor;
 
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
@@ -396,7 +397,7 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 			subRng.overrideColor = tr_highlightedColor;
 			mOvrdStrs[ numMOvrdStrs++ ] = subRng.obj.str;
 		}else{
-			subRng.overrideColor = null;
+			subRng.overrideColor = subRng.nonHighlightedColor;
 		}
 
 	}

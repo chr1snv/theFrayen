@@ -412,7 +412,7 @@ function drawTimeBar( leftWidthPct, heightPct, minTime, totalBarTime, currentTim
 		sCtx.fillText( timeT+"s", sCtx.canvas.width*textWPct, sCtx.canvas.height*heightPct*0.5 );
 	}
 	
-	//draw time bar background
+	//draw time bar vertical line
 	sCtx.fillStyle = '#ffffff';
 	let timeBarWPct = (currentTime-minTime)/totalBarTime;
 	sCtx.fillRect( sCtx.canvas.width * ( leftWidthPct + (1-leftWidthPct)*timeBarWPct ), 0, 1, sCtx.canvas.height );

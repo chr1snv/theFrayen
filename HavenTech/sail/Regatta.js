@@ -53,6 +53,10 @@ function RGTTA_SceneLoaded( hvnsc ){
 	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
 					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
 
+	hvnsc.cameras[ hvnsc.activeCameraIdx ].nearClip = 0.5;
+	hvnsc.cameras[ hvnsc.activeCameraIdx ].farClip = 300.0;
+	setCamLimitInputs( hvnsc.cameras[ hvnsc.activeCameraIdx ] );
+
 	RGTA_Ready = true;
 }
 
@@ -225,14 +229,15 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 		if( currentBouyRoundDir )
 			bouyRoundDirStr = "STARBORD";
 		TR_QueueText(   rb2DTris,  0           , 0.9 , 0.02, 0.05, currentBouyInfo.instrString, 			false, TxtJustify.Center );
-		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.7 , 0.02, 0.03, "Dist to waypoint", 						false );
-		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.7 , 0.02, 0.03, dist_Hdg_VecFromToWaypoint[0].toFixed(2),  false );
-		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.65, 0.02, 0.03, "Hdg from waypoint", 					false );
-		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.65, 0.02, 0.03, MTH_WrapAng0To2PI(dist_Hdg_VecFromToWaypoint[1]).toFixed(2), 2 );
+		let distX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.7 , 0.02, 0.03, "Dist to waypoint", 						false );
+		TR_QueueNumber( rb2DTris, distX+xKernSpc*0.03*5, 0.7 , 0.02, 0.03, dist_Hdg_VecFromToWaypoint[0].toFixed(2),  false );
+		let hdgX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.65, 0.02, 0.03, "Hdg to waypoint", 					false );
+		TR_QueueNumber( rb2DTris, hdgX+xKernSpc*0.03*5, 0.65, 0.02, 0.03, 
+							(MTH_WrapAng0To2PI(dist_Hdg_VecFromToWaypoint[1]+Math.PI)*180/Math.PI).toFixed(2), 2 );
 		
 		let vmg = Vect_Dot( boatMapPositionVel, dist_Hdg_VecFromToWaypoint[3] );
-		TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.6 , 0.02, 0.03, "Vel to waypoint", 						false );
-		TR_QueueNumber( rb2DTris, -0.6 *srnAspc, 0.6 , 0.02, 0.03, vmg,  2 );
+		let velX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.6 , 0.02, 0.03, "Vel to waypoint", 						false );
+		TR_QueueNumber( rb2DTris, velX+xKernSpc*0.03*5, 0.6 , 0.02, 0.03, vmg,  2 );
 
 
 		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
@@ -282,16 +287,16 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 
 					let nxtStrXStart = TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.5 , 0.02, txtSz, 
-														"Hdg frm Wayp to begin rounding", 
+														"Hdg to Wayp to begin rounding", 
 											false, TxtJustify.Left, beginRoundingTxtColor     );
 					nxtStrXStart = Math.ceil( (nxtStrXStart+(xKernSpc*3*txtSz)) * 10 ) / 10;
 									   TR_QueueNumber( rb2DTris, nxtStrXStart				 , 0.5 , 0.02, txtSz,
-									   					perpendicAngToPrevBouy.toFixed(2), 2 );
+									   			(MTH_WrapAng0To2PI(perpendicAngToPrevBouy+Math.PI)*180/Math.PI).toFixed(2), 2 );
 									   TR_QueueText(   rb2DTris, -0.95*srnAspc				 , 0.47, 0.02, txtSz, 
-									   					"Hdg frm Wayp to complete rounding",
+									   					"Hdg to Wayp to complete rounding",
 									   		false, TxtJustify.Left, endRoundingTxtColor     );
 									   TR_QueueNumber( rb2DTris, nxtStrXStart				 , 0.47, 0.02, txtSz, 
-									   					perpendicAngToNextBouy.toFixed(2), 2 );
+									   			(MTH_WrapAng0To2PI(perpendicAngToNextBouy+Math.PI)*180/Math.PI).toFixed(2), 2 );
 
 				}
 
