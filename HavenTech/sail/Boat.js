@@ -9,15 +9,15 @@ let windIndcQm = null;
 let jibArm = null;
 let mainArm = null;
 let girlArm = null;
-function BOAT_Init(){
+function BOAT_Init(scn){
 	//gets a handle to the sailboat and girl models for animation control
 
 	//graphics.GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP)
-	jibArm = graphics.cachedObjs[SkeletalAnimation.name]["girl_35_boatAnimsIntegrated"]["JibArmature"][0];
+	jibArm = graphics.cachedObjs[SkeletalAnimation.name][scn.sceneName]["JibArmature"][0];
 	jibArm.scriptControlled = true;
-	mainArm = graphics.cachedObjs[SkeletalAnimation.name]["girl_35_boatAnimsIntegrated"]["MainArmature"][0];
+	mainArm = graphics.cachedObjs[SkeletalAnimation.name][scn.sceneName]["MainArmature"][0];
 	mainArm.scriptControlled = true;
-	girlArm = graphics.cachedObjs[SkeletalAnimation.name]["girl_35_boatAnimsIntegrated"]["Armature"][0];
+	girlArm = graphics.cachedObjs[SkeletalAnimation.name][scn.sceneName]["Armature"][0];
 	girlArm.scriptControlled = true;
 
 	//no longer needed because "scriptControlled" requires this to be done per frame

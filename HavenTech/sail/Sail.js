@@ -10,7 +10,7 @@ function SAIL_ScriptLoadCmp(){
 
 	RGTTA_Init();
 
-	BOAT_Init();
+	BOAT_Init(mainScene);
 
 	sailLdCmpCb();
 }

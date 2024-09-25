@@ -111,14 +111,14 @@ function AllocateBatchBufferArrays(dbB){
 
 function GetDrawBatchBufferForMaterial(rastBatch, material){
 	let dbB = null;
-	if( material.alpha < 1.0 )
+	if( material.alpha < 1.0 || material.diffuseTextureAlpha )
 		dbB = rastBatch.alphaDrawBatchBuffers[material.uid.val];
 	else
 		dbB = rastBatch.drawBatchBuffers[material.uid.val];
 
 	if( dbB == undefined ){
 		dbB = new DrawBatchBuffer(material);
-		if( material.alpha < 1.0 )
+		if( material.alpha < 1.0 || material.diffuseTextureAlpha)
 			rastBatch.alphaDrawBatchBuffers[material.uid.val] = dbB;
 		else
 			rastBatch.drawBatchBuffers[material.uid.val] = dbB;
@@ -418,10 +418,8 @@ function RastB_DrawBatchTris( dbB, numAnimMatricies, time ){
 	//	dbB.bufferIdx = 0; //repeat refilling values
 }
 
-function RastB_DrawTris( rastBatch, time ){
 
-	//enable/switch to the triangle glProgram
-	TRI_G_Setup(graphics.triGraphics);
+function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 
 	if( rastBatch.ambientColor )
 		TRI_G_SetupLights(graphics.triGraphics, rastBatch );
@@ -434,15 +432,25 @@ function RastB_DrawTris( rastBatch, time ){
 		numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
 
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
-	GRPH_EnableAlphaBlending(false);
-	for( let key in rastBatch.drawBatchBuffers ){
-		let dbB = rastBatch.drawBatchBuffers[key];
-		RastB_DrawBatchTris( dbB, numAnimMatricies, time );
-	}
-	GRPH_EnableAlphaBlending(true);
-	for( let key in rastBatch.alphaDrawBatchBuffers ){
-		let dbB = rastBatch.alphaDrawBatchBuffers[key];
-		RastB_DrawBatchTris( dbB, numAnimMatricies, time );
+	
+
+
+	if( !drawTransparentBatches ){
+
+		GRPH_EnableAlphaBlending(false);
+		for( let key in rastBatch.drawBatchBuffers ){
+			let dbB = rastBatch.drawBatchBuffers[key];
+			RastB_DrawBatchTris( dbB, numAnimMatricies, time );
+		}
+
+	}else{
+
+		GRPH_EnableAlphaBlending(true);
+		for( let key in rastBatch.alphaDrawBatchBuffers ){
+			let dbB = rastBatch.alphaDrawBatchBuffers[key];
+			RastB_DrawBatchTris( dbB, numAnimMatricies, time );
+		}
+
 	}
 
 }

@@ -341,6 +341,8 @@ function sceneLoaded(havenScene)
 	rastBatch2dTris.lights = [
 		new Light("menuLight", "menu", 
 				lcol, leng, lampType, lghtLoc, lghtRot, lspotsz, lanim)];
+				
+	//sceneSpecificLoaded( Scene );
 
 
 	sceneLoadedTime = Date.now();
@@ -431,14 +433,25 @@ function MainLoop()
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent area still writes z location)
-	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
+
+	//enable/switch to the triangle glProgram
+	TRI_G_Setup(graphics.triGraphics);
+	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, 0);
+
+	//draw opaque materials
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
 		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
-		if( AnimTransformDrawingEnabled )
+		if( AnimTransformDrawingEnabled ){
 			rastBatch3dLines_array[i].DrawFunc(rastBatch3dLines_array[i], sceneTime);
+			TRI_G_Setup(graphics.triGraphics);
+		}
+	}
+	//draw transparent materials
+	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 	}
 
-
+	//deallocate things that havent been used in gl memory for a while 
 	RASTB_DefragBufferAllocs(rastBatch2dTris);
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
 		RASTB_DefragBufferAllocs(rastBatch3dTris_array[i], sceneTime);
