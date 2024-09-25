@@ -276,12 +276,9 @@ function stop(){
 	runSceneButtonElm.onclick = loadScene;
 
 	TR_CleanupFrameGlyphs();
-	if( typeof mainScene != 'undefined' )
-		CleanUpDrawBatchBuffers(mainScene);
+	CleanUpRasterBatches();
 	GRPH_Cleanup(graphics);
 	delete( mainScene );
-
-
 
 }
 
@@ -296,6 +293,8 @@ function ResetSettings(){
 //callback once a scene has finished loading
 var sceneTime = 0;
 var sceneLoadedTime = 0;
+var mainScene = null;
+var mainCam = null;
 function sceneLoaded(havenScene)
 {
 	statusElm.innerHTML = "Init Scene";
@@ -315,10 +314,10 @@ function sceneLoaded(havenScene)
 	statusElm.innerHTML = "Running";
 
 
-	let cam = mainScene.cameras[mainScene.activeCameraIdx];
+	mainCam = mainScene.cameras[mainScene.activeCameraIdx];
 	if( posDbgText ){
 		UpadateMousePosText();
-		UpdateCamTransText(cam);
+		UpdateCamTransText(mainCam);
 	}
 
 	if( mainScene.scnId < 0 ){
@@ -386,8 +385,8 @@ function MainLoop()
 	}
 
 	//generate the camera matrix
-	let mainCam = mainScene.cameras[ mainScene.activeCameraIdx ];
 	mainCam.GenWorldToFromScreenSpaceMats();
+	//set the camera parameters (matrix, fov, pos) of draw batches
 	rastBatch3dTris_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
 	rastBatch3dTris_array[0].camFov = mainCam.fov;
 	rastBatch3dTris_array[0].camWorldPos = mainCam.camTranslation;
@@ -436,7 +435,8 @@ function MainLoop()
 
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
-	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, 0);
+	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
+		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
 
 	//draw opaque materials
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
@@ -447,7 +447,7 @@ function MainLoop()
 		}
 	}
 	//draw transparent materials
-	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
+	for( let i = RastB_numActive3DBatches-1; i >= 0; --i ){
 		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 	}
 
@@ -516,8 +516,8 @@ let screenPosDiv = document.getElementById("mouseScreenPos");
 function UpdateCamTransText(cam){
 	//cam.getLocation(camLocV);
 	//cam.getRotation(camRotQ);
-	camLocDiv.textContent = Vect_FixedLenStr( cam.camTranslation, 2, 6 );
-	camRotDiv.textContent = Vect_FixedLenStr( cam.camRotation, 2, 6 );
+	camLocDiv.textContent = Vect_FixedLenStr( mainCam.camTranslation, 2, 6 );
+	camRotDiv.textContent = Vect_FixedLenStr( mainCam.camRotation, 2, 6 );
 }
 
 function UpadateMousePosText(){
@@ -583,15 +583,12 @@ function HandleDefaultCameraControls( updateTime ){
 	if( keys[keyCodes.KEY_E] == true )
 		camRotDelEuler[2] -= moveAmt*9*updateCameraTimeDelta;
 
-
-	let cam = mainScene.cameras[mainScene.activeCameraIdx];
-
 	if( keys[keyCodes.KEY_N] ) //toggle limited view of camera rays near screen position of cursor
-		cam.onlyRaysNearCursor = !cam.onlyRaysNearCursor;
+		mainCam.onlyRaysNearCursor = !mainCam.onlyRaysNearCursor;
 
 	//update mouse position text
-	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*cam.numHorizRays);
-	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*cam.numVertRays);
+	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*mainCam.numHorizRays);
+	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*mainCam.numVertRays);
 	if( posDbgText )
 		UpadateMousePosText();
 
@@ -602,12 +599,12 @@ function HandleDefaultCameraControls( updateTime ){
 		lastInputTime = sceneTime;
 		//update the camera position / orientation text
 		if( posDbgText )
-			UpdateCamTransText(cam);
+			UpdateCamTransText(mainCam);
 	}
 
 	//send the updates to the camera
 	Quat_FromEuler( camRotDel, camRotDelEuler );
 	Quat_Norm( camRotDel );
-	cam.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
+	mainCam.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
 	lastUpdateCameraTime = updateTime;
 }

@@ -53,9 +53,13 @@ function RGTTA_SceneLoaded( hvnsc ){
 	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
 					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
 
-	hvnsc.cameras[ hvnsc.activeCameraIdx ].nearClip = 0.5;
-	hvnsc.cameras[ hvnsc.activeCameraIdx ].farClip = 300.0;
-	setCamLimitInputs( hvnsc.cameras[ hvnsc.activeCameraIdx ] );
+	let rgtaCam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
+	rgtaCam.nearClip = 1.0;
+	rgtaCam.farClip = 500.0;
+	setCamLimitInputs( rgtaCam );
+	Vect3_Copy( rgtaCam.position, mainCam.position);
+	Vect3_Copy( rgtaCam.rotation, mainCam.rotation);
+	rgtaCam.GenWorldToFromScreenSpaceMats();
 
 	RGTA_Ready = true;
 }
@@ -187,7 +191,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	*/
 
 	//setup the regatta scene camera from the boat camera and boat translation
-	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, cam.worldToScreenSpaceMat, boatMatrix );
+	let rgtaCam = rgtaScene.cameras[ rgtaScene.activeCameraIdx ];
+	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, rgtaCam.worldToScreenSpaceMat, boatMatrix );
 	Matrix_Multiply_Vect3( rb3DTris.camWorldPos, boatMatrix, Vect3_ZeroConst );
 	rb3DTris.fov = cam.fov;
 

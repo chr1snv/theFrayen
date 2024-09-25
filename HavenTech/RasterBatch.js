@@ -322,14 +322,23 @@ function RASTB_DefragBufferAllocs(rastBatch){
 	*/
 }
 
-function CleanUpDrawBatchBuffers(rastBatch){
+function CleanUpRasterBatches(){
+	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+		CleanUpDrawBatchBuffer(rastBatch3dTris_array[i]);
+	}
+	for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
+		CleanUpDrawBatchBuffer(rastBatch3dLines_array[i]);
+	}
+	CleanUpDrawBatchBuffer( rastBatch2dTris );
+}
+
+function CleanUpDrawBatchBuffer(rastBatch){
 	for( dbB in rastBatch.drawBatchBuffers ){
 		delete( dbB );
 	}
 	rastBatch.drawBatchBuffers = {};
-	//there aren't any skeletal animation debug draw batch buffers 
-	//( they are in draw batch buffers with the key 'line' instead of a material uid )
 }
+
 function RastB_PrepareBatchToDraw( rastBatch ){
 	//for each material check sub draw batch allocations for each object using it
 	for( let key in rastBatch.objs ){
