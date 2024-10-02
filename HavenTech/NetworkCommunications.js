@@ -79,7 +79,7 @@ const NetworkResponseTypes = {
 };
 
 
-let srcWebSocketSvrUrl = "\u0013\u0018_FX[GQT^\u0012\u001b\u0002\u000cKIBD\u0014\n\r\u0004K\n\u0018_\t\u0007\r\u000fJ";
+let srcWebSocketSvrUrl = "\u0013\u0018\u0016SX\u001dZ@\\U\u0015\u0019\u0015\u0017VBHC\u0015\u001b\u0000\u0002\nG\u0014]^\u000e\n\u000cDA";
 let webSocketUrlKey    = "dkeiw23498sxvc9010an";
 let webSocketSvrUrl   = "";
 for( let i = 0; i < srcWebSocketSvrUrl.length; ++i ){
