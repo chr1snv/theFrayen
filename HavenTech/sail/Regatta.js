@@ -113,6 +113,14 @@ var rgta_completeMins = -1;
 var rgta_completeSecs = -1;
 let rgta_startTime = 0;
 function RGTTA_Start(time){
+	//boat position values are negative of boatMapPosition
+	boatPosition[0] =  10;
+	boatPosition[1] = -10;
+	lastBoatUpdateTime = time;
+	boatHeading = 35/180*Math.PI;
+	playNote( noteFrequencies['G3' ], 0.25 );
+
+
 	rgta_startTime = time;
 	startTimeCCompTextShown = Number.MAX_VALUE;
 	rgtaState = RgtaState.NextBouy;

@@ -7,15 +7,15 @@ function loadTextFile(filename, callback, thisP){
 	if(callback === undefined)
 		DPrintf("callback undefined");
 	try{
-		var txtFile = new XMLHttpRequest();
+		let txtFile = new XMLHttpRequest();
 		txtFile.onreadystatechange = function(){
 			if(txtFile.readyState == 4){
 				if(txtFile.status == 200 || txtFile.status == 0){
 					callback(txtFile.responseText, thisP); //callback
 				}
 				else{
-					var fileParts = filename.split('.');
-					var fileSuffix = fileParts[fileParts.length-1];
+					let fileParts = filename.split('.');
+					let fileSuffix = fileParts[fileParts.length-1];
 
 					if(!( fileSuffix == "hvtIPO" ||
 						  fileSuffix == "hvtKeys" ||

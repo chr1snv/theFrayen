@@ -66,6 +66,8 @@ var incFiles = ['DPrintf.js',
 				
 				'Sound.js',
 				
+				'NetworkCommunications.js',
+				
 				'SceneSpecific.js'
 				];
 
