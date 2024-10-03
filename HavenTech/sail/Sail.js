@@ -108,12 +108,12 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 				TR_QueueText( rb2DTris, -0.4,  0.0, 0.01, 0.07, "Max Players " + networkGame.maxPlayers, false, TxtJustify.Left, menuHdgColor );
 				TR_QueueText( rb2DTris, -0.4,  -0.1, 0.02, 0.07, "Connected clients ", false, TxtJustify.Left, menuHdgColor );
 				for( let idx in networkGame.clientUids ){
-					let cliUid = networkGame.clientUids[idx];
+					let cliUid = networkGame.clientUids[idx].uid;
 					let uidColr = menuHdgColor;
 					if( cliUid == localUid.val )
 						uidColr = menuTxtColor;
 					TR_QueueText( rb2DTris, -0.3,  -0.15-((idx)*0.05), 0.02, 0.07, 
-						""+networkGame.clientUids[idx], false, TxtJustify.Left, uidColr );
+						""+networkGame.clientUids[idx].uid, false, TxtJustify.Left, uidColr );
 				}
 				//networkGame.svrUid = 0;
 				//networkGame.maxPlayers = 0;
@@ -186,6 +186,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						Server_startGame();
 					}
 					break;
+				case SailModes.NetworkGameplay:
 				case SailModes.Gameplay:
 					if( mOvrdStrs[i] == ":Gear:" )
 						sgMode = SailModes.Menu;

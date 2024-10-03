@@ -382,5 +382,9 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 			}
 		}
 	}
+	
+	
+	if( !incrementWaypointIdx && sgMode == SailModes.NetworkGameplay )
+		Client_Update( boatHeading, boatMapPosition, currentWaypointIdx, dist_Hdg_VecFromToWaypoint[0], startTimeCCompTextShown == Number.MAX_VALUE ? -1 : startTimeCCompTextShown );
 }
 

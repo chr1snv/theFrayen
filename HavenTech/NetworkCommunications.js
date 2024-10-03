@@ -26,6 +26,15 @@ function intToNetworkGameMode(i){
 	}
 }
 
+function CliStatus(){
+	this.uid             = -1;
+	this.hdg             =  0;
+	this.boatMapPosition = Vect_New(2);
+	this.numWayps        =  0;
+	this.distToNextWayp  = -1;
+	this.updtCompTime    = -1;
+}
+
 function NetworkGame(){
 	this.svrUid = 0;
 	this.maxPlayers = 0;
@@ -38,9 +47,11 @@ function NetworkGame_Parse(game, parts, sIdx){
 	game.maxPlayers = parts[sIdx+2];
 	let clientUidsStr = parts[sIdx+3];
 	let clientUidsStrParts = clientUidsStr.split(',');
-	game.clientUids = new Array(clientUidsStrParts[0]);
+	let numClients = clientUidsStrParts[0];
+	while( game.clientUids.length < numClients )
+		game.clientUids.push( new CliStatus() );
 	for( let i = 1; i < clientUidsStrParts.length-1; ++i ){
-		game.clientUids[i-1] = parseInt(clientUidsStrParts[i]);
+		game.clientUids[i-1].uid = parseInt(clientUidsStrParts[i]);
 	}
 	game.status = intToNetworkGameMode( parseInt(parts[sIdx+4]) );
 }
@@ -66,8 +77,18 @@ function Client_joinGame(){
 		localUid = NewRandUID();
 	sendWebsocketServerMessage( "clientStarted uid: " + localUid.val );
 }
-function Client_boatPositionUpdate( boatHeading, boatMapPosition ){
-	sendWebsocketServerMessage( "clnt bMPos " + boatMapPosition + " bHdg " + boatHeading );
+const networkUpdateInterval = 0.25;
+let lastNetworkUpdateTime = 0;
+function Client_Update( boatHeading, boatMapPosition, wayps, distToNextWayP, completionTime ){
+	if( sceneTime - lastNetworkUpdateTime > networkUpdateInterval ){
+		lastNetworkUpdateTime = sceneTime;
+		sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUid + " " + localUid.val + 
+									" " + boatHeading.toFixed(3)  +
+									" " + boatMapPosition[0].toFixed(3) + " " + boatMapPosition[1].toFixed(3) +
+									" " + wayps +
+									" " + distToNextWayP.toFixed(3) +
+									" " + completionTime.toFixed(3) );
+	}
 }
 
 
@@ -75,7 +96,7 @@ const NetworkResponseTypes = {
 	clientJoinedGame	: 0,
 	svrGameCreated		: 1,
 	gameInfo 			: 2,
-	undefined			: 3
+	undefined			: 4
 };
 
 
@@ -103,6 +124,13 @@ function sendWebsocketServerMessage(signalingMessage){
 
 		signalingWebSocket.onerror = (event) => {
 			console.log("signalingWebSocket.onerror " + event);
+			let nAtElm = document.getElementById("networkAuthText");
+			nAtElm.innerHTML = "multiplayer, certificate may need to be accepted - or server error";
+			let nALElm = document.getElementById("networkAuthLink");
+			let urlParts = webSocketSvrUrl.split("://");
+			let url = "https://"+urlParts[1];
+			nALElm.href = url;
+			nALElm.text = url;
 		}
 
 		signalingWebSocket.onclose = (event) => {
@@ -123,6 +151,8 @@ function sendWebsocketServerMessage(signalingMessage){
 			else if( responseParts[0] == 'gmInf' )
 				networkResponseType = NetworkResponseTypes.gameInfo;
 
+			//cliUpd 37831353 0.611000 -97.082000 -114.366000 1 98.160000 -1.000000
+
 			let i = 1;
 			switch( networkResponseType ){
 				case NetworkResponseTypes.clientJoinedGame:
@@ -131,6 +161,7 @@ function sendWebsocketServerMessage(signalingMessage){
 						let serverUid = responseParts[i];
 						if( serverUid != -1 ){
 							sgMode = SailModes.ClntWatingForStart;
+							lastNetworkUpdateTime = sceneTime;
 						}
 					}
 					break;
@@ -140,6 +171,7 @@ function sendWebsocketServerMessage(signalingMessage){
 						networkGame = new NetworkGame();
 						NetworkGame_Parse(networkGame, responseParts, ++i)
 						sgMode = SailModes.SvrWaitingForPlayers;
+						lastNetworkUpdateTime = sceneTime;
 					}
 					break;
 				case NetworkResponseTypes.gameInfo:
@@ -150,7 +182,29 @@ function sendWebsocketServerMessage(signalingMessage){
 					}else if( responseParts[1] == "gameStarted" ){
 						RGTTA_Start(sceneTime);
 						sgMode = SailModes.NetworkGameplay;
+					}else if( responseParts[1] == "cliUpd" ){
+						let updtUid         = responseParts[2];
+						let updtHdg         = responseParts[3];
+						let updtX           = responseParts[4];
+						let updtY           = responseParts[5];
+						let udptNumB        = responseParts[6];
+						let updtDistToNextB = responseParts[7];
+						let updtCompTime    = responseParts[8];
+					
+						for( let i = 0; i < networkGame.clientUids.length; ++i ){
+							let cliStatus = networkGame.clientUids[i];
+							if( cliStatus.uid == updtUid ){
+								cliStatus.hdg                =  updtUid;
+								cliStatus.boatMapPosition[0] = updtX;
+								cliStatus.boatMapPosition[1] = updtY;
+								cliStatus.numWayps           =  udptNumB;
+								cliStatus.distToNextWayp     = updtDistToNextB;
+								cliStatus.updtCompTime       = updtCompTime;
+								break;
+							}
+						}
 					}
+					break;
 			}
 			
 		}
