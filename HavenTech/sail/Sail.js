@@ -80,8 +80,8 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
-					'menuBg0.png', 'sailDefault',  
-					sailMenuBgCenPos, sailMenuBgWdthHight, 
+					'menuBg0.png', 'sailDefault',
+					sailMenuBgCenPos, sailMenuBgWdthHight,
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 
 			break;
@@ -112,19 +112,22 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					let uidColr = menuHdgColor;
 					if( cliUid == localUid.val )
 						uidColr = menuTxtColor;
-					TR_QueueText( rb2DTris, -0.3,  -0.15-((cliIdx)*0.05), 0.02, 0.07, 
+					TR_QueueText( rb2DTris, -0.3,  -0.15-((cliIdx)*0.05), 0.02, 0.07,
 						""+cliUid, false, TxtJustify.Left, uidColr );
 					++cliIdx;
 				}
 			}
 			
 			//menu background overlay
-			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
-					'menuBg0.png', 'sailDefault',  
-					sailMenuBgCenPos, sailMenuBgWdthHight, 
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris,
+					'menuBg0.png', 'sailDefault',
+					sailMenuBgCenPos, sailMenuBgWdthHight,
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 			break;
 		case SailModes.NetworkGameplay:
+			let place = NetworkGame_CliUidPlace( networkGame, localUid );
+			let placeStr = positionToStr(place);
+			TR_QueueText( rb2DTris, 0.95*graphics.GetScreenAspect(), 0.83, 0.03, 0.1, placeStr, false, TxtJustify.Right );
 		case SailModes.Gameplay:
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );

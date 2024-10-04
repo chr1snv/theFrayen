@@ -42,6 +42,33 @@ function NetworkGame(){
 	this.status = NetworkGameModes.UnSynced;
 }
 
+function NetworkGame_CliUidPlace( game, lclUid ){
+	let lclCliStatus = game.clients[lclUid.val];
+	let position = 1;
+	for( let cliIdx in game.clients ){
+		let cli = game.clients[cliIdx];
+		if( cli.uidVal != lclUid ){
+			if( cli.numWayps > lclCliStatus ){
+				position += 1;
+			}else if( cli.numWayps == lclCliStatus.numWayps  && 
+				cli.distToNextWayp < lclCliStatus.distToNextWayp ){
+					position += 1;
+			}
+		}
+	}
+	return position;
+}
+function positionToStr( postn ){
+	if( postn == 1 )
+		return "1st";
+	if( postn == 2 )
+		return "2nd";
+	if( postn == 3 )
+		return "3rd";
+	if( postn >= 4 )
+		return postn+"th";
+}
+
 function NetworkGame_Parse(game, parts, sIdx){
 	//initalizes a NetworkGame structure
 	//or adds / removes players from it
@@ -89,7 +116,7 @@ function Server_startListening( numPlayersToWaitFor ){
 	if( localUid == null )
 		localUid = NewRandUID();
 
-	sendWebsocketServerMessage( "serverStarted maxPlayers: " + numPlayersToWaitFor + " uid: " + localUid.val );
+	sendWebsocketServerMessage( "serverStarted maxPlayers: " + numPlayersToWaitFor + " uid: " + localUid.val, true );
 
 }
 function Server_startGame(){
@@ -98,7 +125,7 @@ function Server_startGame(){
 
 function Network_LeaveGame(){
 	if( networkGame != null ){
-		sendWebsocketServerMessage( "leaveGame " + networkGame.svrUidVal + " " + localUid.val );
+		sendWebsocketServerMessage( "leaveGame " + networkGame.svrUidVal + " " + localUid.val, true );
 		networkGame = null;
 	}
 }
@@ -107,20 +134,19 @@ function Network_LeaveGame(){
 function Client_joinGame(){
 	if( localUid == null )
 		localUid = NewRandUID();
-	sendWebsocketServerMessage( "clientStarted uid: " + localUid.val );
+	sendWebsocketServerMessage( "clientStarted uid: " + localUid.val, true );
 }
 const networkUpdateInterval = 0.25;
 let lastNetworkUpdateTime = 0;
 function Client_Update( boatHeading, boatMapPosition, wayps, distToNextWayP, completionTime ){
-	if( sceneTime - lastNetworkUpdateTime > networkUpdateInterval ){
-		lastNetworkUpdateTime = sceneTime;
-		sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUidVal + " " + localUid.val + 
-									" " + boatHeading.toFixed(3)  +
-									" " + boatMapPosition[0].toFixed(3) + " " + boatMapPosition[1].toFixed(3) +
-									" " + wayps +
-									" " + distToNextWayP.toFixed(3) +
-									" " + completionTime.toFixed(3) );
-	}
+
+	sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUidVal + " " + localUid.val + 
+								" " + boatHeading.toFixed(3)  +
+								" " + boatMapPosition[0].toFixed(3) + " " + boatMapPosition[1].toFixed(3) +
+								" " + wayps +
+								" " + distToNextWayP.toFixed(3) +
+								" " + completionTime.toFixed(3) );
+
 }
 
 
@@ -144,7 +170,13 @@ for( let i = 0; i < srcWebSocketSvrUrl.length; ++i ){
 
 let signalingWebSocket = null;
 let queuedSignalingMessage = null;
-function sendWebsocketServerMessage(signalingMessage){
+function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=false){
+
+	if( ( sceneTime - lastNetworkUpdateTime < networkUpdateInterval ) && !nonRateLimitedMessage )
+		return;
+
+	lastNetworkUpdateTime = sceneTime;
+
 	if( signalingWebSocket == null ){
 		queuedSignalingMessage = signalingMessage;
 		signalingWebSocket = new WebSocket(webSocketSvrUrl);
@@ -225,7 +257,7 @@ function sendWebsocketServerMessage(signalingMessage){
 
 						for( let cliIdx in networkGame.clients ){
 							let cliStatus = networkGame.clients[cliIdx];
-							if( cliStatus.uid == updtUid ){
+							if( cliStatus.uidVal == updtUid ){
 								cliStatus.hdg                =  updtUid;
 								cliStatus.boatMapPosition[0] = updtX;
 								cliStatus.boatMapPosition[1] = updtY;
@@ -247,7 +279,8 @@ function sendWebsocketServerMessage(signalingMessage){
 			signalingWebSocket.send(signalingMessage);
 		}else{
 			console.log( "signalingWebSocket not readyToSend readyState " + signalingWebSocket.readyState );
-			queuedSignalingMessage = signalingMessage;
+			signalingWebSocket.close();
+			signalingWebSocket = null;
 		}
 	}
 
