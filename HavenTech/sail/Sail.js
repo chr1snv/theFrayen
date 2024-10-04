@@ -104,21 +104,18 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						gameStatusStr = "Unknown";
 				}
 				TR_QueueText( rb2DTris, 0.43,  0.17, 0.02, 0.05, gameStatusStr,   false, TxtJustify.Right,   menuHdgColor );
-				TR_QueueText( rb2DTris, -0.4,  0.07, 0.01, 0.07, "Svr Uid " + networkGame.svrUid, false, TxtJustify.Left, menuHdgColor );
+				TR_QueueText( rb2DTris, -0.4,  0.07, 0.01, 0.07, "Svr Uid " + networkGame.svrUidVal, false, TxtJustify.Left, menuHdgColor );
 				TR_QueueText( rb2DTris, -0.4,  0.0, 0.01, 0.07, "Max Players " + networkGame.maxPlayers, false, TxtJustify.Left, menuHdgColor );
 				TR_QueueText( rb2DTris, -0.4,  -0.1, 0.02, 0.07, "Connected clients ", false, TxtJustify.Left, menuHdgColor );
-				for( let idx in networkGame.clientUids ){
-					let cliUid = networkGame.clientUids[idx].uid;
+				let cliIdx = 0;
+				for( let cliUid in networkGame.clients ){
 					let uidColr = menuHdgColor;
 					if( cliUid == localUid.val )
 						uidColr = menuTxtColor;
-					TR_QueueText( rb2DTris, -0.3,  -0.15-((idx)*0.05), 0.02, 0.07, 
-						""+networkGame.clientUids[idx].uid, false, TxtJustify.Left, uidColr );
+					TR_QueueText( rb2DTris, -0.3,  -0.15-((cliIdx)*0.05), 0.02, 0.07, 
+						""+cliUid, false, TxtJustify.Left, uidColr );
+					++cliIdx;
 				}
-				//networkGame.svrUid = 0;
-				//networkGame.maxPlayers = 0;
-				//networkGame.clientUids = [];
-				//networkGame.status = NetworkGameModes.UnSynced;
 			}
 			
 			//menu background overlay
@@ -180,10 +177,17 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					break;
 				case SailModes.SvrWaitingForPlayers:
 					if( mOvrdStrs[i] == "Main Menu" ){
-						
+						Network_LeaveGame();
+						sgMode = SailModes.Menu;
 					}
 					if( mOvrdStrs[i] == "START REGATTA" ){
 						Server_startGame();
+					}
+					break;
+				case SailModes.ClntWatingForStart:
+					if( mOvrdStrs[i] == "Main Menu" ){ //remove from networkGame and return to main menu
+						Network_LeaveGame();
+						sgMode = SailModes.Menu;
 					}
 					break;
 				case SailModes.NetworkGameplay:

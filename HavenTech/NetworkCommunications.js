@@ -27,7 +27,7 @@ function intToNetworkGameMode(i){
 }
 
 function CliStatus(){
-	this.uid             = -1;
+	this.uidVal          = -1;
 	this.hdg             =  0;
 	this.boatMapPosition = Vect_New(2);
 	this.numWayps        =  0;
@@ -36,23 +36,48 @@ function CliStatus(){
 }
 
 function NetworkGame(){
-	this.svrUid = 0;
+	this.svrUidVal = 0;
 	this.maxPlayers = 0;
-	this.clientUids = [];
+	this.clients = {};
 	this.status = NetworkGameModes.UnSynced;
 }
 
 function NetworkGame_Parse(game, parts, sIdx){
-	game.svrUid = parseInt(parts[sIdx+1]);
+	//initalizes a NetworkGame structure
+	//or adds / removes players from it
+	game.svrUidVal = parseInt(parts[sIdx+1]);
 	game.maxPlayers = parts[sIdx+2];
 	let clientUidsStr = parts[sIdx+3];
 	let clientUidsStrParts = clientUidsStr.split(',');
-	let numClients = clientUidsStrParts[0];
-	while( game.clientUids.length < numClients )
-		game.clientUids.push( new CliStatus() );
-	for( let i = 1; i < clientUidsStrParts.length-1; ++i ){
-		game.clientUids[i-1].uid = parseInt(clientUidsStrParts[i]);
+	//let numClients = clientUidsStrParts[0];
+	
+	//make dictionary of uids already added
+	let cliUidsAlreadyIn = {}
+	for( let cliUidIn in game.clients ){
+		cliUidsAlreadyIn[cliUidIn] = cliUidIn;
 	}
+	//dictionary of uids to add
+	let cliUidsToAdd = {}
+	for( let i = 1; i < clientUidsStrParts.length-1; ++i ){
+		let cliUidVal = parseInt(clientUidsStrParts[i]);
+		cliUidsToAdd[ cliUidVal ] = cliUidVal;
+	}
+	//dictionary of uids to remove
+	let cliUidsToRemove = {}
+	for( let uidAlreadyIn in cliUidsAlreadyIn ){
+		if( cliUidsToAdd[uidAlreadyIn] == undefined )
+			cliUidsToRemove[ uidAlreadyIn ] = uidAlreadyIn;
+	}
+	//remove uids to remove
+	for( let uidToRemove in cliUidsToRemove	){
+		delete game.clients[uidToRemove];
+	}
+	//create new entries for uids to add
+	for( let uidToAdd in cliUidsToAdd ){
+		game.clients[uidToAdd] = new CliStatus();
+		game.clients[uidToAdd].uidVal = parseInt(uidToAdd);
+	}
+
 	game.status = intToNetworkGameMode( parseInt(parts[sIdx+4]) );
 }
 
@@ -71,6 +96,13 @@ function Server_startGame(){
 	sendWebsocketServerMessage( "svrStartGame " + localUid.val );
 }
 
+function Network_LeaveGame(){
+	if( networkGame != null ){
+		sendWebsocketServerMessage( "leaveGame " + networkGame.svrUidVal + " " + localUid.val );
+		networkGame = null;
+	}
+}
+
 //join the first open game
 function Client_joinGame(){
 	if( localUid == null )
@@ -82,7 +114,7 @@ let lastNetworkUpdateTime = 0;
 function Client_Update( boatHeading, boatMapPosition, wayps, distToNextWayP, completionTime ){
 	if( sceneTime - lastNetworkUpdateTime > networkUpdateInterval ){
 		lastNetworkUpdateTime = sceneTime;
-		sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUid + " " + localUid.val + 
+		sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUidVal + " " + localUid.val + 
 									" " + boatHeading.toFixed(3)  +
 									" " + boatMapPosition[0].toFixed(3) + " " + boatMapPosition[1].toFixed(3) +
 									" " + wayps +
@@ -190,9 +222,9 @@ function sendWebsocketServerMessage(signalingMessage){
 						let udptNumB        = responseParts[6];
 						let updtDistToNextB = responseParts[7];
 						let updtCompTime    = responseParts[8];
-					
-						for( let i = 0; i < networkGame.clientUids.length; ++i ){
-							let cliStatus = networkGame.clientUids[i];
+
+						for( let cliIdx in networkGame.clients ){
+							let cliStatus = networkGame.clients[cliIdx];
 							if( cliStatus.uid == updtUid ){
 								cliStatus.hdg                =  updtUid;
 								cliStatus.boatMapPosition[0] = updtX;
@@ -203,6 +235,8 @@ function sendWebsocketServerMessage(signalingMessage){
 								break;
 							}
 						}
+					}else if( responseParts[1] == "cliLeft" ){
+						NetworkGame_Parse(networkGame, responseParts, 3);
 					}
 					break;
 			}
