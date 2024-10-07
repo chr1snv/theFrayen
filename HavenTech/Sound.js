@@ -173,6 +173,9 @@ g.gain.exponentialRampToValueAtTime(
 
 function SND_RestartSoundContext(){
 
+	if( muted )
+		return;
+
 	if( aCtx != null ){
 		aCtx.suspend();
 		aCtx.close();
@@ -183,6 +186,9 @@ function SND_RestartSoundContext(){
 
 function SND_StartSoundContext(){
 
+	if( muted )
+		return;
+
 	if( aCtx != null ){
 		aCtx.resume();
 		return;
@@ -191,9 +197,11 @@ function SND_StartSoundContext(){
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-
+let muted = true;
 let aCtx = null;
 function soundIconClicked(){
+
+	muted = !muted;
 
 	SND_RestartSoundContext();
 	
@@ -215,6 +223,8 @@ let inputKeyNoteMappings = {};
 let inputKeyNoteMappings_dictKeys = null;
 
 function playNote( freq, duration ){
+	if( muted )
+		return;
 	SND_StartSoundContext();
 	playSineToneNode(freq, 0, duration);
 	let noteEndTime = aCtx.currentTime + 0 + duration;
@@ -344,6 +354,10 @@ function loadSceneSounds(){
 		instruments.push( synthLead );
 	}
 
+
+	sceneLoadedTime = Date.now();
+	running = true;
+	window.setTimeout(MainLoop, 300);
 }
 
 function SND_updateACtx(){

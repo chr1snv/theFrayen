@@ -157,7 +157,7 @@ function showHideSettings(){
 let stepTreeDivElm = document.getElementById("stepTreeDiv");
 function stepTreeToggle(e){
 	if( e.target.value ){
-	
+
 	}
 }
 
@@ -211,7 +211,7 @@ function havenMain(){
 	touch = new TouchScreenControls();
 	//sceneChanged(); //get the selected scene from the dropdown and load it
 	//window.setTimeout( autoRunCount, 1000 );
-	
+
 }
 function stopAutostart(){
 	stopAutoStart = true;
@@ -253,8 +253,6 @@ function loadScene()
 
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
-
-	sceneSpecificLoad(mainScene.scnId, loadSceneSounds);
 
 
 	statusElm.innerHTML = "Reading Scene";
@@ -342,10 +340,8 @@ function sceneLoaded(havenScene)
 				lcol, leng, lampType, lghtLoc, lghtRot, lspotsz, lanim)];
 				
 	//sceneSpecificLoaded( Scene );
+	sceneSpecificLoad(havenScene.scnId, loadSceneSounds);
 
-
-	sceneLoadedTime = Date.now();
-	running = true;
 }
 
 let simPhys = true;

@@ -3,6 +3,9 @@
 //auto tack/jib animation frame selection based on the boat velocity / heading to the
 //wind and tide
 
+let boatForCliDrawingMdl = null;
+let boatForCliDrawingQm = null;
+
 let windIndc = null;
 let windIndcQm = null;
 
@@ -34,7 +37,30 @@ function BOAT_Init(scn){
 		if( model.quadmesh.meshName == "windIndc" )
 			windIndc = model;
 	}
+
+	/*
+	boatForCliDrawingQm = graphics.cachedObjs[QuadMesh.name][scn.sceneName]["viper650hull"][0];
+	for( let mdl in scn.models ){
+		let model = scn.models[mdl];
+		if( model.quadmesh.meshName == "viper650hull" )
+			boatForCliDrawingMdl = model;
+	}
+	*/
 	
+	new Model( "cliBoatHull", "viper650hull", scn.sceneName, null, 
+					modelLoadedParameters=null, modelLoadedCallback=Boat_hullInstLd, isDynamic=false );
+
+}
+/*
+function Rgta_directionUiQmInstMatLd(mat){
+	directionUiQmInstMat = mat;
+	directionUiQmInstMat.diffuseCol = [0,1,0];
+	if( directionUiQmInst != null )
+		directionUiQmInst.optMaterial = directionUiQmInstMat;
+}
+*/
+function Boat_hullInstLd(mdl){
+	boatForCliDrawingMdl = mdl;
 }
 
 //130 port wing on wing 			(270-180deg)
@@ -230,4 +256,17 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	Vect3_MultiplyScalar( boatMapPositionVel, -1 );
 
 	lastBoatUpdateTime = time;
+}
+
+function BOAT_DrawOtherPlayer( rb3DTris, cliHdg, cliPos ){
+	console.log( "draw other player " + cliPos );
+	
+	if( boatForCliDrawingMdl ){
+		rb3DTris.objs[boatForCliDrawingMdl.uid.val] = boatForCliDrawingMdl;
+		boatForCliDrawingMdl.optTransformUpdated  = true;
+		Matrix_SetEulerTransformation( boatForCliDrawingMdl.optTransMat,
+					[1,1,1],
+					[0, 0, -cliHdg-Math.PI],
+					[cliPos[0], cliPos[1], 0] );
+	}
 }

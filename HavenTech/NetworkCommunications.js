@@ -136,7 +136,7 @@ function Client_joinGame(){
 		localUid = NewRandUID();
 	sendWebsocketServerMessage( "clientStarted uid: " + localUid.val, true );
 }
-const networkUpdateInterval = 0.25;
+const networkUpdateInterval = 0.10;
 let lastNetworkUpdateTime = 0;
 function Client_Update( boatHeading, boatMapPosition, wayps, distToNextWayP, completionTime ){
 
@@ -258,7 +258,7 @@ function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=fals
 						for( let cliIdx in networkGame.clients ){
 							let cliStatus = networkGame.clients[cliIdx];
 							if( cliStatus.uidVal == updtUid ){
-								cliStatus.hdg                =  updtUid;
+								cliStatus.hdg                =  updtHdg;
 								cliStatus.boatMapPosition[0] = updtX;
 								cliStatus.boatMapPosition[1] = updtY;
 								cliStatus.numWayps           =  udptNumB;

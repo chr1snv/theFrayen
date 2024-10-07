@@ -74,7 +74,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "LOCAL",       false, TxtJustify.Left,   menuHdgColor );
 			TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "START",       true,  TxtJustify.Center, menuTxtColor );
 			TR_QueueText( rb2DTris, -0.4, -0.07, 0.02, 0.07, "Multiplayer", false, TxtJustify.Left,   menuHdgColor );
-			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "SERVER",      true,  TxtJustify.Left,   menuTxtColor );
+			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",      true,  TxtJustify.Left,   menuTxtColor );
 			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   menuTxtColor );
 			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, menuTxtColor );
 
@@ -128,6 +128,13 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			let place = NetworkGame_CliUidPlace( networkGame, localUid );
 			let placeStr = positionToStr(place);
 			TR_QueueText( rb2DTris, 0.95*graphics.GetScreenAspect(), 0.83, 0.03, 0.1, placeStr, false, TxtJustify.Right );
+			
+			for( let cliUid in networkGame.clients ){
+				if( cliUid != localUid.val ){
+					let cli = networkGame.clients[ cliUid ];
+					BOAT_DrawOtherPlayer( rb3DTris_array[1], cli.hdg, cli.boatMapPosition );
+				}
+			}
 		case SailModes.Gameplay:
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
@@ -167,7 +174,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 							RGTTA_Start(time); //init the regatta
 							sgMode = SailModes.Gameplay;
 						}
-						if( mOvrdStrs[i] == "SERVER" ){
+						if( mOvrdStrs[i] == "HOST" ){
 							Server_startListening(4);
 						}
 						if( mOvrdStrs[i] == "CLIENT" ){
