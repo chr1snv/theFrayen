@@ -301,7 +301,6 @@ function sceneLoaded(havenScene)
 	mainScene = havenScene;
 	//mainScene.Update(sceneTime);
 	//mainScene.Draw();
-	window.setTimeout(MainLoop, 300);
 	//graphics.Clear();
 	//graphics.pointGraphics.Setup();
 	mouseSenChange();
@@ -322,6 +321,9 @@ function sceneLoaded(havenScene)
 		cntrlsTxtElm.innerText = "Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click fullscreen look : ESC exit";
 	}else if( mainScene.scnId == ScnIds.Sail ){
 		cntrlsTxtElm.innerText = "Touch / Mouse swipe left or right to change course";
+		let sailCam = havenScene.cameras[ havenScene.activeCameraIdx ];
+		sailCam.nearClip = 1.0;
+		sailCam.farClip = 500.0;
 	}
 
 
