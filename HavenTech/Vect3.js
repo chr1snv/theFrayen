@@ -37,6 +37,7 @@ function Vect3_CopyNew( v )         { return  new Float32Array([ v[0], v[1], v[2
 function Vect_NewZero(n)            { let retArr = new Float32Array(n); for(let i = 0; i < n; ++i){ retArr[i] = 0; } return retArr;}
 function Vect_NewAllOnes(n)         { let retArr = new Float32Array(n); for(let i = 0; i < n; ++i){ retArr[i] = 1; } return retArr;}
 function Vect_New(n)                { return new Float32Array(n); }
+function Vect_CopyNew( v )          { let retArr = new Float32Array(v.length); for(let i = 0; i < v.length; ++i){ retArr[i] = v[i]; } return retArr;}
 
 
 const Vect3_AllOnesConst = new Float32Array([1,1,1]);
@@ -157,6 +158,17 @@ function Vect3_Negative(v1){ v1[0] = -v1[0]; v1[1] = -v1[1]; v1[2] = -v1[2]; }
 function Vect3_Length(v1) {
 	const len = Vect3_LengthSquared(v1);
 	return Math.sqrt(len);
+}
+
+function Vect_LengthSquared(v){
+	let accum = 0;
+	for( let i = 0; i < v.length; ++i ){
+		accum += v[i]*v[i];
+	}
+	return accum;
+}
+function Vect_Length(v){
+	return Math.sqrt( Vect_LengthSquared(v) );
 }
 
 //a less computationally expensive version of length (avoid preforming square root)
