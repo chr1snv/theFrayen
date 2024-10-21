@@ -185,6 +185,22 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	let incrementWaypointIdx = false;
 
 
+	//get the ocean height for each bouy so it can be on the surface
+	for( let bouyIdx = 0; bouyIdx < bouyInfos.length; ++bouyIdx ){
+		let bouyQm = bouyInfos[bouyIdx].bouyQm;
+		let bouyMdl = bouyQm.models[0];
+		let bouyPosition = bouyQm.origin;
+		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1], boatMapPosition );
+		bouyPosition[2] = height+1;
+		Matrix_SetQuatTransformation(
+			bouyMdl.optTransMat, 
+			bouyQm.scale,
+			bouyQm.rotation,
+			bouyPosition
+		);
+		bouyMdl.optTransformUpdated = true
+	}
+
 
 	let bmpTxtX  = -0.95*srnAspc;
 	let bmpTxtY  =  0.8;
