@@ -84,6 +84,9 @@ let loadScriptCmpCb = function(){ havenMain(); }
 function loadScriptLoop(){
 	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 
+	if( incFileList.length < 1 )
+		checkScriptsLoaded();
+
 	while( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
 		let scriptName = 'HavenTech/'+incFileList[incFileIdx++];
