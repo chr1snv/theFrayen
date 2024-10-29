@@ -189,7 +189,8 @@ let strAABBMax = Vect3_New();
 let maxTextX = 0;
 let tmpGlyphVert = Vect3_NewZero();
 var queuedTextSbb = null;
-function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null ){
+let blibQuat = Quat_New();
+function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null, bilboard=false ){
 
 	let txtR_dbB = GetDrawBatchBufferForMaterial( rb2DTris, textMaterial );
 
@@ -213,6 +214,8 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 				ltr = ltr+'L'; //fix for case insensitive url mesh file loading
 			}else if( ltr == '.' ){
 				ltr = 'dot';
+			}else if( ltr == ',' ){
+				ltr = 'com';
 			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
 					escpSeqActive = true;
@@ -245,7 +248,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 		//RastB_PrepareBatchToDraw only copies toWorldMatricies from raster batch .objs
 		//(text bypasses it and makes the text ready to draw by calling GetDrawSubBatchBuffer
 		//and setting the length of the sub batch buffer)
-		Matrix_SetIdentity( queuedTextSbb.toWorldMatrix ); //should maybe use this instead of per vertex x,y,dpth offset
+		Matrix_SetIdentity( queuedTextSbb.toWorldMatrix ); //this is used instead of per vertex x,y,dpth offset
 		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x,y,dpth] );
 		let strVertBufObj = queuedTextSbb.obj;
 
@@ -270,6 +273,8 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 				ltr = ltr+'L'; //fix for case insensitive url mesh file loading
 			}else if( ltr == '.' ){
 				ltr = 'dot';
+			}else if( ltr == ',' ){
+				ltr = 'com';
 			}else if( ltr == ":" ){
 				if( !escpSeqActive ){
 					escpSeqActive = true;
@@ -352,6 +357,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	
 	queuedTextSbb.overrideColor = overideColor;
 	queuedTextSbb.nonHighlightedColor = overideColor;
+	if( bilboard ){
+		let txtOri = [x, y, dpth];
+		Matrix_LookAt( queuedTextSbb.toWorldMatrix, rb2DTris.camWorldPos, txtOri );
+		//Quat_LookAt( blibQuat, rb2DTris.camWorldPos, txtOri );//queuedTextSbb.obj.origin ); //x, y, dpth
+		//Matrix_SetQuatRotate( queuedTextSbb.toWorldMatrix, blibQuat );
+		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, txtOri );
+	}
 
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )

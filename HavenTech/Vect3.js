@@ -176,6 +176,14 @@ function Vect3_LengthSquared(v1){
 	return v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2];
 }
 
+function Vect_Normal(v){
+	let accum = 0;
+	for( let i = 0; i < v.length; ++i )
+		accum += v[i]*v[i];
+	const len = Math.sqrt(accum);
+	for( let i = 0; i < v.length; ++i )
+		v[i] /= len;
+}
 //normalizes a vector
 function Vect3_Normal(v1){
 	//let len = Vect3_Length(v1);

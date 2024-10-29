@@ -364,13 +364,13 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 	//vertexAttribPointer(index, size, type, normalized, stride, offset)
 	//binds buffer bound to gl.ARRAY_BUFFER to AttribLocation and specifies format
 	gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID][0], vertCard, gl.FLOAT, false, 0, 0);
-	
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+1][1]);
 	gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+1][0], normCard, gl.FLOAT, false, 0, 0);
 	
 	gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+2][1]);
 	gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+2][0], uvCard, gl.FLOAT, false, 0, 0);
-	
+
 	if( buf.hasSkelAnim ){
 		gl.bindBuffer(gl.ARRAY_BUFFER, triG.glProgram.attribLocBufPtrs[bufID+3][1]);
 		gl.vertexAttribPointer(triG.glProgram.attribLocBufPtrs[bufID+3][0], bnIdxWghtCard, gl.FLOAT, false, 0, 0);
@@ -389,7 +389,7 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 		}else{
 			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1,  0 );
 		}
-		
+
 		if( subRange.overrideColor ){
 			GLP_setUnif_F3( triG.glProgram, triG.emisAndAmbColor_fU_F3_1_Loc, triG.emisAndAmbColor_fU_F3_1, subRange.overrideColor );
 			overrideColorSet = true;

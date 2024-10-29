@@ -40,6 +40,28 @@
 
 //constructors
 
+let qLA_diff = Vect3_New();
+let inclination;
+let zRot;
+function Quat_LookAt( retQuat, dst, src ){
+	//generates a rotation for z up text towards location dst
+	//tilting down first along the x axis, and then rotating around z
+	Vect3_Copy( qLA_diff, dst );
+	Vect3_Subtract( qLA_diff, src );
+	
+	Vect3_Normal( qLA_diff );
+	
+	//get inclination from diff vec
+	inclination = Math.PI/2 - Math.asin( qLA_diff[2] );
+	//get rotation around z
+	zRot = (Math.PI/2)+Math.atan2( qLA_diff[1], qLA_diff[0] );
+	
+	Quat_FromXRot( tempQ, inclination );
+	Quat_FromZRot( temp2Q, zRot );
+	Quat_MultQuat( retQuat, temp2Q, tempQ );
+	
+}
+
 //generate a rotation quaternion from an axis angle
 //assumes axis is normalized (axis[i] is the direction cosine of that axis)
 function Quat_FromAxisAng( quatRet, axis, angle ){

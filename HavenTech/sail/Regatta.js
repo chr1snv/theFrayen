@@ -178,6 +178,7 @@ let perpendicAngToPrevBouy = 0;
 let perpendicAngToNextBouy = 0;
 
 let tempPerpendicVec = Vect_New(2);
+let RGT_tempInvMat = Matrix_New();
 function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
 
 	let srnAspc = graphics.GetScreenAspect();
@@ -185,21 +186,6 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	let incrementWaypointIdx = false;
 
 
-	//get the ocean height for each bouy so it can be on the surface
-	for( let bouyIdx = 0; bouyIdx < bouyInfos.length; ++bouyIdx ){
-		let bouyQm = bouyInfos[bouyIdx].bouyQm;
-		let bouyMdl = bouyQm.models[0];
-		let bouyPosition = bouyQm.origin;
-		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1], boatMapPosition );
-		bouyPosition[2] = height+1;
-		Matrix_SetQuatTransformation(
-			bouyMdl.optTransMat, 
-			bouyQm.scale,
-			bouyQm.rotation,
-			bouyPosition
-		);
-		bouyMdl.optTransformUpdated = true
-	}
 
 
 	let bmpTxtX  = -0.95*srnAspc;
@@ -217,8 +203,32 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	//setup the regatta scene camera from the boat camera and boat translation
 	let rgtaCam = rgtaScene.cameras[ rgtaScene.activeCameraIdx ];
 	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, rgtaCam.worldToScreenSpaceMat, boatMatrix );
-	Matrix_Multiply_Vect3( rb3DTris.camWorldPos, boatMatrix, Vect3_ZeroConst );
+	Matrix_Copy( RGT_tempInvMat, rb3DTris.worldToScreenSpaceMat );
+	Matrix_Inverse( rb3DTris.screenSpaceToWorldMat, RGT_tempInvMat );
+	Matrix_Multiply_Vect3( rb3DTris.camWorldPos, rb3DTris.screenSpaceToWorldMat, Vect3_ZeroConst );
 	rb3DTris.fov = cam.fov;
+	
+
+	//get the ocean height for each bouy so it can be on the surface
+	for( let bouyIdx = 0; bouyIdx < bouyInfos.length; ++bouyIdx ){
+		let bouyQm = bouyInfos[bouyIdx].bouyQm;
+		let bouyMdl = bouyQm.models[0];
+		let bouyPosition = bouyQm.origin;
+		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1] );
+		bouyPosition[2] = height;
+		Matrix_SetQuatTransformation(
+			bouyMdl.optTransMat, 
+			bouyQm.scale,
+			bouyQm.rotation,
+			bouyPosition
+		);
+		bouyMdl.optTransformUpdated = true;
+		//rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null
+		TR_QueueText( rb3DTris, bouyPosition[0], bouyPosition[1], 4, 1, 
+			OCN_HAMP_lvl + " " + OCN_HAMP_quadCoord, 
+			false, TxtJustify.Center, overideColor=null, bilboard=true );
+	}
+
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb3DLines );
 

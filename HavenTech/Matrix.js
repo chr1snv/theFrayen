@@ -115,6 +115,10 @@ function Matrix_SetBoneRotat( retMat, tail ){
 		Matrix_SetXRot(retMat, Math.PI);
 	}
 }
+
+//though cos and sin have periocity
+//the Set*Rot( ) functions return the same matricies as
+//when doing incremental matrix rotations
 function Matrix_SetXRot( retMat, xRot ){
 	//var rot = arguments[2];
 	Matrix_SetZero(retMat);
@@ -187,8 +191,28 @@ function Matrix_SetTranslate(retMat, trans){
 	retMat[1*4+3] = trans[1];
 	retMat[2*4+3] = trans[2];
 }
-	
 
+let mLA_diff = Vect3_New();
+var mLA_rot = Vect3_New();
+function Matrix_LookAt( retMat, dst, src ){
+	//generates a rotation for z up text towards location dst
+	//tilting down first along the x axis, and then rotating around z
+	Vect3_Copy( mLA_diff, dst );
+	Vect3_Subtract( mLA_diff, src );
+	
+	Vect3_Normal( mLA_diff );
+	
+	//get inclination from diff vec
+	mLA_rot[0] = Math.PI/2 - Math.asin( mLA_diff[2] );
+	//get rotation around z
+	//- rotation is clockwise facing into axis
+	mLA_rot[2] = (Math.PI/2)+Math.atan2( mLA_diff[1], mLA_diff[0] ); //sceneTime; //
+	
+	//Matrix_SetEulerRotate(retMat, mLA_rot);
+	Matrix_SetXRot(tempRMat1, Math.PI/2);//rotVect[0]);
+	Matrix_SetZRot(tempRMat2, mLA_rot[2]);
+			Matrix_Multiply(  retMat, tempRMat2, tempRMat1 );
+}
 
 
 ////

@@ -78,7 +78,7 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	//the orientation matrix
 	this.scale           = new Float32Array([1,1,1]);
-	this.rotation        = new Float32Array([0,0,0]);
+	this.rotation        = new Float32Array([0,0,0,1]);
 	this.origin          = new Float32Array([0,0,0]);
 	this.toWorldMatrix   = new Float32Array(4*4);
 	this.wrldToLclMat    = new Float32Array(4*4);

@@ -99,7 +99,7 @@ let boatMatrixTranslate = Matrix_New();
 let boatMatrixRotate = Matrix_New();
 
 let boatPosOffset = Vect3_NewVals(6.58775,-5,0);
-let boatMatrixPosOffset = Matrix_New();
+let boatMatrixPosOffset = Matrix_New(); //the offset of the boat hull mesh from the boat scene origin
 Matrix_SetIdentity(boatMatrixPosOffset);
 Matrix_SetTranslate( boatMatrixPosOffset, boatPosOffset );
 
@@ -244,11 +244,11 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	let boatScale = Vect3_AllOnesConst;
 	let boatRotation = [0,0,boatHeading];
 	Matrix_SetIdentity( boatMatrixTranslate );
-	Matrix_SetTranslate( boatMatrixTranslate, boatPosition );
-	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );
-	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate );
-
-	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp );
+	Matrix_SetTranslate( boatMatrixTranslate, boatPosition ); //offset the boat in the map
+	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );  //rotate at the boat 
+	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate ); //rotate the boat scene around it's origin then translate world to it
+	
+	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp ); //add the boat hull offset to the boat scene offset (maybe should be before translating world to it)
 	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
 
 	Vect3_Copy( boatMapPosition, boatPosition ); //position used by regatta in right handed coordinate system

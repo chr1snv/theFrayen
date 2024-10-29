@@ -339,7 +339,9 @@ function CleanUpDrawBatchBuffer(rastBatch){
 	rastBatch.drawBatchBuffers = {};
 }
 
+
 function RastB_PrepareBatchToDraw( rastBatch ){
+	//for objects (tri text handles this update process itself by directly enabling sub batch buffers)
 	//for each material check sub draw batch allocations for each object using it
 	for( let key in rastBatch.objs ){
 		let objUid = key;
@@ -441,7 +443,6 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 		numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
 
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
-	
 
 
 	if( !drawTransparentBatches ){
@@ -502,6 +503,7 @@ function RasterBatch( drawFunc ){
 	this.DrawFunc = drawFunc;
 
 	this.worldToScreenSpaceMat = Matrix_New();
+	this.screenSpaceToWorldMat = Matrix_New();
 	this.camWorldPos = Vect_New(3);
 	this.camFov = 90 / 180 * Math.PI;
 
