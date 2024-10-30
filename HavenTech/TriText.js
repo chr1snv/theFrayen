@@ -351,7 +351,8 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	}else{
 		//restore the number of verts for the sub batch buffer to draw
 		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
-		queuedTextSbb.len = queuedTextSbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
+		if( queuedTextSbb.len < queuedTextSbb.maxLen ) //re enable for drawing (if prevents setting len to 0 if same text queued twice in a frame)
+			queuedTextSbb.len = queuedTextSbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
 		//
 	}
 	
@@ -365,11 +366,13 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, txtOri );
 	}
 
+/*
 	//enable the sub batch buffer to draw this frame
 	if( txtR_dbB.sortedSubRngKeys == null )
 		txtR_dbB.sortedSubRngKeys = [];
 	txtR_dbB.sortedSubRngKeys.push( glyphStrKey );
 	//txtR_dbB.numBufSubRanges += 1;
+	*/
 
 	return queuedTextSbb.obj.textEndX;
 
