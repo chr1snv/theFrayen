@@ -61,7 +61,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){
-		OCN_Update( ocean, rb3DTris_array[0], time, boatHeading );
+		OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
 	}
 
 	//setup strings to draw and handle gameplay input
@@ -139,7 +139,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
-			RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
+			RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
 			numActiveBatches = 2;
 			break;
 		case SailModes.Leaderboard:

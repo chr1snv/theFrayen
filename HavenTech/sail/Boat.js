@@ -93,7 +93,8 @@ var boatMapPositionVel = Vect3_New();
 
 var boatPosition = Vect3_NewZero();
 
-var boatMatrix = Matrix_New();
+var boatToWorldMatrix = Matrix_New();
+var worldToBoatMatrix = Matrix_New();
 let boatMatrixTemp = Matrix_New();
 let boatMatrixTranslate = Matrix_New();
 let boatMatrixRotate = Matrix_New();
@@ -117,6 +118,8 @@ var lastBoatUpdateTime = -1;
 function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	let delTime = time-lastBoatUpdateTime;
+	if( delTime > 1 ) //prevent boat reaching high speed when returning to browser page
+		delTime = 1/30;
 
 	let relWndHdg = MTH_WrapAng0To2PI( (wndHdg/*-(1/180)*Math.PI*/) + boatHeading );
 
@@ -248,8 +251,9 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );  //rotate at the boat 
 	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate ); //rotate the boat scene around it's origin then translate world to it
 	
-	Matrix_Multiply( boatMatrix, boatMatrixPosOffset, boatMatrixTemp ); //add the boat hull offset to the boat scene offset (maybe should be before translating world to it)
-	//Matrix_SetEulerTransformation( boatMatrix, boatScale, boatRotation, boatPosition );
+	Matrix_Multiply( boatToWorldMatrix, boatMatrixPosOffset, boatMatrixTemp ); //the boat hull offset is applied    before   the boat scene offset
+	Matrix_Copy( boatMatrixTemp, boatToWorldMatrix );
+	Matrix_Inverse( worldToBoatMatrix, boatMatrixTemp );
 
 	Vect3_Copy( boatMapPosition, boatPosition ); //position used by regatta in right handed coordinate system
 	Vect3_MultiplyScalar( boatMapPosition, -1 );

@@ -15,6 +15,7 @@ const WaypointType = {
 
 function WaypointInfo( bouyNameIn, roundDirection, wayTypeIn, instrStringIn ){
 	this.bouyName = bouyNameIn;
+	this.origLoc = Vect3_New();
 	this.bouyQm = null;
 	this.roundDirection = roundDirection; //false == port , true == stbd
 	this.wayType = wayTypeIn;
@@ -38,6 +39,7 @@ function RGTTA_SceneLoaded( hvnsc ){
 
 	for( let i = 0; i < bouyInfos.length; ++i ){
 		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
+		bouyInfos[i].origLoc = bouyInfos[i].bouyQm.origin;
 	}
 
 	new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
@@ -130,7 +132,7 @@ function RGTTA_Start(time){
 	
 	//move the waypoint keepout indicator
 	if( kpOutRadiusMdl != null ){
-		let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+		let bouyPosition = bouyInfos[currentWaypointIdx].origLoc;
 		Matrix_SetEulerTransformation(
 			kpOutRadiusMdl.optTransMat, 
 			[hitBouyDist,hitBouyDist,1],
@@ -179,7 +181,7 @@ let perpendicAngToNextBouy = 0;
 
 let tempPerpendicVec = Vect_New(2);
 let RGT_tempInvMat = Matrix_New();
-function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTris, rb3DLines ){
+function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, rb3DTris, rb3DLines ){
 
 	let srnAspc = graphics.GetScreenAspect();
 
@@ -202,7 +204,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 
 	//setup the regatta scene camera from the boat camera and boat translation
 	let rgtaCam = rgtaScene.cameras[ rgtaScene.activeCameraIdx ];
-	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, rgtaCam.worldToScreenSpaceMat, boatMatrix );
+	Matrix_Multiply( rb3DTris.worldToScreenSpaceMat, rgtaCam.worldToScreenSpaceMat, boatToWorldMatrix );
 	Matrix_Copy( RGT_tempInvMat, rb3DTris.worldToScreenSpaceMat );
 	Matrix_Inverse( rb3DTris.screenSpaceToWorldMat, RGT_tempInvMat );
 	Matrix_Multiply_Vect3( rb3DTris.camWorldPos, rb3DTris.screenSpaceToWorldMat, Vect3_ZeroConst );
@@ -213,7 +215,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatMatrix, rb2DTris, rb3DTri
 	for( let bouyIdx = 0; bouyIdx < bouyInfos.length; ++bouyIdx ){
 		let bouyQm = bouyInfos[bouyIdx].bouyQm;
 		let bouyMdl = bouyQm.models[0];
-		let bouyPosition = bouyQm.origin;
+		let bouyPosition = bouyInfos[bouyIdx].origLoc;//bouyQm.origin;
 		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1] );
 		bouyPosition[2] = height;
 		Matrix_SetQuatTransformation(
