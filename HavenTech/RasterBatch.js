@@ -449,6 +449,8 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 
 		GRPH_EnableAlphaBlending(false);
 		for( let key in rastBatch.drawBatchBuffers ){
+			//if( key == "100069" )
+			//	console.log("text draw batch");
 			let dbB = rastBatch.drawBatchBuffers[key];
 			RastB_DrawBatchTris( dbB, numAnimMatricies, time );
 		}

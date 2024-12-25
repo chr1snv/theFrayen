@@ -433,8 +433,6 @@ function MainLoop()
 
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
-	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
-		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
 
 	//draw opaque materials
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
@@ -448,8 +446,13 @@ function MainLoop()
 	for( let i = RastB_numActive3DBatches-1; i >= 0; --i ){
 		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 	}
+	
+	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
+	graphics.ClearDepth();
+	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
+		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
 
-	//deallocate things that havent been used in gl memory for a while 
+	//deallocate things that haven't been used in gl memory for a while 
 	RASTB_DefragBufferAllocs(rastBatch2dTris);
 	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
 		RASTB_DefragBufferAllocs(rastBatch3dTris_array[i], sceneTime);
