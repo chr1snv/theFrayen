@@ -35,12 +35,14 @@ function TXTR_Init(ldCmpCb){
 }
 
 
-
-function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, justify=TxtJustify.Left, overideColor=null ){
+//set st = -1 to only print minutes seconds
+function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, st, justify=TxtJustify.Left, overideColor=null ){
 
 	//get the number of digits and str len for center and right justified strings
 	let numMinDigits = 1;
 	let numSecDigits = 2;
+	let numTSecDigits = 2;
+	
 	let minXStrt = x;
 	let colXStrt = x;
 	if( m > 9 )

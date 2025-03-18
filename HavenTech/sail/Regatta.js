@@ -113,6 +113,7 @@ let startTimeCCompTextShown = 0;
 
 var rgta_completeMins = -1;
 var rgta_completeSecs = -1;
+var rgta_completeSecTenths = -1;
 let rgta_startTime = 0;
 function RGTTA_Start(time){
 	//boat position values are negative of boatMapPosition
@@ -163,8 +164,8 @@ let completeObjColor   = [0,1,0];
 let beginRoundingTxtColor = incompleteObjColor;
 let endRoundingTxtColor   = incompleteObjColor;
 
-let hitBouyDist = 7;
-let resetPenaltyBouyDist = 20;
+let hitBouyDist = 7; //distance to bouy position considered to be "in collision with bouy"
+let resetPenaltyBouyDist = 20; //distance required to back off from bouy to restart rounding
 
 let rgta_elapsedTime = 0;
 let currentWaypointIdx = 0;
@@ -229,20 +230,33 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 		TR_QueueText( rb3DTris, bouyPosition[0], bouyPosition[1], 4, 1, 
 			OCN_HAMP_lvl + " " + OCN_HAMP_quadCoord, 
 			false, TxtJustify.Center, overideColor=null, bilboard=true );
+			
+		if( currentWaypointIdx == bouyIdx ){
+			//if the bouy has a keepout radius model also move it vertically with the ocean surface
+			//let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+
+			//move the waypoint keepout indicator
+			Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+			[hitBouyDist,hitBouyDist,1],
+			[0, 0, 0],
+			bouyPosition );
+		}
 	}
 
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb3DLines );
 
 	rgta_elapsedTime = time - rgta_startTime;
-	let elapsedMins = Math.floor(rgta_elapsedTime / 60);
-	let elapsedSecs = Math.floor(rgta_elapsedTime - (elapsedMins*60));
-	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, TxtJustify.Right );
+	let elapsedMins 	 = Math.floor(rgta_elapsedTime / 60);
+	let elapsedSecs 	 = Math.floor(rgta_elapsedTime - (elapsedMins*60));
+	let elapsedSecTenths = Math.floor( rgta_elapsedTime - ((elapsedMins*60)+elapsedSecs) );
+	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, elapsedSecTenths, TxtJustify.Right );
 
 	if( currentWaypointIdx > bouyInfos.length-1 ){
 		if( rgta_completeMins == -1 ){
 			rgta_completeMins = elapsedMins;
 			rgta_completeSecs = elapsedSecs;
+			rgta_completeSecTenths = elapsedSecTenths;
 		}
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
 		if( startTimeCCompTextShown == Number.MAX_VALUE )
