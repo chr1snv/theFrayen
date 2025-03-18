@@ -145,11 +145,11 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Leaderboard:
 		
 			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", false, TxtJustify.Center );
-			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Main Menu", true, TxtJustify.Left, menuTxtColor );
+			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "return to Main Menu", true, TxtJustify.Left, menuTxtColor );
 			if( rgta_completeMins == -1 )
 				TR_QueueText( rb2DTris, -0.43, 0.0, 0.02, 0.05, "No completions yet", false, TxtJustify.Left, menuTxtColor  );
 			else
-				TR_QueueTime( rb2DTris, -0.43, 0.0, 0.02, 0.1, rgta_completeMins, rgta_completeSecs, TxtJustify.Left, ldrbTimeColor );
+				TR_QueueTime( rb2DTris, -0.43, 0.0, 0.02, 0.1, rgta_completeMins, rgta_completeSecs, rgta_completeSecTenths, TxtJustify.Left, ldrbTimeColor );
 			
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
@@ -209,7 +209,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						sgMode = SailModes.Menu;
 					break;
 				case SailModes.Leaderboard:
-					if( mOvrdStrs[i] == "Main Menu" ){
+					if( mOvrdStrs[i] == "return to Main Menu" ){
 						sgMode = SailModes.Menu;
 					}
 			}
