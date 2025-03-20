@@ -445,7 +445,7 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
 
 
-	if( !drawTransparentBatches ){
+	if( !drawTransparentBatches ){ //draw opaque
 
 		GRPH_EnableAlphaBlending(false);
 		for( let key in rastBatch.drawBatchBuffers ){

@@ -430,6 +430,9 @@ function MainLoop()
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent area still writes z location)
+	
+	CUBE_G_Setup(graphics.cubeGraphics);
+	CUBE_G_DrawSkyBox(mainCam);
 
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
@@ -442,7 +445,7 @@ function MainLoop()
 			TRI_G_Setup(graphics.triGraphics);
 		}
 	}
-	//draw transparent materials
+	//draw transparent materials (back to front)
 	for( let i = RastB_numActive3DBatches-1; i >= 0; --i ){
 		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 	}

@@ -119,3 +119,26 @@ function TEX_Bind(texP){
 		gl.bindTexture(gl.TEXTURE_2D, texP.textureHandle);
 	}
 }
+
+function TEX_BindCube(texP){
+	if( !texP.textureHandle ){
+		texP.textureHandle = gl.createTexture(); //gl.deleteTexture(Object texture)
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_CUBE_MAP, texP.textureHandle);
+	for(let i = 0; i < 6; ++i){
+		gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texP.loadedImage);
+	}
+	gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+	gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+	let wrapType = gl.REPEAT;
+	if( texP.wrapType == 0 ) //clamp to edge may be preferred for cubemaps
+		wrapType = gl.CLAMP_TO_EDGE;
+	gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
+	gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, wrapType );
+	gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, wrapType );
+	}else{
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texP.textureHandle);
+	}
+}

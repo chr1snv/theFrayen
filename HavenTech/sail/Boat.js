@@ -113,6 +113,11 @@ let lastAnimFrame = 0;
 let maxAnimFrameDiffStep = 0.1;
 let animSpeed = 3;
 
+let animHoldVarianceDir = 1;
+let animHoldFrameIdx = 0;
+let animHoldFrameVariance = 10;
+let animHoldVarianceHrtz = 0.5;
+
 var lastBoatUpdateTime = -1;
 
 function BOAT_Update( rb2DTris, time, wndHdg ){
@@ -212,7 +217,16 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	lastAnimFrame += frameDiff;
 	SkelA_UpdateTransforms( jibArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
-	SkelA_UpdateTransforms( girlArm, lastAnimFrame, true );
+	let girlAnimFrame = lastAnimFrame;
+	if( frameDiff < epsilon ){ //reached target frame
+		animHoldFrameIdx += animSpeed * delTime * animHoldVarianceHrtz * animHoldVarianceDir;
+		if( Math.abs(animHoldFrameIdx) > animHoldFrameVariance )
+			animHoldVarianceDir = -animHoldVarianceDir;
+		girlAnimFrame = lastAnimFrame + animHoldFrameIdx;
+	}else{
+		animHoldFrameIdx = 0;
+	}
+	SkelA_UpdateTransforms( girlArm, girlAnimFrame, true );
 
 
 	let scrnAspc = graphics.GetScreenAspect();

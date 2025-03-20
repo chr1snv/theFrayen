@@ -239,11 +239,19 @@ function GRPH_loadLineGraphics(){
 }
 
 function GRPH_loadTriGraphics(){
-	graphics.triGraphics = new TriGraphics(graphics.loadCompleteCallback, 200);
+	graphics.triGraphics = new TriGraphics(GRPH_loadCubeGraphics, 200);
 	graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
 	CheckGLError( "after load tri gl program" );
 	graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;
 	graphics.currentProgramName = 'tri';
+}
+
+function GRPH_loadCubeGraphics(){
+	graphics.cubeGraphics = new CubeGraphics(graphics.loadCompleteCallback, 300);
+	graphics.glPrograms['cube'] = graphics.cubeGraphics.glProgram;
+	CheckGLError( "after load cube gl program" );
+	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgramName = 'cube';
 }
 
 function GRPH_GetCached(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
