@@ -67,7 +67,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){
-		//OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
+		OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
 	}
 
 	//setup strings to draw and handle gameplay input
