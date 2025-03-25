@@ -432,7 +432,14 @@ function MainLoop()
 	//(the transparent area still writes z location)
 	
 	CUBE_G_Setup(graphics.cubeGraphics);
-	CUBE_G_DrawSkyBox(mainCam);
+	//disable depth buffer write/read test (infinite distance to skybox)
+	graphics.enableDepthTest(false);
+	graphics.enableDepthMask(false);
+	gl.disable(gl.CULL_FACE);
+	CUBE_G_DrawSkyBox(graphics.cubeGraphics, mainCam);
+	gl.enable(gl.CULL_FACE);
+	graphics.enableDepthMask(true);
+	graphics.enableDepthTest(true);
 
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
@@ -445,10 +452,12 @@ function MainLoop()
 			TRI_G_Setup(graphics.triGraphics);
 		}
 	}
+	graphics.enableDepthMask(false);
 	//draw transparent materials (back to front)
 	for( let i = RastB_numActive3DBatches-1; i >= 0; --i ){
 		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 	}
+	graphics.enableDepthMask(true);
 	
 	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
 	graphics.ClearDepth();
@@ -611,4 +620,8 @@ function HandleDefaultCameraControls( updateTime ){
 	Quat_Norm( camRotDel );
 	mainCam.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
 	lastUpdateCameraTime = updateTime;
+	
+	Matrix_Copy( tempMat, mainCam.camToWorldRotMat );
+	Matrix_Inverse( cubeWorldToCamMat, tempMat );
+	//cubeWorldToCamMat = mainCam.camToWorldRotMat;
 }

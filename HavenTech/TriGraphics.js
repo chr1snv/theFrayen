@@ -385,9 +385,9 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 			continue;
 		
 		if( subRange.skelAnim != null ){
-			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1, 1 );
+			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnb_fU_I1_1, 1 );
 		}else{
-			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnbUnif_fU_I1_1,  0 );
+			GLP_setUnif_I1( triG.glProgram, triG.skelSkinningEnb_fU_I1_1_Loc, triG.skelSkinningEnb_fU_I1_1,  0 );
 		}
 
 		if( subRange.overrideColor ){

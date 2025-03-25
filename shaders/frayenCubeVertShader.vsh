@@ -7,7 +7,7 @@ precision highp float; //on android mobile lowp causes z depth flickering
 
 //MAX_VERTEX_UNIFORM_VECTORS: 128 / 4 -> 32 vec4's or  / 16 -> 8 mats
 uniform mat4 projMatrix;
-uniform mat4 mMatrix;
+//uniform mat4 mMatrix;
 //uniform float bnMatIdxOffset;
 
 //MAX_VERTEX_ATTRIBS: 16
@@ -29,8 +29,8 @@ varying vec3 worldSpaceFragPosition;
 
 void main() {
 
-	vec4 worldSpacePosTemp = mMatrix * vec4(position,1);
-	worldSpaceFragPosition = worldSpacePosTemp.xyz;
-	gl_Position   =            projMatrix * worldSpacePosTemp;
-
+	//vec4 worldSpacePosTemp = mMatrix * vec4(position,1);
+	worldSpaceFragPosition = position;
+	//gl_Position   =            projMatrix * worldSpacePosTemp;
+	gl_Position = projMatrix * vec4(position,1);
 }

@@ -147,7 +147,7 @@ function GLP_vertexAttribBuffResizeAllocateOrEnableAndBind( glp, attribInstID, a
 		//gl.deleteBuffer(Object buffer) when done using
 		glp.attribLocBufPtrs[attribInstID] = [attribLoc, gl.createBuffer(), -1];
 		gl.enableVertexAttribArray(glp.attribLocBufPtrs[attribInstID][0]);
-		
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, glp.attribLocBufPtrs[attribInstID][1]);
 
 	}else{

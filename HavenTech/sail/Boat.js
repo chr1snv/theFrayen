@@ -97,7 +97,7 @@ var boatToWorldMatrix = Matrix_New();
 var worldToBoatMatrix = Matrix_New();
 let boatMatrixTemp = Matrix_New();
 let boatMatrixTranslate = Matrix_New();
-let boatMatrixRotate = Matrix_New();
+var boatMatrixRotate = Matrix_New();
 
 let boatPosOffset = Vect3_NewVals(6.58775,-5,0);
 let boatMatrixPosOffset = Matrix_New(); //the offset of the boat hull mesh from the boat scene origin
@@ -262,9 +262,10 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	let boatRotation = [0,0,boatHeading];
 	Matrix_SetIdentity( boatMatrixTranslate );
 	Matrix_SetTranslate( boatMatrixTranslate, boatPosition ); //offset the boat in the map
-	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );  //rotate at the boat 
+	Matrix_SetEulerRotate( boatMatrixRotate, boatRotation );  //rotate at the boat
+
 	Matrix_Multiply( boatMatrixTemp, boatMatrixRotate, boatMatrixTranslate ); //rotate the boat scene around it's origin then translate world to it
-	
+
 	Matrix_Multiply( boatToWorldMatrix, boatMatrixPosOffset, boatMatrixTemp ); //the boat hull offset is applied    before   the boat scene offset
 	Matrix_Copy( boatMatrixTemp, boatToWorldMatrix );
 	Matrix_Inverse( worldToBoatMatrix, boatMatrixTemp );

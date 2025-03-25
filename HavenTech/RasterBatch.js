@@ -2,7 +2,7 @@
 //"camera" world to screen space projection matrix to render to the screen
 
 //reason for it is to keep as much data buffered in gl between frames 
-//(minimize vertex attribute and vertex/pixel uniform changes)
+//(minimize vertex attribute and vertex/pixel gl uniform changes)
 //to maximize performance across the cpu / gpu transfer bandwith/latency bottleneck
 //by grouping together verticies to be drawn with common gl state
 //to minimize number of gl calls to draw a frame
@@ -65,13 +65,13 @@ function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
 //const MAX_VERTS = 65536;
 let nextBufID = TRI_G_VERT_ATTRIB_UID_START;
 function DrawBatchBuffer(material){
-	this.bufID         = nextBufID; //the gl BufferId in TriGraphics
+	this.bufID         = nextBufID; //+0,+1 etc for the GlProgram attribInstID, BufferId in TriGraphics
 	nextBufID    += 4; //increment by 4 because vert, norm, uv buffer, and bnWght buffer are + 1,2,3,4
 	this.material      = material;
 
 
 	this.bufferIdx       = 0;
-	this.lastBufferIdx   = 0;
+	this.lastBufferIdx   = 0; //for checking if has been reallocated and entire buffer length needs to be re uploaded to gl
 
 	this.lastAllocatedSize = 0; //should be a power of two
 
@@ -82,11 +82,17 @@ function DrawBatchBuffer(material){
 
 	this.numSubBufferUpdatesToBeValid = 0;
 
-	this.bufSubRanges = {};
+	this.bufSubRanges = {}; //for only updating part of buffer on changes
 	this.sortedSubRngKeys = null;
 	this.numBufSubRanges = 0;
 
 
+}
+
+function AllocDrawBufID(){
+	let ret = nextBufID;
+	nextBufID += 1;
+	return ret;
 }
 
 /*

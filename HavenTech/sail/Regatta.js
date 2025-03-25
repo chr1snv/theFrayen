@@ -1,7 +1,7 @@
 
 //maintains the status of the sailing competition
 
-let rgtaScene = null;
+var rgtaScene = null;
 let rgtaSceneName = "islandRegatta";
 function RGTTA_Init(){
 	rgtaScene = new HavenScene( rgtaSceneName, RGTTA_SceneLoaded );
@@ -236,10 +236,11 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			//let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
 
 			//move the waypoint keepout indicator
-			Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
-			[hitBouyDist,hitBouyDist,1],
-			[0, 0, 0],
-			bouyPosition );
+			if( kpOutRadiusMdl != null )
+				Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+				[hitBouyDist,hitBouyDist,1],
+				[0, 0, 0],
+				bouyPosition );
 		}
 	}
 
@@ -371,10 +372,11 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 				let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
 
 				//move the waypoint keepout indicator
-				Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
-				[hitBouyDist,hitBouyDist,1],
-				[0, 0, 0],
-				bouyPosition );
+				if( kpOutRadiusMdl != null )
+					Matrix_SetEulerTransformation( kpOutRadiusMdl.optTransMat, 
+					[hitBouyDist,hitBouyDist,1],
+					[0, 0, 0],
+					bouyPosition );
 
 				if( bouyInfos[currentWaypointIdx].wayType == WaypointType.RoundBouy ){
 					//pre calculate / calculate once the course angles required for bouy rounding

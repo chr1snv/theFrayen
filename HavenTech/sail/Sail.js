@@ -58,10 +58,16 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	let numActiveBatches = 1;
 
 	BOAT_Update( rb2DTris, time, 180/180*Math.PI );//to allow animation when scene is started
+	//Matrix_Copy( cubeWorldToCamMat, boatMatrixRotate );
+	//Matrix_SetIdentity(cubeWorldToCamMat);
+	//Matrix_Copy(tempMat, boatMatrixRotate);
+	Matrix_Multiply(tempMat, boatMatrixRotate, cam.camToWorldRotMat); //generate the skybox/cube map rotation matrix from the boat to world rotation
+	Matrix_Inverse(cubeWorldToCamMat, tempMat);
+	
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){
-		OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
+		//OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
 	}
 
 	//setup strings to draw and handle gameplay input

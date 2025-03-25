@@ -1,14 +1,17 @@
 
 let sceneScripts = [
-	'sail/Sail.js'
+	'sail/Sail.js',
+	'iceMountian/iceMountian.js'
 ];
 
 const ScnIds = {
-	Sail: 0
+	Sail       : 0,
+	IceMountian: 1
 };
 
 const SceneNameToScnId = {
-	"girl" : ScnIds.Sail
+	"girl"          : ScnIds.Sail,
+	"iceM"          : ScnIds.IceMountian
 };
 
 
@@ -28,6 +31,9 @@ function loadScnScriptsCmp(){
 	switch( loadScnId ){
 		case ScnIds.Sail:
 			SAIL_sceneSpecificLoad(ldScnLdCmpCb);
+			break;
+		case ScnIds.IceMountian:
+			ICEM_sceneSpecificLoad(ldScnLdCmpCb);
 	}
 }
 
@@ -52,28 +58,10 @@ function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3D
 	switch( scnId ){
 		case ScnIds.Sail:
 			return SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
+		case ScnIds.IceMountian:
+			return ICEM_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
 	}
 	return 1;
 }
 
-/*
-function sceneSpecificObjects( scnId, objMap ){
 
-	switch( scnId ){
-		case ScnIds.Sail:
-			SAIL_sceneSpecificObjects( objMap );
-	}
-
-}
-*/
-
-/*
-function sceneSpecificDraw( scnId ){
-
-	switch( scnId ){
-		case ScnIds.Sail:
-			SAIL_sceneSpecificDraw();
-	}
-
-}
-*/
