@@ -61,8 +61,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	//Matrix_Copy( cubeWorldToCamMat, boatMatrixRotate );
 	//Matrix_SetIdentity(cubeWorldToCamMat);
 	//Matrix_Copy(tempMat, boatMatrixRotate);
-	Matrix_Multiply(tempMat, boatMatrixRotate, cam.camToWorldRotMat); //generate the skybox/cube map rotation matrix from the boat to world rotation
-	Matrix_Inverse(cubeWorldToCamMat, tempMat);
+	//Matrix_Multiply(cubeWorldToCamMat, boatMatrixRotate, cam.camToWorldRotMat); //generate the skybox/cube map rotation matrix from the boat to world rotation
+	//Matrix_Inverse(cubeWorldToCamMat, tempMat);
+	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[1].worldToScreenSpaceMat);
 	
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 

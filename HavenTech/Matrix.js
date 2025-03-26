@@ -38,8 +38,17 @@ function Matrix_SetIdentity( m )
 let IdentityMatrix = Matrix_New();
 Matrix_SetIdentity( IdentityMatrix );
 function Matrix_Copy( m, m2 ){
-	for( var i = 0; i < 4*4; ++i )
+	for( let i = 0; i < 4*4; ++i )
 		m[i] = m2[i];
+}
+function Matrix_CopyOnlyRotateScale(mo, mi){
+	for( let i = 0; i < 4*4-1; ++i ){
+		if( i % 4 == 3 )
+			mo[i] = 0;
+		else
+			mo[i] = mi[i];
+	}
+	mo[4*4-1] = 1;//mi[4*4-1];
 }
 
 let tempMat1 = Matrix_New();

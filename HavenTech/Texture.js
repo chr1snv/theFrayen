@@ -5,7 +5,7 @@
 //the texture ready callback is called to return the result to the caller when loading is complete
 
 //+x, -x, +y, -y, +z -z
-let CubeTexIdxToName = [ '_rt', '_lf', '_ft', '_bk', '_up', '_dn' ];
+let CubeTexIdxToName = [ '_rt', '_lf', '_up', '_dn', '_ft', '_bk', ];
 
 function Texture( nameIn, sceneNameIn, wrapType, textureReadyCallback, readyCallbackParams ){
 
@@ -172,9 +172,8 @@ function TEX_BindCube(texP){
 		gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-		let wrapType = gl.REPEAT;
-		if( texP.wrapType == 0 ) //clamp to edge may be preferred for cubemaps
-			wrapType = gl.CLAMP_TO_EDGE;
+		//clamp to edge may be preferred for cubemaps
+		let wrapType = gl.REPEAT;//CLAMP;//_TO_EDGE;
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, wrapType );
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, wrapType );

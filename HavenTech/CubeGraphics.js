@@ -40,7 +40,7 @@ function CUBE_G_Setup(cubeG){
 
 
 	if( cubeG.cubeTex == null )
-		cubeG.cubeTex = new Texture( 'cloudy/bluecloudLbl', 'sailDefault', 2 ); //wrapType2 
+		cubeG.cubeTex = new Texture( 'cloudy/bluecloud', 'sailDefault', 2 ); //wrapType2 
 	else if( cubeG.cubeTex.isValid ){
 		TEX_BindCube( cubeG.cubeTex );
 	}
@@ -121,13 +121,17 @@ function CUBE_G_allocateVertPosArray(){
 
 var cubeWorldToCamMat = Matrix_New();
 let rotWorldToScreenSpaceMat = Matrix_New();
+let blndrToCubeMapRotMat = Matrix_New();
+Matrix_SetEulerRotate( blndrToCubeMapRotMat, [-Math.PI/2, 0, 0] );
 let tqvrts = null;
 let tqvrtsBufID = -1;
 function CUBE_G_DrawSkyBox(cubeG, mainCam){
 
 	if( cubeWorldToCamMat ){
-		Matrix_Multiply( rotWorldToScreenSpaceMat, gPM, cubeWorldToCamMat );
-		Matrix_Transpose( transMat, rotWorldToScreenSpaceMat );
+		//Matrix_Multiply( rotWorldToScreenSpaceMat, gPM, cubeWorldToCamMat );
+		//Matrix_Transpose( transMat, rotWorldToScreenSpaceMat );
+		Matrix_Multiply(tempMat, cubeWorldToCamMat, blndrToCubeMapRotMat );
+		Matrix_Transpose( transMat, tempMat );
 		gl.uniformMatrix4fv( cubeG.proj_vU_M1_1_Loc, false, transMat );
 	}
 
