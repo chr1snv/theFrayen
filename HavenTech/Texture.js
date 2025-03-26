@@ -169,14 +169,14 @@ function TEX_BindCube(texP){
 		for(let i = 0; i < 6; ++i){
 			gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, texP.loadedImages[i]);
 		}
-		gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 		//clamp to edge may be preferred for cubemaps
-		let wrapType = gl.REPEAT;//CLAMP;//_TO_EDGE;
+		let wrapType = gl.CLAMP_TO_EDGE;
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, wrapType );
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, wrapType );
+		gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 	}else{
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_CUBE_MAP, texP.textureHandle);
