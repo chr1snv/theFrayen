@@ -159,6 +159,8 @@ function RGTTA_DistAndHdgFromWaypoint( retDistHdgVecFromWayp, waypPos, toPos ){
 	Vect3_MultiplyScalar( retDistHdgVecFromWayp[3], -1 );
 }
 
+
+let ObjTextSize = 0.1;
 let incompleteObjColor = [1,1,0];
 let completeObjColor   = [0,1,0];
 let beginRoundingTxtColor = incompleteObjColor;
@@ -259,7 +261,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			rgta_completeSecs = elapsedSecs;
 			rgta_completeSecTenths = elapsedSecTenths;
 		}
-		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, 0.1, "COURSE COMPLETE", false );
+		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, ObjTextSize, "COURSE COMPLETE", false );
 		if( startTimeCCompTextShown == Number.MAX_VALUE )
 			startTimeCCompTextShown = time;
 		if( ( time - startTimeCCompTextShown ) >= secsToShowCourseCompleteText )
@@ -284,7 +286,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 		let bouyRoundDirStr = "PORT";
 		if( currentBouyRoundDir )
 			bouyRoundDirStr = "STARBORD";
-		TR_QueueText(   rb2DTris,  0           , 0.9 , 0.02, 0.05, currentBouyInfo.instrString, 			false, TxtJustify.Center );
+		TR_QueueText(   rb2DTris,  0           , 0.9 , 0.02, ObjTextSize, currentBouyInfo.instrString, 			false, TxtJustify.Center );
 		let distX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.7 , 0.02, 0.03, "Dist to waypoint", 						false );
 		TR_QueueNumber( rb2DTris, distX+xKernSpc*0.03*5, 0.7 , 0.02, 0.03, dist_Hdg_VecFromToWaypoint[0].toFixed(2),  false );
 		let hdgX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.65, 0.02, 0.03, "Hdg to waypoint", 					false );
@@ -298,7 +300,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
 			rgtaState = RgtaState.InColisionWithBouy;
-			TR_QueueText( rb2DTris, 0, 0.4, 0.02, 0.07, "IN COLISION WITH BOUY", false, TxtJustify.Center );
+			TR_QueueText( rb2DTris, 0, 0.4, 0.02, ObjTextSize, "IN COLISION WITH BOUY", false, TxtJustify.Center );
 			if( dist_Hdg_VecFromToWaypoint[0] > resetPenaltyBouyDist )
 				rgtaState = RgtaState.NextBouy; //clear colision status
 		}

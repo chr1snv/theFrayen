@@ -171,10 +171,30 @@ g.gain.exponentialRampToValueAtTime(
 )
 */
 
+let soundIconElm = document.getElementById("soundIcon");
+function setSoundMuteIcon( muted, aCtxActive ){
+
+	if(!muted)
+		document.getElementById("soundIcon").src = "scenes/default/textures/soundIcon.png";
+	else
+		document.getElementById("soundIcon").src = "scenes/default/textures/soundIconMuted.png";
+
+
+	if( aCtxActive ){
+		soundIconElm.style.opacity = 1.0;
+	}else{
+		soundIconElm.style.opacity = 0.5;
+	}
+	
+}
+
 function SND_RestartSoundContext(){
 
-	if( muted )
+	if( muted ){
+		setSoundMuteIcon( muted, aCtx );
 		return;
+	}
+
 
 	if( aCtx != null ){
 		aCtx.suspend();
@@ -182,19 +202,32 @@ function SND_RestartSoundContext(){
 	}
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
+	
+	StartSoundInput(aCtx);
+	
+	setSoundMuteIcon(muted, aCtx);
+
 }
 
 function SND_StartSoundContext(){
 
-	if( muted )
+	if( muted ){
+		setSoundMuteIcon(muted, aCtx);
 		return;
+	}
+
 
 	if( aCtx != null ){
 		aCtx.resume();
+		setSoundMuteIcon(muted, aCtx);
 		return;
 	}
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
+	
+	StartSoundInput(aCtx);
+	
+	setSoundMuteIcon(muted, aCtx);
 }
 
 let muted = true;
@@ -364,13 +397,17 @@ function SND_updateACtx(){
 	if( aCtx == null )
 		return;
 	
+	/*
 	if( aCtx.currentTime > lastNoteTime && aCtx.currentTime > lastUserInputNoteTime  )
 		aCtx.suspend();
-	
+	*/
 }
 
 let soundCanvasElm = document.getElementById('soundCanvas');
 let sCtx = soundCanvasElm.getContext('2d');
+
+let spectCanvasElm = document.getElementById('spectInputVisCanvas');
+let svCtx = spectCanvasElm.getContext('2d');
 
 const sTextColor = '#999999';
 
@@ -382,36 +419,48 @@ const insChansWidthPct = 1/5;
 const instHeightPct = 1/10;
 
 let timeLineHeightPct = 1/10;
+let vizIdx = 0;
 function DrawSoundCanvas(){
 	//background
 	sCtx.fillStyle = '#515151';
 	sCtx.clearRect(0, 0, sCtx.canvas.width, sCtx.canvas.height);
 	sCtx.fillRect(0, 0, sCtx.canvas.width, sCtx.canvas.height);
-	
+
 	//instrument / channels
 	sCtx.fillStyle = '#242424';
 	sCtx.fillRect(0, 0, sCtx.canvas.width*insChansWidthPct, sCtx.canvas.height);
-	
-	
+
+
 	sCtx.fillStyle = '#1b1b1b';
 	sCtx.fillRect(sCtx.canvas.width*insChansWidthPct, 0, 
 				sCtx.canvas.width, sCtx.canvas.height*timeLineHeightPct);
-	
+
 	//draw instruments and notes
 	let vertOffsetPct = timeLineHeightPct;
 	for( let i = 0; i < instruments.length; ++i ){
 		drawInstrument( instruments[i], vertOffsetPct, instHeightPct );
 		vertOffsetPct += instHeightPct;
 	}
-	
+
 	let currentTime = aCtx == null ? 0 : aCtx.currentTime;
-	
+
 	//top of canvas time
 	drawTimeBar( insChansWidthPct, timeLineHeightPct, 0, onScreenTimeSecs, currentTime );
-	
+
 	//time indication
 	sCtx.fillStyle = '#ffffff';
 	sCtx.fillText( currentTime.toFixed(2)+"s", 0, sCtx.canvas.height*timeLineHeightPct );
+
+	//mic input visualization
+	if( analyserOutputBuffer!=null ){
+		analyser.getByteFrequencyData(analyserOutputBuffer);
+		for( let i = 0; i < analyserOutputBuffer.length; ++i ){
+			let v = analyserOutputBuffer[i];
+			svCtx.fillStyle = 'rgb('+v+','+v+','+v+')';
+			svCtx.fillRect( vizIdx, sCtx.canvas.height-i, 1, 1 );
+		}
+		vizIdx = (++vizIdx % analyserOutputBuffer.length);
+	}
 }
 
 const timeTextIntervalSecs = 1;
