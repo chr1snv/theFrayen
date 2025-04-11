@@ -66,7 +66,7 @@ var incFiles = ['DPrintf.js',
 				//'CameraStream.js',
 				
 				'Sound.js',
-				'fft.js',
+				//'fft.js',
 				'SoundInput.js',
 				
 				'NetworkCommunications.js',
