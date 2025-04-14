@@ -203,7 +203,7 @@ function SND_RestartSoundContext(){
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
 	
-	StartSoundInput(aCtx);
+	StartSoundInput();
 	
 	setSoundMuteIcon(muted, aCtx);
 
@@ -225,7 +225,7 @@ function SND_StartSoundContext(){
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
 	
-	StartSoundInput(aCtx);
+	StartSoundInput();
 	
 	setSoundMuteIcon(muted, aCtx);
 }
@@ -406,9 +406,6 @@ function SND_updateACtx(){
 let soundCanvasElm = document.getElementById('soundCanvas');
 let sCtx = soundCanvasElm.getContext('2d');
 
-let spectCanvasElm = document.getElementById('spectInputVisCanvas');
-let svCtx = spectCanvasElm.getContext('2d');
-
 const sTextColor = '#999999';
 
 let screenMinTime = 0;
@@ -419,7 +416,7 @@ const insChansWidthPct = 1/5;
 const instHeightPct = 1/10;
 
 let timeLineHeightPct = 1/10;
-let vizIdx = 0;
+
 function DrawSoundCanvas(){
 	//background
 	sCtx.fillStyle = '#515151';
@@ -451,16 +448,7 @@ function DrawSoundCanvas(){
 	sCtx.fillStyle = '#ffffff';
 	sCtx.fillText( currentTime.toFixed(2)+"s", 0, sCtx.canvas.height*timeLineHeightPct );
 
-	//mic input visualization
-	if( analyserOutputBuffer!=null ){
-		analyser.getByteFrequencyData(analyserOutputBuffer);
-		for( let i = 0; i < analyserOutputBuffer.length; ++i ){
-			let v = analyserOutputBuffer[i];
-			svCtx.fillStyle = 'rgb('+v+','+v+','+v+')';
-			svCtx.fillRect( vizIdx, sCtx.canvas.height-i, 1, 1 );
-		}
-		vizIdx = (++vizIdx % analyserOutputBuffer.length);
-	}
+	updateMicInputSpectrogramDisplay();
 }
 
 const timeTextIntervalSecs = 1;

@@ -4,74 +4,75 @@
 //loads all of the haven tech scripts into the dom
 
 var incFiles = ['DPrintf.js',
-				'Iohelpers.js',
-				'UID.js',
+				'NetworkCommunications/Iohelpers.js',
+				'Structures/UID.js',
 				
-				'Vect3.js',
-				'Quaternion.js',
-				'Matrix.js',
-				'Curve.js',
-				'IPOAnimation.js',
+				'Transforms/Vect3.js',
+				'Transforms/Quaternion.js',
+				'Transforms/Matrix.js',
+				'Structures/Curve.js',
+				'Structures/IPOAnimation.js',
 				
-				'MergeSort.js',
+				'Transforms/MergeSort.js',
 				
-				'AABB.js',
-				'Ray.js',
+				'Structures/AABB.js',
+				'Transforms/Ray.js',
 				
-				'Math.js',
-				'Physics.js',
-				'PhysObj.js',
-				'PhysConstraintGraph.js',
-				'Capsule.js',
+				'Transforms/Math.js',
+				'Transforms/Statistics.js',
+				'Transforms/SimulationAndPhysics/Physics.js',
+				'Structures/PhysObj.js',
+				'Structures/PhysConstraintGraph.js',
+				'Transforms/SimulationAndPhysics/Capsule.js',
 				
 				'webgl-utils.js',
 				'webgl-debug.js',
 				
-				'Light.js',
-				'Camera.js',
-				'Frustum.js',
-				'QuadMesh.js',
+				'Structures/Light.js',
+				'Output/Rendering/Camera.js',
+				'Structures/Frustum.js',
+				'Structures/QuadMesh.js',
 				
-				'OctTree.js',
+				'Transforms/OctTree.js',
 				
-				'GlProgram.js',
-				'Material.js',
-				'Texture.js',
-				'Graphics.js',
-				'PointGraphics.js',
-				'TriGraphics.js',
-				'LineGraphics.js',
-				'CubeGraphics.js',
+				'Transforms/GlProgram.js',
+				'Structures/Material.js',
+				'Structures/Texture.js',
+				'Output/Rendering/Graphics.js',
+				'Output/Rendering/PointGraphics.js',
+				'Output/Rendering/TriGraphics.js',
+				'Output/Rendering/LineGraphics.js',
+				'Output/Rendering/CubeGraphics.js',
 				
-				'Model.js',
-				'Triangle.js',
+				'Structures/Model.js',
+				'Structures/Triangle.js',
 				
-				'Bone.js',
-				'MeshKeyAnimation.js',
-				'SkeletalAnimation.js',
+				'Structures/Bone.js',
+				'Structures/MeshKeyAnimation.js',
+				'Structures/SkeletalAnimation.js',
 				
-				'HavenScene.js',
-				'RasterBatch.js',
+				'Structures/HavenScene.js',
+				'Output/Rendering/RasterBatch.js',
 				
-				'HierarchyView.js',
+				'Output/HierarchyView.js',
 				'HavenMain.js',
 				
-				'TriText.js',
+				'Structures/TriText.js',
 				
-				'Overlay.js',
+				'Output/Rendering/Overlay.js',
 				
-				'HavenInputHandlers.js',
-				'TouchScreenControls.js',
-				'InertialSensors.js',
+				'Input/SwitchAndOptical/HavenInputHandlers.js',
+				'Input/CapacitiveAndGFieldSensing/TouchScreenControls.js',
+				'Input/CapacitiveAndGFieldSensing/InertialSensors.js',
 				//'CameraStream.js',
 				
-				'Sound.js',
+				'Output/Sound/Sound.js',
 				//'fft.js',
-				'SoundInput.js',
+				'Input/Sound/SoundInput.js',
 				
-				'NetworkCommunications.js',
+				'NetworkCommunications/NetworkCommunications.js',
 				
-				'SceneSpecific.js'
+				'SceneLogic/SceneSpecific.js'
 				];
 
 var statusElm = document.getElementById("status");

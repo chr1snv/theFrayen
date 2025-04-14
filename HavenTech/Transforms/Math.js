@@ -82,6 +82,14 @@ function MTH_WrappedAngLessThan( refA, a ){
 	return false;
 }
 
+function closestLargerPowerOfTwo(n){
+	let ret = 2;
+	while(ret < n){
+		ret *= 2;
+	}
+	return ret;
+}
+
 function SystemOfEquationSolver(){
 
 	

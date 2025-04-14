@@ -4,6 +4,8 @@
 //may need https for the offline caching functionality
 //https://developer.chrome.com/docs/workbox/caching-strategies-overview/
 
+//https://css-tricks.com/the-difference-between-web-sockets-web-workers-and-service-workers/
+//Service Worker - "A type of Web Worker that creates a background service that acts middleware for handling network requests between the browser and server, even in offline situations."
 
 //https://web.dev/service-workers-cache-storage/
 
