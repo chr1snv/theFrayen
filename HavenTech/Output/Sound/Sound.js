@@ -448,7 +448,7 @@ function DrawSoundCanvas(){
 	sCtx.fillStyle = '#ffffff';
 	sCtx.fillText( currentTime.toFixed(2)+"s", 0, sCtx.canvas.height*timeLineHeightPct );
 
-	updateMicInputSpectrogramDisplay();
+	updateMicInputSpectrogramDisplay(sceneTime);
 }
 
 const timeTextIntervalSecs = 1;
