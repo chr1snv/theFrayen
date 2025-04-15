@@ -233,6 +233,9 @@ function SND_StartSoundContext(){
 let muted = true;
 let aCtx = null;
 function soundIconClicked(){
+	
+	if(!running)
+		return;
 
 	muted = !muted;
 

@@ -19,7 +19,7 @@
 				<td style="width:100px;"><button type="button" id="showSettings" style="height:40px; width:70px;" onclick="showHideSettings()">> Settings</button></td>
 				<td id="status" style="border:1px solid #ffffff; width:150px;">Loading Scripts</td>
 				<td style="width:120px;"><button type="button" style="height:40px;" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
-				<td><img id="soundIcon" onclick="soundIconClicked()" style="height:40px; opacity:0.5;" src="scenes/default/textures/soundIconMuted.png"></img></td>
+				<td><img id="soundIcon" onclick="if(typeof soundIconClicked != 'undefined')soundIconClicked()" style="height:40px; opacity:0.5;" src="scenes/default/textures/soundIconMuted.png"></img></td>
 				<td>Scene</td>
 				<td>
 					<select id="sceneSelection" style="height:40px;" name="scene">

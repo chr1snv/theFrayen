@@ -262,7 +262,7 @@ function loadScene()
 	//loadSceneSounds(newSceneName);
 }
 runSceneButtonElm = document.getElementById("runSceneButton");
-let running = false;
+var running = false;
 function stop(){
 	running = false;
 	//if( mainLoopAnimRequestHandle ){
@@ -480,7 +480,7 @@ function MainLoop()
 	SND_updateACtx();
 
 	if( !document.fullscreenElement )
-		DrawSoundCanvas();
+		DrawSoundCanvas(sceneTime);
 
 
 	//graphics.Flush();
