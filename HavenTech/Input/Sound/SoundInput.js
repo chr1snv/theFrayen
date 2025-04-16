@@ -155,7 +155,7 @@ function FFTBinToFreq( n, numBins, sampleRate ){
 let logMelPlotFreqHeight = 500;
 let numLogMelBanks      = 10;
 let maxLogMelFreq       = 8000;
-let logMelBinOverlapPct = 1.0; //triangular end is at prev/next center bin
+//let logMelBinOverlapPct = 1.0; //triangular end is at prev/next center bin
 let logMelNewValPct     = 0.8;
 
 let numLinLogMelBanks = 5;
@@ -172,37 +172,42 @@ function LogMelFiltBank(cenBin, halfBinsWidth){
 	this.firstDerivPrev   = 0;
 	this.secondDerivPrev  = 0;
 }
-function drawFiltBank(filtBank, canvHeight, offsetX, offsetYPerBin, plotHeight ){
-	let yOffset = filtBank.centerBin * offsetYPerBin;
-	yOffset = canvHeight - yOffset;
+let filtBankAvgPct = 0;
+
+function drawFiltBank(filtBank, canvHeight, maxLogMelBin, offsetX, plotHeight ){
+
+	let centerOffsetY = canvHeight - logMelFreqBinToDispVertCoord( filtBank.centerBin, maxLogMelBin, canvHeight );
 	
+	//let yOffset = filtBank.centerBin * centerOffsetY;
+	//yOffset = canvHeight - yOffset;
+
 	let prevOffsetX = offsetX - 1;
 	if( prevOffsetX < 0 )
 		prevOffsetX = 0;
-	
+
 	//draw the spectral magitude (red) for the triangular filter
 	svCtx.strokeStyle = 'rgb(255,0,0, 0.5)';
 	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, yOffset - filtBank.sumPrev/25.5 * filtBank.numBinsHalfWidth );
-	svCtx.lineTo( offsetX, yOffset - filtBank.sum/25.5 * filtBank.numBinsHalfWidth );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.sumPrev/25.5 * filtBank.numBinsHalfWidth );
+	svCtx.lineTo( offsetX, centerOffsetY - filtBank.sum/25.5 * filtBank.numBinsHalfWidth );
 	svCtx.stroke();
-	
-	
+
+
 	//draw the derivative (green) of the triangular filter
 	svCtx.strokeStyle = 'rgb(0,255,0, 0.35)';
 	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, yOffset - filtBank.firstDerivPrev / 100 );
-	svCtx.lineTo( offsetX, yOffset - filtBank.firstDeriv / 100 );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.firstDerivPrev / 100 );
+	svCtx.lineTo( offsetX, centerOffsetY - filtBank.firstDeriv / 100 );
 	svCtx.stroke();
 	/*
 	//draw the second derivative (blue) of the triangular filter
 	svCtx.fillStyle = 'rgb(0,0,255)';
 	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, yOffset - filtBank.secondDerivPrev / 1000 );
-	svCtx.lineTo( offsetX, yOffset - filtBank.secondDeriv / 1000 );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.secondDerivPrev / 1000 );
+	svCtx.lineTo( offsetX, centerOffsetY - filtBank.secondDeriv / 1000 );
 	svCtx.stroke();
 	*/
-	
+
 	/*
 	svCtx.strokeStyle = 'rgb(0,255,255)';
 	svCtx.beginPath();
@@ -310,11 +315,17 @@ function updateLogMelFreqSum(maxFiltBank){
 	
 }
 
-
+function logMelDispVertCoordToFreqBin( y, maxY, maxLogMelBin ){
+	//exponential mapping of bin idx coordinates to display
+	return ( Math.pow( y, 2 ) / Math.pow( maxY, 2) ) * maxLogMelBin;
+}
+function logMelFreqBinToDispVertCoord( bin, maxLogMelBin, maxY ){
+	return ( Math.sqrt(bin) * maxY ) / Math.sqrt(maxLogMelBin);
+}
 
 let spectCanvasElm = document.getElementById('spectInputVisCanvas');
 let svCtx = spectCanvasElm.getContext('2d');
-let vizIdx = 0;
+let horizIdx = 0;
 let freqMagnitudeAvg = 0;
 let prevX = 0;
 let prevY = 0;
@@ -330,19 +341,19 @@ function updateMicInputSpectrogramDisplay(time){
 		let visBinStep = svCtx.canvas.height / maxLogMelBin; //num vertical pixels to binIdx
 		let freqMagnitudeSum = 0;
 		for( let i = 0; i < svCtx.canvas.height; ++i ){
-			let binIdx = Math.floor(i * 1/visBinStep);
+			let binIdx = Math.floor( logMelDispVertCoordToFreqBin(i, svCtx.canvas.height, maxLogMelBin) );//i * 1/visBinStep);
 			let v = analyserOutputBuffer[binIdx];
 			freqMagnitudeSum += v;
 			//let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
 			svCtx.fillStyle = 'rgb('+v+','+v+','+v+')';
-			svCtx.fillRect( vizIdx, svCtx.canvas.height-i, 1, 1 );
+			svCtx.fillRect( horizIdx, svCtx.canvas.height-i, 1, 1 );
 		}
 
 		freqMagnitudeSum /= svCtx.canvas.height * 255;
 		freqMagnitudeAvg = freqMagnitudeAvg*(1-logMelNewValPct) +  (logMelNewValPct)*freqMagnitudeSum;
 		
 		//draw the sum magnitude
-		let curX = vizIdx;
+		let curX = horizIdx;
 		let curY = svCtx.canvas.height*0.25-(freqMagnitudeAvg)*svCtx.canvas.height*0.25;
 		if( curX < prevX ){ //wrap around previous for intensity sum line chart
 			prevX = curX;
@@ -359,14 +370,14 @@ function updateMicInputSpectrogramDisplay(time){
 		//draw the filter bank values
 		let plotBinHeight = freqToFFTBin( logMelPlotFreqHeight, MicFFTSize/2, micSampleRate );
 		for(let i = 0; i < numLogMelBanks; ++i ){
-			drawFiltBank( logMelFiltBanks[i], svCtx.canvas.height, vizIdx, visBinStep, plotBinHeight );
+			drawFiltBank( logMelFiltBanks[i], svCtx.canvas.height, maxLogMelBin, horizIdx, plotBinHeight );
 		}
 		//update the previous idx for line value
 		prevX = curX;
 		prevY = curY;
 
-		//vizIdx
-		vizIdx = (++vizIdx % svCtx.canvas.width);
+		//horizIdx
+		horizIdx = (++horizIdx % svCtx.canvas.width);
 	}
 }
 
