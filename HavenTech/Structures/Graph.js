@@ -18,3 +18,12 @@ function GRPH_AddEntry(gEntry){
 }
 
 
+
+
+function GRPH_Draw(gph){
+	
+}
+
+
+function GRPH_DrawEntry(gphEntry){
+}

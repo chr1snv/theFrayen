@@ -31,6 +31,10 @@ function sphereRadiusFromVolume( v ){
 	return Math.pow( v * 3/4 / Math.PI, 1/3);
 }
 
+function lerp( a, b, pctB){
+	return (1-pctB) * a + pctB * b;
+}
+
 function clamp01( a ){
 	if( a < 0 )
 		return 0;

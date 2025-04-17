@@ -152,7 +152,7 @@ function FFTBinToFreq( n, numBins, sampleRate ){
 //to get FFT Bin inputs for filter frequencies
 //linear spacing below 1000hz
 //"logarithmicly" spaced above 1000hz (inverse of log is exponential)
-let logMelPlotFreqHeight = 500;
+let logMelPlotFreqHeight = 200;
 let numLogMelBanks      = 10;
 let maxLogMelFreq       = 8000;
 //let logMelBinOverlapPct = 1.0; //triangular end is at prev/next center bin
@@ -161,61 +161,102 @@ let logMelNewValPct     = 0.8;
 let numLinLogMelBanks = 5;
 let maxLinLogMelFreq  = 1000;
 let minLinLogMelFreq  = 0;
-function LogMelFiltBank(cenBin, halfBinsWidth){
-	this.centerBin 		  = Math.round(cenBin);
-	this.numBinsHalfWidth = Math.round(halfBinsWidth);
+function LogMelFiltBank(src, inParam0, inParam1 ){
+	this.srcType		  = src;
+
+	if( src == LMSRC_FFT ){ //first layer directly connected to fft freq bins
+		this.centerBin 		  = Math.round(inParam0);
+		this.numBinsHalfWidth = Math.round(inParam1);
+	}else{ //depth 2 filter (based on outputs of first layer)
+		this.minBank = inParam0;
+		this.maxBank = inParam1;
+		//draw on display at  ( minBank.centerBin + maxBank.centerBin ) / 2
+	}
+
 	this.sum 			  = 0;
 	this.firstDeriv 	  = 0;
 	this.secondDeriv 	  = 0;
-	
+
 	this.sumPrev 		  = 0;
 	this.firstDerivPrev   = 0;
 	this.secondDerivPrev  = 0;
+	
+	
 }
-let filtBankAvgPct = 0;
+
+//sources for log mel filterbank/nodes
+const LMSRC_FFT = 0
+const LMSRC_AGG = 1
+
+let filtBankLowFreqAvg = new LogMelFiltBank( LMSRC_AGG,  );
 
 function drawFiltBank(filtBank, canvHeight, maxLogMelBin, offsetX, plotHeight ){
+	//draws one of the filter banks on the spectrogram plot
 
 	let centerOffsetY = canvHeight - logMelFreqBinToDispVertCoord( filtBank.centerBin, maxLogMelBin, canvHeight );
-	
-	//let yOffset = filtBank.centerBin * centerOffsetY;
-	//yOffset = canvHeight - yOffset;
+
+	let prevYMag = 0;
+	let YMag = 0;
 
 	let prevOffsetX = offsetX - 1;
 	if( prevOffsetX < 0 )
 		prevOffsetX = 0;
 
 	//draw the spectral magitude (red) for the triangular filter
-	svCtx.strokeStyle = 'rgb(255,0,0, 0.5)';
+	prevYMag = Math.min( Math.max( filtBank.sumPrev/25.5, -plotHeight), plotHeight );
+	YMag 	 = Math.min( Math.max( filtBank.sum/25.5, 	  -plotHeight), plotHeight );
+	svCtx.strokeStyle = 'rgb(255,0,0, 0.8)';
 	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.sumPrev/25.5 * filtBank.numBinsHalfWidth );
-	svCtx.lineTo( offsetX, centerOffsetY - filtBank.sum/25.5 * filtBank.numBinsHalfWidth );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - prevYMag );
+	svCtx.lineTo( offsetX, centerOffsetY - YMag );
 	svCtx.stroke();
 
 
 	//draw the derivative (green) of the triangular filter
-	svCtx.strokeStyle = 'rgb(0,255,0, 0.35)';
+	prevYMag = Math.min( Math.max( filtBank.firstDerivPrev / 1000, -plotHeight), plotHeight );
+	YMag 	 = Math.min( Math.max( filtBank.firstDeriv / 1000, 	  -plotHeight), plotHeight );
+	svCtx.strokeStyle = 'rgb(0,255,0, 0.25)';
 	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.firstDerivPrev / 100 );
-	svCtx.lineTo( offsetX, centerOffsetY - filtBank.firstDeriv / 100 );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - prevYMag );
+	svCtx.lineTo( offsetX, centerOffsetY - YMag );
 	svCtx.stroke();
-	/*
-	//draw the second derivative (blue) of the triangular filter
-	svCtx.fillStyle = 'rgb(0,0,255)';
-	svCtx.beginPath();
-	svCtx.moveTo( prevOffsetX, centerOffsetY - filtBank.secondDerivPrev / 1000 );
-	svCtx.lineTo( offsetX, centerOffsetY - filtBank.secondDeriv / 1000 );
-	svCtx.stroke();
-	*/
 
-	/*
-	svCtx.strokeStyle = 'rgb(0,255,255)';
+
+	//draw the second derivative (blue) of the triangular filter
+	prevYMag = Math.min( Math.max( filtBank.secondDerivPrev / 100000, -plotHeight), plotHeight );
+	YMag 	 = Math.min( Math.max( filtBank.secondDeriv / 100000,		-plotHeight), plotHeight );
+	svCtx.strokeStyle = 'rgb(0,0,255, 0.2)';
 	svCtx.beginPath();
-	svCtx.moveTo( offsetX, prevY );
-	svCtx.lineTo( curX, curY );
+	svCtx.moveTo( prevOffsetX, centerOffsetY - prevYMag );
+	svCtx.lineTo( offsetX, centerOffsetY - YMag );
 	svCtx.stroke();
-	*/
+
 }
+
+function fitLogSpacedBinsAndHalfWidthsToSpan( logBinSpan,  ){
+
+	//binary search for the spacing between the log elements to best span the distance for log spaced filter banks
+	let logAdjSpan = logBinSpan;
+	let lastBinHalfWidth = ( (Math.pow(2,logLogMelBanks) - Math.pow(2,logLogMelBanks-1) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
+	let firstBinHalfWidth = ( ( Math.pow(2,0) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
+
+	let stepSize = lastBinHalfWidth;
+	let iters = 10;
+	while( --iters > 0 ){
+		let adjustedLogBinSpan = lastBinHalfWidth + firstBinHalfWidth + logAdjSpan;
+		if( adjustedLogBinSpan < logBinSpan )
+			logAdjSpan += stepSize;
+		else
+			logAdjSpan -= stepSize;
+		stepSize /= 2;
+		
+		lastBinHalfWidth = ( (Math.pow(2,logLogMelBanks) - Math.pow(2,logLogMelBanks-1) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
+		firstBinHalfWidth = ( (Math.pow(2,0) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
+		logBinCenterSpan = logAdjSpan + (lastBinHalfWidth + firstBinHalfWidth);
+	}
+	return [f];
+}
+
 let logMelFiltBanks = new Array( numLogMelBanks );
 function genLogMelFreqBanks(){
 	//create filter banks so that their half widths end at upper and lower frequencies/bins specified
@@ -225,26 +266,27 @@ function genLogMelFreqBanks(){
 	const linBinHalfWidth = numLinBins/numLinLogMelBanks/2;
 	const linBinCenterSpan = numLinBins - (linBinHalfWidth*2);
 	let prevCenterBin = 0;
-	for( let i = 0; i < numLinLogMelBanks; ++i ){
+	for( let i = 0; i < numLinLogMelBanks; ++i ){ //create the linearly spaced filter banks
 		let pctOfLinBins = i/(numLinLogMelBanks-1);
 		let cenBin = (minLinLogMelBin+linBinHalfWidth) + (pctOfLinBins * linBinCenterSpan);
-		logMelFiltBanks[i] = new LogMelFiltBank(cenBin, linBinHalfWidth);
+		logMelFiltBanks[i] = new LogMelFiltBank(LMSRC_FFT, cenBin, linBinHalfWidth);
 		prevCenterBin = cenBin;
 	}
-	
+
 	//initial info for log spaced banks
 	const logLogMelBanks = numLogMelBanks-numLinLogMelBanks; //remaining of numLogMelBanks are expontially spaced
 	const maxLogMelBin = freqToFFTBin( maxLogMelFreq, MicFFTSize/2, micSampleRate );
 	const logBinSpan = maxLogMelBin - prevCenterBin;
 	//the ratio between the first log bank half span and last one is 2^logLogMelBanks
 	//each 2^x log bank center distance is twice that of before
-	
+
+
+
 	//binary search for the spacing between the log elements to best span the distance for log spaced filter banks
 	let logAdjSpan = logBinSpan;
 	let lastBinHalfWidth = ( (Math.pow(2,logLogMelBanks) - Math.pow(2,logLogMelBanks-1) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
 	let firstBinHalfWidth = ( ( Math.pow(2,0) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
-	
-	
+
 	let stepSize = lastBinHalfWidth;
 	let iters = 10;
 	while( --iters > 0 ){
@@ -260,19 +302,49 @@ function genLogMelFreqBanks(){
 		logBinCenterSpan = logAdjSpan + (lastBinHalfWidth + firstBinHalfWidth);
 	}
 	let firstLogBinCenter =  prevCenterBin;
-	
+
+
 	//generate the log spaced filter banks with the found center span
 	for( let i = 0; i < logLogMelBanks; ++i ){
 		let filterCenterBin = (Math.pow( 2, i ) / Math.pow(2, logLogMelBanks-1 )) * logAdjSpan + firstLogBinCenter;
 		console.log("log cenBin " + filterCenterBin );
 		//let cenBin = freqToFFTBin(filterCenterFreq, MicFFTSize/2, micSampleRate);
 		let halfBinWidth = filterCenterBin-prevCenterBin;
-		logMelFiltBanks[i+numLinLogMelBanks] = new LogMelFiltBank(filterCenterBin, halfBinWidth);
+		logMelFiltBanks[i+numLinLogMelBanks] = new LogMelFiltBank(LMSRC_FFT, filterCenterBin, halfBinWidth);
 		prevCenterBin = filterCenterBin;
 	}
+
+
+	//generate the second layer sum filter banks (from the previous ones)
+	
+
 }
+
+function triangularIntegrate(cenBin, halfBinWdth, bins){
+
+	let bankSum = bins[cenBin];
+
+	//area under a triangle is 1/2 base * height
+	//base = halfBinWdth*2 height = 1;
+
+	for(let j = 1; j < halfBinWdth; ++j ){ //lower triangle
+		let bin    = cenBin - j;
+		let weight = (1-(j/halfBinWdth));
+		let binVal = bins[bin];
+		bankSum += binVal;
+	}
+	for(let j = 1; j < halfBinWdth; ++j ){ //upper triangle
+		let bin    = cenBin + j;
+		let weight = (1-(j/halfBinWdth));
+		let binVal = bins[bin];
+		bankSum += binVal;
+	}
+	bankSum /= halfBinWdth;
+	return bankSum;
+}
+
 function updateLogMelFiltBanks(bins, dT){
-	let prevCenterBin = 0;
+
 	for( let i = 0; i < logMelFiltBanks.length; ++i ){
 
 		let bF = logMelFiltBanks[i];
@@ -281,39 +353,22 @@ function updateLogMelFiltBanks(bins, dT){
 		bF.firstDerivPrev  = bF.firstDeriv;
 		bF.secondDerivPrev = bF.secondDeriv;
 
-		let cenBin 		= bF.centerBin;
-		let halfBinWdth = bF.numBinsHalfWidth;
-		prevCenterBin = cenBin;
-		
-		//area under a triangle is 1/2 base * height
-		//base = halfBinWdth*2 height = 1;
-		
-		let bankSum = bF.sum * (1-logMelNewValPct) + (logMelNewValPct) * bins[cenBin];
-		for(let j = 1; j < halfBinWdth; ++j ){ //lower triangle
-			let bin    = cenBin - j;
-			let weight = (1-(j/halfBinWdth));
-			let binVal = bins[bin];
-			bankSum = bankSum* (1-logMelNewValPct) + (logMelNewValPct) * binVal;
+		//average the values for range/gain adjustment
+
+		if( bF.srcType == LMSRC_FFT ){//const LMSRC_AGG = 1
+
+			let cenBin 		= bF.centerBin;
+			let halfBinWdth = bF.numBinsHalfWidth;
+
+			bF.sum = lerp( bF.sum, triangularIntegrate( cenBin, halfBinWdth, bins ), logMelNewValPct );
+
 		}
-		for(let j = 1; j < halfBinWdth; ++j ){ //upper triangle
-			let bin    = cenBin + j;
-			let weight = (1-(j/halfBinWdth));
-			let binVal = bins[bin];
-			bankSum = bankSum* (1-logMelNewValPct) + (logMelNewValPct) * binVal;
-		}
-		bankSum /= halfBinWdth;
-		bF.sum = bankSum;
-		//this.sum 			  = 0;
 
 		bF.firstDeriv 	  = (bF.sum - bF.sumPrev) / dT;
 		bF.secondDeriv 	  = (bF.firstDeriv - bF.firstDerivPrev) / dT;
 	}
 }
 
-function updateLogMelFreqSum(maxFiltBank){
-	//sum the intensity of the lower maxFiltBank filters to generate a loudness plot
-	
-}
 
 function logMelDispVertCoordToFreqBin( y, maxY, maxLogMelBin ){
 	//exponential mapping of bin idx coordinates to display
@@ -342,6 +397,7 @@ function updateMicInputSpectrogramDisplay(time){
 		let freqMagnitudeSum = 0;
 		for( let i = 0; i < svCtx.canvas.height; ++i ){
 			let binIdx = Math.floor( logMelDispVertCoordToFreqBin(i, svCtx.canvas.height, maxLogMelBin) );//i * 1/visBinStep);
+			let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
 			let v = analyserOutputBuffer[binIdx];
 			freqMagnitudeSum += v;
 			//let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
@@ -351,7 +407,7 @@ function updateMicInputSpectrogramDisplay(time){
 
 		freqMagnitudeSum /= svCtx.canvas.height * 255;
 		freqMagnitudeAvg = freqMagnitudeAvg*(1-logMelNewValPct) +  (logMelNewValPct)*freqMagnitudeSum;
-		
+
 		//draw the sum magnitude
 		let curX = horizIdx;
 		let curY = svCtx.canvas.height*0.25-(freqMagnitudeAvg)*svCtx.canvas.height*0.25;
@@ -366,7 +422,7 @@ function updateMicInputSpectrogramDisplay(time){
 		svCtx.moveTo( prevX, prevY );
 		svCtx.lineTo( curX, curY );
 		svCtx.stroke();
-		
+
 		//draw the filter bank values
 		let plotBinHeight = freqToFFTBin( logMelPlotFreqHeight, MicFFTSize/2, micSampleRate );
 		for(let i = 0; i < numLogMelBanks; ++i ){
