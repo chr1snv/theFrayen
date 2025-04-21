@@ -79,7 +79,7 @@ function NewDistNormColor(){
 	return [0, new Float32Array(3), new Float32Array(4), null];
 }
 
-function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters )
+function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters )
 {
 	this.camReadyCallback = camReadyCallback;
 	this.camReadyParameters = camReadyParameters;
@@ -96,7 +96,7 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 
 
 	this.cameraName = nameIn;
-	this.sceneName  = sceneNameIn;
+	this.sceneName  = sceneNameIn; //used to fetch ipo name / sceneName
 
 	this.position = Vect3_CopyNew( positionIn ); //spawn position or ipoAnim position of the camera (camTranslation factors in this)
 	this.rotation = Vect3_CopyNew( rotationIn );
@@ -366,14 +366,15 @@ function Camera(nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters 
 	this.onlyRaysNearCursor = false;
 
 
-	if( !this.isAnimated )
+	if( !this.isAnimated && this.camReadyCallback != null )
 		this.camReadyCallback(this, camReadyParameters );
 }
 
 function CAM_IpoReady(ipoAnim, cam){
 	cam.ipoAnimation = ipoAnim;
-
-	cam.camReadyCallback(cam, cam.camReadyParameters );
+	
+	if( cam.readyCallback != null )
+		cam.camReadyCallback(cam, cam.camReadyParameters );
 }
 
 let numRaysIntersected = 0; //number of intersections found

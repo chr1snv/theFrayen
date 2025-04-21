@@ -6,6 +6,7 @@
 var incFiles = ['DPrintf.js',
 				'NetworkCommunications/Iohelpers.js',
 				'Structures/UID.js',
+				'Structures/Graph.js',
 				
 				'Transforms/Vect3.js',
 				'Transforms/Quaternion.js',

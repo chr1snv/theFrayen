@@ -132,7 +132,7 @@ function camLimitChange(){
 		}
 	}
 }
-function setCamLimitInputs(cam){
+function setSettingsDispCamLimitInputs(cam){
 	camNearElm.value = cam.nearClip;
 	camFarElm.value = cam.farClip;
 }
@@ -399,6 +399,10 @@ function MainLoop()
 			mainScene.scnId, sceneTime, mainCam, rastBatch2dTris, 
 			rastBatch3dTris_array, rastBatch3dLines_array ); //run the game code
 
+	
+	if( !document.fullscreenElement )
+		DrawSoundCanvas(sceneTime);
+
 
 	//generate verticies and upload to gl if necessary
 	RastB_PrepareBatchToDraw( rastBatch2dTris );
@@ -478,9 +482,6 @@ function MainLoop()
 
 
 	SND_updateACtx();
-
-	if( !document.fullscreenElement )
-		DrawSoundCanvas(sceneTime);
 
 
 	//graphics.Flush();

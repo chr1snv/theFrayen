@@ -58,7 +58,7 @@ function RGTTA_SceneLoaded( hvnsc ){
 	let rgtaCam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 	rgtaCam.nearClip = 1.0;
 	rgtaCam.farClip = 500.0;
-	setCamLimitInputs( rgtaCam );
+	setSettingsDispCamLimitInputs( rgtaCam );
 	Vect3_Copy( rgtaCam.position, mainCam.position);
 	Vect3_Copy( rgtaCam.rotation, mainCam.rotation);
 	rgtaCam.GenWorldToFromScreenSpaceMats();
@@ -252,7 +252,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 	rgta_elapsedTime = time - rgta_startTime;
 	let elapsedMins 	 = Math.floor(rgta_elapsedTime / 60);
 	let elapsedSecs 	 = Math.floor(rgta_elapsedTime - (elapsedMins*60));
-	let elapsedSecTenths = Math.floor( rgta_elapsedTime - ((elapsedMins*60)+elapsedSecs) );
+	let elapsedSecTenths = Math.floor( (rgta_elapsedTime - ((elapsedMins*60)+elapsedSecs))*100 );
 	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, elapsedSecTenths, TxtJustify.Right );
 
 	if( currentWaypointIdx > bouyInfos.length-1 ){

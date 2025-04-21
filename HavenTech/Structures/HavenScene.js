@@ -25,7 +25,7 @@
 
 
 
-function HavenScene( sceneNameIn, sceneLoadedCallback ){
+function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false ){
 
 	this.sceneLoadedCallback = sceneLoadedCallback;
 
@@ -67,10 +67,27 @@ function HavenScene( sceneNameIn, sceneLoadedCallback ){
 
 	this.scnId = SceneNameToId( this.sceneName );
 
-	//constructor functionality begin asynchronous fetch of scene description
-	this.pendingObjsAdded = 0;
-	loadTextFile("scenes/"+this.sceneName+".hvtScene",
-				HVNSC_textFileLoadedCallback, this);
+
+
+	if( !createEmptyScene ){
+		//constructor functionality begin asynchronous fetch of scene description
+		this.pendingObjsAdded = 0;
+		loadTextFile("scenes/"+this.sceneName+".hvtScene",
+					HVNSC_textFileLoadedCallback, this);
+	}else{
+		
+		//HVNSC_createEmptyScene(this);
+
+		let camArgs = [ '', 90, 0.1, 100, [0,0,0], [0,0,0] ];
+		this.cameras.push( new Camera( "mainCam", this.sceneName, camArgs, null, null ) );
+		this.cameras[0].GenWorldToFromScreenSpaceMats();
+		this.activeCamera = "mainCam";
+		this.activeCameraIdx = 0;
+
+		//set is valid and call scene loaded callback if set
+		//this.isValid = true;
+		HVNSC_checkIfIsLoaded(this);
+	}
 
 }
 
@@ -156,7 +173,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 	rastB3DTris.numLights = hvnsc.numLights;
 
 
-	if(AnimTransformDrawingEnabled){
+	if(AnimTransformDrawingEnabled && rastB3DLines != null){
 		let drawBatch = GetLineBatchBuffer( rastB3DLines, 'line', 2, skelAttrCards );
 		//get the number of armatures and line verts for them
 		for( let i = 0; i < hvnsc.armatureInsertIdx; ++i ){
@@ -225,12 +242,12 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		for(let j=0; j<hvnsc.cameras.length; ++j){
 			if(hvnsc.cameras[j].cameraName == hvnsc.activeCamera){
 				hvnsc.activeCameraIdx = j;
-				setCamLimitInputs(hvnsc.cameras[j]);
+				//setSettingsDispCamLimitInputs(hvnsc.cameras[j]);
 				break;
 			}
 		}
 
-		//allocate the float texture for armatures
+		//allocate the float texture for armatures (does nothing if( skelAnims.length < 1 ) )
 		SkelA_AllocateBatchBoneMatTexture(hvnsc.armatures, hvnsc);
 
 		//HVNSC_Update( hvnsc, 0.0 ); //init animated objs

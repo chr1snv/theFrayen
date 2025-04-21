@@ -42,33 +42,44 @@ function TR_QueueTime( rb2DTris, x, y, dpth, size, m, s, st, justify=TxtJustify.
 	let numMinDigits = 1;
 	let numSecDigits = 2;
 	let numTSecDigits = 2;
-	
-	let minXStrt = x;
-	let colXStrt = x;
-	if( m > 9 )
-		numMinDigits += Math.floor( Math.log10( m ) );
-		
-	if( justify == TxtJustify.Right ){
-		colXStrt = x-(xKernOverrides["col"]*size)-(numSecDigits*xKernSpc*size);
-		minXStrt = colXStrt - numMinDigits * xKernSpc*size;
-	}else if( justify == TxtJustify.Left ){
-		minXStrt = x;
-		colXStrt = x+(numMinDigits*xKernSpc*size);
-	}else if( justify == TxtJustify.Center ){
-		colXStrt = x;
-		minXStrt = x-(numMinDigits*xKernSpc*size);
+	if( st == -1 ){
+		numTSecDigits = 0;
 	}
-	
 
+	if( m > 9 ) //more than one minutes
+		numMinDigits += Math.floor( Math.log10( m ) );
+
+	//compute the right justify offsets for mins : secs : tenth secs
+	let sTnthsXStart	= x				-  numTSecDigits*xKernSpc*size;
+	let sColXStrt		= sTnthsXStart  - (xKernOverrides["col"]*size);
+	let mColXStrt		= sColXStrt		- (numSecDigits*xKernSpc*size);
+	let minXStrt		= mColXStrt		- numMinDigits * xKernSpc*size;
+
+	if( justify == TxtJustify.Right ){ //shift to the left based of size of parts
+
+	}else if( justify == TxtJustify.Left ){ //offset to the right parts
+		minXStrt = x;
+	}else if( justify == TxtJustify.Center ){
+		let wdth = minXStrt - x;
+		let minXStrt = x - wdth/2;
+	}
+
+	//generate and queue the text meshes
 	let dgtSpc = xKernSpc * size;
-	let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, 0		, TxtJustify.Left, overideColor );
-		nextLtrStartX = TR_QueueText(	rb2DTris, colXStrt, y, dpth, size, ':col:'		, false	, TxtJustify.Left, overideColor );
+	let decPlcs = 0;
+	let nextLtrStartX = TR_QueueNumber(	rb2DTris, minXStrt, y, dpth, size,  m			, decPlcs, TxtJustify.Left, overideColor );
+		nextLtrStartX = TR_QueueText(	rb2DTris, nextLtrStartX, y, dpth, size, ':col:'		, false	, TxtJustify.Left, overideColor );
 		nextLtrStartX += xKernOverrides["col"]*size;
-	if( s < 10 ){
-						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, 0		, TxtJustify.Left, overideColor );
+	if( s < 10 ){ //prepend zero
+						TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  0 			, decPlcs, TxtJustify.Left, overideColor );
 						nextLtrStartX += xKernSpc * size;
 	}
-		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, 0		, TxtJustify.Left, overideColor );
+		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  s 			, decPlcs, TxtJustify.Left, overideColor );
+	if( st > -1 ){
+		nextLtrStartX = TR_QueueText(	rb2DTris, nextLtrStartX, y, dpth, size, ':col:'		, false	, TxtJustify.Left, overideColor );
+		nextLtrStartX += xKernOverrides["col"]*size;
+		nextLtrStartX = TR_QueueNumber(	rb2DTris, nextLtrStartX, y, dpth, size,  st			, decPlcs, TxtJustify.Left, overideColor );
+	}
 	return nextLtrStartX;
 
 }

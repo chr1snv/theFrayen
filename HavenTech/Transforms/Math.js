@@ -13,7 +13,7 @@ function quadraticSolutions(s, a,b,c){
 		s[1] = NaN;
 		return;
 	}
-		
+
 	let m = Math.sqrt(bsqu-det);
 	s[0] = (-b + m) / (2*a);
 	s[1] = (-b - m) / (2*a);

@@ -27,14 +27,14 @@ function createMicSrcFrom ( audioCtx, fufilledFunc ) {
 			// create source from microphone input stream
 			try{
 				let src = audioCtx.createMediaStreamSource ( stream );
-				
+
 				let track = stream.getAudioTracks()[0];
 				let trackSettings = track.getSettings();
 				let sampleRate = trackSettings.sampleRate;
 				console.log("mic sampleRate " + sampleRate);
-				
+
 				resolve ( src );
-			
+
 			}catch(e){
 				console.log(e);
 				micSampleRate = aCtx.sampleRate; //couldn't downsample, try again with common sample rate
@@ -43,7 +43,7 @@ function createMicSrcFrom ( audioCtx, fufilledFunc ) {
 				amCtx = null;
 				StartSoundInput();
 			}
-			
+
 		}).catch ( (err ) => { reject ( err ) } )
 	}).then( (stream) => { fufilledFunc(stream) } )
 }
@@ -132,7 +132,6 @@ function micSrcCreated(micStream){
 	fftToLogMelWorker = new Worker("FFTInputToLogMelSpeechAndVoiceWorker.js");
 
 
-
 }
 
 function freqToFFTBin(freq, numBins, sampleRate){
@@ -161,6 +160,9 @@ let logMelNewValPct     = 0.8;
 let numLinLogMelBanks = 5;
 let maxLinLogMelFreq  = 1000;
 let minLinLogMelFreq  = 0;
+
+let logMelInputGraph = new Graph();
+
 function LogMelFiltBank(src, inParam0, inParam1 ){
 	this.srcType		  = src;
 
@@ -180,8 +182,8 @@ function LogMelFiltBank(src, inParam0, inParam1 ){
 	this.sumPrev 		  = 0;
 	this.firstDerivPrev   = 0;
 	this.secondDerivPrev  = 0;
-	
-	
+
+
 }
 
 //sources for log mel filterbank/nodes
@@ -215,7 +217,7 @@ function drawFiltBank(filtBank, canvHeight, maxLogMelBin, offsetX, plotHeight ){
 	//draw the derivative (green) of the triangular filter
 	prevYMag = Math.min( Math.max( filtBank.firstDerivPrev / 1000, -plotHeight), plotHeight );
 	YMag 	 = Math.min( Math.max( filtBank.firstDeriv / 1000, 	  -plotHeight), plotHeight );
-	svCtx.strokeStyle = 'rgb(0,255,0, 0.25)';
+	svCtx.strokeStyle = 'rgb(0,255,0, 0.35)';
 	svCtx.beginPath();
 	svCtx.moveTo( prevOffsetX, centerOffsetY - prevYMag );
 	svCtx.lineTo( offsetX, centerOffsetY - YMag );
@@ -225,7 +227,7 @@ function drawFiltBank(filtBank, canvHeight, maxLogMelBin, offsetX, plotHeight ){
 	//draw the second derivative (blue) of the triangular filter
 	prevYMag = Math.min( Math.max( filtBank.secondDerivPrev / 100000, -plotHeight), plotHeight );
 	YMag 	 = Math.min( Math.max( filtBank.secondDeriv / 100000,		-plotHeight), plotHeight );
-	svCtx.strokeStyle = 'rgb(0,0,255, 0.2)';
+	svCtx.strokeStyle = 'rgb(0,0,255, 0.5)';
 	svCtx.beginPath();
 	svCtx.moveTo( prevOffsetX, centerOffsetY - prevYMag );
 	svCtx.lineTo( offsetX, centerOffsetY - YMag );
@@ -249,7 +251,7 @@ function fitLogSpacedBinsAndHalfWidthsToSpan( logBinSpan,  ){
 		else
 			logAdjSpan -= stepSize;
 		stepSize /= 2;
-		
+
 		lastBinHalfWidth = ( (Math.pow(2,logLogMelBanks) - Math.pow(2,logLogMelBanks-1) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
 		firstBinHalfWidth = ( (Math.pow(2,0) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
 		logBinCenterSpan = logAdjSpan + (lastBinHalfWidth + firstBinHalfWidth);
@@ -296,7 +298,7 @@ function genLogMelFreqBanks(){
 		else
 			logAdjSpan -= stepSize;
 		stepSize /= 2;
-		
+
 		lastBinHalfWidth = ( (Math.pow(2,logLogMelBanks) - Math.pow(2,logLogMelBanks-1) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
 		firstBinHalfWidth = ( (Math.pow(2,0) ) / Math.pow(2, logLogMelBanks-1) * logAdjSpan ) / 2;
 		logBinCenterSpan = logAdjSpan + (lastBinHalfWidth + firstBinHalfWidth);
@@ -385,7 +387,12 @@ let freqMagnitudeAvg = 0;
 let prevX = 0;
 let prevY = 0;
 let lastMicInputDisplayUpdateTime = 0;
+let drawMicInputGraph = false;
+let micInputGraph = new Graph("micInput");
 function updateMicInputSpectrogramDisplay(time){
+	if( keys[keyCodes.KEY_G] ) 
+		drawMicInputGraph = !drawMicInputGraph;
+
 	let dT = time - lastMicInputDisplayUpdateTime;
 	lastMicInputDisplayUpdateTime = time;
 	//mic input visualization
@@ -434,6 +441,13 @@ function updateMicInputSpectrogramDisplay(time){
 
 		//horizIdx
 		horizIdx = (++horizIdx % svCtx.canvas.width);
+	}
+	
+	if( drawMicInputGraph ){
+		if( rastBatch3dLines_array.length < 3 ){ //allocate a raster batch 3d lines array if necessary
+			rastBatch3dLines_array.push( new RasterBatch( RastB_DrawTris ) );
+		}
+		GRPH_Draw( micInputGraph, rastBatch3dLines_array[2], time );
 	}
 }
 
