@@ -346,6 +346,25 @@ function sceneLoaded(havenScene)
 
 }
 
+
+let befrCanvElm = document.getElementById('befrCanv');
+let aftrCanvElm = document.getElementById('aftrCanv');
+function hidePage(hide){
+	if(hide){
+		befrCanvElm.style.display = 'none';
+		aftrCanvElm.style.display = 'none';
+		//cntrlsTxtElm.style.display = 'none';
+		document.children[0].style.backgroundColor = '#00000000';
+		document.children[0].style.backgroundImage = '';
+	}else{
+		befrCanvElm.style.display = '';
+		aftrCanvElm.style.display = '';
+	//	cntrlsTxtElm.style.display = '';
+		document.children[0].style.backgroundColor = '#7fceed';
+		document.children[0].style.backgroundImage = 'linear-gradient(to bottom right, #7fceed, #505d71)';
+	}
+}
+
 let simPhys = true;
 
 var posDbgText = false;
@@ -400,8 +419,13 @@ function MainLoop()
 			rastBatch3dTris_array, rastBatch3dLines_array ); //run the game code
 
 	
-	if( !document.fullscreenElement )
+	if( !document.fullscreenElement ){
 		DrawSoundCanvas(sceneTime);
+		hidePage(false);
+	}else{
+		hidePage(true);
+		
+	}
 
 
 	//generate verticies and upload to gl if necessary
@@ -476,6 +500,7 @@ function MainLoop()
 	}
 
 
+
 	SND_UserInputsToNotes();
 
 	HVNINPT_ClearKeysDown();
@@ -483,7 +508,8 @@ function MainLoop()
 
 	SND_updateACtx();
 
-
+	//graphics.ClearColor();
+	//graphics.Clear();
 	//graphics.Flush();
 
 	//loop this function again when time for next frame

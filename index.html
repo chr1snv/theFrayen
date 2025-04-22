@@ -9,143 +9,147 @@
 
 <body style="background-color:#7fceed; background-image:linear-gradient(to bottom right, #7fceed, #505d71); background-size:cover; background-attachment:fixed; text-align:center; font-family:arial; color:white;">
 
-	<h1>THE FRAYEN</h1>
-	<p style="width:32em; font-size:12px; margin:auto; margin-top:-20px;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name</p>
-	<h3 id="cntrlsTxt">Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click - look : ESC to exit</h3>
-					<h4 id="cameraDebugText"></h4>
-	<div style="margin:auto; width:800px;">
-		<table style="margin:auto; width:800px;">
-			<tr>
-				<td style="width:100px;"><button type="button" id="showSettings" style="height:40px; width:70px;" onclick="showHideSettings()">> Settings</button></td>
-				<td id="status" style="border:1px solid #ffffff; width:150px;">Loading Scripts</td>
-				<td style="width:120px;"><button type="button" style="height:40px;" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
-				<td><img id="soundIcon" onclick="if(typeof soundIconClicked != 'undefined')soundIconClicked()" style="height:40px; opacity:0.5;" src="scenes/default/textures/soundIconMuted.png"></img></td>
-				<td>Scene</td>
-				<td>
-					<select id="sceneSelection" style="height:40px;" name="scene">
-						<option>girl_35_boatAnimsIntegrated</option>
-						<option>rigidInflatableBoat_uvWnwrapped</option>
-						<option>iceMountianSideHouse2</option>
-						<option>hydrofoilSubmersibleCruisingTrimeran16</option>
-						<option>untitledTest1</option>
-						<option>untitledAnimTest</option>
-						<option>SkelAnimTest</option>
-						<option>SkelAnimTest2</option>
-						<option>SkelAnimTest3</option>
-						<option>SkelAnimTest4</option>
-						<option>SkelAnimTest5</option>
-						<option>blndrCoordTool</option>
-						<option>untitled2</option>
-						<option>gordonInnertube1</option>
-					</select>
-				</td>
-				<td><button type="button" id="runSceneButton" style="height:40px; width:80px" onclick="stopAutostart()">Stop Autostart</button></td>
-			</tr>
-			<tr>
-				<td id="networkAuthText"></td>
-			</tr>
-			<tr>
-				<td><a id="networkAuthLink" href=""></a></td>
-			</tr>
-		</table>
-		<table id="settingsTable" style="display:none;">
-
-			<tr>
-				<td>Mouse X Sensitivity</td>
-				<td><input type="number" id="mouseXSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
-				<td>Mouse Y Sensitivity</td>
-				<td><input type="number" id="mouseYSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
-				<td><button type="button" class="tooltip" onclick="ResetSettings()" style="background-color:thistle;">Reset Settings
-				<span class="tooltiptext">sets defaults</span></button></td>
-			</tr>
-			<tr>
-				<td>Touch Move Sens</td>
-				<td><input type="number" id="touchMoveSen" value="0.005" step=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
-				<td>Touch Looks Sens</td>
-				<td><input type="number" id="touchLookSen" value="0.05" step=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
-			</tr>
-
-			<tr>
-				<td>Canvas Width</td>
-				<td><input type="number" id="canvWidth" value="640" step=0.1; style="width:4em;"></input></td>
-				<td>Canvas Height</td>
-				<td><input type="number" id="canvHeight" value="480" step=0.1; style="width:4em;"></input></td>
-				<td><button type="button" onclick="SetCanvasSize()">Set Size</button></td>
-			</tr>
-
-			<tr>
-				<td>Fullscreen Width</td>
-				<td><input type="number" id="fullScrCanvWidth" value="1920" step=0.1; style="width:4em;"></input></td>
-				<td>Fullscreen Height</td>
-				<td><input type="number" id="fullScrCanvHeight" value="1080" step=0.1; style="width:4em;"></input></td>
-			</tr>
-			
-			<tr>
-				<td>Camera Near View Limit</td>
-				<td><input type="number" id="camNear" value="1" step=1; onchange="camLimitChange()" style="width:4em;"></input></td>
-				<td>Camera Far View Limit</td>
-				<td><input type="number" id="camFar" value="1" step=100; onchange="camLimitChange()" style="width:4em;"></input></td>
-			</tr>
-			<tr>
-				<td><input type="checkbox" id="animDbgDiv" onclick="animDebugToggle()">Show Anim Transforms</input></td>
-				<td><input type="checkbox" id="animPlayDiv" onclick="animPlayToggle()" checked>Play Anim</input></td>
-			</tr>
-			
-		</table>
-		<div id="orientationTextDiv" style="display:none;">
-			<table>
+	<div id="befrCanv">
+		<h1>THE FRAYEN</h1>
+		<p style="width:32em; font-size:12px; margin:auto; margin-top:-20px;">An expierence created using haven tech depecting various (frayed, incomplete, not entirely accurate) depictions of reality hence the name</p>
+		<h3 id="cntrlsTxt">Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click - look : ESC to exit</h3>
+						<h4 id="cameraDebugText"></h4>
+		<div style="margin:auto; width:800px;">
+			<table style="margin:auto; width:800px;">
 				<tr>
+					<td style="width:100px;"><button type="button" id="showSettings" style="height:40px; width:70px;" onclick="showHideSettings()">> Settings</button></td>
+					<td id="status" style="border:1px solid #ffffff; width:150px;">Loading Scripts</td>
+					<td style="width:120px;"><button type="button" style="height:40px;" onclick="EnterFullscreen()">Enter Fullscreen</button></td>
+					<td><img id="soundIcon" onclick="if(typeof soundIconClicked != 'undefined')soundIconClicked()" style="height:40px; opacity:0.5;" src="scenes/default/textures/soundIconMuted.png"></img></td>
+					<td>Scene</td>
 					<td>
-						<img src="scenes/default/textures/coordinates_128.png"></img>
+						<select id="sceneSelection" style="height:40px;" name="scene">
+							<option>girl_35_boatAnimsIntegrated</option>
+							<option>rigidInflatableBoat_uvWnwrapped</option>
+							<option>iceMountianSideHouse2</option>
+							<option>hydrofoilSubmersibleCruisingTrimeran16</option>
+							<option>untitledTest1</option>
+							<option>untitledAnimTest</option>
+							<option>SkelAnimTest</option>
+							<option>SkelAnimTest2</option>
+							<option>SkelAnimTest3</option>
+							<option>SkelAnimTest4</option>
+							<option>SkelAnimTest5</option>
+							<option>blndrCoordTool</option>
+							<option>untitled2</option>
+							<option>gordonInnertube1</option>
+						</select>
 					</td>
-					<td>
-						<h4>Camera</h4>
-						<table>
-							<tr>
-								<td>location</td><td id="camLoc"></td>
-							</tr>
-							<tr>
-								<td>rotation</td><td id="camRot"></td>
-							</tr>
-						</table>
-						<table>
-							<tr><td>+x right</td><td>-x left</td></tr>
-							<tr><td>+y fwd</td><td>-y back</td></tr>
-							<tr><td>+z up</td><td>-z down</td></tr>
-						</table>
-					</td>
-					<td style="vertical-align:top;">
-						<h4>Mouse</h4>
-						<table>
-							<tr>
-								<td>canvPos</td><td id="mouseCanvPos"></td>
-								<td>ScreenPos</td><td id="mouseScreenPos"></td>
-							</tr>
-						</table>
-					</td>
+					<td><button type="button" id="runSceneButton" style="height:40px; width:80px" onclick="stopAutostart()">Stop Autostart</button></td>
+				</tr>
+				<tr>
+					<td id="networkAuthText"></td>
+				</tr>
+				<tr>
+					<td><a id="networkAuthLink" href=""></a></td>
+				</tr>
+			</table>
+			<table id="settingsTable" style="display:none;">
+
+				<tr>
+					<td>Mouse X Sensitivity</td>
+					<td><input type="number" id="mouseXSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
+					<td>Mouse Y Sensitivity</td>
+					<td><input type="number" id="mouseYSen" value="0.1" step="0.1" onchange="mouseSenChange()" style="width:4em;"></input></td>
+					<td><button type="button" class="tooltip" onclick="ResetSettings()" style="background-color:thistle;">Reset Settings
+					<span class="tooltiptext">sets defaults</span></button></td>
+				</tr>
+				<tr>
+					<td>Touch Move Sens</td>
+					<td><input type="number" id="touchMoveSen" value="0.005" step=0.001; onchange="touchSenChange()" style="width:4em;"></input></td>
+					<td>Touch Looks Sens</td>
+					<td><input type="number" id="touchLookSen" value="0.05" step=0.01; onchange="touchSenChange()" style="width:4em;"></input></td>
+				</tr>
+
+				<tr>
+					<td>Canvas Width</td>
+					<td><input type="number" id="canvWidth" value="640" step=0.1; style="width:4em;"></input></td>
+					<td>Canvas Height</td>
+					<td><input type="number" id="canvHeight" value="480" step=0.1; style="width:4em;"></input></td>
+					<td><button type="button" onclick="SetCanvasSize()">Set Size</button></td>
+				</tr>
+
+				<tr>
+					<td>Fullscreen Width</td>
+					<td><input type="number" id="fullScrCanvWidth" value="1920" step=0.1; style="width:4em;"></input></td>
+					<td>Fullscreen Height</td>
+					<td><input type="number" id="fullScrCanvHeight" value="1080" step=0.1; style="width:4em;"></input></td>
 				</tr>
 				
 				<tr>
-					<div style="width:80%; margin:auto;">
-						<table style="margin:auto; text-align:left;">
-							<tr><td id="debugTags" style="color:white;">Debug Message Types<br/></td></tr>
-							<tr>
-								<td>
-									<table>
-									</table>
-								</td>
-							</tr>
-						</table>
-					</div>
-					<h4 id ="status"></h4>
+					<td>Camera Near View Limit</td>
+					<td><input type="number" id="camNear" value="1" step=1; onchange="camLimitChange()" style="width:4em;"></input></td>
+					<td>Camera Far View Limit</td>
+					<td><input type="number" id="camFar" value="1" step=100; onchange="camLimitChange()" style="width:4em;"></input></td>
 				</tr>
+				<tr>
+					<td><input type="checkbox" id="animDbgDiv" onclick="animDebugToggle()">Show Anim Transforms</input></td>
+					<td><input type="checkbox" id="animPlayDiv" onclick="animPlayToggle()" checked>Play Anim</input></td>
+				</tr>
+				
 			</table>
+			<div id="orientationTextDiv" style="display:none;">
+				<table>
+					<tr>
+						<td>
+							<img src="scenes/default/textures/coordinates_128.png"></img>
+						</td>
+						<td>
+							<h4>Camera</h4>
+							<table>
+								<tr>
+									<td>location</td><td id="camLoc"></td>
+								</tr>
+								<tr>
+									<td>rotation</td><td id="camRot"></td>
+								</tr>
+							</table>
+							<table>
+								<tr><td>+x right</td><td>-x left</td></tr>
+								<tr><td>+y fwd</td><td>-y back</td></tr>
+								<tr><td>+z up</td><td>-z down</td></tr>
+							</table>
+						</td>
+						<td style="vertical-align:top;">
+							<h4>Mouse</h4>
+							<table>
+								<tr>
+									<td>canvPos</td><td id="mouseCanvPos"></td>
+									<td>ScreenPos</td><td id="mouseScreenPos"></td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					
+					<tr>
+						<div style="width:80%; margin:auto;">
+							<table style="margin:auto; text-align:left;">
+								<tr><td id="debugTags" style="color:white;">Debug Message Types<br/></td></tr>
+								<tr>
+									<td>
+										<table>
+										</table>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<h4 id ="status"></h4>
+					</tr>
+				</table>
+			</div>
 		</div>
 	</div>
 	
 	<canvas id="frayenCanvas" width=640px; height=480px; ></canvas>
-	<canvas id="soundCanvas" width=640px; height=480px; ></canvas>
-	<canvas id="spectInputVisCanvas" width=512px; height=512px;></canvas>
+	<div id="aftrCanv">
+		<canvas id="soundCanvas" width=640px; height=480px; ></canvas>
+		<canvas id="spectInputVisCanvas" width=512px; height=512px;></canvas>
+	</div>
 
 </body>
 

@@ -1,4 +1,5 @@
 
+import asyncio
 import http.server
 import threading
 import ssl
@@ -66,6 +67,16 @@ class HTTPAsyncHandler(http.server.SimpleHTTPRequestHandler):
 			#self.send_error(404,'File Not Found: %s' % self.path)
 
 
+svrIp = '127.0.0.1'
+def getIp():
+	currentIp = '127.0.0.1'
+	for ifaceName in interfaces():
+		addresses = [i['addr'] for i in ifaddresses(ifaceName).setdefault(AF_INET, [{'addr':'No IP addr'}] )]
+		if addresses[0] != '127.0.0.1' and addresses[0] != 'No IP addr':
+			currentIp = addresses[0]
+		#print ('%s: %s' % (ifaceName, ', '.join(addresses)))
+	return currentIp
+
 
 #https://stackoverflow.com/questions/50120102/python-http-server-keep-connection-alive
 def start_http_server_in_new_thread(server_address,requestHandler):
@@ -83,8 +94,44 @@ backend_thread = None
 webSocketSvrThread = None
 stop = 0
 
+####concurrent / thread for checking if interfaces / ip addresses have changed
+def loopCheckIpHasChanged():
+	global svrIp, backend_thread
+	#webSocketSvrThread = 0
+	while(1):
+		currentIp = getIp()
+		#print(currentIp)
+		if currentIp != svrIp:
+			print('ip has changed, need to rebind servers to new interface addresses')
+			svrIp = currentIp
+			
+			if backend_thread != None:
+				backend_thread.stop()
+			
+			server_address = (svrIp, 8000)
+			print( "starting httpAsyncServer at " + server_address[0] + " port " + str(server_address[1]) )
+			backend_thread = start_http_server_in_new_thread(server_address, HTTPAsyncHandler)
+			
+			if stop != 0: #https://stackoverflow.com/questions/60113143/how-to-properly-use-asyncio-run-coroutine-threadsafe-function
+				stop.get_loop().call_soon_threadsafe(stop.set_result, 1)
+				#webSocketSvrThread.stop()#stop.set_result(1);
+			loop = asyncio.new_event_loop()
+			asyncio.set_event_loop(loop)
+			loop = asyncio.get_event_loop()
+			print('before run coroutine startWebsocketServer')
+			
+			#webSocketSvrThread = startWebsocketServer_in_new_thread()
+			
+		time.sleep(1)
 
-start_http_server_in_new_thread(("127.0.0.1",8000), HTTPAsyncHandler)
-while(1):
-	time.sleep(1)
+
+#start_http_server_in_new_thread(("127.0.0.1",8000), HTTPAsyncHandler)
+#while(1):
+#	time.sleep(1)
+
+#run the ip change checking loop (main program loop)
+f = lambda : loopCheckIpHasChanged()
+ipCheck_thread = threading.Thread(target=f)
+#ipCheck_thread.daemon=True
+ipCheck_thread.start()
 

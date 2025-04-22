@@ -73,6 +73,9 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.Clear = function(){
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);}
 	//for clearing depth between scene renderings
+	this.ClearColor = function(){
+		gl.clearColor(0,0,0,1);
+	}
 	this.ClearDepth = function(){
 		gl.clear(gl.DEPTH_BUFFER_BIT);}
 	this.Flush = function(){
@@ -189,7 +192,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 
 
 	//initialization code
-	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true});
+	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true });//, premultipliedAlpha:false});
 	//gl = WebGLDebugUtils.makeDebugContext(gl);
 
 	//gl.width = 2000;

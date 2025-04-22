@@ -399,48 +399,51 @@ function updateMicInputSpectrogramDisplay(time){
 	if( analyserOutputBuffer!=null ){
 		analyser.getByteFrequencyData(analyserOutputBuffer);
 		updateLogMelFiltBanks(analyserOutputBuffer, dT);
-		let maxLogMelBin = freqToFFTBin( maxLogMelFreq, MicFFTSize/2, micSampleRate );
-		let visBinStep = svCtx.canvas.height / maxLogMelBin; //num vertical pixels to binIdx
-		let freqMagnitudeSum = 0;
-		for( let i = 0; i < svCtx.canvas.height; ++i ){
-			let binIdx = Math.floor( logMelDispVertCoordToFreqBin(i, svCtx.canvas.height, maxLogMelBin) );//i * 1/visBinStep);
-			let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
-			let v = analyserOutputBuffer[binIdx];
-			freqMagnitudeSum += v;
-			//let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
-			svCtx.fillStyle = 'rgb('+v+','+v+','+v+')';
-			svCtx.fillRect( horizIdx, svCtx.canvas.height-i, 1, 1 );
-		}
+		
+		if(!document.fullscreenElement){
+			let maxLogMelBin = freqToFFTBin( maxLogMelFreq, MicFFTSize/2, micSampleRate );
+			let visBinStep = svCtx.canvas.height / maxLogMelBin; //num vertical pixels to binIdx
+			let freqMagnitudeSum = 0;
+			for( let i = 0; i < svCtx.canvas.height; ++i ){
+				let binIdx = Math.floor( logMelDispVertCoordToFreqBin(i, svCtx.canvas.height, maxLogMelBin) );//i * 1/visBinStep);
+				let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
+				let v = analyserOutputBuffer[binIdx];
+				freqMagnitudeSum += v;
+				//let binFreq = FFTBinToFreq( binIdx, MicFFTSize/2, micSampleRate );
+				svCtx.fillStyle = 'rgb('+v+','+v+','+v+')';
+				svCtx.fillRect( horizIdx, svCtx.canvas.height-i, 1, 1 );
+			}
 
-		freqMagnitudeSum /= svCtx.canvas.height * 255;
-		freqMagnitudeAvg = freqMagnitudeAvg*(1-logMelNewValPct) +  (logMelNewValPct)*freqMagnitudeSum;
+			freqMagnitudeSum /= svCtx.canvas.height * 255;
+			freqMagnitudeAvg = freqMagnitudeAvg*(1-logMelNewValPct) +  (logMelNewValPct)*freqMagnitudeSum;
 
-		//draw the sum magnitude
-		let curX = horizIdx;
-		let curY = svCtx.canvas.height*0.25-(freqMagnitudeAvg)*svCtx.canvas.height*0.25;
-		if( curX < prevX ){ //wrap around previous for intensity sum line chart
+			//draw the sum magnitude
+			let curX = horizIdx;
+			let curY = svCtx.canvas.height*0.25-(freqMagnitudeAvg)*svCtx.canvas.height*0.25;
+			if( curX < prevX ){ //wrap around previous for intensity sum line chart
+				prevX = curX;
+				//prevY = curY;
+			}
+			svCtx.fillStyle = 'rgb(0,255,255)';
+			//svCtx.fillRect( curX, curY, 1,1);
+			svCtx.strokeStyle = 'rgb(0,255,255)';
+			svCtx.beginPath();
+			svCtx.moveTo( prevX, prevY );
+			svCtx.lineTo( curX, curY );
+			svCtx.stroke();
+
+			//draw the filter bank values
+			let plotBinHeight = freqToFFTBin( logMelPlotFreqHeight, MicFFTSize/2, micSampleRate );
+			for(let i = 0; i < numLogMelBanks; ++i ){
+				drawFiltBank( logMelFiltBanks[i], svCtx.canvas.height, maxLogMelBin, horizIdx, plotBinHeight );
+			}
+			//update the previous idx for line value
 			prevX = curX;
-			//prevY = curY;
-		}
-		svCtx.fillStyle = 'rgb(0,255,255)';
-		//svCtx.fillRect( curX, curY, 1,1);
-		svCtx.strokeStyle = 'rgb(0,255,255)';
-		svCtx.beginPath();
-		svCtx.moveTo( prevX, prevY );
-		svCtx.lineTo( curX, curY );
-		svCtx.stroke();
+			prevY = curY;
 
-		//draw the filter bank values
-		let plotBinHeight = freqToFFTBin( logMelPlotFreqHeight, MicFFTSize/2, micSampleRate );
-		for(let i = 0; i < numLogMelBanks; ++i ){
-			drawFiltBank( logMelFiltBanks[i], svCtx.canvas.height, maxLogMelBin, horizIdx, plotBinHeight );
+			//horizIdx
+			horizIdx = (++horizIdx % svCtx.canvas.width);
 		}
-		//update the previous idx for line value
-		prevX = curX;
-		prevY = curY;
-
-		//horizIdx
-		horizIdx = (++horizIdx % svCtx.canvas.width);
 	}
 	
 	if( drawMicInputGraph ){
