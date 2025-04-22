@@ -217,11 +217,15 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	lastAnimFrame += frameDiff;
 	SkelA_UpdateTransforms( jibArm, lastAnimFrame, true );
 	SkelA_UpdateTransforms( mainArm, lastAnimFrame, true );
+	
+	//animation for girl crewmate + idle animation if animation frame reached
 	let girlAnimFrame = lastAnimFrame;
-	if( frameDiff < epsilon ){ //reached target frame
+	if( frameDiff < epsilon ){ //sails have reached target frame
 		animHoldFrameIdx += animSpeed * delTime * animHoldVarianceHrtz * animHoldVarianceDir;
-		if( Math.abs(animHoldFrameIdx) > animHoldFrameVariance )
-			animHoldVarianceDir = -animHoldVarianceDir;
+		if( Math.abs(animHoldFrameIdx) > animHoldFrameVariance ){
+			animHoldVarianceDir = -Math.sign(animHoldVarianceDir);
+			animHoldFrameIdx = animHoldFrameVariance * -animHoldVarianceDir;
+		}
 		girlAnimFrame = lastAnimFrame + animHoldFrameIdx;
 	}else{
 		animHoldFrameIdx = 0;
