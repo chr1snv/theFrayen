@@ -29,6 +29,9 @@ bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false, WaypointType.Rou
 bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, WaypointType.RoundBouy, "Round the Downwind offset Bouy" );
 bouyInfos[3] = new WaypointInfo( "inflatableBouy",       false, WaypointType.StartLine, "Cross the Finish Line" );
 
+let startLineBoatQm = null;
+let startLineBoatLoc = null;
+
 let directionUiQmInst = null;
 let directionUiQmInstMat = null;
 
@@ -36,11 +39,17 @@ var RGTA_Ready = false;
 function RGTTA_SceneLoaded( hvnsc ){
 
 	console.log( "RGTTA_SceneLoaded" );
-
+	
+	//get refrences to meshes to have follow the water surface
 	for( let i = 0; i < bouyInfos.length; ++i ){
 		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
 		bouyInfos[i].origLoc = bouyInfos[i].bouyQm.origin;
 	}
+
+
+	startLineBoatQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]['startLineBoat'][0];
+	startLineBoatLoc = startLineBoatQm.origin;
+
 
 	new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
 					modelLoadedParameters=null, modelLoadedCallback=Rgta_directionUiQmInstLd, isDynamic=false );
@@ -222,7 +231,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1] );
 		bouyPosition[2] = height;
 		Matrix_SetQuatTransformation(
-			bouyMdl.optTransMat, 
+			bouyMdl.optTransMat,
 			bouyQm.scale,
 			bouyQm.rotation,
 			bouyPosition
@@ -245,6 +254,16 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 				bouyPosition );
 		}
 	}
+	//also move the start line boat to the ocean surface
+	startLineBoatLoc[2] = OCN_GetHeightAtMapPosition( startLineBoatLoc[0], startLineBoatLoc[1] );
+	Matrix_SetQuatTransformation(
+			startLineBoatQm.models[0].optTransMat,
+			startLineBoatQm.scale,
+			startLineBoatQm.rotation,
+			startLineBoatLoc
+		);
+	startLineBoatQm.models[0].optTransformUpdated = true;
+	
 
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( rgtaScene, time, rb3DTris, rb3DLines );

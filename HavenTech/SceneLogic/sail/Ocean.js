@@ -179,7 +179,7 @@ function QCN_FirstQuadIdxAtLvl( lvl ){
 
 let rotationMatrix = Matrix_New();
 
-const OCN_NUM_LVLS = 2;
+const OCN_NUM_LVLS = 3;
 
 const waveAmplitude = 3.2;
 const waveTimePeriodSecs = 1/0.5;
@@ -187,7 +187,7 @@ const waveXDistScale = 100;
 
 const subDivVertsPerSide = 4;
 
-const ocnWidth_Length = 256;
+const ocnWidth_Length = 1024;//256;
 const ocnUVScale = 10; //1;
 
 //returns the interpolated z based on 2 corresponding edge verts of
