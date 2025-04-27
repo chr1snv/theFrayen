@@ -249,8 +249,6 @@ function loadScene()
 
 	stop();
 
-	RastB_numActive3DBatches = 0;
-
 
 	mainScene = new HavenScene(newSceneName, sceneLoaded);
 
@@ -392,12 +390,18 @@ function MainLoop()
 		HandleDefaultCameraControls( sceneTime );
 
 
+	//ready the raster batches for a new frame
 	RastB_ClearObjsAndInitListsForNewFrame( rastBatch2dTris );
 
-
-	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
-		RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dTris_array[i] );
-		if( AnimTransformDrawingEnabled && mainScene.armatureInsertIdx > 0 )
+	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+		let rastB = rastBatch3dTris_array[i];
+		if( rastB.activeForFrame ){
+			RastB_ClearObjsAndInitListsForNewFrame( rastB );
+		}
+	}
+	for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
+		let rastB = rastBatch3dLines_array[i];
+		if( AnimTransformDrawingEnabled || rastB.activeForFrame ) //&& mainScene.armatureInsertIdx > 0 )
 			RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines_array[i] );
 	}
 
@@ -413,12 +417,12 @@ function MainLoop()
 	rastBatch3dLines_array[0].camWorldPos = mainCam.camTranslation;
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[0], rastBatch3dLines_array[0] );
-	RastB_numActive3DBatches = 
-		sceneSpecificUpdateAndGatherObjsToDraw( 
-			mainScene.scnId, sceneTime, mainCam, rastBatch2dTris, 
-			rastBatch3dTris_array, rastBatch3dLines_array ); //run the game code
 
-	
+	sceneSpecificUpdateAndGatherObjsToDraw( 
+		mainScene.scnId, sceneTime, mainCam, rastBatch2dTris, 
+		rastBatch3dTris_array, rastBatch3dLines_array ); //run the game code, generate objects to draw
+
+
 	if( !document.fullscreenElement ){
 		DrawSoundCanvas(sceneTime);
 		hidePage(false);
@@ -428,7 +432,7 @@ function MainLoop()
 	}
 
 
-	//generate verticies and upload to gl if necessary
+	//generate verticies from objects and upload to gl if necessary
 	RastB_PrepareBatchToDraw( rastBatch2dTris );
 	if( mainScene.scnId < 0 )
 		Overlay_DrawInputHint(rastBatch2dTris);
@@ -442,10 +446,19 @@ function MainLoop()
 	TR_QueueNumber( rastBatch2dTris, -0.8*graphics.GetScreenAspect(), 0.97, 0.02, 0.03, lastFps, numDecPlaces=0, justify=TxtJustify.Center );
 
 
-	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
-		RastB_PrepareBatchToDraw( rastBatch3dTris_array[i] );
-		if( AnimTransformDrawingEnabled )
-			RastB_PrepareBatchToDraw( rastBatch3dLines_array[i] );
+	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+		let rastB = rastBatch3dTris_array[i];
+		if( rastB.activeForFrame ){
+			RastB_PrepareBatchToDraw( rastBatch3dTris_array[i] );
+		}
+	}
+	if( AnimTransformDrawingEnabled ){
+		for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
+			let rastB = rastBatch3dLines_array[i];
+			if( rastB.activeForFrame ){
+				RastB_PrepareBatchToDraw( rastBatch3dLines_array[i] );
+			}
+		}
 	}
 
 
@@ -457,8 +470,8 @@ function MainLoop()
 
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
-	//(the transparent area still writes z location)
-	
+	//(the transparent menu bg z depth write prevents the scene behind it from being drawn if done first)
+
 	CUBE_G_Setup(graphics.cubeGraphics);
 	//disable depth buffer write/read test (infinite distance to skybox)
 	graphics.enableDepthTest(false);
@@ -473,32 +486,58 @@ function MainLoop()
 	TRI_G_Setup(graphics.triGraphics);
 
 	//draw opaque materials
-	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
-		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
-		if( AnimTransformDrawingEnabled ){
-			rastBatch3dLines_array[i].DrawFunc(rastBatch3dLines_array[i], sceneTime);
-			TRI_G_Setup(graphics.triGraphics);
+	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+		let rastB = rastBatch3dTris_array[i];
+		if( rastB.activeForFrame ){
+			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
 		}
 	}
 	graphics.enableDepthMask(false);
 	//draw transparent materials (back to front)
-	for( let i = RastB_numActive3DBatches-1; i >= 0; --i ){
-		rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
+	for( let i = rastBatch3dTris_array.length-1; i >= 0; --i ){
+		let rastB = rastBatch3dTris_array[i];
+		if( rastB.activeForFrame ){
+			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
+		}
 	}
 	graphics.enableDepthMask(true);
-	
+
 	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
 	graphics.ClearDepth();
 	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
-		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
+	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
+
+	//draw armature debug lines
+	let linesToDraw = false;
+	for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
+		let rastB = rastBatch3dLines_array[i];
+		if( rastB.activeForFrame ){
+			if( linesToDraw == false ){ //havent yet switched to line graphics gl program
+				linesToDraw = true;
+				LINE_G_Setup(graphics.lineGraphics);
+				graphics.enableDepthTest(false);
+				graphics.enableDepthMask(false);
+			}
+			rastB.DrawFunc(rastBatch3dLines_array[i], sceneTime);
+		}
+	}
+	if( linesToDraw ){
+		graphics.enableDepthMask(true);
+		graphics.enableDepthTest(true);
+	}
 
 	//deallocate things that haven't been used in gl memory for a while 
 	RASTB_DefragBufferAllocs(rastBatch2dTris);
-	for( let i = 0; i < RastB_numActive3DBatches; ++i ){
-		RASTB_DefragBufferAllocs(rastBatch3dTris_array[i], sceneTime);
-		RASTB_DefragBufferAllocs(rastBatch3dLines_array[i], sceneTime);
+	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+		if( rastBatch3dTris_array[i].activeForFrame ){
+			RASTB_DefragBufferAllocs(rastBatch3dTris_array[i], sceneTime);
+		}
 	}
-
+	for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
+		if( rastBatch3dLines_array[i].activeForFrame ){
+			RASTB_DefragBufferAllocs(rastBatch3dLines_array[i], sceneTime);
+		}
+	}
 
 
 	SND_UserInputsToNotes();

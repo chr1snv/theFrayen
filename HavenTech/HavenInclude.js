@@ -34,7 +34,7 @@ var incFiles = ['DPrintf.js',
 				'Structures/Frustum.js',
 				'Structures/QuadMesh.js',
 				
-				'Transforms/OctTree.js',
+				'Structures/OctTree.js',
 				
 				'Transforms/GlProgram.js',
 				'Structures/Material.js',

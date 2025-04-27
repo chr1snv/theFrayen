@@ -25,7 +25,7 @@
 
 
 
-function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false ){
+function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, sceneMin, sceneMax ){
 
 	this.sceneLoadedCallback = sceneLoadedCallback;
 
@@ -67,16 +67,20 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false ){
 
 	this.scnId = SceneNameToId( this.sceneName );
 
-
+	this.pendingObjsAdded = 0;
 
 	if( !createEmptyScene ){
-		//constructor functionality begin asynchronous fetch of scene description
-		this.pendingObjsAdded = 0;
+		//load from file constructor functionality begin asynchronous fetch of scene description
 		loadTextFile("scenes/"+this.sceneName+".hvtScene",
 					HVNSC_textFileLoadedCallback, this);
 	}else{
-		
-		//HVNSC_createEmptyScene(this);
+		//initially empty programatically / runtime added to / generated scene
+		//"HVNSC_createEmptyScene(this);" (if this were a function)
+
+		this.modelNames = {};
+
+		this.octTree = new TreeNode( sceneMin, sceneMax, null );
+		this.octTree.name = this.sceneName + " scene";
 
 		let camArgs = [ '', 90, 0.1, 100, [0,0,0], [0,0,0] ];
 		this.cameras.push( new Camera( "mainCam", this.sceneName, camArgs, null, null ) );
@@ -190,6 +194,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 				AllocateLineBatchAttrBuffers(drawBatch);
 			SkelA_ArmatureDebugDraw( hvnsc.armatures[i], drawBatch, subBB );
 		}
+		rastB3DLines.activeForFrame = true;
 	}
 
 	let i = 0;
@@ -202,6 +207,8 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 	if( rastB3DTris.armatures.length > 0 ){
 		SkelA_writeBatchBoneMatsToGL(rastB3DTris);
 	}
+	
+	rastB3DTris.activeForFrame = true;
 
 }
 
@@ -252,8 +259,21 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 
 		//HVNSC_Update( hvnsc, 0.0 ); //init animated objs
 		hvnsc.isValid = true;
-		hvnsc.sceneLoadedCallback(hvnsc);
+		if( hvnsc.sceneLoadedCallback )
+			hvnsc.sceneLoadedCallback(hvnsc);
 	}
+}
+
+function HVNSC_FinishAddingLoadedModelToProgramaticScene(hvnsc, mdl){
+	HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl);
+	hvnsc.modelNames[mdl.modelName] = mdl;
+}
+
+function HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl){
+	MDL_Update( mdl, 0 ); //update to generate AABB
+	MDL_AddToOctTree( mdl, hvnsc.octTree );
+	hvnsc.models[mdl.uid.val] = mdl;
+	delete hvnsc.pendingObjsToLoad[mdl.modelName];
 }
 
 function HVNSC_ObjLoadedCallback(obj, hvnsc){
@@ -262,10 +282,7 @@ function HVNSC_ObjLoadedCallback(obj, hvnsc){
 	if( obj.constructor.name == Camera.name ){
 		hvnsc.cameras[hvnsc.camInsertIdx++] = obj;
 	}else if( obj.constructor.name == Model.name ){
-		MDL_Update( obj, 0 ); //update to generate AABB
-		MDL_AddToOctTree( obj, hvnsc.octTree );
-		hvnsc.models[obj.uid.val] = obj;
-		delete hvnsc.pendingObjsToLoad[obj.modelName];
+		HVNSC_FinishAddingLoadedModelToScene(hvnsc, obj);
 	}else if( obj.constructor.name == SkeletalAnimation.name ){
 		hvnsc.armatures[hvnsc.armatureInsertIdx++] = obj;
 	}

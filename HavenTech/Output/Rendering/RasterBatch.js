@@ -493,6 +493,7 @@ function RastB_ClearObjsAndInitListsForNewFrame(rb){
 	this.armatures = [];
 	//reset the number of verticies to be drawn (to be re-counted for this frame)
 	RastB_ResetDrawAndSubBatchBufferIdxs(rb);
+	rb.activeForFrame = false;
 }
 
 //worldToScreenSpaceMat initalized in GRPH_initRastBatches after Line and Tri graphics gl programs loaded
@@ -505,8 +506,10 @@ rastBatch3dTris_array[1] = new RasterBatch( RastB_DrawTris );
 var rastBatch3dLines_array = new Array(2);
 rastBatch3dLines_array[0] = new RasterBatch( RastB_DrawLines );
 rastBatch3dLines_array[1] = new RasterBatch( RastB_DrawLines );
-var RastB_numActive3DBatches = 1;
+
 function RasterBatch( drawFunc ){
+
+	this.activeForFrame = false;
 
 	this.DrawFunc = drawFunc;
 

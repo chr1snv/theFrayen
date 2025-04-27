@@ -70,7 +70,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	if( ocean && ocean.ready ){
 		OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
 		//need regatta scene camera update to draw ocean
-		numActiveBatches = 2;
+		rb3DTris_array[1].activeForFrame = true;
 	}
 
 	//setup strings to draw and handle gameplay input

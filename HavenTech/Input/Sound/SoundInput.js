@@ -319,6 +319,10 @@ function genLogMelFreqBanks(){
 
 	//generate the second layer sum filter banks (from the previous ones)
 	
+	let testEntry = new GraphEntry('testFilter');
+	GRPH_AddEntry(micInputGraph, testEntry);
+	micInputGraph.activeEntry = testEntry;
+
 
 }
 
@@ -447,10 +451,11 @@ function updateMicInputSpectrogramDisplay(time){
 	}
 	
 	if( drawMicInputGraph ){
-		if( rastBatch3dLines_array.length < 3 ){ //allocate a raster batch 3d lines array if necessary
-			rastBatch3dLines_array.push( new RasterBatch( RastB_DrawTris ) );
+		if( rastBatch3dTris_array.length < 3 ){ //allocate a raster batch 3d tris array if necessary
+			rastBatch3dTris_array.push( new RasterBatch( RastB_DrawTris ) );
 		}
-		GRPH_Draw( micInputGraph, rastBatch3dLines_array[2], time );
+		GRPH_AddObjsToSceneToDraw( micInputGraph, time );
+		GRPH_Draw( micInputGraph, rastBatch3dTris_array[2], time );
 	}
 }
 
