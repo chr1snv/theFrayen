@@ -97,6 +97,8 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 
 	this.cameraName = nameIn;
 	this.sceneName  = sceneNameIn; //used to fetch ipo name / sceneName
+	
+	this.lookAtWorldPos = null;
 
 	this.position = Vect3_CopyNew( positionIn ); //spawn position or ipoAnim position of the camera (camTranslation factors in this)
 	this.rotation = Vect3_CopyNew( rotationIn );
@@ -130,7 +132,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 	//gets the quaternion camera in world space rotation
 	//from either the ipo animation or assigned initial orientation
 	let rotTmp = Quat_New();
-	this.getRotation = function(rotOut) 
+	this.getRotation = function(rotOut)
 	{
 		if(!this.ipoAnimation || !IPOA_GetRotation( this.ipoAnimation, rotOut, this.lastUpdateTime))
 			Quat_FromEuler(rotOut, this.rotation); //use assigned rotation (usually from user mouse or touchscreen input)
@@ -146,17 +148,22 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 		Vect3_Add( locOut, this.userPosition);
 	}
 
-	let rotMatRotTemp = Quat_New();
+	let rotMatRotQuatTemp = Quat_New();
 	this.getRotationMatrix = function(rotMat)
 	{
-		//get the new rotation
-		this.getRotation(rotMatRotTemp);
-		//convert it to a 4x4 matrix
-		Matrix_SetQuatRotate( rotMat, rotMatRotTemp );
+		if( this.lookAtWorldPos == null ){
+			//get the new rotation from the ipo, assigned rotation, or initial rotation
+			this.getRotation(rotMatRotQuatTemp);
+			//convert it to a 4x4 matrix
+			Matrix_SetQuatRotate( rotMat, rotMatRotQuatTemp );
+		}else{ //use look at position and this position for rotation
+			//assumes this.getLocation( this.camTranslation ); was called before getRotationMatrix
+			Matrix_LookAt( rotMat, this.lookAtWorldPos, this.camTranslation );
+		}
 	}
 
 	//apply the Cameras transformation
-	this.GenWorldToFromScreenSpaceMats = function() 
+	this.GenWorldToFromScreenSpaceMats = function()
 	//world space to camera space matrix 
 	//( invert the projection matrix (camera space to screen space) * camera to world space matrix )
 	{
@@ -209,15 +216,14 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 
 	this.genCameraToWorldMatrix = function()
 	{
-		//get the camera rotation and translation from the ipo (animation)
-
-		this.getRotation(this.camRotation);
+		//get the translation from the ipo (animation), assigned position, or initial position
 		this.getLocation(this.camTranslation);
+		Matrix_SetTranslate(               transMat, this.camTranslation );
 
+		//get the camera rotation from the lookat world position and the camera position, ipo assigned rotation or initial rotation
+		this.getRotationMatrix( this.camToWorldRotMat );
 
 		//combine the translation and rotation into one matrix
-		Matrix_SetTranslate(               transMat, this.camTranslation );
-		Matrix_SetQuatRotate( this.camToWorldRotMat, this.camRotation );
 		Matrix_Multiply( this.camToWorldMat, transMat, this.camToWorldRotMat );
 	}
 
@@ -257,7 +263,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 	}
 
 
-	function GetFarClipBounds( bounds, fovy, aspect, zFar )  
+	function GetFarClipBounds( bounds, fovy, aspect, zFar )
 	//used to generate world coordinate rays from 
 	//2d viewport (camera space) points
 	{

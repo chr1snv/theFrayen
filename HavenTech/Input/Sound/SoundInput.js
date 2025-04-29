@@ -452,7 +452,7 @@ function updateMicInputSpectrogramDisplay(time){
 	
 	if( drawMicInputGraph ){
 		if( rastBatch3dTris_array.length < 3 ){ //allocate a raster batch 3d tris array if necessary
-			rastBatch3dTris_array.push( new RasterBatch( RastB_DrawTris ) );
+			rastBatch3dTris_array.push( new RasterBatch( RastB_DrawTris, true ) );
 		}
 		GRPH_AddObjsToSceneToDraw( micInputGraph, time );
 		GRPH_Draw( micInputGraph, rastBatch3dTris_array[2], time );

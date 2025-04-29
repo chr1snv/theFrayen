@@ -313,14 +313,14 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let numLghts	 = parseInt( sceneObjLghtCamCtTxt[4] );
 	let numCams		 = parseInt( sceneObjLghtCamCtTxt[6] );
 	let numArmatures = parseInt( sceneObjLghtCamCtTxt[8] );
-	
+
 	hvnsc.pendingObjsAdded = numObjs + numCams + numArmatures + 1;
-	
+
 	hvnsc.cameras = new Array(numCams);
 	hvnsc.camInsertIdx = 0;
 	hvnsc.armatures = new Array(numArmatures);
 	hvnsc.armatureInsertIdx = 0;
-	
+
 	//per obj vars while parsing
 	let scneObjName = '';
 	let mdlMeshName = '';
@@ -329,19 +329,19 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let mdlAABBmax = Vect3_NewZero();
 	let mdlLoc = Vect3_NewZero();
 	let mdlRot = Vect3_NewZero();
-	
+
 	let armatureName = '';
-	
+
 	let lcol = Vect3_NewZero();
 	let lenrg = 0;
 	let lspotsz = 0;
 	let lanim = '';
-	
+
 	let camAng = 0;
 	let camStart = 0;
 	let camEnd = 0;
 	let camIpoName = '';
-	
+
 	let txtNumLines = textFileLines.length;
 	for( let i = 0; i<txtNumLines; ++i )
 	{
@@ -375,15 +375,15 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			hvnsc.pendingObjsToLoad[scneObjName] = newMdl;
 			
 		}
-		
+
 		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
 			GRPH_GetCached( txtLineParts[1], hvnsc.sceneName, SkeletalAnimation, 
 				null,
 				HVNSC_ObjLoadedCallback, hvnsc );
 		}
-		
-		
-		
+
+
+
 		//lights and cameras are simple to load can be loaded synchronously 
 		//as they don't require loading additional files
 		//(info is one line in the text file)
@@ -410,7 +410,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 				new Light(scneObjName, hvnsc.sceneName, 
 					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz, lanim);
 		}
-		
+
 		//this is a camera to be read in
 		else if(txtLineParts[0] == 'c')
 		{
@@ -437,7 +437,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			hvnsc.activeCamera = txtLineParts[1];
 		}
 	}
-	
+
 	--hvnsc.pendingObjsAdded;
 	HVNSC_checkIfIsLoaded(hvnsc);
 }

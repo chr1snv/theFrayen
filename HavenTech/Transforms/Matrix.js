@@ -208,15 +208,15 @@ function Matrix_LookAt( retMat, dst, src ){
 	//tilting down first along the x axis, and then rotating around z
 	Vect3_Copy( mLA_diff, dst );
 	Vect3_Subtract( mLA_diff, src );
-	
+
 	Vect3_Normal( mLA_diff );
-	
+
 	//get inclination from diff vec
 	mLA_rot[0] = Math.PI/2 - Math.asin( mLA_diff[2] );
 	//get rotation around z
 	//- rotation is clockwise facing into axis
 	mLA_rot[2] = (Math.PI/2)+Math.atan2( mLA_diff[1], mLA_diff[0] ); //sceneTime; //
-	
+
 	//Matrix_SetEulerRotate(retMat, mLA_rot);
 	Matrix_SetXRot(tempRMat1, Math.PI/2);//rotVect[0]);
 	Matrix_SetZRot(tempRMat2, mLA_rot[2]);

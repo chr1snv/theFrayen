@@ -418,6 +418,7 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 	}
 }
 
+//helper function for transparent or opaque triangle drawing
 function RastB_DrawBatchTris( dbB, numAnimMatricies, time ){
 	if( dbB.bufferIdx <= 0 )
 		return;
@@ -436,6 +437,8 @@ function RastB_DrawBatchTris( dbB, numAnimMatricies, time ){
 }
 
 
+//different functions to setup/feed raster batch data to triangle or line drawing gl programs
+
 function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 
 	if( rastBatch.ambientColor )
@@ -447,6 +450,11 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 	let numAnimMatricies = 0;
 	if( rastBatch.combinedBoneMats )
 		numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
+
+
+	if( rastBatch.clearDepthBeforeDrawing && drawTransparentBatches )
+		graphics.ClearDepth();
+
 
 	TRI_G_setCamMatrix( graphics.triGraphics, rastBatch.worldToScreenSpaceMat, rastBatch.camWorldPos );
 
@@ -507,9 +515,10 @@ var rastBatch3dLines_array = new Array(2);
 rastBatch3dLines_array[0] = new RasterBatch( RastB_DrawLines );
 rastBatch3dLines_array[1] = new RasterBatch( RastB_DrawLines );
 
-function RasterBatch( drawFunc ){
+function RasterBatch( drawFunc, clearDepth=false ){
 
 	this.activeForFrame = false;
+	this.clearDepthBeforeDrawing = clearDepth;
 
 	this.DrawFunc = drawFunc;
 

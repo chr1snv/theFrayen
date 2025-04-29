@@ -95,6 +95,10 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 function GRPH_modelLoadedCb(model, cbData){
 	let hvnSc = cbData;
 	HVNSC_FinishAddingLoadedModelToProgramaticScene( hvnSc, model );
+
+	let cam = hvnSc.cameras[0];
+	hvnSc.cameras[0].lookAtWorldPos = model.quadmesh.origin;
+	cam.userPosition = new Float32Array([0,-2,0]);
 }
 
 function GRPH_AddEntryToScene(gphEntry, hvnSc){
@@ -117,11 +121,11 @@ function GRPH_Draw(gph, rastB, time){
 
 	//generate the camera matrix
 	let cam = gph.havenScene.cameras[0];
-	mainCam.GenWorldToFromScreenSpaceMats();
+	cam.GenWorldToFromScreenSpaceMats();
 	//set the camera parameters (matrix, fov, pos) of draw batches
-	rastB.worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
-	rastB.camFov = mainCam.fov;
-	rastB.camWorldPos = mainCam.camTranslation;
+	rastB.worldToScreenSpaceMat = cam.worldToScreenSpaceMat;
+	rastB.camFov = cam.fov;
+	rastB.camWorldPos = cam.camTranslation;
 
 
 	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( gph.havenScene, time, rastB, null );
