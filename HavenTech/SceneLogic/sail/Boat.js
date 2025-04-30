@@ -240,7 +240,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 			timeInIorns = 0;
 		else
 			timeInIorns += delTime;
-		if( timeInIorns > 2 )
+		if( timeInIorns > 2 && sgMode == SailModes.Gameplay)
 			SND_playSoundFile( 'voice/sail-collision3.ogg', 'sailDefault');
 	}
 	lastPointOfSail = pointOfSail;

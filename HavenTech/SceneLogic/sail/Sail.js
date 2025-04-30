@@ -40,7 +40,7 @@ const SailModes = {
 	Credits				: 6
 };
 
-let sgMode = SailModes.Menu;
+var sgMode = SailModes.Menu;
 
 let sailMenuBgCenPos    = [ 0        , 0    ];
 let sailMenuBgWdthHight = [ 1        , 1    ];
