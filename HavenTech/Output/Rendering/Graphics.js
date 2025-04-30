@@ -257,6 +257,13 @@ function GRPH_loadCubeGraphics(){
 	graphics.currentProgramName = 'cube';
 }
 
+//object caching system to avoid fetching resources multiple times
+//relies on the ObjConstructor having it's parameters in the form :
+//ObjConstructor(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbackParameters)
+//once it fetches files and constructs itself it calls GRPH_ObjReadyCallback
+//which registers it as cached and calls objReadyCallback
+//so if GRPH_GetCached(filename, sceneName, ObjConstructor is called again
+//the cached obj is passed directly to objReadyCallback
 function GRPH_GetCached(filename, sceneName, ObjConstructor, ObjConstructorArgs, objReadyCallback, readyCallbackParameters){
 	//concatName = filename + sceneName;
 	if( graphics.cachedObjs[ObjConstructor.name] == undefined )

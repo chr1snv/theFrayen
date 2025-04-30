@@ -281,7 +281,7 @@ function SND_UserInputsToNotes(){
 const SampleRate = 44100;
 const NumSamples = 44100;
 function playBuffer(){
-	
+
 	//noise tone
 	let buffer  = aCtx.createBuffer(1, NumSamples, SampleRate);
 	let buf = buffer.getChannelData(0);
@@ -289,13 +289,27 @@ function playBuffer(){
 		buf[i] = Math.random( ) * Math.sin( 440 * Math.PI * 2 * i / SampleRate );
 	let node = aCtx.createBufferSource(0);
 	node.buffer = buffer;
-	
-	
+
+
 	let bandpass = new BiquadFilterNode( aCtx, {type:"bandpass", frequency:100} );
-	
+
 	node.connect(bandpass)
 	bandpass.connect(aCtx.destination);
 	node.start(aCtx.currentTime);
+}
+
+
+function SND_playSoundFileReady(sndFile){
+	console.log("SND_playSoundFileReady");
+	SNDF_Play(sndFile, aCtx);
+}
+function SND_playSoundFile( name, sceneName ){
+	if( aCtx == null )
+		return;
+	GRPH_GetCached(name, sceneName, SoundFile, 
+				ObjConstructorArgs		=[aCtx, true], 
+				objReadyCallback		=SND_playSoundFileReady, 
+				readyCallbackParameters	=null);
 }
 
 /*
@@ -313,18 +327,18 @@ function playBassSineTone(note, time, duration){
 */
 
 function playSineToneNode(freq, time, duration) {
-    let osc = aCtx.createOscillator();
-    osc.frequency.value = freq;
-    
-    let gain = aCtx.createGain();
-    gain.gain.value = 0.4;
-    osc.connect(gain);
-    gain.connect(aCtx.destination);
-    
-    osc.start(aCtx.currentTime + time);
-    osc.stop(aCtx.currentTime + time + duration);
-    
-    return gain;
+	let osc = aCtx.createOscillator();
+	osc.frequency.value = freq;
+
+	let gain = aCtx.createGain();
+	gain.gain.value = 0.4;
+	osc.connect(gain);
+	gain.connect(aCtx.destination);
+
+	osc.start(aCtx.currentTime + time);
+	osc.stop(aCtx.currentTime + time + duration);
+
+	return gain;
 }
 
 let lastNoteTime = Number.NEGATIVE_INFINITY;
@@ -399,7 +413,7 @@ function loadSceneSounds(){
 function SND_updateACtx(){
 	if( aCtx == null )
 		return;
-	
+
 	/*
 	if( aCtx.currentTime > lastNoteTime && aCtx.currentTime > lastUserInputNoteTime  )
 		aCtx.suspend();
@@ -457,7 +471,7 @@ function DrawSoundCanvas(){
 const timeTextIntervalSecs = 1;
 function drawTimeBar( leftWidthPct, heightPct, minTime, totalBarTime, currentTime ){
 	let numTimeTextsToDraw = totalBarTime / timeTextIntervalSecs;
-	
+
 	//draw time texts
 	sCtx.fillStyle = sTextColor;
 	for( let i = 0; i < numTimeTextsToDraw; ++i ){
@@ -465,7 +479,7 @@ function drawTimeBar( leftWidthPct, heightPct, minTime, totalBarTime, currentTim
 		let timeT = minTime + ((i/numTimeTextsToDraw) * totalBarTime);
 		sCtx.fillText( timeT+"s", sCtx.canvas.width*textWPct, sCtx.canvas.height*heightPct*0.5 );
 	}
-	
+
 	//draw time bar vertical line
 	sCtx.fillStyle = '#ffffff';
 	let timeBarWPct = (currentTime-minTime)/totalBarTime;
@@ -484,13 +498,13 @@ function drawInstrument(inst, vertOffsetPct, heightPct){
 	sCtx.fillStyle = '#171717';
 	sCtx.fillRect( 0,								   sCtx.canvas.height*vertOffsetPct, 
 				   sCtx.canvas.width*insChansWidthPct, sCtx.canvas.height*heightPct );
-	
-	
+
+
 	sCtx.fillStyle = sTextColor;
 	let textVertOffsetPct = (vertOffsetPct+(heightPct*0.5));
 	sCtx.fillText(InstTypeStrings[inst.type], 0, sCtx.canvas.height *textVertOffsetPct );
-	
-	
+
+
 	for( let i = 0; i < inst.notes.length; ++i ){
 		let note = inst.notes[i];
 		let noteFreqPct = (note.freq - inst.minMaxNoteFreqs[0]) / (inst.minMaxNoteFreqs[1] - inst.minMaxNoteFreqs[0]);
@@ -505,7 +519,7 @@ function drawInstrument(inst, vertOffsetPct, heightPct){
 		sCtx.fillRect( noteHorizOffset, vertOffset, 
 						noteHorizWidth, noteHeight );
 	}
-	
+
 }
 
 

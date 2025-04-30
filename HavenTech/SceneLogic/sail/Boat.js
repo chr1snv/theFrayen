@@ -120,6 +120,9 @@ let animHoldVarianceHrtz = 0.5;
 
 var lastBoatUpdateTime = -1;
 
+let lastPointOfSail = "";
+let timeInIorns = 0;
+
 function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	let delTime = time-lastBoatUpdateTime;
@@ -231,6 +234,16 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		animHoldFrameIdx = 0;
 	}
 	SkelA_UpdateTransforms( girlArm, girlAnimFrame, true );
+
+	if( pointOfSail == "IORNS" ){
+		if( lastPointOfSail != pointOfSail )
+			timeInIorns = 0;
+		else
+			timeInIorns += delTime;
+		if( timeInIorns > 2 )
+			SND_playSoundFile( 'voice/sail-collision3.ogg', 'sailDefault');
+	}
+	lastPointOfSail = pointOfSail;
 
 
 	let scrnAspc = graphics.GetScreenAspect();

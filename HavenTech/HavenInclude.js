@@ -68,6 +68,7 @@ var incFiles = ['DPrintf.js',
 				//'CameraStream.js',
 				
 				'Output/Sound/Sound.js',
+				'Output/Sound/SoundFile.js',
 				//'fft.js',
 				'Input/Sound/SoundInput.js',
 				

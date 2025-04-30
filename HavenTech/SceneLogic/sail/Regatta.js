@@ -125,6 +125,8 @@ var rgta_completeSecs = -1;
 var rgta_completeSecTenths = -1;
 let rgta_startTime = 0;
 function RGTTA_Start(time){
+	SND_playSoundFile( 'voice/sail-level_intro.ogg', 'sailDefault');
+
 	//boat position values are negative of boatMapPosition
 	boatPosition[0] =  10;
 	boatPosition[1] = -10;
