@@ -35,8 +35,9 @@ const SailModes = {
 	Gameplay			: 1,
 	Leaderboard			: 2,
 	SvrWaitingForPlayers: 3,
-	ClntWatingForStart  : 4,
-	NetworkGameplay     : 5
+	ClntWatingForStart	: 4,
+	NetworkGameplay		: 5,
+	Credits				: 6
 };
 
 let sgMode = SailModes.Menu;
@@ -49,6 +50,7 @@ let sailMenuBgMaxUv     = [ 1        , 0    ];
 let menuTxtColor = new Float32Array([0.5, 0.5, 0.8]);
 let menuHdgColor = new Float32Array([0.5, 0.5, 0.5]);
 let ldrbTimeColor = new Float32Array([0.6, 0.5, 0.7]);
+let creditsColor = new Float32Array([0.4, 0.4, 0.4]);
 
 let lastFrameMDown = false;
 let lastFrameMenuTouch = null;
@@ -85,7 +87,8 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.4, -0.07, 0.02, 0.07, "Multiplayer", false, TxtJustify.Left,   menuHdgColor );
 			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",      true,  TxtJustify.Left,   menuTxtColor );
 			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   menuTxtColor );
-			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, menuTxtColor );
+			TR_QueueText( rb2DTris,  0.0, -0.34, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, menuTxtColor );
+			TR_QueueText( rb2DTris,  0.0, -0.46, 0.02, 0.1,  "CREDITS", true,  TxtJustify.Center, menuTxtColor );
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
@@ -154,7 +157,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Leaderboard:
 		
 			TR_QueueText( rb2DTris, 0.0, 0.34, 0.02, 0.13, "LEADERBOARD", false, TxtJustify.Center );
-			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "return to Main Menu", true, TxtJustify.Left, menuTxtColor );
+			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Return to Main Menu", true, TxtJustify.Left, menuTxtColor );
 			if( rgta_completeMins == -1 )
 				TR_QueueText( rb2DTris, -0.43, 0.0, 0.02, 0.05, "No completions yet", false, TxtJustify.Left, menuTxtColor  );
 			else
@@ -164,6 +167,22 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
 					'menuBg2.png', 'sailDefault',  
 					sailMenuBgCenPos, sailMenuBgWdthHight, 
+					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
+			break;
+		case SailModes.Credits:
+			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Return to Main Menu", true, TxtJustify.Left, menuTxtColor );
+			//rb2DTris, x, y, dpth, size, str
+			TR_QueueText( rb2DTris, -0.43, -0.02, 0.02, 0.07, "audio voice overs by", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.07, 0.02, 0.07, "stillelectric", false, TxtJustify.Left, creditsColor );
+
+
+			TR_QueueText( rb2DTris, -0.43, -0.25, 0.02, 0.07, "skybox by bluecloud", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.29, 0.02, 0.05, "opengameart.org content cloudy skyboxes", false, TxtJustify.Left, creditsColor );
+
+			//menu background overlay
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris,
+					'menuBg0.png', 'sailDefault',
+					sailMenuBgCenPos, sailMenuBgWdthHight,
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 	}
 
@@ -193,6 +212,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					if( mOvrdStrs[i] == "LEADERBOARD" ){
 						sgMode = SailModes.Leaderboard;
 					}
+					if( mOvrdStrs[i] == "CREDITS" ){
+						sgMode = SailModes.Credits;
+					}
 					break;
 				case SailModes.SvrWaitingForPlayers:
 					if( mOvrdStrs[i] == "Main Menu" ){
@@ -218,7 +240,11 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						sgMode = SailModes.Menu;
 					break;
 				case SailModes.Leaderboard:
-					if( mOvrdStrs[i] == "return to Main Menu" ){
+					if( mOvrdStrs[i] == "Return to Main Menu" ){
+						sgMode = SailModes.Menu;
+					}
+				case SailModes.Credits:
+					if( mOvrdStrs[i] == "Return to Main Menu" ){
 						sgMode = SailModes.Menu;
 					}
 			}
