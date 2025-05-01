@@ -65,6 +65,32 @@ let micInputProcessor = null;
 */
 
 
+let micInputIconElm = document.getElementById("micIcon");
+function setMicInputMuteIcon( muted, amCtxActive ){
+
+	if(!muted)
+		micInputIconElm.src = "scenes/default/textures/micInputIcon.png";
+	else
+		micInputIconElm.src = "scenes/default/textures/micInputIconMuted.png";
+
+
+	if( amCtxActive ){
+		micInputIconElm.style.opacity = 1.0;
+	}else{
+		micInputIconElm.style.opacity = 0.5;
+	}
+	
+}
+
+function micIconClicked(){
+	if( !aCtx ){ //tries to use output audio context if it has the desired input sample rate
+		return;
+	}
+
+	StartSoundInput();
+
+}
+
 function StartSoundInput(){
 
 	if( amCtx == null ){
@@ -111,7 +137,7 @@ let analyser = null;
 let micSampleRate = 16000;
 let analyserOutputBuffer = null;
 let MicFFTSize = 512;
-let fftToLogMelWorker = null;
+//let fftToLogMelWorker = null;
 function micSrcCreated(micStream){
 	//micStream.connect(micInputProcessor);
 	//scriptNode.connect(audioCtx.destination);
@@ -129,9 +155,9 @@ function micSrcCreated(micStream){
 	//const canvas = document.get
 	genLogMelFreqBanks();
 
-	fftToLogMelWorker = new Worker("FFTInputToLogMelSpeechAndVoiceWorker.js");
+	//fftToLogMelWorker = new Worker("FFTInputToLogMelSpeechAndVoiceWorker.js");
 
-
+	setMicInputMuteIcon( false, true );
 }
 
 function freqToFFTBin(freq, numBins, sampleRate){

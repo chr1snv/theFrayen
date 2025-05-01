@@ -78,6 +78,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
 		case SailModes.Menu:
+			SND_playSoundFile( 'music/smooth-684-cm-54202.mp3', 'sailDefault');
 
 			//menu heading text
 			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "SAIL", false, TxtJustify.Center );

@@ -175,9 +175,9 @@ let soundIconElm = document.getElementById("soundIcon");
 function setSoundMuteIcon( muted, aCtxActive ){
 
 	if(!muted)
-		document.getElementById("soundIcon").src = "scenes/default/textures/soundIcon.png";
+		soundIconElm.src = "scenes/default/textures/soundIcon.png";
 	else
-		document.getElementById("soundIcon").src = "scenes/default/textures/soundIconMuted.png";
+		soundIconElm.src = "scenes/default/textures/soundIconMuted.png";
 
 
 	if( aCtxActive ){
@@ -202,9 +202,7 @@ function SND_RestartSoundContext(){
 	}
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
-	
-	StartSoundInput();
-	
+
 	setSoundMuteIcon(muted, aCtx);
 
 }
@@ -224,9 +222,8 @@ function SND_StartSoundContext(){
 	}
 	
 	aCtx = new (window.AudioContext || window.webkitAudioContext)();
-	
-	StartSoundInput();
-	
+
+
 	setSoundMuteIcon(muted, aCtx);
 }
 

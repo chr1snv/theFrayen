@@ -3,11 +3,11 @@
 function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallbackParams ){
 	this.sndName = nameIn;
 	this.sceneName = sceneNameIn;
-	
+
 	this.onlyPlayOneInstance = args[1];
-	
+
 	this.aCtx = args[0];
-	
+
 	this.soundReadyCallback = soundReadyCallback;
 	this.readyCallbackParams = readyCallbackParams;
 
@@ -21,7 +21,7 @@ function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallback
 
 	this.isPlaying = false;
 	this.isValid = false;
-	
+
 	req.send();
 }
 
