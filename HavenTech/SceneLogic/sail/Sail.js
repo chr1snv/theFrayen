@@ -173,12 +173,18 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Credits:
 			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Return to Main Menu", true, TxtJustify.Left, menuTxtColor );
 			//rb2DTris, x, y, dpth, size, str
-			TR_QueueText( rb2DTris, -0.43, -0.02, 0.02, 0.07, "audio voice overs by", false, TxtJustify.Left, creditsColor );
-			TR_QueueText( rb2DTris, -0.43, -0.07, 0.02, 0.07, "stillelectric", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.0, 0.02, 0.07, "audio voice overs by", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.05, 0.02, 0.07, "stillelectric", false, TxtJustify.Left, creditsColor );
 
-
-			TR_QueueText( rb2DTris, -0.43, -0.25, 0.02, 0.07, "skybox by bluecloud", false, TxtJustify.Left, creditsColor );
-			TR_QueueText( rb2DTris, -0.43, -0.29, 0.02, 0.05, "opengameart.org content cloudy skyboxes", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.16, 0.02, 0.06, "menu music", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.2, 0.02, 0.04, "pixabay.com sound effects smooth 684 cm 54202", false, TxtJustify.Left, creditsColor );
+			
+			
+			TR_QueueText( rb2DTris, -0.43, -0.35, 0.02, 0.06, "skybox by bluecloud", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.39, 0.02, 0.04, "opengameart.org content cloudy skyboxes", false, TxtJustify.Left, creditsColor );
+			
+			"menu music"
+"https://pixabay.com/sound-effects/smooth-684-cm-54202/"
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris,
