@@ -277,7 +277,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	if( currentBoatSpeed > boatSpeed * 0.75)
 		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault');
 	else
-		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', false);
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', 0, false);
 
 	let boatScale = Vect3_AllOnesConst;
 	let boatRotation = [0,0,boatHeading];

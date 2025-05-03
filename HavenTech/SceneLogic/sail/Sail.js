@@ -42,6 +42,61 @@ const SailModes = {
 
 var sgMode = SailModes.Menu;
 
+let menuSongs = ['smooth-684-cm-54202.ogg'];
+let gameplaySongs = [
+	'electro-beat-new-wave-disco-332630.ogg',
+	'lifestyle-230682.ogg',
+	'paragliding-156745.ogg',
+	'seize-the-moment-335067.ogg',
+	'the-nu-disco-276597.ogg' 
+	];
+let menuSongIdx = 0;
+let gameplaySongIdx = 0;
+
+let sgMusicMode = 0;
+let lastSgMusicMode = 0;
+
+function SAIL_stopMusicAndSelectNewSongs(){
+	SND_playSoundFile( 'music/menu/' + menuSongs[menuSongIdx], 'sailDefault', 0, playOrStop=false );
+	SND_playSoundFile( 'music/gameplay/' + gameplaySongs[gameplaySongIdx], 'sailDefault', 0, playOrStop=false);
+	menuSongIdx = Math.round(Math.random()*(menuSongs.length-1));
+	gameplaySongIdx = Math.round(Math.random()*(gameplaySongs.length-1));
+	
+}
+function SAIL_PlayMusicForMode( sgMode ){
+
+
+	switch( sgMode ){
+		case SailModes.Menu:
+		case SailModes.Leaderboard:
+		case SailModes.SvrWaitingForPlayers:
+		case SailModes.ClntWatingForStart:
+		case SailModes.Credits:
+			sgMusicMode = 0;
+			break;
+		case SailModes.Gameplay:
+		case SailModes.NetworkGameplay:
+			sgMusicMode = 1;
+		
+			break;
+	}
+
+	if( lastSgMusicMode != sgMusicMode ){
+		SAIL_stopMusicAndSelectNewSongs();
+	}
+	
+	switch( sgMusicMode ){
+		case 0:
+			SND_playSoundFile( 'music/menu/'+menuSongs[menuSongIdx], 'sailDefault', vol=0.5);
+			break;
+		case 1:
+			SND_playSoundFile( 'music/gameplay/'+gameplaySongs[gameplaySongIdx], 'sailDefault', vol=0.5);
+	}
+
+	lastSgMusicMode = sgMusicMode;
+
+}
+
 let sailMenuBgCenPos    = [ 0        , 0    ];
 let sailMenuBgWdthHight = [ 1        , 1    ];
 let sailMenuBgMinUv     = [ 0        , 1    ];
@@ -74,12 +129,12 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		//need regatta scene camera update to draw ocean
 		rb3DTris_array[1].activeForFrame = true;
 	}
+	
+	SAIL_PlayMusicForMode( sgMode );
 
 	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
 		case SailModes.Menu:
-			SND_playSoundFile( 'music/smooth-684-cm-54202.mp3', 'sailDefault');
-
 			//menu heading text
 			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "SAIL", false, TxtJustify.Center );
 			//rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null
@@ -173,8 +228,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case SailModes.Credits:
 			TR_QueueText( rb2DTris, -0.43, 0.19, 0.02, 0.1, "Return to Main Menu", true, TxtJustify.Left, menuTxtColor );
 			//rb2DTris, x, y, dpth, size, str
-			TR_QueueText( rb2DTris, -0.43, -0.0, 0.02, 0.07, "audio voice overs by", false, TxtJustify.Left, creditsColor );
-			TR_QueueText( rb2DTris, -0.43, -0.05, 0.02, 0.07, "stillelectric", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, 0.05, 0.02, 0.06, "audio design", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.0, 0.02, 0.06, "effects and voice overs by", false, TxtJustify.Left, creditsColor );
+			TR_QueueText( rb2DTris, -0.43, -0.06, 0.02, 0.07, "stillelectric", false, TxtJustify.Left, creditsColor );
 
 			TR_QueueText( rb2DTris, -0.43, -0.16, 0.02, 0.06, "menu music", false, TxtJustify.Left, creditsColor );
 			TR_QueueText( rb2DTris, -0.43, -0.2, 0.02, 0.04, "pixabay.com sound effects smooth 684 cm 54202", false, TxtJustify.Left, creditsColor );
@@ -192,6 +248,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					sailMenuBgCenPos, sailMenuBgWdthHight,
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 	}
+
+
+	lastSgMode = sgMode;
 
 
 	//handle menu input
@@ -261,7 +320,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	lastFrameMenuTouch = touch.menuTouch;
 	lastFrameMDown     = mDown;
 
+
 	return numActiveBatches;
 }
+
 
 

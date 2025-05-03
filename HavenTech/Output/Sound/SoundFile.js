@@ -46,7 +46,7 @@ function SNDF_Stop(sndf, aCtx){
 }
 
 //https://stackoverflow.com/questions/30482887/playing-a-simple-sound-with-web-audio-api
-function SNDF_Play(sndf, aCtx){
+function SNDF_Play(sndf, aCtx, vol){
 	if( !sndf.isValid || sndf.onlyPlayOneInstance && sndf.isPlaying )
 		return;
 
@@ -54,7 +54,7 @@ function SNDF_Play(sndf, aCtx){
 	sndf.sourceNode.buffer = sndf.buffer;
 	
 	sndf.gainNode = aCtx.createGain();
-	sndf.gainNode.value = 0.5;
+	sndf.gainNode.gain.value = vol;
 
 	sndf.sourceNode.connect(sndf.gainNode);
 
