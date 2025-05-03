@@ -352,7 +352,7 @@ function hidePage(hide){
 		befrCanvElm.style.display = 'none';
 		aftrCanvElm.style.display = 'none';
 		//cntrlsTxtElm.style.display = 'none';
-		document.body.style.backgroundColor = '#00000000';
+		document.body.style.backgroundColor = '#000000FF';
 		document.body.style.backgroundImage = '';
 	}else{
 		befrCanvElm.style.display = '';
