@@ -19,6 +19,7 @@ function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallback
 	req.onload = SNDF_FileLoaded;
 	req.sndFile = this;
 
+	this.hasPlayed = false;
 	this.isPlaying = false;
 	this.isValid = false;
 
@@ -40,14 +41,18 @@ function SNDF_FileLoaded(){
 
 }
 
-function SNDF_Stop(sndf, aCtx){
-	if(sndf.sourceNode != undefined)
+function SNDF_Stop(sndf, aCtx, clearCanPlayOnce){
+	if(sndf.sourceNode != undefined){
 		sndf.sourceNode.stop();
+		sndf.isPlaying = false;
+	}
+	if( clearCanPlayOnce )
+		this.hasPlayed = false;
 }
 
 //https://stackoverflow.com/questions/30482887/playing-a-simple-sound-with-web-audio-api
-function SNDF_Play(sndf, aCtx, vol){
-	if( !sndf.isValid || sndf.onlyPlayOneInstance && sndf.isPlaying )
+function SNDF_Play(sndf, aCtx, vol, clearCanPlayOnce){
+	if( !sndf.isValid || sndf.onlyPlayOneInstance && sndf.isPlaying || sndf.hasPlayed && !clearCanPlayOnce )
 		return;
 
 	sndf.sourceNode = aCtx.createBufferSource();
@@ -65,4 +70,5 @@ function SNDF_Play(sndf, aCtx, vol){
 
 	sndf.isPlaying = true;
 	sndf.sourceNode.start(0);
+	sndf.hasPlayed = true;
 }

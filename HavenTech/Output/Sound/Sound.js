@@ -296,13 +296,16 @@ function playBuffer(){
 }
 
 
-function SND_playSoundFileReady(sndFile, vol){
-	SNDF_Play(sndFile, aCtx, vol);
+function SND_playSoundFileReady(sndFile, params){
+	let vol = params[0];
+	let clearCanPlayOnce = params[1];
+	SNDF_Play( sndFile, aCtx, vol, clearCanPlayOnce );
 }
 function SND_stopSoundFileReady(sndFile, params){
-	SNDF_Stop(sndFile, aCtx);
+	let clearCanPlayOnce = params[1];
+	SNDF_Stop( sndFile, aCtx, clearCanPlayOnce );
 }
-function SND_playSoundFile( name, sceneName, vol=1.0, playOrStop=true ){
+function SND_playSoundFile( name, sceneName, vol=1.0, playOrStop=true, clearCanPlayOnce=false ){
 	if( aCtx == null )
 		return;
 
@@ -313,7 +316,7 @@ function SND_playSoundFile( name, sceneName, vol=1.0, playOrStop=true ){
 	GRPH_GetCached(name, sceneName, SoundFile, 
 				ObjConstructorArgs		=[aCtx, true], 
 				objReadyCallback		=objRdyCb, 
-				readyCallbackParameters	=vol);
+				readyCallbackParameters	=[vol, clearCanPlayOnce] );
 }
 
 

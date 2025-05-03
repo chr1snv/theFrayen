@@ -87,10 +87,10 @@ function SAIL_PlayMusicForMode( sgMode ){
 	
 	switch( sgMusicMode ){
 		case 0:
-			SND_playSoundFile( 'music/menu/'+menuSongs[menuSongIdx], 'sailDefault', vol=0.5);
+			SND_playSoundFile( 'music/menu/'+menuSongs[menuSongIdx], 'sailDefault', vol=0.5, true, true); //name, sceneName, vol=1.0, playOrStop=true, clearCanPlayOnce=false 
 			break;
 		case 1:
-			SND_playSoundFile( 'music/gameplay/'+gameplaySongs[gameplaySongIdx], 'sailDefault', vol=0.5);
+			SND_playSoundFile( 'music/gameplay/'+gameplaySongs[gameplaySongIdx], 'sailDefault', vol=0.5, true, true);
 	}
 
 	lastSgMusicMode = sgMusicMode;

@@ -241,7 +241,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 		else
 			timeInIorns += delTime;
 		if( timeInIorns > 2 && sgMode == SailModes.Gameplay)
-			SND_playSoundFile( 'voice/sail-collision3.ogg', 'sailDefault');
+			SND_playSoundFile( 'voice/sail-collision3.ogg', 'sailDefault', 1, true, true);
 	}
 	lastPointOfSail = pointOfSail;
 
@@ -275,7 +275,7 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.75, 0.03, 0.03, "Boat Speed", false, TxtJustify.Right );
 	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.75, 0.03, 0.03,   currentBoatSpeed, 2 );
 	if( currentBoatSpeed > boatSpeed * 0.75)
-		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault');
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', 1, true, true);
 	else
 		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', 0, false);
 

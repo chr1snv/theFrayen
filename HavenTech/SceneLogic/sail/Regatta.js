@@ -125,7 +125,7 @@ var rgta_completeSecs = -1;
 var rgta_completeSecTenths = -1;
 let rgta_startTime = 0;
 function RGTTA_Start(time){
-	SND_playSoundFile( 'voice/sail-level_intro.ogg', 'sailDefault');
+	SND_playSoundFile( 'voice/sail-level_intro.ogg', 'sailDefault', 1, true, true );
 
 	//boat position values are negative of boatMapPosition
 	boatPosition[0] =  10;
@@ -282,6 +282,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			rgta_completeSecs = elapsedSecs;
 			rgta_completeSecTenths = elapsedSecTenths;
 		}
+		SND_playSoundFile( 'effects/TEMPbell-ocean-75393.ogg', 'sailDefault', 1.0, true, false); //name, sceneName, vol=1.0, playOrStop=true, clearCanPlayOnce=false
 		TR_QueueText( rb2DTris, -0.45, 0.6, 0.02, ObjTextSize, "COURSE COMPLETE", false );
 		if( startTimeCCompTextShown == Number.MAX_VALUE )
 			startTimeCCompTextShown = time;
@@ -320,7 +321,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 
 		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
-			SND_playSoundFile( 'effects/TEMP-buoy-hits-25775.ogg', 'sailDefault');
+			SND_playSoundFile( 'effects/TEMP-buoy-hits-25775.ogg', 'sailDefault', 1, true, true);
 			rgtaState = RgtaState.InColisionWithBouy;
 			TR_QueueText( rb2DTris, 0, 0.4, 0.02, ObjTextSize, "IN COLISION WITH BOUY", false, TxtJustify.Center );
 			if( dist_Hdg_VecFromToWaypoint[0] > resetPenaltyBouyDist )
