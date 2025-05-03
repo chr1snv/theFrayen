@@ -352,14 +352,14 @@ function hidePage(hide){
 		befrCanvElm.style.display = 'none';
 		aftrCanvElm.style.display = 'none';
 		//cntrlsTxtElm.style.display = 'none';
-		document.children[0].style.backgroundColor = '#00000000';
-		document.children[0].style.backgroundImage = '';
+		document.body.style.backgroundColor = '#00000000';
+		document.body.style.backgroundImage = '';
 	}else{
 		befrCanvElm.style.display = '';
 		aftrCanvElm.style.display = '';
 	//	cntrlsTxtElm.style.display = '';
-		document.children[0].style.backgroundColor = '#7fceed';
-		document.children[0].style.backgroundImage = 'linear-gradient(to bottom right, #7fceed, #505d71)';
+		document.body.style.backgroundColor = '#7fceed';
+		document.body.style.backgroundImage = 'linear-gradient(to bottom right, #7fceed, #505d71)';
 	}
 }
 
