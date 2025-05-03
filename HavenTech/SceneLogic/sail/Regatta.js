@@ -320,6 +320,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 
 		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
+			SND_playSoundFile( 'effects/TEMP-buoy-hits-25775.ogg', 'sailDefault');
 			rgtaState = RgtaState.InColisionWithBouy;
 			TR_QueueText( rb2DTris, 0, 0.4, 0.02, ObjTextSize, "IN COLISION WITH BOUY", false, TxtJustify.Center );
 			if( dist_Hdg_VecFromToWaypoint[0] > resetPenaltyBouyDist )

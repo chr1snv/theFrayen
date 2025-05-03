@@ -26,19 +26,23 @@ function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallback
 }
 
 function SNDF_FileLoaded(){
-	console.log(this);
+
 	let sndFile = this.sndFile;
 
 	sndFile.aCtx.decodeAudioData( this.response, function(buffer){
 		sndFile.buffer = buffer;
 		sndFile.isValid = true;
-		console.log( sndFile );
 		
 		if( sndFile.soundReadyCallback != null )
 			sndFile.soundReadyCallback( sndFile, sndFile.readyCallbackParams );
 	} );
 
 
+}
+
+function SNDF_Stop(sndf, aCtx){
+	if(sndf.sourceNode != undefined)
+		sndf.sourceNode.stop();
 }
 
 //https://stackoverflow.com/questions/30482887/playing-a-simple-sound-with-web-audio-api

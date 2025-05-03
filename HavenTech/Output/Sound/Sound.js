@@ -297,17 +297,26 @@ function playBuffer(){
 
 
 function SND_playSoundFileReady(sndFile){
-	console.log("SND_playSoundFileReady");
 	SNDF_Play(sndFile, aCtx);
 }
-function SND_playSoundFile( name, sceneName ){
+function SND_stopSoundFileReady(sndFile){
+	SNDF_Stop(sndFile, aCtx);
+}
+function SND_playSoundFile( name, sceneName, playOrStop=true ){
 	if( aCtx == null )
 		return;
+
+	let objRdyCb = SND_playSoundFileReady;
+	if( !playOrStop )
+		objRdyCb = SND_stopSoundFileReady;
+
 	GRPH_GetCached(name, sceneName, SoundFile, 
 				ObjConstructorArgs		=[aCtx, true], 
-				objReadyCallback		=SND_playSoundFileReady, 
+				objReadyCallback		=objRdyCb, 
 				readyCallbackParameters	=null);
 }
+
+
 
 /*
 function playBassSineTone(note, time, duration){
