@@ -185,6 +185,7 @@ let currentWaypointIdx = 0;
 let currentBouyRoundDir = false; //false port, true starbd
 let prevVecToBouy = Vect3_New();
 let prevHdgToBouy = 0;
+let prevDistToBouy = 0;
 
 let vecToPrevBouy = Vect3_New();
 let vecToNextBouy = Vect3_New();
@@ -276,7 +277,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 	let elapsedSecTenths = Math.floor( (rgta_elapsedTime - ((elapsedMins*60)+elapsedSecs))*100 );
 	TR_QueueTime( rb2DTris, 0.95*srnAspc, 0.9, 0.02, 0.1, elapsedMins, elapsedSecs, elapsedSecTenths, TxtJustify.Right );
 
-	if( currentWaypointIdx > bouyInfos.length-1 ){
+	if( currentWaypointIdx > bouyInfos.length-1 ){ //course completed
 		if( rgta_completeMins == -1 ){
 			rgta_completeMins = elapsedMins;
 			rgta_completeSecs = elapsedSecs;
@@ -288,7 +289,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			startTimeCCompTextShown = time;
 		if( ( time - startTimeCCompTextShown ) >= secsToShowCourseCompleteText )
 			sgMode = SailModes.Leaderboard;
-	}else{
+	}else{ //regatta in progress
 
 		if( kpOutRadiusMdl != null )
 			rb3DTris.objs[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
@@ -318,6 +319,10 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 		let vmg = Vect_Dot( boatMapPositionVel, dist_Hdg_VecFromToWaypoint[3] );
 		let velX = TR_QueueText(   rb2DTris, -0.95*srnAspc, 0.6 , 0.02, 0.03, "Vel to waypoint", 						false );
 		TR_QueueNumber( rb2DTris, velX+xKernSpc*0.03*5, 0.6 , 0.02, 0.03, vmg,  2 );
+		
+		//if out of bounds and continuing to go out of bounds
+		if( dist_Hdg_VecFromToWaypoint[0] > 150 && prevDistToBouy < dist_Hdg_VecFromToWaypoint[0] )
+			SND_playSoundFile( 'voice/sail-pirates.ogg', 'sailDefault', 1, true, true );
 
 
 		if( dist_Hdg_VecFromToWaypoint[0] < hitBouyDist || rgtaState == RgtaState.InColisionWithBouy ){
@@ -385,6 +390,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 		}
 
+		prevDistToBouy = dist_Hdg_VecFromToWaypoint[0];
 		Vect3_Copy( prevVecToBouy, dist_Hdg_VecFromToWaypoint[2] );
 		prevHdgToBouy = dist_Hdg_VecFromToWaypoint[1];
 		if( incrementWaypointIdx ){

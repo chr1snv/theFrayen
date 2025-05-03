@@ -274,10 +274,18 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	TR_QueueText  ( rb2DTris, 0.95*scrnAspc      , 0.75, 0.03, 0.03, "Boat Speed", false, TxtJustify.Right );
 	TR_QueueNumber( rb2DTris, 0.95*scrnAspc - 0.3, 0.75, 0.03, 0.03,   currentBoatSpeed, 2 );
-	if( currentBoatSpeed > boatSpeed * 0.75)
-		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', 1, true, true);
-	else
-		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465.ogg', 'sailDefault', 0, false);
+	if( currentBoatSpeed > boatSpeed * 0.75){
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_fast.ogg', 'sailDefault', 1, true, true);
+		
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_slow.ogg', 'sailDefault', 1, false);
+	}else if( currentBoatSpeed > boatSpeed * 0.25){
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_slow.ogg', 'sailDefault', 1, true, true);
+		
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_fast.ogg', 'sailDefault', 1, false);
+	}else{
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_fast.ogg', 'sailDefault', 1, false);
+		SND_playSoundFile('effects/TEMP-sailboat-cockpit-at-12kn-wind-speed-17465_slow.ogg', 'sailDefault', 1, false);
+	}
 
 	let boatScale = Vect3_AllOnesConst;
 	let boatRotation = [0,0,boatHeading];
