@@ -387,7 +387,7 @@ function MainLoop()
 		simPhys = !simPhys;
 
 	if( mainScene.scnId < 0 ) //default user input
-		HandleDefaultCameraControls( sceneTime );
+		FlyingCameraControlInput( sceneTime );
 
 
 	//ready the raster batches for a new frame
@@ -610,7 +610,7 @@ let cntrlsTxtElm = document.getElementById("cntrlsTxt");
 
 let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
-function HandleDefaultCameraControls( updateTime ){
+function FlyingCameraControlInput( updateTime ){
 	//default camera input
 	
 	if( mainScene.cameras.length < 1 )
