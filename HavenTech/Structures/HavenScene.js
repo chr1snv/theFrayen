@@ -207,7 +207,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 	if( rastB3DTris.armatures.length > 0 ){
 		SkelA_writeBatchBoneMatsToGL(rastB3DTris);
 	}
-	
+
 	rastB3DTris.activeForFrame = true;
 
 }

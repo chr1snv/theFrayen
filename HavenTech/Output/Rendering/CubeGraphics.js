@@ -23,12 +23,17 @@ function CubeGraphics(loadCompleteCallback, unifLocOffset){
 	this.proj_vU_M1_1_Loc  = null;
 
 	this.cubeTex = null;
+	this.cubeTexLoadingStarted = false;
 }
 
 function CUBE_G_LoadComp(cubeG){
 	triG.position_vA_F3_A_Loc         = gl.getAttribLocation( cubeG.glProgram.glProgId, 'position'                );
 	
 	triG.proj_vU_M1_1_Loc = gl.getUniformLocation( cubeG.glProgram.glProgId, 'projMatrix'              );
+}
+
+function CUBE_G_cubeTexLoaded(cubeTex, cubeG){
+	cubeG.cubeTex = cubeTex;
 }
 
 function CUBE_G_Setup(cubeG){
@@ -39,13 +44,17 @@ function CUBE_G_Setup(cubeG){
 	gl.useProgram(progId);
 
 
-	if( cubeG.cubeTex == null )
-		cubeG.cubeTex = new Texture( 'cloudy/bluecloud', 'sailDefault', 2 ); //wrapType2 
-	else if( cubeG.cubeTex.isValid ){
+	if( cubeG.cubeTex == null ){
+		if( !cubeG.cubeTexLoadingStarted ){
+			cubeG.cubeTexLoadingStarted = true;
+			GRPH_GetCached( 'cloudy/bluecloud', 'sailDefault', Texture, 2, CUBE_G_cubeTexLoaded, cubeG ); //wrapType2 
+		}
+	}else if( cubeG.cubeTex.isValid ){
 		TEX_BindCube( cubeG.cubeTex );
 	}
 
 }
+
 
 function CUBE_G_allocateVertPosArray(){
 
@@ -120,7 +129,6 @@ function CUBE_G_allocateVertPosArray(){
 
 
 var cubeWorldToCamMat = Matrix_New();
-let rotWorldToScreenSpaceMat = Matrix_New();
 let blndrToCubeMapRotMat = Matrix_New();
 Matrix_SetEulerRotate( blndrToCubeMapRotMat, [-Math.PI/2, 0, 0] );
 let tqvrts = null;
@@ -128,8 +136,6 @@ let tqvrtsBufID = -1;
 function CUBE_G_DrawSkyBox(cubeG, mainCam){
 
 	if( cubeWorldToCamMat ){
-		//Matrix_Multiply( rotWorldToScreenSpaceMat, gPM, cubeWorldToCamMat );
-		//Matrix_Transpose( transMat, rotWorldToScreenSpaceMat );
 		Matrix_Multiply(tempMat, cubeWorldToCamMat, blndrToCubeMapRotMat );
 		Matrix_Transpose( transMat, tempMat );
 		gl.uniformMatrix4fv( cubeG.proj_vU_M1_1_Loc, false, transMat );

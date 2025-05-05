@@ -626,15 +626,15 @@ function TND_SubNode( t, point ){
 
 function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNodeMap ){
 	if( FRUS_AABBOverlaps( wrldToFrusMat, t.AABB ) > 0 ){ //overlaps with the aabb
-		
+
 		//if the node occupies a significant on screen area (check it's sub nodes)
 		//calculate the size of the oct tree node on screen
 		let distFromCam = Vect3_Distance( t.AABB.center, frusOrigin );
 		//given the distance and field of view in radians, find the length of the diagonal
 		//in -1,1 screen coodrdinates
-		t.nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / frusMaxFov;
+		t.nodePctOfHalfScreenWidth = Math.atan( t.AABB.diagLen/distFromCam ) / (frusMaxFov/180*Math.PI);
 		if( t.nodePctOfHalfScreenWidth > 0.1 ){
-		
+
 			if( t.objInsertIdx > 0 ){ //this node has objects
 				retNodeMap.set( t.uid.val, t ); //return the node
 			}else{ //attempt to recurse into subnodes 
@@ -644,7 +644,7 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 					}
 				}
 			}
-			
+
 		}
 
 	}

@@ -34,6 +34,9 @@ function loadScnScriptsCmp(){
 			break;
 		case ScnIds.IceMountian:
 			ICEM_sceneSpecificLoad(ldScnLdCmpCb);
+			break;
+		default:
+			cntrlsTxtElm.innerText = "Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click fullscreen look : ESC exit";
 	}
 }
 
@@ -56,6 +59,21 @@ function sceneSpecificLoad(scnId, cmpCb){
 let lastFrameMDown = false;
 let lastFrameMenuTouch = null;
 
+function DrawDefaultMainCam(){
+	//generate the camera matrix
+	mainCam.GenWorldToFromScreenSpaceMats();
+	//set the camera parameters (matrix, fov, pos) of draw batches
+	rastBatch3dTris_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dTris_array[0].camFov = mainCam.fov;
+	rastBatch3dTris_array[0].camWorldPos = mainCam.camTranslation;
+
+	rastBatch3dLines_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dLines_array[0].camFov = mainCam.fov;
+	rastBatch3dLines_array[0].camWorldPos = mainCam.camTranslation;
+
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[0], rastBatch3dLines_array[0] );
+}
+
 //returns the number of active rasterBatches
 function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3DTris_array, rb3DLines_array){
 	switch( scnId ){
@@ -63,6 +81,8 @@ function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3D
 			return SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
 		case ScnIds.IceMountian:
 			return ICEM_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
+		default:
+			DrawDefaultMainCam();
 	}
 	return 1;
 }

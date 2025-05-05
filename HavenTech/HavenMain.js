@@ -315,15 +315,6 @@ function sceneLoaded(havenScene)
 		UpdateCamTransText(mainCam);
 	}
 
-	if( mainScene.scnId < 0 ){
-		cntrlsTxtElm.innerText = "Touch / WASD keys Move, Q-E Roll, Shift 5x speed, Mouse click fullscreen look : ESC exit";
-	}else if( mainScene.scnId == ScnIds.Sail ){
-		cntrlsTxtElm.innerText = "Touch / Mouse swipe left or right to change course";
-		let sailCam = havenScene.cameras[ havenScene.activeCameraIdx ];
-		sailCam.nearClip = 1.0;
-		sailCam.farClip = 500.0;
-	}
-
 
 	rastBatch2dTris.camWorldPos = Vect3_ZeroConst;
 	rastBatch2dTris.ambientColor = [0.1,0.0,0.1];
@@ -405,18 +396,6 @@ function MainLoop()
 			RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines_array[i] );
 	}
 
-	//generate the camera matrix
-	mainCam.GenWorldToFromScreenSpaceMats();
-	//set the camera parameters (matrix, fov, pos) of draw batches
-	rastBatch3dTris_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
-	rastBatch3dTris_array[0].camFov = mainCam.fov;
-	rastBatch3dTris_array[0].camWorldPos = mainCam.camTranslation;
-
-	rastBatch3dLines_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
-	rastBatch3dLines_array[0].camFov = mainCam.fov;
-	rastBatch3dLines_array[0].camWorldPos = mainCam.camTranslation;
-
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[0], rastBatch3dLines_array[0] );
 
 	sceneSpecificUpdateAndGatherObjsToDraw( 
 		mainScene.scnId, sceneTime, mainCam, rastBatch2dTris, 
@@ -485,13 +464,17 @@ function MainLoop()
 	//enable/switch to the triangle glProgram
 	TRI_G_Setup(graphics.triGraphics);
 
-	//draw opaque materials
+	//draw opaque then transparent materials for each batch
 	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
 		let rastB = rastBatch3dTris_array[i];
 		if( rastB.activeForFrame ){
 			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
+			graphics.enableDepthMask(false);
+			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
+			graphics.enableDepthMask(true);
 		}
 	}
+	/*
 	graphics.enableDepthMask(false);
 	//draw transparent materials (back to front)
 	for( let i = rastBatch3dTris_array.length-1; i >= 0; --i ){
@@ -501,6 +484,7 @@ function MainLoop()
 		}
 	}
 	graphics.enableDepthMask(true);
+	*/
 
 	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
 	graphics.ClearDepth();

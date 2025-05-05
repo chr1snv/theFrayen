@@ -12,6 +12,12 @@ function SAIL_ScriptLoadCmp(){
 
 	BOAT_Init(mainScene);
 
+
+	cntrlsTxtElm.innerText = "Touch / Mouse swipe left or right to change course";
+	let sailCam = mainScene.cameras[ mainScene.activeCameraIdx ];
+	sailCam.nearClip = 1.0;
+	sailCam.farClip = 500.0;
+
 	sailLdCmpCb();
 }
 
@@ -113,14 +119,19 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 	let numActiveBatches = 1;
 
+	//update the boat scene
 	BOAT_Update( rb2DTris, time, 180/180*Math.PI );//to allow animation when scene is started
-	//Matrix_Copy( cubeWorldToCamMat, boatMatrixRotate );
-	//Matrix_SetIdentity(cubeWorldToCamMat);
-	//Matrix_Copy(tempMat, boatMatrixRotate);
-	//Matrix_Multiply(cubeWorldToCamMat, boatMatrixRotate, cam.camToWorldRotMat); //generate the skybox/cube map rotation matrix from the boat to world rotation
-	//Matrix_Inverse(cubeWorldToCamMat, tempMat);
+
+	DrawDefaultMainCam();
+
+	//camera for skybox
+	if( sgMode == SailModes.Menu ){
+		Matrix_Copy( rb3DTris_array[1].worldToScreenSpaceMat, rastBatch3dTris_array[0].worldToScreenSpaceMat);
+	}
 	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[1].worldToScreenSpaceMat);
-	
+
+
+
 	rb2DTris.objs[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){

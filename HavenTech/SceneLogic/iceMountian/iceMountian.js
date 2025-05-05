@@ -159,6 +159,8 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 		*/
 	}
+	
+	DrawDefaultMainCam();
 
 
 	//handle menu input

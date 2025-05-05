@@ -452,7 +452,7 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 		numAnimMatricies = rastBatch.combinedBoneMats.length/matrixCard;
 
 
-	if( rastBatch.clearDepthBeforeDrawing && drawTransparentBatches )
+	if( rastBatch.clearDepthBeforeDrawing && !drawTransparentBatches )
 		graphics.ClearDepth();
 
 
