@@ -53,6 +53,9 @@ function sceneSpecificLoad(scnId, cmpCb){
 	}
 }
 
+let lastFrameMDown = false;
+let lastFrameMenuTouch = null;
+
 //returns the number of active rasterBatches
 function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3DTris_array, rb3DLines_array){
 	switch( scnId ){

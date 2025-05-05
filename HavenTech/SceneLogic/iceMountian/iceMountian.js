@@ -49,8 +49,7 @@ let icemMenuTxtColor = new Float32Array([0.5, 0.5, 0.8]);
 let icemMenuHdgColor = new Float32Array([0.5, 0.5, 0.5]);
 let icemLdrbTimeColor = new Float32Array([0.6, 0.5, 0.7]);
 
-let lastFrameMDown = false;
-let lastFrameMenuTouch = null;
+
 function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
 
 

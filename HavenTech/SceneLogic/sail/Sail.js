@@ -107,8 +107,7 @@ let menuHdgColor = new Float32Array([0.5, 0.5, 0.5]);
 let ldrbTimeColor = new Float32Array([0.6, 0.5, 0.7]);
 let creditsColor = new Float32Array([0.4, 0.4, 0.4]);
 
-let lastFrameMDown = false;
-let lastFrameMenuTouch = null;
+
 function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
 
 
