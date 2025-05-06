@@ -59,19 +59,19 @@ function sceneSpecificLoad(scnId, cmpCb){
 let lastFrameMDown = false;
 let lastFrameMenuTouch = null;
 
-function DrawDefaultMainCam(){
+function DrawDefaultMainCam(batchArrayIdx=0){
 	//generate the camera matrix
 	mainCam.GenWorldToFromScreenSpaceMats();
 	//set the camera parameters (matrix, fov, pos) of draw batches
-	rastBatch3dTris_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
-	rastBatch3dTris_array[0].camFov = mainCam.fov;
-	rastBatch3dTris_array[0].camWorldPos = mainCam.camTranslation;
+	rastBatch3dTris_array[batchArrayIdx].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dTris_array[batchArrayIdx].camFov = mainCam.fov;
+	rastBatch3dTris_array[batchArrayIdx].camWorldPos = mainCam.camTranslation;
 
-	rastBatch3dLines_array[0].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
-	rastBatch3dLines_array[0].camFov = mainCam.fov;
-	rastBatch3dLines_array[0].camWorldPos = mainCam.camTranslation;
+	rastBatch3dLines_array[batchArrayIdx].worldToScreenSpaceMat = mainCam.worldToScreenSpaceMat;
+	rastBatch3dLines_array[batchArrayIdx].camFov = mainCam.fov;
+	rastBatch3dLines_array[batchArrayIdx].camWorldPos = mainCam.camTranslation;
 
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[0], rastBatch3dLines_array[0] );
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( mainScene, sceneTime, rastBatch3dTris_array[batchArrayIdx], rastBatch3dLines_array[batchArrayIdx] );
 }
 
 //returns the number of active rasterBatches
@@ -82,6 +82,7 @@ function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3D
 		case ScnIds.IceMountian:
 			return ICEM_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
 		default:
+			FlyingCameraControlInput( time );
 			DrawDefaultMainCam();
 	}
 	return 1;

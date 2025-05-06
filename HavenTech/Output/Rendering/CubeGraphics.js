@@ -130,7 +130,8 @@ function CUBE_G_allocateVertPosArray(){
 
 var cubeWorldToCamMat = Matrix_New();
 let blndrToCubeMapRotMat = Matrix_New();
-Matrix_SetEulerRotate( blndrToCubeMapRotMat, [-Math.PI/2, 0, 0] );
+let blndrToCubMapEulerRot = [-Math.PI/2, 0, 0]
+Matrix_SetEulerRotate( blndrToCubeMapRotMat, blndrToCubMapEulerRot );
 let tqvrts = null;
 let tqvrtsBufID = -1;
 function CUBE_G_DrawSkyBox(cubeG, mainCam){

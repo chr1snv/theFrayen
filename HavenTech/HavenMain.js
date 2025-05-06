@@ -469,9 +469,7 @@ function MainLoop()
 		let rastB = rastBatch3dTris_array[i];
 		if( rastB.activeForFrame ){
 			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
-			graphics.enableDepthMask(false);
 			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
-			graphics.enableDepthMask(true);
 		}
 	}
 	/*
@@ -594,10 +592,10 @@ let cntrlsTxtElm = document.getElementById("cntrlsTxt");
 
 let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
-function FlyingCameraControlInput( updateTime ){
+function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 	//default camera input
 	
-	if( mainScene.cameras.length < 1 )
+	if( camToUpdate == undefined )
 		return;
 
 	updateCameraTimeDelta = updateTime - lastUpdateCameraTime;
@@ -647,11 +645,11 @@ function FlyingCameraControlInput( updateTime ){
 		camRotDelEuler[2] -= moveAmt*9*updateCameraTimeDelta;
 
 	if( keys[keyCodes.KEY_N] ) //toggle limited view of camera rays near screen position of cursor
-		mainCam.onlyRaysNearCursor = !mainCam.onlyRaysNearCursor;
+		camToUpdate.onlyRaysNearCursor = !camToUpdate.onlyRaysNearCursor;
 
 	//update mouse position text
-	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*mainCam.numHorizRays);
-	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*mainCam.numVertRays);
+	mScreenRayCoords[0] = Math.round(mCoords.x/canvas.width*camToUpdate.numHorizRays);
+	mScreenRayCoords[1] = Math.round((canvas.height-mCoords.y)/canvas.height*camToUpdate.numVertRays);
 	if( posDbgText )
 		UpadateMousePosText();
 
@@ -662,16 +660,16 @@ function FlyingCameraControlInput( updateTime ){
 		lastInputTime = sceneTime;
 		//update the camera position / orientation text
 		if( posDbgText )
-			UpdateCamTransText(mainCam);
+			UpdateCamTransText(camToUpdate);
 	}
 
 	//send the updates to the camera
 	Quat_FromEuler( camRotDel, camRotDelEuler );
 	Quat_Norm( camRotDel );
-	mainCam.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
+	camToUpdate.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
 	lastUpdateCameraTime = updateTime;
 	
-	Matrix_Copy( tempMat, mainCam.camToWorldRotMat );
-	Matrix_Inverse( cubeWorldToCamMat, tempMat );
-	//cubeWorldToCamMat = mainCam.camToWorldRotMat;
+	//Matrix_Copy( tempMat, camToUpdate.camToWorldRotMat );
+	//Matrix_Inverse( cubeWorldToCamMat, tempMat );
+	//cubeWorldToCamMat = camToUpdate.camToWorldRotMat;
 }

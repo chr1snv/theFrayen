@@ -244,13 +244,10 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			TR_QueueText( rb2DTris, -0.43, -0.16, 0.02, 0.06, "menu music", false, TxtJustify.Left, creditsColor );
 			TR_QueueText( rb2DTris, -0.43, -0.2, 0.02, 0.04, "pixabay.com sound effects smooth 684 cm 54202", false, TxtJustify.Left, creditsColor );
-			
-			
+
+
 			TR_QueueText( rb2DTris, -0.43, -0.35, 0.02, 0.06, "skybox by bluecloud", false, TxtJustify.Left, creditsColor );
 			TR_QueueText( rb2DTris, -0.43, -0.39, 0.02, 0.04, "opengameart.org content cloudy skyboxes", false, TxtJustify.Left, creditsColor );
-			
-			"menu music"
-"https://pixabay.com/sound-effects/smooth-684-cm-54202/"
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris,

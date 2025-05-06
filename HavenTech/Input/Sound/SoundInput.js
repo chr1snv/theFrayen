@@ -420,7 +420,7 @@ let lastMicInputDisplayUpdateTime = 0;
 let drawMicInputGraph = false;
 let micInputGraph = new Graph("micInput");
 function updateMicInputSpectrogramDisplay(time){
-	if( keys[keyCodes.KEY_G] ) 
+	if( keysDown[keyCodes.KEY_G] ) 
 		drawMicInputGraph = !drawMicInputGraph;
 
 	let dT = time - lastMicInputDisplayUpdateTime;
