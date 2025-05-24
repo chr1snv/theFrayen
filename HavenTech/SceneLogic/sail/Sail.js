@@ -128,7 +128,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	if( sgMode == SailModes.Menu ){
 		Matrix_Copy( rb3DTris_array[0].worldToScreenSpaceMat, rastBatch3dTris_array[1].worldToScreenSpaceMat);
 	}
-	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[1].worldToScreenSpaceMat);
+	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[0].worldToScreenSpaceMat);
 
 
 
