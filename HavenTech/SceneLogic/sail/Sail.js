@@ -122,22 +122,22 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	//update the boat scene
 	BOAT_Update( rb2DTris, time, 180/180*Math.PI );//to allow animation when scene is started
 
-	DrawDefaultMainCam();
+	GatherModelsToDrawForDefaultMainCam(1); //begin queuing boat scene models to draw
 
 	//camera for skybox
 	if( sgMode == SailModes.Menu ){
-		Matrix_Copy( rb3DTris_array[1].worldToScreenSpaceMat, rastBatch3dTris_array[0].worldToScreenSpaceMat);
+		Matrix_Copy( rb3DTris_array[0].worldToScreenSpaceMat, rastBatch3dTris_array[1].worldToScreenSpaceMat);
 	}
 	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[1].worldToScreenSpaceMat);
 
 
 
-	rb2DTris.objs[windIndc.uid.val] = windIndc;
+	rb2DTris.mdls[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){
-		OCN_Update( ocean, rb3DTris_array[1], time, boatHeading );
+		OCN_Update( ocean, rb3DTris_array[0], time, boatHeading );
 		//need regatta scene camera update to draw ocean
-		rb3DTris_array[1].activeForFrame = true;
+		rb3DTris_array[0].activeForFrame = true;
 	}
 	
 	SAIL_PlayMusicForMode( sgMode );
@@ -210,14 +210,14 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			for( let cliUid in networkGame.clients ){
 				if( cliUid != localUid.val ){
 					let cli = networkGame.clients[ cliUid ];
-					BOAT_DrawOtherPlayer( rb3DTris_array[1], cli.hdg, cli.boatMapPosition );
+					BOAT_DrawOtherPlayer( rb3DTris_array[0], cli.hdg, cli.boatMapPosition );
 				}
 			}
 		case SailModes.Gameplay:
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
-			RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, rb3DTris_array[1], rb3DLines_array[1] );
+			RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, rb3DTris_array[0], rb3DLines_array[0] );
 			numActiveBatches = 2;
 			break;
 		case SailModes.Leaderboard:
@@ -264,7 +264,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	let mNowDown   = (!lastFrameMDown && mDown);
 	let touchMDown = (lastFrameMenuTouch == null && touch.menuTouch != null);
 	let inptDownThisFrame = mNowDown || touchMDown;
-	TR_RaycastPointer( rb2DTris, mCoords );
+	TR_RaycastPointer( rb2DTris, mCoords ); //returns mOvrdStrs and mOvrdStrs by checking the AABB's of queued text
 
 	if( inptDownThisFrame ){
 		for( let i = 0; i < numMOvrdStrs; ++i ){

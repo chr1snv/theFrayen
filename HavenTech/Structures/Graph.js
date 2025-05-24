@@ -1,14 +1,16 @@
 //an associative graph
 //like a tree datastructure except that it can loop back on itself
 
-function GraphLink(type, strenth){
+function GraphLink(target, type, strength){
 	this.type = type;
 	this.strength = strength;
+	this.target = target;
 }
 
 function GraphEntry(val){
 	this.val = val;
 	this.links = {};
+	this.minRadius = 2; //the distance where the node will start pushing away other objects
 }
 
 function Graph(name){
@@ -28,7 +30,7 @@ function Graph(name){
 //adds a node/datapoint/entry to the graph
 function GRPH_AddEntry(gph, gEntry){
 	gph.graphEntries[gEntry.val] = gEntry;
-	
+
 }
 
 
@@ -42,7 +44,7 @@ function GRPH_AddEntry(gph, gEntry){
 
 function GRPH_AddObjsToSceneToDraw( gph, time ){
 	if ( gph.havenScene == null ){
-		gph.havenScene = new HavenScene(gph.name, null, true, [-100,-100,-100], [100,100,100] );
+		gph.havenScene = new HavenScene(gph.name, null, true, [-100,-100,-100], [100,100,100], new PhysNode() );
 	}
 
 	//active entry is the selected node or one closest to the camera
@@ -78,7 +80,7 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 			let travLinkEntries = Object.entries(travEntry.links);
 			for ( let i = 0; i < travLinkEntries.length && i < gph.drawMaxSpanPerEntry; ++i ) {
 				const [key, value] = travLinkEntries[i];
-				nextDpthObjs.push( value );
+				nextDpthObjs.push( value.target );
 			}
 
 		}
@@ -92,9 +94,14 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 
 }
 
+let lastGraphVisInsertPosition = [0,0,0];
 function GRPH_modelLoadedCb(model, cbData){
 	let hvnSc = cbData;
-	HVNSC_FinishAddingLoadedModelToProgramaticScene( hvnSc, model );
+
+	Vect3_Copy( model.origin, lastGraphVisInsertPosition );
+	MDL_Update ( model, sceneTime );
+	HVNSC_FinishAddingLoadedModelToScene( hvnSc, model );
+
 
 	let cam = hvnSc.cameras[0];
 	//hvnSc.cameras[0].lookAtWorldPos = model.quadmesh.origin;
@@ -105,17 +112,21 @@ function GRPH_modelLoadedCb(model, cbData){
 	//Quat_LookAt( cam.userRotation, model.quadmesh.origin, cam.userPosition );
 	Quat_FromXRot( cam.userRotation, -blndrToCubMapEulerRot[0] ); //Math.PI/2 );
 	//Matrix_SetEulerRotate( blndrToCubeMapRotMat, blndrToCubMapEulerRot );
+	
+	lastGraphVisInsertPosition[0] += 4;
 }
 
 function GRPH_AddEntryToScene(gphEntry, hvnSc){
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
-	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingObjsToLoad[gphEntry.val] == undefined ){
+	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingModelsToLoad[gphEntry.val] == undefined ){
 
 		//shape for the graph concept / entry / datapoint
-		let entryMdl = new Model( gphEntry.val, 'gphDefaultEntryMesh', 'graph', AABB, 
-					hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isDynamic=false );
+		let entryMdl = new Model( nameIn=gphEntry.val, meshNameIn='gphDefaultEntryMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
+				sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=false );
 
-		hvnSc.pendingObjsToLoad[gphEntry.val] = entryMdl;
+		hvnSc.pendingModelsToLoad[gphEntry.val] = entryMdl;
 		//create models for the links/lines to other concepts
 	}
 
@@ -134,7 +145,7 @@ function GRPH_Draw(gph, rastB, time){
 	rastB.camWorldPos = cam.camTranslation;
 
 
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( gph.havenScene, time, rastB, null );
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( gph.havenScene, time, rastB, null, true );
 	rastB.activeForFrame = true;
 	
 	FlyingCameraControlInput( time, camToUpdate=gph.havenScene.cameras[0] );

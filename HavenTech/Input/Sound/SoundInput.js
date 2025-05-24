@@ -347,7 +347,15 @@ function genLogMelFreqBanks(){
 	
 	let testEntry = new GraphEntry('testFilter');
 	GRPH_AddEntry(micInputGraph, testEntry);
-	micInputGraph.activeEntry = testEntry;
+
+
+	//create an object linking to the first one
+	let testEntry1 = new GraphEntry('testSink');
+	let testLink1 = new GraphLink(testEntry, 'connection', 1.0);
+	testEntry1.links['testLink1'] = testLink1;
+	
+	
+	micInputGraph.activeEntry = testEntry1;
 
 
 }

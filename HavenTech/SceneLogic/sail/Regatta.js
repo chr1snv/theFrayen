@@ -16,7 +16,7 @@ const WaypointType = {
 function WaypointInfo( bouyNameIn, roundDirection, wayTypeIn, instrStringIn ){
 	this.bouyName = bouyNameIn;
 	this.origLoc = Vect3_New();
-	this.bouyQm = null;
+	this.bouyMdl = null;
 	this.roundDirection = roundDirection; //false == port , true == stbd
 	this.wayType = wayTypeIn;
 	this.instrString = instrStringIn;
@@ -29,11 +29,11 @@ bouyInfos[1] = new WaypointInfo( "inflatableBouy_s.001", false, WaypointType.Rou
 bouyInfos[2] = new WaypointInfo( "inflatableBouy_s.002", false, WaypointType.RoundBouy, "Round the Downwind offset Bouy" );
 bouyInfos[3] = new WaypointInfo( "inflatableBouy",       false, WaypointType.StartLine, "Cross the Finish Line" );
 
-let startLineBoatQm = null;
+let startLineBoatMdl = null;
 let startLineBoatLoc = null;
 
-let directionUiQmInst = null;
-let directionUiQmInstMat = null;
+let directionUiMdlInst = null;
+let directionUiMdlInstMat = null;
 
 var RGTA_Ready = false;
 function RGTTA_SceneLoaded( hvnsc ){
@@ -42,27 +42,40 @@ function RGTTA_SceneLoaded( hvnsc ){
 	
 	//get refrences to meshes to have follow the water surface
 	for( let i = 0; i < bouyInfos.length; ++i ){
-		bouyInfos[i].bouyQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName][bouyInfos[i].bouyName][0];
-		bouyInfos[i].origLoc = bouyInfos[i].bouyQm.origin;
+		bouyInfos[i].bouyMdl = hvnsc.modelNames[bouyInfos[i].bouyName];
+		Vect3_Copy( bouyInfos[i].origLoc, bouyInfos[i].bouyMdl.origin );
 	}
 
 
-	startLineBoatQm = graphics.cachedObjs[QuadMesh.name][rgtaSceneName]['startLineBoat'][0];
-	startLineBoatLoc = startLineBoatQm.origin;
+	startLineBoatMdl = hvnsc.modelNames['startLineBoat'];
+	startLineBoatLoc = startLineBoatMdl.origin;
+
+	
+	directionUiMdlInst = new Model( nameIn="wayPtDirec" );
+	directionUiMdlInst.quadmesh = textScene.modelNames["windIndc"].quadmesh;
+	MDL_Update( directionUiMdlInst, 0 );
+
+	GRPH_GetCached( "directionUIMat", "windIndc", Material, false, Rgta_directionUiMdlInstMatLd, null );
+	directionUiMdlInst.optMaterial = directionUiMdlInstMat;
 
 
-	new Model( "wayPtDirec", "windIndc", "textMeshes", null, 
-					modelLoadedParameters=null, modelLoadedCallback=Rgta_directionUiQmInstLd, isDynamic=false );
+	new Model( nameIn="WaypKeepOutRadius", meshNameIn="WaypKeepOutRadius",
+				armNameIn=null, ipoNameIn=null, materialNamesIn=["roundingIndicator"],
+				sceneNameIn="RegattaWaypoints", AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypKeepOutRadiusLoaded, isPhysical=false );
 
-	GRPH_GetCached( "directionUIMat", "windIndc", Material, false, Rgta_directionUiQmInstMatLd, null );
+	new Model( nameIn="WaypRoundBeginWall", meshNameIn="WaypRoundBeginWall",
+				armNameIn=null, ipoNameIn=null, materialNamesIn=["roundingIndicator"],
+				sceneNameIn="RegattaWaypoints", AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isPhysical=false );
+	new Model( nameIn="WaypRoundBeginWall", meshNameIn="WaypRoundBeginWall",
+				armNameIn=null, ipoNameIn=null, materialNamesIn=["roundingIndicator"],
+				sceneNameIn="RegattaWaypoints", AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isPhysical=false );
 
-	new Model( "WaypKeepOutRadius", "WaypKeepOutRadius", "RegattaWaypoints", null, 
-					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypKeepOutRadiusLoaded, isDynamic=false );
-
-	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
-					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
-	new Model( "WaypRoundBeginWall", "WaypRoundBeginWall", "RegattaWaypoints", null, 
-					modelLoadedParameters=null, modelLoadedCallback=Rgta_WaypRoundBeginWallLoaded, isDynamic=false );
 
 	let rgtaCam = hvnsc.cameras[ hvnsc.activeCameraIdx ];
 	rgtaCam.nearClip = 1.0;
@@ -75,15 +88,9 @@ function RGTTA_SceneLoaded( hvnsc ){
 	RGTA_Ready = true;
 }
 
-function Rgta_directionUiQmInstMatLd(mat){
-	directionUiQmInstMat = mat;
-	directionUiQmInstMat.diffuseCol = [0,1,0];
-	if( directionUiQmInst != null )
-		directionUiQmInst.optMaterial = directionUiQmInstMat;
-}
-function Rgta_directionUiQmInstLd(mdl){
-	directionUiQmInst = mdl;
-	directionUiQmInst.optMaterial = directionUiQmInstMat;
+function Rgta_directionUiMdlInstMatLd(mat){
+	directionUiMdlInstMat = mat;
+	directionUiMdlInstMat.diffuseCol = [0,1,0];
 }
 
 let kpOutRadiusMdl = null;
@@ -103,7 +110,7 @@ function Rgta_WaypRoundBeginWallLoaded( rndWall ){
 	if( waypRoundBeginWall == null ){
 		waypRoundBeginWall = rndWall;
 		waypRoundBeginWall.optTransformUpdated = true;
-		waypRoundBeginWall.quadmesh.materials[0].lumCol = [0.4,1,0];
+		waypRoundBeginWall.materials[0].lumCol = [0.4,1.0,0.0];
 	}else{
 		waypRoundEndWall = rndWall;
 		waypRoundEndWall.optTransformUpdated = true;
@@ -228,15 +235,14 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 	//get the ocean height for each bouy so it can be on the surface
 	for( let bouyIdx = 0; bouyIdx < bouyInfos.length; ++bouyIdx ){
-		let bouyQm = bouyInfos[bouyIdx].bouyQm;
-		let bouyMdl = bouyQm.models[0];
-		let bouyPosition = bouyInfos[bouyIdx].origLoc;//bouyQm.origin;
+		let bouyMdl = bouyInfos[bouyIdx].bouyMdl;
+		let bouyPosition = bouyInfos[bouyIdx].origLoc;
 		let height = OCN_GetHeightAtMapPosition( bouyPosition[0], bouyPosition[1] );
 		bouyPosition[2] = height;
 		Matrix_SetQuatTransformation(
 			bouyMdl.optTransMat,
-			bouyQm.scale,
-			bouyQm.rotation,
+			bouyMdl.scale,
+			bouyMdl.rotation,
 			bouyPosition
 		);
 		bouyMdl.optTransformUpdated = true;
@@ -247,7 +253,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			
 		if( currentWaypointIdx == bouyIdx ){
 			//if the bouy has a keepout radius model also move it vertically with the ocean surface
-			//let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+			//let bouyPosition = bouyInfos[currentWaypointIdx].bouyMdl.origin;
 
 			//move the waypoint keepout indicator
 			if( kpOutRadiusMdl != null )
@@ -260,12 +266,12 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 	//also move the start line boat to the ocean surface
 	startLineBoatLoc[2] = OCN_GetHeightAtMapPosition( startLineBoatLoc[0], startLineBoatLoc[1] );
 	Matrix_SetQuatTransformation(
-			startLineBoatQm.models[0].optTransMat,
-			startLineBoatQm.scale,
-			startLineBoatQm.rotation,
+			startLineBoatMdl.optTransMat,
+			startLineBoatMdl.scale,
+			startLineBoatMdl.rotation,
 			startLineBoatLoc
 		);
-	startLineBoatQm.models[0].optTransformUpdated = true;
+	startLineBoatMdl.optTransformUpdated = true;
 	
 
 
@@ -292,19 +298,19 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 	}else{ //regatta in progress
 
 		if( kpOutRadiusMdl != null )
-			rb3DTris.objs[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
+			rb3DTris.mdls[kpOutRadiusMdl.uid.val] = kpOutRadiusMdl;
 
 		let currentBouyInfo = bouyInfos[currentWaypointIdx];
-		let bouyPosition = currentBouyInfo.bouyQm.origin;
+		let bouyPosition = currentBouyInfo.bouyMdl.origin;
 		RGTTA_DistAndHdgFromWaypoint( dist_Hdg_VecFromToWaypoint, bouyPosition, boatMapPosition );
 		let dirIndcDir = MTH_WrapAng0To2PI(dist_Hdg_VecFromToWaypoint[1] + boatHeading + -0.5*Math.PI);
 		
-		Matrix_SetEulerTransformation( directionUiQmInst.optTransMat, 
+		Matrix_SetEulerTransformation( directionUiMdlInst.optTransMat, 
 					[.2,.2,.2], 
 					[-120/180*Math.PI, dirIndcDir, 0], 
 					[0, 0.7, 0] );
-		directionUiQmInst.optTransformUpdated = true;
-		rb2DTris.objs[directionUiQmInst.uid.val] = directionUiQmInst;
+		directionUiMdlInst.optTransformUpdated = true;
+		rb2DTris.mdls[directionUiMdlInst.uid.val] = directionUiMdlInst;
 
 		let bouyRoundDirStr = "PORT";
 		if( currentBouyRoundDir )
@@ -350,7 +356,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 				//without hitting bouy
 				if( !currentBouyInfo.roundDirection ){ //bouy to be rounded to port side of boat
 				
-					rb3DTris.objs[waypRoundBeginWall.uid.val] = waypRoundBeginWall;
+					rb3DTris.mdls[waypRoundBeginWall.uid.val] = waypRoundBeginWall;
 
 					if( rgtaState == RgtaState.NextBouy &&
 						!MTH_WrappedAngLessThan( perpendicAngToPrevBouy, dist_Hdg_VecFromToWaypoint[1] ) ){
@@ -400,7 +406,7 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 			
 			if( currentWaypointIdx < bouyInfos.length ){
 			
-				let bouyPosition = bouyInfos[currentWaypointIdx].bouyQm.origin;
+				let bouyPosition = bouyInfos[currentWaypointIdx].bouyMdl.origin;
 
 				//move the waypoint keepout indicator
 				if( kpOutRadiusMdl != null )
@@ -411,8 +417,8 @@ function RGTTA_Update( time, cam, boatMapPosition, boatToWorldMatrix, rb2DTris, 
 
 				if( bouyInfos[currentWaypointIdx].wayType == WaypointType.RoundBouy ){
 					//pre calculate / calculate once the course angles required for bouy rounding
-					let prevBouyPosition = bouyInfos[currentWaypointIdx-1].bouyQm.origin;
-					let nextBouyPosition = bouyInfos[currentWaypointIdx+1].bouyQm.origin;
+					let prevBouyPosition = bouyInfos[currentWaypointIdx-1].bouyMdl.origin;
+					let nextBouyPosition = bouyInfos[currentWaypointIdx+1].bouyMdl.origin;
 					
 					Vect3_Copy( vecToPrevBouy, prevBouyPosition );
 					Vect3_Subtract( vecToPrevBouy, bouyPosition );

@@ -59,7 +59,7 @@ function sceneSpecificLoad(scnId, cmpCb){
 let lastFrameMDown = false;
 let lastFrameMenuTouch = null;
 
-function DrawDefaultMainCam(batchArrayIdx=0){
+function GatherModelsToDrawForDefaultMainCam(batchArrayIdx=0){
 	//generate the camera matrix
 	mainCam.GenWorldToFromScreenSpaceMats();
 	//set the camera parameters (matrix, fov, pos) of draw batches
@@ -83,7 +83,7 @@ function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3D
 			return ICEM_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);
 		default:
 			FlyingCameraControlInput( time );
-			DrawDefaultMainCam();
+			GatherModelsToDrawForDefaultMainCam();
 	}
 	return 1;
 }

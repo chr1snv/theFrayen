@@ -5,7 +5,11 @@ precision highp float;
 
 //constant variables
 uniform bool      texturingEnabled;
-uniform sampler2D texSampler;
+uniform bool      cubeTexEnabled;
+
+uniform sampler2D	texSampler;		//the diffuseTexture
+uniform samplerCube	cubeTexSampler;	//for reflection
+
 
 uniform float     alpha;
 
@@ -26,6 +30,7 @@ uniform int       numLights;
 uniform vec3      camWorldPos;
 
 //uniform vec2      screenDims;
+
 
 
 //variables passed from the vertex shader
@@ -78,6 +83,12 @@ void main() {
 						0
 					);
 
+		if( cubeTexEnabled ){
+			//calculate cube map specular contribution
+			gl_FragColor = textureCube( cubeTexSampler, worldSpaceFragPosition ); //vec3(texCoordVarying,0) ); //normalize(wsfp)
+			//gl_FragColor = vec4(1,1,1,1);
+		}
+
 		//calculate light contributions
 		if( 0 < numLights ){
 			//diffuse calculation
@@ -102,6 +113,7 @@ void main() {
 
 
 	}
+	
 
 	//use discard instead of alpha blending to avoid z sorting requirement for alpha blend mode
 	//gl_FragColor.a = 1.0;

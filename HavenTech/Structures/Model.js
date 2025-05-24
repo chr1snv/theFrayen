@@ -4,10 +4,12 @@
 //a representation of a model in a haven scene
 //i.e. static enviroment model (foliage, ground etc)
 //     dynamic model (player mesh, npc, etc)
-function Model( nameIn, meshNameIn, sceneNameIn, AABB, 
-					modelLoadedParameters, modelLoadedCallback=null, isDynamic=false )
+function Model( nameIn, meshNameIn=null, armNameIn=null, ipoNameIn=null, materialNamesIn=[], 
+				sceneNameIn="default", AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=null, modelLoadedCallback=null, isPhysical=false )
 {
-	
+
 	/*
 	//get the quadMesh transformationMatrix
 	this.generateModelMatrix = function( cbObjs, completeCallback )
@@ -49,17 +51,36 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	//material
 	//and scripts on an quadmesh
 
-	this.lclToWrldMat = Matrix_New();
+	this.origin = locationIn;
+	this.rotation = rotationIn;
+	this.scale = scaleIn;
+
+	this.toWorldMatrix = Matrix_New();
+
+	this.lastToWorldMatrixUpdateTime = -1;
+	this.AABBUpdateTime = -1;
 
 	this.modelName = nameIn;
 	this.meshName = meshNameIn;
+	this.armName = armNameIn; //the per vertex weighted transformation heiracy animation possibly applied to multiple quadmeshes
+	this.ipoName = ipoNameIn;
+	this.materialNames = materialNamesIn;
+	if( this.materialNames.length < 1 ){
+		//( str, tag, color, depth )
+		DTPrintf('Model: ' + this.modelName + 
+			', failed to read any materials, loading default material', "model ld");
+		this.materialNames.push("default");
+	}
+	this.materials = new Array(this.materialNames.length);
 	this.sceneName = sceneNameIn;
+	
+	this.ipoAnimation = null;
+	this.quadmesh = null;
+
+	this.isValid = false;
+	this.componentsToLoad = 0; //the quadmesh, and each animation type ipo, skel, etc
 
 	this.uid = NewUID();
-
-	this.physObj = null;
-	if( isDynamic )
-		this.physObj = new PhysObj(thisP.AABB, thisP, 0);
 
 	this.treeNodes = {};
 
@@ -67,13 +88,19 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.sceneGraph = null;
 
 	//this.overlaps = [0,0,0];
-	this.AABB = AABB;
+	this.worldMinCorner = Vect3_New();
+	this.worldMaxCorner = Vect3_New();
+	this.AABB = AABBIn;
+
+	this.physObj = null;
+	if( isPhysical )
+		this.physObj = new PhysObj(this.AABB, this, 0);
 
 	this.otType = OT_TYPE_Model;
 
 	this.lastUpdateTime = -0.5;
 	//this.timeUpdate;
-	this.optTransformUpdated;
+	this.optTransformUpdated = false;
 	this.optTransMat = Matrix_New();
 	this.optMaterial = null;
 
@@ -86,17 +113,53 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 	this.shaderName  = this.shaderScene = "";
 
 
-	//request the quadmesh from the graphics class to get it to load it
-	GRPH_GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
-				MDL_getQuadMeshCb,
-				{ 1:this, 2:modelLoadedParameters, 3:modelLoadedCallback }
-				//pack parameters into object to pass to callback above
-				 );
+	this.modelLoadedCallback = modelLoadedCallback;
+	this.modelLoadedParameters = modelLoadedParameters;
+
+	//count the number of components to load
+	this.componentsToLoad = this.materialNames.length; //QuadMesh + num materials
+
+	if( this.meshName && this.meshName != "" )
+		this.componentsToLoad += 1;
+	if( this.ipoName && this.ipoName != '' )
+		this.componentsToLoad += 1;
+	if( this.armName && this.armName != "" )
+		this.componentsToLoad += 1;
 
 
-	//loadTextFile("scenes/" + this.sceneName + 
-	//			"/IPOs/" + this.modelName+".hvtIPO", 
-	//			MDL_ipoFileLoadedCallback, this);
+	//start loading the components (and checking if all components are loaded when they are ready)
+
+	if( this.ipoName && this.ipoName != '' ){
+		this.isAnimated = true;
+		GRPH_GetCached(this.modelName, this.sceneName, IPOAnimation, null,
+			MDL_ipoAnimReadyCallback, this );
+		//loadTextFile("scenes/" + this.sceneName + 
+		//		"/IPOs/" + this.modelName+".hvtIPO",
+		//		MDL_ipoAnimReadyCallback, this);
+	}
+
+
+	this.hasntDrawn = true;
+	this.materialHasntDrawn = new Array(this.materialNames.length);
+	for( let i = 0; i < this.materialNames.length; ++i ){
+		this.materialHasntDrawn[i] = true;
+		//load the material file
+		GRPH_GetCached( this.materialNames[i], this.sceneName, Material, null,
+			MDL_materialReady, [this, i] );
+		//when completed calls to mat file loaded function
+	}
+
+
+	if( !this.meshName || this.meshName == "" ){
+		//console.log( "model constructor " + this.modelName + " no mesh name given" );
+	}else{
+		//request the quadmesh from the graphics class to get it to load it
+		GRPH_GetCached( meshNameIn, sceneNameIn, QuadMesh, null,
+					MDL_getQuadMeshCb,
+					{ 1:this }
+					//pack parameters into object to pass to callback above
+					);
+	}
 
 };
 
@@ -105,15 +168,17 @@ function Model( nameIn, meshNameIn, sceneNameIn, AABB,
 //Identification / registration functions so that 
 //the model can be drawn, interact with other objects, 
 //and be updated when in view
-function MDL_AddToOctTree( mdl, octTreeIn, addCompletedCallback )
+function MDL_AddToOctTree( mdl, octTreeIn )
 {
 	if( octTreeIn == null )
 		return;
 
 	MDL_RemoveFromOctTree( mdl );
-	let nLvsMDpth = [0,0];
-	TND_AddObject( octTreeIn, nLvsMDpth, mdl, addCompletedCallback );
-
+	let nLvsMDpth = [0,0,0];
+	TND_AddObject( octTreeIn, nLvsMDpth, mdl );
+	if( nLvsMDpth[0] >= 0 )
+		return true;
+	return false;
 }
 
 function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
@@ -124,7 +189,7 @@ function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
 		treeNodesAddedTo = Object.keys(mdl.treeNodes);
 	}
 	mdl.treeNodes = {};
-	
+
 	if( removeCompletedCallback != null )
 		removeCompletedCallback(mdl);
 }
@@ -132,24 +197,54 @@ function MDL_RemoveFromOctTree( mdl, removeCompletedCallback )
 //animation functions
 
 function MDL_Update( mdl, time, treeNd ){
+
+
 	if( mdl.quadmesh == null ){
-		graphics.GetQuadMesh( mdl.meshName, mdl.sceneName, mdl, quadMeshLoaded );
+		//request the quadmesh from the graphics class to get it to load it
+		GRPH_GetCached( mdl.meshName, mdl.sceneName, QuadMesh, null,
+					MDL_getQuadMeshCb,
+					{ 1:mdl } //pack parameters into object to pass to callback above
+					 );
 	}else{
-		
+
+		if( mdl.skelAnimation != null )
+			updated = SkelA_UpdateTransforms(mdl.skelAnimation, time );
+
+		//if ipo animation is present for model will be polled in MDL_UpdateToWorldMatrix
+		MDL_UpdateToWorldMatrix(mdl, time);
+
 		QM_Update( mdl.quadmesh, time );
-		
+
 		if( mdl.physObj ){
-			
-		
-			mdl.AABB = mdl.quadmesh.AABB;
-		
-			mdl.physObj.Update(time, gravityAccel, treeNd);
-			
-			mdl.lastUpdateTime = time;
+			mdl.physObj.Update(time, treeNd);
 		}
-		
-		
+
+		MDL_UpdateAABB(mdl, time);
+
+		mdl.lastUpdateTime = time;
+
 	}
+}
+
+//update the quadmesh to world transformation
+let tempMat = new Float32Array(4*4);
+function MDL_UpdateToWorldMatrix(mdl, time){
+
+	if( mdl.lastToWorldMatrixUpdateTime == time )
+		return false;
+	if( mdl.ipoAnimation != null ){
+		IPOA_GetMatrix( mdl.ipoAnimation, mdl.toWorldMatrix, time );
+		//if there is an ipo animation, ignore other animations
+	}else{
+		Matrix_SetQuatTransformation( mdl.toWorldMatrix, 
+				mdl.scale, mdl.rotation, mdl.origin );
+	}
+	//Matrix_Copy(tempMat, mdl.toWorldMatrix );
+	//Matrix_Inverse( mdl.wrldToLclMat, tempMat );
+
+	mdl.lastToWorldMatrixUpdateTime = time;
+
+	return true;
 }
 
 /*
@@ -197,21 +292,79 @@ function MDL_SetShader( mdl, shaderNameIn, sceneNameIn ){
 }
 
 
+function MDL_materialReady( material, args ){
+	let mdl = args[0];
+	let matIdx = args[1];
+	mdl.materials[matIdx] = material;
+	mdl.componentsToLoad -= 1;
+	MDL_checkLoadingComplete(mdl);
+}
+
+
+function MDL_UpdateAABB(mdl, time) {
+	if( mdl.AABBUpdateTime < time ){
+		mdl.AABBUpdateTime = mdl.quadmesh.AABBUpdateTime;
+
+		Vect3_SetScalar( mdl.worldMinCorner,  999999 );
+		Vect3_SetScalar( mdl.worldMaxCorner, -999999 );
+
+		Matrix_Multiply_Vect3( tempVert, mdl.toWorldMatrix, mdl.quadmesh.lclMinCorner );
+		Vect3_minMax( mdl.worldMinCorner, mdl.worldMaxCorner, tempVert);
+		Matrix_Multiply_Vect3( tempVert, mdl.toWorldMatrix, mdl.quadmesh.lclMaxCorner);
+		Vect3_minMax( mdl.worldMinCorner, mdl.worldMaxCorner, tempVert);
+
+		AABB_UpdateMinMaxCenter(mdl.AABB, mdl.worldMinCorner, mdl.worldMaxCorner );
+	}
+}
+
+function MDL_checkLoadingComplete(mdl){
+	if( mdl.componentsToLoad < 1 ){
+		mdl.isValid = true;
+		//if there isn't a modelLoadedCallback callback don't try to call it
+		if( mdl.modelLoadedCallback != null ) //quadmesh is loaded (async loading done)
+			mdl.modelLoadedCallback( mdl, mdl.modelLoadedParameters ); //can now add to oct tree
+	}
+}
+
+
 function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call modelLoadedCallback
 	let thisP = cbObj[1];
-	thisP.shaderName = quadMesh.materialNames[0];
-	thisP.shaderScene = quadMesh.sceneName;
+	//thisP.shaderName = quadMesh.materialNames[0];
+	//thisP.shaderScene = quadMesh.sceneName;
 	thisP.quadmesh = quadMesh;
+
 	QM_Reset(thisP.quadmesh);
-	QM_Update( thisP.quadmesh, 0 );
-	thisP.lastUpdateTime = 0;
-	thisP.AABB = thisP.quadmesh.AABB;
-	quadMesh.models.push( thisP ); //for use by armature lookup of objects to be animated
-	
-	//if there isn't a modelLoadedCallback callback don't try to call it
-	if( cbObj[3] != null ) //quadmesh is loaded (async loading done)
-		cbObj[3]( cbObj[1], cbObj[2] ); //can now add to oct tree
+	MDL_Update( thisP, 0, null );
+	//quadMesh.models.push( thisP ); //for use by armature lookup of objects to be animated
+	thisP.componentsToLoad -= 1;
+
+	//if the model also has an armature, now attempt to load it
+	if( thisP.armName && thisP.armName != "" ){
+		this.isAnimated = true;
+		GRPH_GetCached( thisP.armName, thisP.sceneName, SkeletalAnimation, null,
+			MDL_skelAnimReady, thisP );
+		thisP.bnIdxWghtBufferForMat = new Array(thisP.materialNames.length);
+		for( let i = 0; i < thisP.materials.length; ++i )
+			thisP.bnIdxWghtBufferForMat[i] = new Float32Array( quadMesh.faceVertsCtForMat[i]*bnIdxWghtCard );
+	}else{
+		MDL_checkLoadingComplete( thisP );
+	}
 }
+
+function MDL_ipoAnimReadyCallback(ipoAnim, mdl){
+	mdl.ipoAnimation = ipoAnim;
+	mdl.componentsToLoad -= 1;
+	MDL_checkLoadingComplete( mdl );
+}
+
+function MDL_skelAnimReady(skelAnim, mdl){
+	mdl.skelAnimation = skelAnim;
+	skelAnim.animatedModels.push( mdl );
+	QM_ArmatureReadyCallback(skelAnim, mdl.quadmesh);
+	mdl.componentsToLoad -= 1;
+	MDL_checkLoadingComplete( mdl );
+}
+
 
 function MDL_RayIntersect(mdl, retDisNormCol, ray){
 
@@ -225,6 +378,7 @@ function MDL_RayIntersect(mdl, retDisNormCol, ray){
 
 }
 
+/*
 function incChanIdx(chanIdx){
 
 	chanIdx += 1;
@@ -232,4 +386,7 @@ function incChanIdx(chanIdx){
 		chanIdx = 0;
 
 }
+*/
+
+
 

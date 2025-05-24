@@ -382,18 +382,18 @@ function MainLoop()
 
 
 	//ready the raster batches for a new frame
-	RastB_ClearObjsAndInitListsForNewFrame( rastBatch2dTris );
+	RastB_ClearMdlsAndInitListsForNewFrame( rastBatch2dTris );
 
 	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
 		let rastB = rastBatch3dTris_array[i];
 		if( rastB.activeForFrame ){
-			RastB_ClearObjsAndInitListsForNewFrame( rastB );
+			RastB_ClearMdlsAndInitListsForNewFrame( rastB );
 		}
 	}
 	for( let i = 0; i < rastBatch3dLines_array.length; ++i ){
 		let rastB = rastBatch3dLines_array[i];
 		if( AnimTransformDrawingEnabled || rastB.activeForFrame ) //&& mainScene.armatureInsertIdx > 0 )
-			RastB_ClearObjsAndInitListsForNewFrame( rastBatch3dLines_array[i] );
+			RastB_ClearMdlsAndInitListsForNewFrame( rastBatch3dLines_array[i] );
 	}
 
 
@@ -407,12 +407,10 @@ function MainLoop()
 		hidePage(false);
 	}else{
 		hidePage(true);
-		
 	}
 
 
-	//generate verticies from objects and upload to gl if necessary
-	RastB_PrepareBatchToDraw( rastBatch2dTris );
+
 	if( mainScene.scnId < 0 )
 		Overlay_DrawInputHint(rastBatch2dTris);
 	
@@ -424,6 +422,10 @@ function MainLoop()
 	}
 	TR_QueueNumber( rastBatch2dTris, -0.8*graphics.GetScreenAspect(), 0.97, 0.02, 0.03, lastFps, numDecPlaces=0, justify=TxtJustify.Center );
 
+
+
+	//generate verticies from objects and upload to gl if necessary
+	RastB_PrepareBatchToDraw( rastBatch2dTris );
 
 	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
 		let rastB = rastBatch3dTris_array[i];
@@ -613,13 +615,18 @@ function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 		camPositionUpdate[0] -= moveOffset;
 	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
 		camPositionUpdate[0] += moveOffset;
+	
+	if( keys[keyCodes.KEY_R] == true )
+		camPositionUpdate[1] += moveOffset;
+	if( keys[keyCodes.KEY_F] == true )
+		camPositionUpdate[1] -= moveOffset;
 
 		camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
 		camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
-		
-	
+
+
 	//generate the rotation update
-	
+
 	if( mDown ){
 		if(document.pointerLockElement == null)
 			requestPointerLock();
@@ -643,6 +650,7 @@ function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 		camRotDelEuler[2] += moveAmt*9*updateCameraTimeDelta;
 	if( keys[keyCodes.KEY_E] == true )
 		camRotDelEuler[2] -= moveAmt*9*updateCameraTimeDelta;
+
 
 	if( keys[keyCodes.KEY_N] ) //toggle limited view of camera rays near screen position of cursor
 		camToUpdate.onlyRaysNearCursor = !camToUpdate.onlyRaysNearCursor;
@@ -668,7 +676,7 @@ function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 	Quat_Norm( camRotDel );
 	camToUpdate.UpdateOrientation( camPositionUpdate, camRotDel, updateTime );
 	lastUpdateCameraTime = updateTime;
-	
+
 	//Matrix_Copy( tempMat, camToUpdate.camToWorldRotMat );
 	//Matrix_Inverse( cubeWorldToCamMat, tempMat );
 	//cubeWorldToCamMat = camToUpdate.camToWorldRotMat;

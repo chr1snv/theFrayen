@@ -18,7 +18,7 @@ def vec3Max( v1, v2 ):
 	v1[0] = v1[0] if v1[0] > v2[0] else v2[0]
 	v1[1] = v1[1] if v1[1] > v2[1] else v2[1]
 	v1[2] = v1[2] if v1[2] > v2[2] else v2[2]
-	
+
 def nextPot(dim):
 	ret = 2
 	while( ret < dim ):
@@ -26,19 +26,19 @@ def nextPot(dim):
 	return ret
 
 def popupMenu(message):
-    bpy.context.window_manager.popup_menu(lambda self, \
-    context: self.layout.label(text=message), title='Error', icon='ERROR' )
+	bpy.context.window_manager.popup_menu(lambda self, \
+	context: self.layout.label(text=message), title='Error', icon='ERROR' )
 
 def writeArmature(assetDirectory, ob):
-    writeArmatureAnim(assetDirectory, ob)
+	writeArmatureAnim(assetDirectory, ob)
 
 #asset directory is the dir that contains the folders meshes, animations, ..etc.
-def writeModel(assetDirectory, ob, ipoFileName, depsGraph):
-    """Write a HavenTech mesh and animation file from the current blender
+def writeModel(out, assetDirectory, ob, ipoFileName, depsGraph):
+    """Write a HavenTech model and animation file from the current blender
     scene, returns the Axis aligned bounding box min and max vect3's for
     inital adding to the haven scene oct tree"""
 
-    #check the user has selected an object
+    #check the given object is a mesh type model
     if not ob:
         print('Error%t| write model called with null ob')
         return
@@ -46,28 +46,57 @@ def writeModel(assetDirectory, ob, ipoFileName, depsGraph):
     if not ob.type == 'MESH':
         print('Error%t| Active object is not a Mesh')
         return
-    
+
+    #write the mesh scale, rotation, translation and modifiers
+    out.write( 'mscl %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
+    if ob.rotation_mode == 'XYZ':
+    	quatRot = ob.rotation_euler.to_quaternion()
+    elif ob.rotation_mode == 'QUATERNION':
+    	quatRot = ob.rotation_quaternion
+    print("rotation mode %s rot %s" % (ob.rotation_mode, str(quatRot)) )
+    out.write( 'mrot %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
+    loc = ob.location
+    out.write( 'mloc %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
+
+    if ipoFileName != None:
+        out.write('mIpoName %s\n' % ipoFileName)
+
+    #check if the model has an armature modifier
+    usesArmature = False
+    for modifier in ob.modifiers:
+        if modifier.type == 'ARMATURE':
+            usesArmature = True
+            armatureObj = modifier.object
+            #check the armature modifier does not use envelopes
+            if modifier.use_bone_envelopes:
+                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
+                return
+            #check the armature modifer uses vertex groups
+            if not modifier.use_vertex_groups:
+                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
+                return
+            out.write('mArmName %s\n' % (armatureObj.name) )
+
     #----write the mesh file----
     #---------------------------
-    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, ipoFileName, depsGraph)
+    mesh = ob.data
+    out.write( 'mMeshName %s\n' % (mesh.name) )
 
-    #----write the mesh materials file----
+    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, usesArmature, depsGraph)
+
+    #----write the model materials----
     #-------------------------------------
-    writeMeshMaterials(assetDirectory, ob)
+    writeModelMaterials(out, assetDirectory, ob)
 
-    #----write the keyframes file----
-    #--------------------------------
-    writeKeyframeMeshData(assetDirectory, ob)
-    
     #apply object location, rotation and scale to AABB
     AABBmin = ob.matrix_world @ AABBMin
     AABBmax = ob.matrix_world @ AABBMax
-    
+
     return [AABBmin, AABBmax]
 
-def writeMeshMaterials(assetDirectory, ob):
-    """Write a materials file, and a haven tech material file for each of the
-    materials associated with the given mesh object"""
+def writeModelMaterials(out, assetDirectory, ob):
+    """Write the names of materials for an object, and a haven tech material file for each of the
+    materials associated with the given haven tech model"""
 
     #check that the mesh only uses its own materials (and not materials of its
     #parent object)
@@ -77,26 +106,26 @@ def writeMeshMaterials(assetDirectory, ob):
     #    return
 
     #get the mesh
-    mesh = ob.data
+    materials = ob.material_slots
     #check that geting the mesh data worked
-    if not mesh:
-        print('Error%t| writeMeshMaterials Can\'t get mesh data for obj: ' + ob.name)
+    if not materials:
+        print('Error%t| writeModelMaterials Can\'t get material_slots for obj: ' + ob.name)
         return
 
-    matFileName = assetDirectory + "/meshMaterials/" + ob.name + ".hvtMeshMat"
+    #matFileName = assetDirectory + "/meshMaterials/" + ob.name + ".hvtMeshMat"
     
     #open the output file
-    out = open(matFileName, "w")
-    
-    out.write( 'n %s\n' % len(mesh.materials) )
+    #out = open(matFileName, "w")
 
-    for mat in mesh.materials:
-        #write a line in the hvtmeshmat file
+    #out.write( 'n %s\n' % len(mesh.materials) )
+
+    for mat in materials:
+        #write a line for the material 
         print( 'material %s' % (mat.name) )
-        out.write( 'mat %s\n' % (mat.name))
+        out.write( 'mMat %s\n' % (mat.name))
         #write a hvtMat file for the material
-        writeMaterial(assetDirectory, mat)
-    out.close()
+        writeMaterial(assetDirectory, mat.material)
+    #out.close()
 
 def writeMaterial(assetDirectory, mat):
     """Write a hvtMat file for the given blender material:
@@ -104,7 +133,7 @@ def writeMaterial(assetDirectory, mat):
 
     matFileName = assetDirectory + "/materials/" + mat.name + ".hvtMat"
     print("writeMaterial matFileName %s" % (matFileName) )
-    
+
     #example of walking material node graph and getting  
     #bpy.context.scene.objects[17].data.materials[0].node_tree.nodes[0].inputs['Surface'].node
     #>bpy.data.materials['metal'].node_tree.nodes["Material Output"]
@@ -118,14 +147,14 @@ def writeMaterial(assetDirectory, mat):
     if principledBsdfCount < 1:
         print("Haven Exporter unsupported material - Principled BSDF node not found for material: %s" % (mat.name) )
         return
-        
+
     p = bpy_extras.node_shader_utils.PrincipledBSDFWrapper(mat)
 
     #open the output file
     out = open(matFileName, "w")
-    
+
     #print( "writeShader: %s" % (mat.name) )
-    
+
 
     #output the textures the Material uses
     ####################################
@@ -139,7 +168,7 @@ def writeMaterial(assetDirectory, mat):
             tex = node.image
             #print("found image shader node")
 
-            
+
             if node.inputs[0].links[0].from_socket.name != 'UV':
                 print("Texture doesn't use UV coordinates: node.inputs[0].links[0].from_socket.name: %s" % (node.inputs[0].links[0].from_socket.name) )
                 continue
@@ -232,25 +261,25 @@ def writeMaterial(assetDirectory, mat):
         out.write('shadeless')
     out.close()
 
-def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):
+def writeMesh(assetDirectory, ob, usesArmature, depsGraph):
     """Write a HavenTech mesh file from the passed in blender object"""
 
     #get the mesh data
     #https://blender.stackexchange.com/questions/7196/how-to-get-a-new-mesh-with-modifiers-applied-using-blender-python-api
-    
+
     #deselect all objects
     for obj in bpy.context.view_layer.objects.selected:
     	obj.select_set(False)
-    
+
     #bpy.context.view_layer.objects.active
-    
-    
+
+
 	#bpy.data.scenes[0].objects['viper650hull'].modifiers[0].show_viewport = True
     #d = bpy.context.evaluated_depsgraph_get()
 	#bpy.ops.object.mode_set(mode='EDIT')
-    
+
     mesh = ob.data #getData()
-    
+
     #print( "writeMesh: %s" %(ob.name) ) 
 
     #check that geting the raw mesh data worked
@@ -263,58 +292,33 @@ def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):
         print( "Mesh: " + mesh.name + " does not have uv coordinates" )
         return
 
-    meshFileName = assetDirectory + "/meshes/" + ob.name + ".hvtMesh"
+    meshFileName = assetDirectory + "/meshes/" + mesh.name + ".hvtMesh"
 
     #check the user is ok with saving over an old file (if it exists)
     #if not BPyMessages.Warning_SaveOver(meshFileName):
     #    return
     
+    #----write the keyframes file----
+    #--------------------------------
+    keyFrameFileName = writeKeyframeMeshData(assetDirectory, ob)
+
+
     #open the ouput file
     out = open( meshFileName, "w" )
-    
-    
-    #write the mesh scale, rotation, translation and modifiers
-    out.write( 'm\n' )
-    out.write( 's %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
-    if ob.rotation_mode == 'XYZ':
-    	quatRot = ob.rotation_euler.to_quaternion()
-    elif ob.rotation_mode == 'QUATERNION':
-    	quatRot = ob.rotation_quaternion
-    print("rotation mode %s rot %s" % (ob.rotation_mode, str(quatRot)) )
-    out.write( 'r %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
-    loc = ob.location
-    out.write( 'x %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
-    
-    if ipoFileName != None:
-        out.write('i %s\n' % ipoFileName)
-    
-    #check if the mesh has an armature modifier
-    usesArmature = False
-    for modifier in ob.modifiers:
-        if modifier.type == 'ARMATURE':
-            usesArmature = True
-            armatureObj = modifier.object
-            #check the armature modifier does not use envelopes
-            if modifier.use_bone_envelopes:
-                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
-                return
-            #check the armature modifer uses vertex groups
-            if not modifier.use_vertex_groups:
-                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
-                return
-            out.write('a %s\n' % (armatureObj.name) )
-    
-    out.write( 'e\n' )
-    out.write( '\n' )
-    
+
+    if keyFrameFileName != None:
+        out.write( 'meshKeyShapeAnim %i\n' % meshKeyShapeAnim )
+
+    out.write( 'cm %i\n' % (len(mesh.materials)) )
+
     if not usesArmature: #use the modified version (mirror modifer etc applied)
         mesh = depsGraph.objects[ob.name].data
 
     #keep track of the min and max corners of the AABB
     wMinV = vec3NewScalar( sys.float_info.max )
-     
+
     wMaxV = vec3NewScalar( sys.float_info.min )
-    
+
     #get the vertex group names
     vGNames = {vgroup.index: vgroup.name for vgroup in ob.vertex_groups}
     out.write( 'cg %i\n' % ( len(vGNames) )  )
@@ -399,34 +403,34 @@ def writeMesh(assetDirectory, ob, ipoFileName, depsGraph):
     #end of mesh data
     out.write('ct %i\n' % (triCt))
     out.close()
-    
+
     return [ wMinV, wMaxV ]
-    
+
 def writeObjectAnimationData(assetDirectory, obj):
-    
+
     print( "checking animation curves for " + obj.name )
-    
+
     #check that the data we need exists (if there isn't animation for the object it won't have animData.action)
     animData = obj.animation_data
     if animData == None or animData.action == None or len(animData.action.fcurves) < 1:
         print( "animData not found for " + obj.name )
         return None
-    
+
     print( "animData found for " + obj.name )
     curves = obj.animation_data.nla_tracks.data.action.fcurves.items()
-    
+
     ipoFileName = assetDirectory + "/IPOs/" + obj.name + ".hvtIPO"
     #open the output file
     out = open(ipoFileName, "w")
-    
+
     writeAnimationCurves(out, curves)
-    
+
     out.close()
     print("animFileClosed " + ipoFileName )
-    
+
     return obj.name
-    
-    
+
+
 def writeAnimationCurves(outputFile, curves):
     #---write the ipo curves---
     #-------------------------------
@@ -440,17 +444,17 @@ def writeAnimationCurves(outputFile, curves):
 def writeAnimationCurveData(out, curve, cType):
 
     #print("writeAnimationCurveData data_path " + curve.data_path )
-    
+
     out.write('C %s %s %i\n' % (cType, curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
     #curve.getName())) #interpolation type #num bezier points
     for keyframe_point in curve.keyframe_points:#bezierPoint in curve.bezierPoints:
         point = keyframe_point.co
         #knot = bezierPoint.vec[1]
-        
+
         [time, value] = [point[0], point[1]] #knot
         [handle_left_time, handle_left_value]   = [keyframe_point.handle_left[0], keyframe_point.handle_left[1]]
         [handle_right_time, handle_right_value] = [keyframe_point.handle_right[0], keyframe_point.handle_right[1]]
-        
+
         out.write('p %.2f %.2f %.2f %.2f %.2f %.2f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
     out.write('e\n') #end of points and curve
 
@@ -467,17 +471,17 @@ def writeKeyframeMeshData(assetDirectory, ob):
     mesh = ob.data
     if mesh == None:
         print("writeKeyFrames for a non mesh object: " + ob.name)
-        return
+        return None
     keyObject = mesh.shape_keys
     if keyObject == None:
         #Blender.Draw.PupMenu('Error%t| writeKeyFrames no key data for object: ' 
         #                       + ob.name)
-        return
-        
+        return None
+
     if keyObject.animation_data == None:
         print("writeKeyFrameShapes for a keyObject without animation data: " + ob.name)
-        return
-        
+        return None
+
     curves = keyObject.animation_data.nla_tracks.data.action.fcurves.items()
 
     #open the output file
@@ -497,7 +501,7 @@ def writeKeyframeMeshData(assetDirectory, ob):
             out.write('p %.3f %.3f %.3f\n' % (x, y, z)) #write out the point knot
         out.write('e\n') #end of points
         out.write('e\n') #end of curve
-    
+
 
     #---write the keyframe shapes---
     #-------------------------------
@@ -521,7 +525,9 @@ def writeKeyframeMeshData(assetDirectory, ob):
         out.write('e\n')
 
     out.close()
-        
+
+    return keyFileName
+
 
 #debug console data probing example
 #how to get armature data in blender python console in varaible 'a'
@@ -542,7 +548,7 @@ def writeArmatureAnim(assetDirectory, ob):
 
     #look for the objects armature modifier
     armatureObj = ob
-    
+
 
     if armatureObj == None:
         #Blender.Draw.PupMenu('Notice%t|Object: ' + ob.name + \
@@ -552,7 +558,7 @@ def writeArmatureAnim(assetDirectory, ob):
     #get the armature from the object
     armature = armatureObj.data
 
-    #check there is an armature        
+    #check there is an armature
     if armature == None:
         print('Error%t|Failed to get Armature data')
         return
@@ -573,7 +579,7 @@ def writeArmatureAnim(assetDirectory, ob):
                 (armatureObj.location.x,  armatureObj.location.y,  armatureObj.location.z))
 
     armatureBoneCurves = genArmatureBoneCurves(armatureObj)
-    
+
     #bpy.context.view_layer.objects.active = armatureObj
     #bpy.ops.object.mode_set(mode='EDIT')
 
@@ -617,7 +623,7 @@ def writeArmatureAnim(assetDirectory, ob):
         out.write('e\n')
 
     #bpy.ops.object.mode_set(mode='OBJECT')
-    
+
     #end of animation data
     out.write('\n')
     out.close()
@@ -644,14 +650,14 @@ def genArmatureBoneCurves(armature):
 def writeBoneKeyframes(out, armatureBoneCurves, boneName):
     #get the Ipo channel corresponding to the bone
     #print("writeBoneKeyframes\n")
-    
+
     try:
         boneChannelCurves = armatureBoneCurves[ boneName ]
     except:
         #there are no keyframes for the bone
         print( "No keyframes for: %s" % boneName )
         return
-    
+
     #print the keyframes for each type of motion for the bone
     cIdx = 0
     for boneCurve in boneChannelCurves:

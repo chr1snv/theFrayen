@@ -42,6 +42,8 @@ class HTTPAsyncHandler(http.server.SimpleHTTPRequestHandler):
 		self.send_response(200)
 		if filePath.endswith('.js'):
 			self.send_header('Content-type','application/javascript')
+		if filePath.endswith('.ogg'): #https://devdoc.net/web/developer.mozilla.org/en-US/docs/Configuring_servers_for_Ogg_media.html
+			self.send_header('Content-type','audio/ogg')
 		else:
 			None #self.send_header('Content-type','text/html')
 		self.end_headers()

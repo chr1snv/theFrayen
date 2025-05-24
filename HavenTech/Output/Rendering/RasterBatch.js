@@ -48,10 +48,10 @@ function GetLineBatchBuffer(rastBatch, shdrName, numAttrs, attrCards){
 
 
 
-function BufSubRange(startIdxIn, lenIn, objIn, objMatIdxIn){
+function BufSubRange(startIdxIn, lenIn, mdlIn, mdlMatIdxIn){
 	//this.lastStartIdx = 0;
-	this.obj                 = objIn;
-	this.objMatIdx           = objMatIdxIn;
+	this.mdl                 = mdlIn;
+	this.mdlMatIdx           = mdlMatIdxIn;
 	this.maxLen              = 0; //over multiple frames the most number of vertices
 	this.startIdx            = startIdxIn;
 	this.len                 = lenIn;
@@ -153,7 +153,7 @@ function RastB_ResetDBB( dbB ){
 	}
 }
 
-//reset indicies between frames incase the objects
+//reset indicies between frames incase the models
 //within the camera frustum to be drawn are different
 function RastB_ResetDrawAndSubBatchBufferIdxs(rastBatch){
 
@@ -169,25 +169,25 @@ function RastB_ResetDrawAndSubBatchBufferIdxs(rastBatch){
 
 }
 
-//sort objects back to front (for alpha materials)
-function CmpSbbObjsBtoF(a,b){
-	let objA = cmpSbb.bufSubRanges[a].obj;
-	let objB = cmpSbb.bufSubRanges[b].obj;
+//sort models back to front (for alpha materials)
+function CmpSbbMdlsBtoF(a,b){
+	let objA = cmpSbb.bufSubRanges[a].mdl;
+	let objB = cmpSbb.bufSubRanges[b].mdl;
 	let distToA = Vect3_Distance( cmpCamOri, objA.AABB.center);
 	let distToB = Vect3_Distance( cmpCamOri, objB.AABB.center);
 	return distToB-distToA;
 }
 
-//sort objects front to back
-function CmpSbbObjsFtoB(a,b){
-	let objA = cmpSbb.bufSubRanges[a].obj;
-	let objB = cmpSbb.bufSubRanges[b].obj;
+//sort models front to back
+function CmpSbbMdlsFtoB(a,b){
+	let objA = cmpSbb.bufSubRanges[a].mdl;
+	let objB = cmpSbb.bufSubRanges[b].mdl;
 	let distToA = Vect3_Distance( cmpCamOri, objA.AABB.center);
 	let distToB = Vect3_Distance( cmpCamOri, objB.AABB.center);
 	return distToA-distToB;
 }
 
-//each frame sort objects by their distance to the camera,
+//each frame sort models by their distance to the camera,
 //if a object stays in the same position for many frames move it's
 //actual position in the attribBufferArray
 let cmpCamOri = null;
@@ -196,10 +196,10 @@ let cmpSbb = null;
 function CmpSBBList(a,b){
 	let objA = undefined;
 	if( a != 0 )
-		cmpSbb.bufSubRanges[a].obj;
+		cmpSbb.bufSubRanges[a].mdl;
 	let objB = undefined;
 	if( b != 0 )
-		cmpSbb.bufSubRanges[b].obj;
+		cmpSbb.bufSubRanges[b].mdl;
 	
 	if( objA == undefined ){
 		if( objB != undefined )
@@ -250,7 +250,7 @@ function GenSortedSubBatchBufferList(dbB, camPos, cmpFunc){
 
 
 function SortSubBatches(dbBs, camPos, cmpFunc ){
-	//called each frame between finding all objects to draw in the frame
+	//called each frame between finding all models to draw in the frame
 	//and getting verticies from them if necessary
 	for( let key in dbBs ){
 		let drawBatch = dbBs[key];
@@ -270,13 +270,13 @@ function SortSubBatches(dbBs, camPos, cmpFunc ){
 
 }
 
-function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatIdx ){
+function GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeMdl, mdlMatIdx ){
 	let subRange = dbB.bufSubRanges[ subRangeId ];
 
 
 	if( subRange == undefined ){ //obj+material hasn't been drawn
 		//create a new sub batch buffer
-		subRange = new BufSubRange( dbB.bufferIdx, numVerts, subRangeQm, qmMatIdx );
+		subRange = new BufSubRange( dbB.bufferIdx, numVerts, subRangeMdl, mdlMatIdx );
 		dbB.bufSubRanges[ subRangeId ] = subRange;
 		dbB.bufferIdx += numVerts;
 		dbB.numSubBufferUpdatesToBeValid += 1;
@@ -347,63 +347,64 @@ function CleanUpDrawBatchBuffer(rastBatch){
 
 
 function RastB_PrepareBatchToDraw( rastBatch ){
-	//for objects (tri text handles this update process itself by directly enabling sub batch buffers)
-	//for each material check sub draw batch allocations for each object using it
-	for( let key in rastBatch.objs ){
-		let objUid = key;
-		let obj = rastBatch.objs[objUid]; 
-		let qm = obj.quadmesh;
-		for( let matID = 0; matID < qm.materials.length; ++matID ){
-			let material = qm.materials[matID];
-			//get the material buffer and sub buffer for object verts to ensure enough space is allocated
+	//for models (tri text handles this update process itself by directly enabling sub batch buffers)
+	//for each material check sub draw batch allocations for each model using it
+	let mdlKeys = Object.keys(rastBatch.mdls);
+	for( let i = 0; i < mdlKeys.length; ++i ){
+		let mdlUid = mdlKeys[i];
+		let mdl = rastBatch.mdls[mdlUid];
+		let qm = mdl.quadmesh;
+		for( let matID = 0; matID < mdl.materials.length; ++matID ){
+			let material = mdl.materials[matID];
+			//get the material buffer and sub buffer for model verts to ensure enough space is allocated
 			//in SortSubBatches...(rastBatch)
 			if( qm.faceVertsCtForMat[matID] > 0 ){ //ignore materials with no verts assigned
-				if( obj.optMaterial )
-					material = obj.optMaterial;
+				if( mdl.optMaterial )
+					material = mdl.optMaterial;
 				let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
-				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matID], qm, matID );
-				if( obj.optTransformUpdated )
-					Matrix_Copy( subBatchBuffer.toWorldMatrix, obj.optTransMat );
+				let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, mdlUid, qm.faceVertsCtForMat[matID], mdl, matID );
+				if( mdl.optTransformUpdated )
+					Matrix_Copy( subBatchBuffer.toWorldMatrix, mdl.optTransMat );
 			}
 		}
 	}
 
+	if( mdlKeys.length > 0 ){
+		SortSubBatches(rastBatch.drawBatchBuffers, rastBatch.camWorldPos, CmpSbbMdlsFtoB );
+		SortSubBatches(rastBatch.alphaDrawBatchBuffers, rastBatch.camWorldPos, CmpSbbMdlsBtoF );
+		//sorts sub batches by distance from camera and checks if
+		//the vertex gl attribute buffers need to be resized (in which case make sure each model is ready to upload to gl)
+	}
 
-	SortSubBatches(rastBatch.drawBatchBuffers, rastBatch.camWorldPos, CmpSbbObjsFtoB );
-	SortSubBatches(rastBatch.alphaDrawBatchBuffers, rastBatch.camWorldPos, CmpSbbObjsBtoF );
-	//sorts sub batches by distance from camera and checks if
-	//the vertex gl attribute buffers need to be resized (in which case make sure each object is ready to upload to gl)
 
-	
-	for( let key in rastBatch.objs ){//for( let i = 0; i < objKeys.length; ++i ){
-		let objUid = key;//objKeys[i];
-		let obj = rastBatch.objs[objUid];
-		let qm = obj.quadmesh;
+	for( let i = 0; i < mdlKeys.length; ++i ){
+		let mdlUid = mdlKeys[i];
+		let mdl = rastBatch.mdls[mdlUid];
+		let qm = mdl.quadmesh;
 		
-		//for each object in view
+		//for each model in view
 		//update the model matrix, and sub buffer verts,norms,uvs,bnWghts if necessary
 
-		//for each material in the object
-		for(let matIdx = 0; matIdx < qm.materials.length; ++matIdx ){
-			let material = qm.materials[matIdx];
+		//for each material in the model
+		for(let matIdx = 0; matIdx < mdl.materials.length; ++matIdx ){
+			let material = mdl.materials[matIdx];
 
 			if( qm.faceVertsCtForMat[matIdx] < 1 ) //ignore materials with no verts assigned
 				continue;
 
-			if( obj.optMaterial )
-					material = obj.optMaterial;
+			if( mdl.optMaterial )
+					material = mdl.optMaterial;
 
 			let drawBatch = GetDrawBatchBufferForMaterial( rastBatch, material );
-			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, objUid, qm.faceVertsCtForMat[matIdx], obj );
+			let subBatchBuffer = GetDrawSubBatchBuffer( drawBatch, mdlUid, qm.faceVertsCtForMat[matIdx], mdl );
 
-			if( !obj.optTransformUpdated && qm.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
-				Matrix_Copy( subBatchBuffer.toWorldMatrix, qm.toWorldMatrix );
+			if( !mdl.optTransformUpdated && mdl.isAnimated || drawBatch.regenAndUploadEntireBuffer ){
+				Matrix_Copy( subBatchBuffer.toWorldMatrix, mdl.toWorldMatrix );
 			}
 
-			if( qm.materialHasntDrawn[matIdx] || drawBatch.regenAndUploadEntireBuffer ){
+			if( mdl.materialHasntDrawn[matIdx] || drawBatch.regenAndUploadEntireBuffer ){
 
-
-				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( qm,
+				let numGenVerts = QM_SL_GenerateDrawVertsNormsUVsForMat( mdl,
 						drawBatch, matIdx, 
 						subBatchBuffer ); //, cam.worldToScreenSpaceMat ); // - subBatchBuffer.startIdx;
 				if( numGenVerts != subBatchBuffer.len )
@@ -472,10 +473,12 @@ function RastB_DrawTris( rastBatch, time, drawTransparentBatches=false ){
 	}else{
 
 		GRPH_EnableAlphaBlending(true);
+		graphics.enableDepthMask(false);
 		for( let key in rastBatch.alphaDrawBatchBuffers ){
 			let dbB = rastBatch.alphaDrawBatchBuffers[key];
 			RastB_DrawBatchTris( dbB, numAnimMatricies, time );
 		}
+		graphics.enableDepthMask(true);
 
 	}
 
@@ -494,9 +497,9 @@ function RastB_DrawLines( rastBatch ){
 
 }
 
-function RastB_ClearObjsAndInitListsForNewFrame(rb){
-	//clear the list of objects to be rendered in this frame
-	rb.objs = {};
+function RastB_ClearMdlsAndInitListsForNewFrame(rb){
+	//clear the list of models to be rendered in this frame
+	rb.mdls = {};
 	this.armatureDict = {};
 	this.armatures = [];
 	//reset the number of verticies to be drawn (to be re-counted for this frame)
@@ -527,7 +530,7 @@ function RasterBatch( drawFunc, clearDepth=false ){
 	this.camWorldPos = Vect_New(3);
 	this.camFov = 90 / 180 * Math.PI;
 
-	this.objs = {};
+	this.mdls = {};
 
 	this.ambientColor = Vect3_NewVals(0.4,0.3,0);
 	this.numLights = 0;
@@ -539,7 +542,7 @@ function RasterBatch( drawFunc, clearDepth=false ){
 	this.armatures = [];
 	this.combinedBoneMats = null;
 
-	//per material collections of objects/(primatives) to draw
+	//per material collections of models/(primatives) to draw
 	this.drawBatchBuffers      = {}; 
 	this.alphaDrawBatchBuffers = {};
 

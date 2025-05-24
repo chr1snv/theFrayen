@@ -104,14 +104,15 @@ function PhysObj(AABB, obj, time){
 	
 	//if the object collides with a bound then the group/combined kinetic energy 
 	//is set to 0 with inifinte mass (subtracting individual object energy doesn't change it)
-	this.FindBoundsCollisions = function( dt, statColisCheck=false ){ //dt is length of physics step
+	this.FindBoundsCollisions = function( dt, worldRootTnd, statColisCheck=false ){ //dt is length of physics step
 		let numColis = 0;
+		let worldBoundsAABB = worldRootTnd.AABB;
 		let secsTillHitWorldBounds = this.capsule.ExitAABBTime(this.AABB.center, 
 					this.linVel, this.radius, worldBoundsAABB);
 		if( secsTillHitWorldBounds < Number.POSITIVE_INFINITY && secsTillHitWorldBounds < dt ){
 			let timeOfWorldBoundCollision = secsTillHitWorldBounds + this.lastUpdtTime;
 			let boundAxis = this.capsule.intAxis;
-			let boundObj = boundsObjs[this.capsule.intAxis * 2 + this.capsule.intSide];
+			let boundObj = worldRootTnd.boundsObjs[this.capsule.intAxis * 2 + this.capsule.intSide];
 			
 			//get the inner side of the bound obj for the bound coord
 			let boundCoord = boundObj.AABB.maxCoord[boundAxis];
@@ -188,38 +189,42 @@ function PhysObj(AABB, obj, time){
 		}
 		return numColis;
 	}
-	
-	this.ApplyExternAccelAndDetectCollisions = function( time, externAccel ){
+
+	this.ApplyExternAffectsAndDetectCollisions = function( time, tnd ){
 		if( time == this.lastDetectTime )
 			return;
-		
+
 		let dt = time - this.lastUpdtTime;
-		
+
 		//DTPrintf("externAccel linvel " + this.linVel + " uid " + this.uid.val, "linvel");
-		
+
 		let numCollisions = 0;
 		
+		if( tnd.physNode )
+			Vect3_Copy( this.linAccel, tnd.physNode.gravAccelVec );
+
 		if( !this.resting ){
 			//a = 1/2v^2 (accel is dv/dt)
 			//f = ma   f=(d/dt)mv
 			//find and apply the change in velocity
-			let accel = Vect3_CopyNew( externAccel );
+			let accel = Vect3_CopyNew( this.linAccel );
 			Vect3_MultiplyScalar( accel, dt );
 			Vect3_Add( this.linVel, accel );
 			KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
 			if( isNaN(Vect3_Length(this.linearMomentum)) )
 					DTPrintf("detect nan externAccel add", "phys detc" );
-					
-			
+
+
 			//find any object collisions using linear object position extrapolation from lastUpdtTime to time
 			this.physGraph = new PhysConstraintGraph(0, this.AABB.minCoord, 
 				this.AABB.maxCoord, this); //clear previous list;
-			
+
 			numCollisions += this.FindColidingObjsAndTimes(dt);
-			
-			numCollisions += this.FindBoundsCollisions(dt); //check if coliding with ground ( y = 0 or canv.height)
-			
-			
+
+
+			numCollisions += this.FindBoundsCollisions(dt, tnd.root); //check if coliding with ground ( y = 0 or canv.height)
+
+
 			if( numCollisions >= 1 ){
 				//DTPrintf( "detect " + numCollisions + " uid " + this.uid.val, "detc additional" );
 				//subtract the linear velocity (because it was integrated 
@@ -229,19 +234,21 @@ function PhysObj(AABB, obj, time){
 				if( isNaN(Vect3_Length(this.linearMomentum)) )
 							DTPrintf("detect nan remKinEn", "phys detc" );
 			}
-			
+
 			//now have a list of object collisions and times
 			//sort them by time (needed for finding time of first colision)
 			this.physGraph.SortByTime();
 		}
-		
+
+		//may need to store node updated from so can check where updated from
+
 		this.lastDetectTime = time; //remember to prevent being called twice from different tree nodes
-		
+
 		this.interpenOffsetApplied = false;
-		
+
 		return numCollisions;
 	}
-	
+
 	this.LinkPhysGraphs = function( time ){
 		if( time == this.lastAggColisTime )
 			return;
@@ -345,7 +352,7 @@ function PhysObj(AABB, obj, time){
 							if( isNaN(Vect3_Length(this.linearMomentum)) )
 								console.log("nan linmomentum transfer energy");
 							
-							this.rotVelQuat = Quat_Identity(); //x,y,z axis, radian rotation / sec
+							Quat_Identity(this.rotVelQuat); //x,y,z axis, radian rotation / sec
 							
 							//dt = time - this.constraintGraph.colisGroupTimesAndObjs[0].time; //for external accel use time from collision vel update to end of frame
 						}
@@ -361,7 +368,7 @@ function PhysObj(AABB, obj, time){
 	//if after transfering energy the update will cause this object to be in colision again
 	//need to add the new object the kinetic collision graph and re evolve from the beginning of the timestep
 	///////////then make a static (collision continuing past this update) constraint for the object
-	this.DetectAdditionalCollisions = function(time, externAccel){
+	this.DetectAdditionalCollisions = function(time, tnd){
 		if( time == this.lastDetectStaticTime )
 			return;
 		//DTPrintf("detcAddit linvel " + this.linVel + " uid " + this.uid.val, "linvel");
@@ -384,7 +391,7 @@ function PhysObj(AABB, obj, time){
 					//if there are still collisions (then group the touching  objects
 					//and set their relative velocities to zero)
 					
-					let accel = Vect3_CopyNew( externAccel );
+					let accel = Vect3_CopyNew( this.linAccel );
 					Vect3_MultiplyScalar( accel, dt );
 					Vect3_Add( this.linVel, accel );
 					KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
@@ -394,7 +401,7 @@ function PhysObj(AABB, obj, time){
 					
 					numCollisions += this.FindColidingObjsAndTimes(dt, true);
 					
-					numCollisions += this.FindBoundsCollisions(dt, true); //check if coliding with ground ( y = 0 or canv.height)
+					numCollisions += this.FindBoundsCollisions(dt, tnd.root, true); //check if coliding with ground ( y = 0 or canv.height)
 					
 					
 					if( numCollisions >= 1 ){
@@ -438,9 +445,9 @@ function PhysObj(AABB, obj, time){
 			
 			if( Vect3_Length( this.linVel ) < RESTING_VEL && 
 				this.physGraph && this.physGraph.totalConstrPairs > 0 ){
-				//if there is a contact normal that is opposing the externAccel
+				//if there is a contact normal that is opposing the linAccel for this frame
 				//then the object should stop moving
-				let normExternAccel = Vect3_CopyNew( externAccel );
+				let normExternAccel = Vect3_CopyNew( this.linAccel );
 				Vect3_Normal( normExternAccel );
 				let constrPairs = this.physGraph.constrPairs[this.uid.val];
 				let constrPairKeys = Object.keys( constrPairs );
@@ -525,4 +532,40 @@ function PhysObj(AABB, obj, time){
 		
 		this.lastUpdtTime = time;
 	}
+}
+
+const earthGravityAccel = new Float32Array([0,9.8, 0]);
+
+const PHYS_FILL_VACCUM	= 0;
+const PHYS_FILL_AIR		= 1;
+const PHYS_FILL_WATER	= 2;
+const PHYS_FILL_SOLID	= 3;
+
+//field physics simulation (as opposed to constraint graph)
+//definition/data of affects on objects that are within a region of space / treeNode
+function PhysNode(){
+	//fill/occupancy type
+	//i.e vaccum, air, water, elemental material, etc
+	//(for ray energy dissipation / participating media scattering )
+
+	this.gravAccelVec = Vect3_CopyNew( earthGravityAccel );
+	this.fillType = PHYS_FILL_AIR;
+	this.relHumidity = 0.5;
+	this.pH = 7;
+	this.degC = 27;
+	//https://www.omnicalculator.com/physics/air-density
+	this.densityKgM3 = 1.168;
+	this.psi = 14.7;
+	//this.dewPoint
+
+}
+
+function PHYS_ND_CopyNew( physNd ){
+	let ret = new PhysNode();
+	Vect3_Copy( ret.gravAccelVec, physNd.gravAccelVec );
+	ret.fillType = physNd.fillType;
+	ret.relHumidity = physNd.relHumidity;
+	ret.degC = physNd.degC;
+	
+	ret.densityKgM3 = physNd.densityKgM3;
 }

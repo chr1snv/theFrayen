@@ -61,20 +61,21 @@ function TND_initObjects(t){
 //objects are subdivided instead of added to multiple nodes if they span node boundries)
 }
 
-function TND_ApplyExternAccelAndDetectCollisions( t, time ){
+//where field properties influence objects i.e. gravity, temperature, gas/liquid drag etc and connections/constraints between objects are found
+function TND_ApplyExternAffectsAndDetectCollisions( t, time ){
 	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.ApplyExternAccelAndDetectCollisions(time, gravityAccel); //pass node so can check where updated from
+			t.objects[ i ].physObj.ApplyExternAffectsAndDetectCollisions(time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i ) //recurse to sub nodes
 		if( t.subNodes[i] )
-			TND_ApplyExternAccelAndDetectCollisions( t.subNodes[i], time );
+			TND_ApplyExternAffectsAndDetectCollisions( t.subNodes[i], time );
 }
 function TND_LinkPhysGraphs( t, time ){ //combine constraint groups from each object
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			this.objects[ i ].physObj.LinkPhysGraphs(time);
+			t.objects[ i ].physObj.LinkPhysGraphs(time);
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
@@ -84,7 +85,7 @@ function TND_LinkPhysGraphs( t, time ){ //combine constraint groups from each ob
 function TND_AppyInterpenOffset( t, time ){ //apply interpenetration offsets for constraint groups
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			this.objects[ i ].physObj.ApplyInterpenOffset(time);
+			t.objects[ i ].physObj.ApplyInterpenOffset(time);
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
@@ -94,7 +95,7 @@ function TND_AppyInterpenOffset( t, time ){ //apply interpenetration offsets for
 function TND_TransferEnergy( t, time ){ //transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.TransferEnergy(time, this);
+			t.objects[ i ].physObj.TransferEnergy(time, t);
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
@@ -108,7 +109,7 @@ function TND_DetectAdditionalCollisions( t, time ){
 	let additionalColis = 0;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			additionalColis += t.objects[ i ].physObj.DetectAdditionalCollisions(time, gravityAccel);
+			additionalColis += t.objects[ i ].physObj.DetectAdditionalCollisions(time, t);
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
@@ -116,7 +117,7 @@ function TND_DetectAdditionalCollisions( t, time ){
 			additionalColis += TND_DetectAdditionalCollisions( t.subNodes[i], time );
 	return additionalColis;
 }
-function TND_Update( t, time ){ //lineraly update object positions up to the end of the timestep
+function TND_Update( t, time ){ //update model logic, animation and if has physObj lineraly update object positions up to the end of the timestep
 	let numUpdated = 0;
 	let obj = null;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
@@ -124,14 +125,14 @@ function TND_Update( t, time ){ //lineraly update object positions up to the end
 		if( obj ){
 			switch( obj.otType ){
 				case OT_TYPE_Model:
-					MDL_Update( obj, time, t);
+					MDL_Update( obj, time, t); //calls physObj Update if model has one
 			}
 			numUpdated += 1;
 		}else{
 			break;
 		}
 	}
-	
+
 	let numUpdatedInSubNodes = 0;
 	let numSubNds = 0;
 	for( let i = 0; i < t.subNodes.length; ++i ){
@@ -145,7 +146,7 @@ function TND_Update( t, time ){ //lineraly update object positions up to the end
 		//DTPrintf("0 updtsIn subnds ", "unsubdiv", "color:#4444ff", this.depth);	
 		let unDivRes = t.TryUnsubdivide();
 	}
-	
+
 }
 
 function TND_traceAddedTo( nd ){
@@ -162,15 +163,52 @@ function TND_traceAddedTo( nd ){
 	}
 	return str;
 }
-	
+
+function TND_addToAxisSortedObjects( axisSortedObjects, obj ){
+	for( let i = 0; i < vertCard; ++i ){
+		let axisSorted = axisSortedObjects[i];
+		for( let j = 0; j < axisSorted.length; ++i ){
+			if( obj.AABB.center < axisSorted[j].AABB.center[i] )
+				axisSorted.splice(j,0, obj);
+		}
+	}
+}
+function TND_removeFromAxisSortedObjects( axisSortedObjects, obj ){
+	for( let i = 0; i < vertCard; ++i ){
+		let axisSorted = axisSortedObjects[i];
+		for( let j = 0; j < axisSorted.length; ++i ){
+			if( obj.uid == axisSorted[j].uid )
+				axisSorted.splice( j,0 );
+		}
+	}
+}
+
+function TND_GetEmptySpaceRangesForAxis( t, a ){
+	let ranges = [];//t.AABB.minCoord[a], t.AABB.maxCoord[a] ];
+
+	for( let i = 0; i < vertCard; ++i ){
+		ranges.push( [] );
+		let sortedObjsForA = axisSortedObjects[i];
+		let rmin = t.AABB.minCoord[i];
+		for( let j = 0; j < sortedObjsForA.length; ++j ){
+			let rmax = sortedObjsForA[j].AABB.minCoord[i];
+			ranges[i].push([rmin,rmax]);
+			rmin = sortedObjsForA[j].AABB.maxCoord[i];
+		}
+		ranges.push( [ rmin, t.AABB.maxCoord[i] ] );
+	}
+	return ranges;
+
+}
+
 function TND_addToThisNode( t, nLvsMDpth, object ){
-	
+
 	let isCocentric = false;
 	let cocenDist = 0;
 	let cocenObj = null;
-	
+
 	for( let i = 0; i < t.objInsertIdx; ++i ){
-		
+
 		let cenDist = Vect3_Distance( t.objects[i].AABB.center, object.AABB.center );
 		if( cenDist < minNodeSideLength ){
 			isCocentric = true;
@@ -178,18 +216,19 @@ function TND_addToThisNode( t, nLvsMDpth, object ){
 			cocenObj = t.objects[i];
 			break;
 		}
-		
+
 	}
-	
+
 	if( isCocentric ){
 		DPrintf( "addToThisNode failed t.uid" + t.uid.val + " objMeshName " + object.meshName );
 		nLvsMDpth[0] = -1; return; //overlaps in 3 axies ( intersects another object, can't insert )
 	}
-	
+
 	//else ok to add object
 	t.objects[t.objInsertIdx++] = object;
+	TND_addToAxisSortedObjects( t.axisSortedObjects, object );
 	object.treeNodes[ t.uid.val ] = t; //link this to the object so it knows where to remove itself from later
-	
+
 	//add to obj dictionary for quickly checking if an object is present
 	t.objectDictionary[ object.uid.val ] = t.objInsertIdx-1;
 	nLvsMDpth[0] = 0; return;
@@ -230,36 +269,39 @@ function TND_RemoveFromThisNode( t, object ){
 	//to update its object refrences here
 	//because this tree node is discarded (to be garbage collected)
 	if( t.root == t || t.parent ){
-		
+
 		let objIdx = t.objectDictionary[object.uid.val];
-		
+
 		if( t.objects[objIdx] == object ){
 			t.objects.splice(objIdx,1); //shift objects up filling space to remove 
 			//(splice returns an array with the removed element and modifies the existing array to not have the returned elements)
 			t.objects[MaxTreeNodeObjects-1] = null; //append empty space to end of 1 shorter array
+			//remove from the sorted arrays
+			TND_removeFromAxisSortedObjects( t.axisSortedObjects, object );
+
 			t.objInsertIdx -= 1; //decrease the insert index
 		}
-		
+
 		//shift up the obj indicies in the dictionary
 		for( let i = objIdx; i < t.objInsertIdx; ++i )
 			t.objectDictionary[ t.objects[i].uid.val ] = i;
-		
+
 		//remove from object dictionary
 		delete t.objectDictionary[object.uid.val];
-		
+
 		if( t.objInsertIdx < MaxTreeNodeObjects/2 ){
 			let unsubDivRes = TND_TryUnsubdivide(t);
 			DTPrintf("unsubdivide initiating obj " + object.uid.val + 
 				" node min " + t.AABB.minCoord + " max " + t.AABB.maxCoord +
 				" node depth " + t.depth + " maxDepth " + t.maxDepth + " unSubDivRes " + unsubDivRes, "unsubdiv", "#4444ff", t.depth);
 		}
-	
+
 	}
-	
+
 }
 
 function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
-		
+
 	//if the number of unique objects
 	//(objects may cross subnodes so may appear in 1 to all 8 of the parent's subnodes)
 	//is less than the MaxTreeNodeObjects, then remove the subnodes and add all their objects to the parent
@@ -295,8 +337,8 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 				}
 			}
 		}
-		
-		
+
+
 		let objUids = Object.keys(siblingSubNdObjs);
 		if( subNdCt > 0 && objUids.length < MaxTreeNodeObjects ){ //obj count is low enough for subnodes to be recombined
 			for( let i = 0; i < parSn.length; ++i){ //remove and disconnect all sibling subnodes
@@ -308,7 +350,7 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 					parSn[i] = null; //disconnect parent to subnode link
 				}
 			}
-			
+
 			par.maxDepth -= 1;
 			par.leaves -= subNdCt-1;
 			//t.maxDepth -= 1; //this node is being removed, if it remained it's max depth would be unchanged
@@ -351,7 +393,7 @@ function TND_TryUnsubdivide( t ){ //can only be called on a leaf node
 //		-2 need to subdivide though the max depth has been reached
 //		-3 need to subdivided though the min node size has been reached
 //		-4 already subdivided (shouldn't happen)
-function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
+function TND_AddObject( t, nLvsMDpth, object ){
 
 	let objAABB = object.AABB;
 	
@@ -365,65 +407,54 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 		if( t.objInsertIdx >= MaxTreeNodeObjects ){ 
 			//sub divide was likely tried when adding to this node earlier and failed 
 			//causing the number of objects in this node to already be maxed out
-			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) 
-				addCmpCallback(addCmpArgs); 
-			return; 
+			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; nLvsMDpth[2] = 0;
+			return;
 		}
-			
+
 		if( t.objectDictionary[ object.uid.val ] != undefined ){ 
 			//maybe this check should be after TND_addToThisNode
 			DTPrintf( "not really sure if this is a valid reason for AddObject fail", "ot add error", "color:red", t.depth );
-			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; 
-			if( addCmpCallback != undefined ) 
-				addCmpCallback(addCmpArgs); 
+			nLvsMDpth[0] = -1; nLvsMDpth[1] = 0; nLvsMDpth[2] = 0;
 			return; 
 		}
-		
+
 		//there should be capacity in this node to add the object, attempt to add it
 		TND_addToThisNode(t, nLvsMDpth, object);
-		
+
 		if( nLvsMDpth[0] < 0 ){ //the obj's overlapped (failed to add to this node)
-			
-			if( addCmpCallback != undefined ) 
-				addCmpCallback(addCmpArgs);
 			return;
 		}
-		
+
 		if( t.objInsertIdx >= MaxTreeNodeObjects ){ //need to try to subdivide
-			
+
 			//only leaf nodes should contain objects to avoid overlap ambiguity 
 			//(and so during raycasting rays only need check leaves while traversing)
 			if( t.depth+1 > MaxTreeDepth ){
 				//limit depth to avoid running out of memory 
 				//(if a mistake causes allot of object adding adding and tree division 
 				//this should prevent infinite looping and running out of memory)
-				
+
 				nLvsMDpth[0] = -2; nLvsMDpth[1] = 0;  //signify the max depth has been reached
 				TND_RemoveFromThisNode(t, object);
 				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) 
-					addCmpCallback(addCmpArgs); 
 				return; 
 			}
 
 			//split the node until there are only MaxTreeNodeObjects per node
-			
+
 			//attempt to create the up to 8 (2x minmin minmax and maxmin maxmax ) nodes
 			let srcCoords = [t.AABB.minCoord, Vect3_CopyNew(t.AABB.center), t.AABB.maxCoord];
 			let numNodesCreated = TND_generateSubNodes(t, srcCoords); //[numNodesCreated, num[x,y,z] ]
-			
+
 			if( numNodesCreated < 2 ){ //min node size has been reached (couldn't subdivide)
-				
+
 				nLvsMDpth[0] = -3; nLvsMDpth[1] = 0;
 				TND_RemoveFromThisNode(t, object);
-				t.subNodes = [null,null,null,null,  null,null,null,null]
-				if( addCmpCallback != undefined ) 
-					addCmpCallback(addCmpArgs); 
+				t.subNodes = [null,null,null,null,  null,null,null,null] 
 				return;
 			}
-			
-			
+
+
 			let objsAdded = {};
 			let leavesCreated = 0;
 			let maxNewDpth = t.maxDepth;
@@ -435,64 +466,62 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 					let yObDict = TND_subNdObjDictForAxs(t, 1, y, t.nNLvs[1][1], srcCoords);
 					for(let x = 0; x < t.nNLvs[1][0]; ++x){
 						let xObDict = TND_subNdObjDictForAxs(t, 0, x, t.nNLvs[1][0], srcCoords);
-						
-						
+
+
 						let subNdIdx = x+y*2+z*4;
 						let nd = t.subNodes[subNdIdx]; //get the sub node
-						
-						
+
+
 						let objsAttemptedToAdd = {};
 						let xObDictKeys = Object.keys( xObDict );
 						for( let obUidIdx = 0; obUidIdx < xObDictKeys.length; obUidIdx++ ){
 							let obUid = xObDictKeys[obUidIdx];
 							if( xObDict[ obUid ] && yObDict[ obUid ] && zObDict[ obUid ] ){ //add the intersecting subset of objects of the 3 axies into the subnode
-								
+
 								if( objsAttemptedToAdd[ obUid ] == undefined )
 									objsAttemptedToAdd[ obUid ] = "";
 								objsAttemptedToAdd[ obUid ] += subNdIdx + " ";
-								
+
 								let nNLvsMDpth = [0,0];
 								let obToAdd = xObDict[obUid];
-								
+
 								TND_AddObject( nd, nNLvsMDpth, obToAdd );
-								
+
 								if( nNLvsMDpth[0] >= 0 ){ //added the object
 									objsAdded[obUid] = obUid;
-									
+
 									leavesCreated += nNLvsMDpth[0];
 									if( nNLvsMDpth[1] > maxNewDpth )
 										maxNewDpth = nNLvsMDpth[1];
 									if( nd.objInsertIdx > maxObjsInNde )
 										maxObjsInNde = nd.objInsertIdx;
-									
+
 								}else{// subDiv AddObject failed
 									DTPrintf("failed to add " + xObDict[obUid].meshName + " " + xObDict[obUid].uid.val + " to nd " + nd.uid.val, "ot add error", "color:red", t.depth );
 								}
 							}//else xObDict[ obUid ].notAddedStr
 						}
-						
+
 					//if( Object.keys( obsShouldAddToNode ).length != Object.keys( objsAttemptedToAdd ).length )
 					//	DTPrintf( "subNdObjDictForAxs didn't match all objs for node", "ot add error", "color:red", t.depth );
 						
 					}
 				}
 			}
-			
+
 			//check the subdivision was successful
 			//all objects could be added and that the max num objs in each node has decreased
 			let addedObjs = Object.keys(objsAdded);
 			let allObjsLen = t.objInsertIdx;
 			if( addedObjs.length < allObjsLen ){
-				//the subdivision didn't work
-				
+				//the subdivision didn't work because some objects failed to add after subdivision
+
 				nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
 				t.subNodes = [null,null,null,null,  null,null,null,null]
 				TND_RemoveFromThisNode(t, object);
-				if( addCmpCallback != undefined ) 
-					addCmpCallback(addCmpArgs);
 				return;
 			}else{
-				
+
 				/*
 				//check that at least one node didn't get all the objects
 				let minNumObjsInASubNode = MaxTreeNodeObjects;
@@ -506,19 +535,19 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 							maxNumObjsInASubNode = subNdObjs;
 					}
 				}
-				
-				
+
+
 				if( minNumObjsInASubNode == maxNumObjsInASubNode ){
-				
+
 					//" failed to seperate objects during subdivision " + "ot add error"
 					nLvsMDpth[0] = -4; nLvsMDpth[1] = 0;
 					t.subNodes = [null,null,null,null,  null,null,null,null];
 					TND_RemoveFromThisNode(t, object);
-					
+
 				}else{
 				*/
 					//subdivision success
-			
+
 					//remove object's association to this treeNode
 					//since it is going to be added to one or more of the subnodes
 					for( let i = 0; i < t.objInsertIdx; ++i ){
@@ -533,39 +562,39 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 
 					//the node was successfuly subdivided and objects distributed to sub nodes such that
 					//all nodes have less than MaxTreeNodeObjects
-					
+
 					//parent max depth and leaf count update is based on the nLvsMDpth values
 					nLvsMDpth[0] = t.nNLvs[0] + leavesCreated;
-					
+
 				//}
-				
+
 			} //end successfully subdivided and added obj to sub node
-			
+
 		}//end need to try to subdivide
 		else{ //didn't subdivide, added to the initially passed in node t
 			//object.treeNodes updated in the subdivision
 			//TND_AddObject( nd, nNLvsMDpth, obToAdd ); -> TND_addToThisNode
 			//call above
 		}
-		
-		
+
+
 		nLvsMDpth[1] = t.maxDepth;
 		// "ot add success"
 
 	}//end added to this node or created new sub nodes and 
 	else{ //already subdivided, decide which sub nodes it should be added to
-		
+
 		let maxNewDpth = t.maxDepth;
 		for(let i = 0; i < t.subNodes.length; ++i){
 			let subnode = t.subNodes[i];
 			if( subnode ){
-				
+
 				let ovlapPct = AABB_OthrObjOverlap( subnode.AABB.minCoord, subnode.AABB.maxCoord, object.AABB.minCoord, object.AABB.maxCoord );
-				
+
 				if( ovlapPct > 0 ){
-					
+
 					let snNLvsMDpth = [0,0];
-					TND_AddObject( subnode, snNLvsMDpth, object, addCmpCallback, addCmpArgs );
+					TND_AddObject( subnode, snNLvsMDpth, object );
 					
 					if( snNLvsMDpth[0] > 0 ) //num new leaves > 0
 						nLvsMDpth[0] += snNLvsMDpth[0];
@@ -578,14 +607,12 @@ function TND_AddObject( t, nLvsMDpth, object, addCmpCallback, addCmpArgs ){
 		}
 		t.maxDepth = nLvsMDpth[1];
 		t.leaves += nLvsMDpth[0];
-		
-	
+
+
 	}
-	
-	if( addCmpCallback != undefined )
-		addCmpCallback(addCmpArgs);
-		
-	
+
+
+
 	return;
 }
 
@@ -603,7 +630,7 @@ function TND_SubNode( t, point ){
 		point[2] <= t.AABB.maxCoord[2] ){ //each axis of the point is also less than those of the max coord
 
 		//theirfore the ray origin is in this node
-		
+
 		//check the subnodes of this node if it has any
 		for( let i = 0; i < t.subNodes.length; ++i ){
 			if( t.subNodes[i] != null ){
@@ -612,12 +639,12 @@ function TND_SubNode( t, point ){
 					return node;
 			}
 		}
-		
+
 		return t; //the origin is in this node and this node 
 		//is a leaf node ( doesn't have sub nodes / children )
 		//or it was in this node and this node isn't a leaf node 
 		//but it wasn't in one of the leaf nodes ( shouldn't happen )
-		
+
 	}else{
 		return null; //the point is outside this node, null will allow 
 	} //the calling instance of this function to try another node
@@ -650,22 +677,17 @@ function TND_GetNodesInFrustum( t, wrldToFrusMat, frusMaxFov, frusOrigin, retNod
 	}
 }
 
-function TND_addObjsAndArmaturesInNodeToRasterBatch( objs, armatures, t ){
+function TND_addMdlsAndArmaturesInNodeToRasterBatch( mdls, armatures, t ){
 	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
-		let obj = t.objects[ i ];
-		objs[t.objects[ i ].uid.val] = obj;
-		let qm = obj.quadmesh;
-		if( qm ){
-			let skelAnim = obj.quadmesh.skelAnimation;
-			if( skelAnim != null ){
-				armatures[skelAnim.uid.val] = skelAnim;
-				for( let aQmIdx in skelAnim.animatedMeshes ){
-					let aQm = skelAnim.animatedMeshes[aQmIdx];
-					for( let aObjIdx in aQm.models ){
-						let aObj = aQm.models[ aObjIdx ];
-						objs[aObj.uid.val] = aObj;
-					}
-				}
+		let mdl = t.objects[ i ];
+		mdls[mdl.uid.val] = mdl; //add each model
+		let skelAnim = mdl.skelAnimation;
+		if( skelAnim != null ){
+			armatures[skelAnim.uid.val] = skelAnim; //add each armature
+			//also add other models that use the armature
+			for( let aMdlIdx = 0; aMdlIdx < skelAnim.animatedModels.length; ++aMdlIdx ){
+				let aMdl = skelAnim.animatedModels[aMdlIdx];
+				mdls[aMdl.uid.val] = aMdl;
 			}
 		}
 	}
@@ -723,14 +745,14 @@ function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 	let startTraceNode = t;
 	if( !AABB_ContainsPoint( t.AABB, ray.origin ) ){
 		//the ray origin is outside the oct tree
-		
+
 		const rayEnterStep = AABB_RayIntersects(t.AABB, ray, minTraceTime );
 		if( rayEnterStep < minTraceTime ){
 			retDisNormCol[0] = -1;
 			return; //the ray didn't intersect with the oct tree
 		}
 		//Vect3_Copy( rayAABBIntPt, t.AABB.rayStepPoints[t.AABB.rayStepPtIntIdx] );
-		
+
 		ray.PointAtTime( rayAABBIntPt, rayEnterStep );//+ rayStepEpsilon );
 		/*
 		if( !AABB_ContainsPoint(t.AABB, rayAABBIntPt ) ){
@@ -740,13 +762,13 @@ function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 		}
 		//retDisNormCol[0] = rayEnterStep;
 		*/
-		
+
 	}else{ //the ray origin is inside the oct tree
 		Vect3_Copy( rayAABBIntPt, ray.origin );
 		//retDisNormCol[2] = [1,0,0,1];
 		//retDisNormCol[0] = 1;
 	}
-	
+
 	startTraceNode = TND_SubNode( t, rayAABBIntPt );
 	if( !startTraceNode ){ 
 		//possibly from floating point precision at edge of a node
@@ -755,7 +777,7 @@ function TND_StartTrace( t, retDisNormCol, ray, minTraceTime ){
 		//retDisNormCol[0] = 1;
 		return;
 	}
-	
+
 	TND_Trace( startTraceNode, retDisNormCol, ray, minTraceTime );
 }
 
@@ -776,9 +798,9 @@ function TND_generateSubNodes(t, srcCoords){
 		//	"ot add error", "color:#e26b31", this.depth );
 		return -4;       //nodes (would loose objects)
 	}
-	
+
 	//this.root.maxDepth += 1;
-	
+
 	//corners of the sub nodes (given min=0,mid=1,max=2 parent source coordinates) are
 	//[0,0,0](0,0,0:1,1,1)	[1,0,0](1,0,0:2,1,1) //bottom layer
 	//[0,1,0](0,1,0:1,2,1)	[1,1,0](1,1,0:2,2,1)
@@ -786,16 +808,16 @@ function TND_generateSubNodes(t, srcCoords){
 	//[0,0,1](0,0,1:1,1,2)	[1,0,1](1,0,1:2,1,2) //top layer
 	//[0,1,1](0,1,1:1,2,2)	[1,1,1](1,1,1:2,2,2)
 	//the pattern above is in the loop below:
-	
-	
+
+
 	let numNodesCreated = 0;
-	
-	
+
+
 	//generates the min and max sub/child node corners
 	let nDpth = t.depth+1;
 	let maxDpth = t.root.maxDepth;
 	let subNdIdx = 0;
-	
+
 	t.nNLvs[1][0] = 2;
 	t.nNLvs[1][1] = 2;
 	t.nNLvs[1][2] = 2; //num new nodes per axis
@@ -807,12 +829,12 @@ function TND_generateSubNodes(t, srcCoords){
 		t.nNLvs[1][1] = 1; srcCoords[1][1] = t.AABB.maxCoord[1]; }
 	if( srcCoords[2][2] - srcCoords[0][2] < minNodeSideLength ){
 		t.nNLvs[1][2] = 1; srcCoords[1][2] = t.AABB.maxCoord[2]; }
-	
+
 	if( t.nNLvs[1][2] + t.nNLvs[1][1] + t.nNLvs[1][0] < 2 ){ //if not going to subdivide return
 		t.nNLvs[0] = numNodesCreated;
 		return 0;
 	}
-	
+
 	for(let z = 0; z < t.nNLvs[1][2]; ++z){
 		for(let y = 0; y < t.nNLvs[1][1]; ++y){
 			for(let x = 0; x < t.nNLvs[1][0]; ++x){
@@ -820,7 +842,10 @@ function TND_generateSubNodes(t, srcCoords){
 				let nNdeMax = [srcCoords[x+1][0],srcCoords[y+1][1],srcCoords[z+1][2]];
 				//create the subnode
 				subNdIdx = x+y*2+z*4;
-				t.subNodes[subNdIdx] = new TreeNode(nNdeMin, nNdeMax, t);
+				let newPhysNode = null;
+				if( t.physNode )
+					newPhysNode = PHYS_ND_CopyNew( t.physNode );
+				t.subNodes[subNdIdx] = new TreeNode(nNdeMin, nNdeMax, t, newPhysNode);
 				numNodesCreated += 1;
 				
 				//set the debug oct tree color based on axis and depth
@@ -840,7 +865,7 @@ let nextNodeRayPoint = Vect3_NewZero();
 
 function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 	//returns data from nearest object the ray intersects
-	
+
 	let tempObjInt = NewDistNormColor();
 	let bestObjInt = NewDistNormColor();
 	let swapObjInt = null;
@@ -853,8 +878,8 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 	//the ray origin is advanced to the wall of the node it exits
 	//and traversal returns to the parent node to check it's children for
 	//the spatially adjacent node
-	
-	
+
+
 	//find which wall of this node the ray exits and which node it enters
 
 	//min trace time avoids getting intersection 
@@ -879,14 +904,14 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 	bestObjInt[0] = -1;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		//loop through the objects (if one isn't yet loaded, it is ignored)
-		
+
 		if( ray.lastNode == null || 
 			ray.lastNode.objectDictionary[ t.objects[i].uid.val ] == null ){ //don't recheck if checked last node
 			//check if the ray intersects the object
 			//if( t.objects[0][i].fNum && t.objects[0][i].fNum == 8 )
 			//	DTPrintf("aabb int test with 8", "ot trace");
-			
-			
+
+
 			tempObjInt[0] = -1;
 			tempObjInt[3] = retDisNormCol[3];
 			TND_RayIntersect( t.objects[ i ], tempObjInt, ray );
@@ -897,7 +922,7 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 			}
 		}
 	}
-	
+
 	if( bestObjInt[0] > 0 ){
 		retDisNormCol[0] = bestObjInt[0];
 		Vect_Copy( retDisNormCol[2], bestObjInt[2] );
@@ -905,8 +930,8 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 		totalFrameRayHits++;
 		return;
 	} //return the result from the closest object intersection
-	
-	
+
+
 	//didn't intersect and object in this node
 
 	//get a point along the ray inside the next node
@@ -942,24 +967,25 @@ function TND_Trace( t, retDisNormCol, ray, minTraceTime ){
 	retDisNormCol[0] = -1;
 }
 
-const gravityAccel = [0,9.8, 0];
+
 
 const MaxTreeDepth = 15;
 const minNodeSideLength = 0.01;
 const MaxTreeNodeObjects = 8; //must be a power of 2 for merge sort during trace
 var totalFrameRayHits = 0;
 const rayStepEpsilon = 0.0001;
-function TreeNode( minCoord, maxCoord, parent ){
-	
+function TreeNode( minCoord, maxCoord, parent, physNode ){
+
 	this.enabled = true; //for enab/disab using hierarchy for debugging
 	this.rayHitsPerFrame = 0;
-	
+
 	this.AABB = new AABB( minCoord, maxCoord );
-	
+
 	this.uid       = NewUID();
-	
+
 	this.parent  = parent; //link to the parent ( to allow traversing back up the tree )
-	
+	this.physNode = physNode;
+
 	if( parent ){
 		this.depth = parent.depth+1;
 		this.root = parent.root;
@@ -969,45 +995,46 @@ function TreeNode( minCoord, maxCoord, parent ){
 		this.root = this;
 		this.maxDepth = 0;
 	}
-	
+
 	this.leaves = 1; //number of leaf nodes below or including this node (any new node is a leaf)
-	this.nNLvs = [0, [0,0,0]];
-	
+	this.nNLvs = [0, [0,0,0]]; //after subdividing number of children and divisions per axis (x,y,z)
+
 	this.objects = new Array(MaxTreeNodeObjects);  //the per tree node objects
-	
+	this.axisSortedObjects = [[],[],[]];
+
 	TND_initObjects(this);
-	
+
 	this.subNodes = [null,null,null,null,  null,null,null,null];
-	
+
 	this.nodePctOfHalfScreenWidth = 0; //for level of detail
-	
+
 	//this.boundColor = new Float32Array([0,0,0,0.5]);
-	
+
 	//idealy the oct treebounds are 32-64bit integers (to avoid precision loss
 	//with distance from the origin)
 	//and every node / sub division has a fill/occupancy type
 	//i.e vaccum, air, water, elemental material, etc 
 	//(for ray energy dissipation / participating media scattering )
-	
+
 	//check all objects below this node in the oct tree for collisions / physics constraints
 	//later may add count of nodes requested/updated to signify completion if asynchronus
 	//phases/steps should wait for each to complete to maintain synchronization if multithreaded/cross computer
-	
-	
-	
+
 }
 var nodeNum = 0; //the oct tree node debug draw traversal number
 
 /*
+//functions for when was developing / testing physics with 2d dimensional visualization
+
 //given a node AABB and the text width and height, return the a point in the aabb closest to the canvas center
 	//(for putting labled information in an oct tree node on screen (-10000 or 10000 may be off screen)
 	function closestPointInAABBToCanvasCenter( AABB, textDim, canvasCenter ){
-	
+
 		let closestPoint = [canvasCenter[0], canvasCenter[1]]; //return the center of the canvas if it's inside the aabb
-		
+
 		let minBound = [ AABB.minCoord[0]+textDim[0], AABB.minCoord[1]+textDim[1] ];
 		let maxBound = [ AABB.maxCoord[0]-textDim[0], AABB.maxCoord[1]-textDim[1] ];
-		
+
 		//check the x and y axies
 		for( let i = 0; i < 2; ++i){
 			if( minBound[i] > canvasCenter[i] || canvasCenter[i] > maxBound[i] ){
@@ -1018,17 +1045,17 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 				closestPoint[i] = closestEdge; //assign the closer of the min or max bounds
 			}
 		}
-		
+
 		return closestPoint;
 	}
 
-	
+
 	this.DebugDraw = function(fCtx){
-		
+
 		let vals = [0,0,0,1];
 		//vals[this.axis] = 255;
 		lw = 1;
-		
+
 		if( drawOctT ){
 			//draw outline lines of this node
 			let rgbString = "rgba("+vals[0]+","+vals[1]+","+vals[2]+","+vals[3].toPrecision(3)+")";
@@ -1038,7 +1065,7 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 			fCtx.fillRect( this.AABB.minCoord[0]   , this.AABB.minCoord[1]   , lw, this.AABB.maxCoord[1] - this.AABB.minCoord[1]); //left
 			fCtx.fillRect( this.AABB.maxCoord[0]-lw, this.AABB.minCoord[1]   , lw, this.AABB.maxCoord[1] - this.AABB.minCoord[1]); //right
 		}
-		
+
 		if( this.leaves < 2 ){ //if it is a leaf node (has objects)
 			//fill the background
 			vals[0] = 255;
@@ -1048,7 +1075,7 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 				vals[3] = 0.2;
 			else
 				vals[3] = (1- ( (this.depth-1) / this.root.maxDepth ) )* 0.2;
-			
+
 
 			rgbString = "rgba("+vals[0]+","+vals[1]+","+vals[2]+","+vals[3].toPrecision(3)+")";
 			//console.log("dpth " + this.depth + " : maxDpth " + this.root.maxDepth + " alpha " + vals[3] + " rgbString " + rgbString );
@@ -1057,7 +1084,7 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 			//console.log(this.AABB.m " dim " + nWidth + ":" + nHeight );
 			fCtx.fillStyle = rgbString;
 			fCtx.fillRect(  this.AABB.minCoord[0]+lw, this.AABB.minCoord[1]+lw, nWidth-lw, nHeight-lw ); //fill center
-			
+
 			if( drawOctT ){
 				//draw debugging text (node traversal number and number of objects inside)
 				fCtx.font = '6pt arial';
@@ -1088,8 +1115,8 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 					let wdthH = fCtx.measureText( txtN ).width/2;
 					fCtx.fillText( txtN, cent[0]-wdthH, cent[1] );
 				}
-				
-				
+
+
 				//draw color bar based on shared parent
 				if(this.parent){
 					fCtx.fillStyle = UIDToColorHexString( this.parent.uid );
@@ -1097,16 +1124,16 @@ var nodeNum = 0; //the oct tree node debug draw traversal number
 				}
 			}
 		}
-		
-		
+
+
 		//draw the objects in this node
 		for( let i = 0; i < this.objects[0].length; ++i ){
 			this.objects[0][i].Draw(fCtx);
 		}
-		
-		
+
+
 		nodeNum+=1;
-		
+
 		//draw child nodes on top of this node if they exist
 		for( let i = 0; i < this.subNodes.length; ++i ){
 			if( this.subNodes[i] != null )

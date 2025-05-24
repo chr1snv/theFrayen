@@ -62,32 +62,22 @@ function QMF_RayIntersect( thisP, retDisNormCol, ray ){ //retDisNormCol[2] is th
 
 function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbackParameters)
 {
+
 	this.quadMeshReadyCallback = quadMeshReadyCallback;
 	this.readyCallbackParameters = readyCallbackParameters;
 
 	this.meshName        = nameIn;
 	this.sceneName       = sceneNameIn;
-	
-	this.models = [];
+
 
 	this.isValid         = false; //true once loading is complete
 	this.materialHasntDrawn = null;
-	this.componentsToLoad = 0; //the quadmesh, and each animation type key, ipo, skel, etc
+	this.componentsToLoad = 0; //the quadmesh, and mesh key animation type key, ipo, skel, etc
 	//count as a component to asynchronously load, each time one finishes the count is decremented
 	//and if == 0 the callback for the quadmesh (as a complete object) being loaded is called
 
-	//the orientation matrix
-	this.scale           = new Float32Array([1,1,1]);
-	this.rotation        = new Float32Array([0,0,0,1]);
-	this.origin          = new Float32Array([0,0,0]);
-	this.toWorldMatrix   = new Float32Array(4*4);
-	this.wrldToLclMat    = new Float32Array(4*4);
-	Matrix_SetIdentity( this.toWorldMatrix );
-	this.lastToWorldMatrixUpdateTime = -1;
-
 
 	//tesselated output data for drawing
-	this.bnIdxWghtBufferForMat = null;
 	this.vertBufferForMat = null;
 	this.normBufferForMat = null;
 	this.uvBufferForMat = null;
@@ -98,11 +88,9 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.vertPositions   = null; //size determined by count of verts in file
 	this.vertNormals     = null;
 	this.vertBoneWeights = null;
-	
+
 	this.weightGroupIdsToBoneNames = null; //used in binding btwn quadMesh and skelAnim to generate vertBoneWeights
-	
-	this.materialNames     = [];
-	this.materials         = [];
+
 
 	this.faceVertsCtForMat       = null; //tot nVrts for a matrl (3 tri, 6 quad) used to determine if should draw
 	this.faceIdxsForMatInsertIdx = null; //1+idx of last face in faceIdxsForMat
@@ -112,9 +100,9 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.keyedPositions  = [];
 
 	//the oct tree of the mesh faces (updated with mesh animations)
-	const tDim = 100;
-	this.worldMinCorner = Vect3_NewScalar(  999999 );
-	this.worldMaxCorner = Vect3_NewScalar( -999999 );
+	//const tDim = 100;
+	//this.worldMinCorner = Vect3_NewScalar(  999999 );
+	//this.worldMaxCorner = Vect3_NewScalar( -999999 );
 	this.lclMinCorner   = Vect3_NewScalar(  999999 );
 	this.lclMaxCorner   = Vect3_NewScalar( -999999 );
 	this.AABB = new AABB( this.lclMinCorner, this.lclMaxCorner );
@@ -126,13 +114,6 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 	this.keyAnimation    = null; //new MeshKeyAnimation(  this.meshName, this.sceneName );
 
 
-	//request the local to world matrix animation
-	//ipo animation affects the root transformation of the quadmesh
-	this.ipoAnimation    = null;
-
-	//the per vertex weighted transformation heiracy animation possibly applied to multiple quadmeshes
-	this.skelAnimation = null;
-
 
 	this.lastMeshUpdateTime = -0.5;
 
@@ -142,18 +123,17 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	this.AABBUpdateTime = -1;
 
-	//read in the materials file
-	let matFileName = "scenes/" + this.sceneName + "/meshMaterials/" + 
-									this.meshName + ".hvtMeshMat";	
-
-	loadTextFile( matFileName, QM_matFileLoaded, this );
-	//when completed calls to mat file loaded above
+	
+	
+	let meshFileName = "scenes/" + this.sceneName + "/meshes/" + this.meshName + ".hvtMesh";
+	loadTextFile( meshFileName, QM_meshFileLoaded, this );
+	//when completed calls to mesh file loaded function
 
 }
 
 //scanline functionality
 ////////////////////////
-
+/*
 //calculate per vertex normals from face averaged normals
 //calculated from vertex position coordinates
 function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
@@ -229,6 +209,7 @@ function QM_SL_GenerateNormalCoords( vertNormals, faces, positionCoords ){
         vertNormals[idx+2] /= len;
     }
 }
+*/
 
 //used to tesselate position coordinates
 //(convert from quad and triangle faces to only triangles
@@ -424,7 +405,7 @@ function getAndCopyMostSignificantWeightsForIdx(
 	writeIdxWeights(bnIdxWghts, cI, matOffset );
 }
 
-function QM_SL_tesselateBoneIdxWghtCoords( 
+function QM_SL_tesselateBoneIdxWghtCoords(
 	bnIdxWghts, vertBoneWeights, 
 	faces, faceIdxs, numFaceIdxs,
 	/*startIdx,*/ matOffset ){
@@ -480,12 +461,14 @@ function QM_SL_tesselateBoneIdxWghtCoords(
 }
 
 //draw interface
-function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, matIdx, subBatchBuffer ){
+function QM_SL_GenerateDrawVertsNormsUVsForMat( mdl, drawBatch, matIdx, subBatchBuffer ){
 	//since quad meshes are a mixture of quads and tris,
 	//use the face vertex indices to tesselate the entire mesh into
 	//tris, calculate face normals, upload to gl and draw
+	
+	let qm = mdl.quadmesh;
 
-	if(!qm.isValid){
+	if(!mdl.isValid){
 		DPrintf("QuadMesh::Draw: failed to draw.\n");
 		//drawBatch.isValid = false;
 		return;
@@ -501,19 +484,19 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, matIdx, subBatchB
 	let endGenVertIdx = 0; //startIdx; //if no verts are generated
 
 	//update the arrays the first time and if there is a vertex modifying (meshKey) animation
-	if( qm.materialHasntDrawn[matIdx] || (drawBatch && drawBatch.regenAndUploadEntireBuffer) || qm.keyAnimation ){
+	if( mdl.materialHasntDrawn[matIdx] || (drawBatch && drawBatch.regenAndUploadEntireBuffer) || qm.keyAnimation ){
 
-		if( qm.skelAnimation && subBatchBuffer){
-			subBatchBuffer.skelAnim = qm.skelAnimation;
+		if( mdl.skelAnimation && subBatchBuffer ){
+			subBatchBuffer.skelAnim = mdl.skelAnimation;
 
 			////
 			//Generate the bone idx weight coordinates (per vertex)
 			/////////////////////////////////////////////////////////////
 
 			QM_SL_tesselateBoneIdxWghtCoords( 
-				qm.bnIdxWghtBufferForMat[matIdx], qm.vertBoneWeights, 
+				mdl.bnIdxWghtBufferForMat[matIdx], qm.vertBoneWeights, 
 				qm.faces, qm.faceIdxsForMat[matIdx], qm.faceIdxsForMatInsertIdx[matIdx],
-				qm.skelAnimation.combinedBoneMatOffset );
+				mdl.skelAnimation.combinedBoneMatOffset );
 		}
 
 		if( subBatchBuffer )
@@ -566,7 +549,7 @@ function QM_SL_GenerateDrawVertsNormsUVsForMat( qm, drawBatch, matIdx, subBatchB
 			//startIdx );
 
 
-		qm.materialHasntDrawn[matIdx] = false;
+		mdl.materialHasntDrawn[matIdx] = false;
 		
 		if( drawBatch )
 		drawBatch.numSubBufferUpdatesToBeValid -= 1;
@@ -632,22 +615,19 @@ function QM_IsTransparent(qm, callback)
 function QM_UpdateTransformedVerts(qm, time){
 	let updated = false;
 	let transformedVertCoords = null;
-	
+
 	//use the unmodified vertex coordinates from the appropriate
 	//animation type
 	if(qm.keyedPositions.length != 0)
 		transformedVertCoords = qm.keyedPositions; //keyframe animated positions
 	else
 		transformedVertCoords = qm.vertPositions;  //static vert positions
-	
-	//update the coordinates with the animation / simulation type
-	if( qm.skelAnimation != null )
-		updated = SkelA_UpdateTransforms(qm.skelAnimation, time );
-	
+
+
 	//if there are skel anim transforms, they occur in the vertex shader
 	qm.transformedVerts = transformedVertCoords;
-	
-	
+
+
 	return updated;
 }
 
@@ -657,26 +637,6 @@ function QM_PrintHierarchy(qm, name, par){
 }
 */
 
-//update the quadmesh to world transformation
-let tempMat = new Float32Array(4*4);
-function QM_UpdateToWorldMatrix(qm, time){
-
-	if( qm.lastToWorldMatrixUpdateTime == time )
-		return false;
-	if( qm.ipoAnimation != null ){
-		IPOA_GetMatrix( qm.ipoAnimation, qm.toWorldMatrix, time );
-		//if there is an ipo animation, ignore the quadmesh animations
-		//and over write it's world to local matrix for getRayIntersection
-	}else{
-		Matrix_SetQuatTransformation( qm.toWorldMatrix, 
-				qm.scale, qm.rotation, qm.origin );
-	}
-	Matrix_Copy(tempMat, qm.toWorldMatrix );
-	Matrix_Inverse( qm.wrldToLclMat, tempMat );
-	qm.lastToWorldMatrixUpdateTime = time;
-	
-	return true;
-}
 
 let tempVert = Vect3_New();
 //get the axis aligned bounding box of the mesh
@@ -684,16 +644,7 @@ function QM_UpdateAABB(qm, time) {
 	if( qm.AABBUpdateTime < time ){
 		qm.AABBUpdateTime = qm.lastMeshUpdateTime;
 
-		Vect3_SetScalar( qm.worldMinCorner,  999999 );
-		Vect3_SetScalar( qm.worldMaxCorner, -999999 );
-
-		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMinCorner);
-		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
-		Matrix_Multiply_Vect3( tempVert, qm.toWorldMatrix,  qm.lclMaxCorner);
-		Vect3_minMax( qm.worldMinCorner, qm.worldMaxCorner, tempVert);
-
-
-		AABB_UpdateMinMaxCenter(qm.AABB, qm.worldMinCorner, qm.worldMaxCorner );
+		AABB_UpdateMinMaxCenter(qm.AABB, qm.lclMinCorner, qm.lclMaxCorner );
 	}
 }
 /*
@@ -770,11 +721,11 @@ function QM_Update( qm, animationTime ) {
 	//if the new update time is newer (don't update twice for the same frame)
 	if( animationTime > qm.lastMeshUpdateTime ){
 		
-		let worldTransformUpdated = QM_UpdateToWorldMatrix(qm, animationTime );
+		//let worldTransformUpdated = QM_UpdateToWorldMatrix(qm, animationTime );
 		
 		vertsUpdated = QM_UpdateTransformedVerts(qm, animationTime );
 		
-		if( worldTransformUpdated || vertsUpdated || qm.lastMeshUpdateTime < 0){ //then update the AABB
+		if(/* worldTransformUpdated ||*/ vertsUpdated || qm.lastMeshUpdateTime < 0){ //then update the AABB
 			QM_UpdateAABB( qm, animationTime );
 		}
 		
@@ -802,14 +753,14 @@ function QM_CallReadyCallbackIfLoaded(qm){
 		//if(qm.meshName == "MountianSide")
 		//	console.log("not assigning vertBufferForMat");
 		let numMaterials = qm.faceVertsCtForMat.length;
-		if( qm.skelAnimation )
-			qm.bnIdxWghtBufferForMat = new Array(numMaterials);
+		//if( qm.skelAnimation )
+		//	qm.bnIdxWghtBufferForMat = new Array(numMaterials);
 		qm.vertBufferForMat = new Array(numMaterials);
 		qm.normBufferForMat = new Array(numMaterials);
 		qm.uvBufferForMat = new Array(numMaterials);
 		for(let i = 0; i < numMaterials; ++i ){
-			if(qm.skelAnimation )
-				qm.bnIdxWghtBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*bnIdxWghtCard );
+			//if(qm.skelAnimation )
+			//	qm.bnIdxWghtBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*bnIdxWghtCard );
 			qm.vertBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*vertCard );
 			qm.normBufferForMat[i] = new Float32Array( qm.faceVertsCtForMat[i]*normCard );
 			qm.uvBufferForMat[i]   = new Float32Array( qm.faceVertsCtForMat[i]*uvCard );
@@ -819,69 +770,8 @@ function QM_CallReadyCallbackIfLoaded(qm){
 	}
 }
 
-function QM_materialReady( material, thisPAndMaterialIdx ){
-	thisPAndMaterialIdx[0].materials.splice( thisPAndMaterialIdx[1], 0, material);
-	
-	if( --thisPAndMaterialIdx[0].materialsToLoad == 0 ){
-		//read in the mesh file
-		let meshFileName = "scenes/"  + thisPAndMaterialIdx[0].sceneName + 
-							"/meshes/" + thisPAndMaterialIdx[0].meshName + ".hvtMesh";
-		loadTextFile( meshFileName, QM_meshFileLoaded, thisPAndMaterialIdx[0] );
-	}
-}
-
-function QM_matFileLoaded(matFile, thisP){
-	let matFileLines = matFile.split('\n');
-
-
-	for( let matIdx in matFileLines ){
-		let temp = matFileLines[matIdx].split(' ');
-		if( temp[0] == 'n' ){
-			thisP.materialsToLoad = parseInt(temp[1]);
-		}
-		if( temp[0] == 'mat' ){ //name of a material
-			let matNameString = temp[1];
-			for( let i = 2; i < temp.length; ++i )
-				matNameString += ' ' + temp[i];
-			thisP.materialNames.push(matNameString);
-			//preload the material
-			GRPH_GetCached( matNameString, thisP.sceneName, Material, null,
-			QM_materialReady, [thisP, thisP.materialNames.length-1] );
-		}
-	}
-	let numMaterials = thisP.materialNames.length;
-	if( numMaterials < 1 ){
-		//( str, tag, color, depth )
-		DTPrintf('QuadMesh: ' + thisP.meshName + 
-			', failed to read any materials, loading default material', "quadM ld");
-		thisP.materialNames.push("default");
-		thisP.materialsToLoad = 1;
-		numMaterials = 1;
-		//preload the material
-		GRPH_GetCached( 'default', 'default', Material, null,
-		QM_materialReady, [thisP, numMaterials-1] );
-	}
-
-	thisP.materialHasntDrawn = new Array(numMaterials);
-	thisP.faceIdxsForMatInsertIdx = new Array(numMaterials);
-	thisP.faceVertsCtForMat = new Array( numMaterials );
-	for(let i = 0; i < numMaterials; ++i ){
-		thisP.faceIdxsForMatInsertIdx[i] = 0;
-		thisP.faceVertsCtForMat[i] = 0;
-		thisP.materialHasntDrawn[i] = true;
-	}
-	thisP.faceIdxsForMat = new Array( numMaterials );
-
-
-
-	//when completed calls mesh file loaded above
-}
 
 function QM_ArmatureReadyCallback(armature, qm){
-	qm.skelAnimation = armature;
-	
-	armature.animatedMeshes.push( qm );
-	
 
 	//finalize the binding between the quadMesh and the skelAnimation
 	//by setting the boneID's in the bone weights
@@ -890,47 +780,40 @@ function QM_ArmatureReadyCallback(armature, qm){
 	for( let i = 0; i < qm.vertBoneGroupIDWeights.length; ++i ){
 		for( let groupId in qm.vertBoneGroupIDWeights[i] ){
 			let boneName = qm.weightGroupIdsToBoneNames[groupId];
-			let k = qm.skelAnimation.boneNamesToIdxs[boneName];
+			let k = armature.boneNamesToIdxs[boneName];
 			if( k != undefined )
 				qm.vertBoneWeights[i][k] = qm.vertBoneGroupIDWeights[i][groupId];
 		}
 	}
 
-
-	QM_CallReadyCallbackIfLoaded(qm);
 }
+
 
 function QM_QM_MeshKeyAnimReadyCallback(meshKeyAnim, qm){
 	qm.meshKeyAnim = meshKeyAnim;
 	QM_CallReadyCallbackIfLoaded(qm);
 }
 
-function QM_IPOAnimReadyCallback(ipoAnim, qm){
-	qm.ipoAnimation = ipoAnim;
-	QM_CallReadyCallbackIfLoaded(qm);
-}
-
 function QM_meshFileLoaded(meshFile, thisP)
-{	
+{
+
 	let meshFileLines = meshFile.split('\n');
 
 	let numVerts = 0; //value to check for errors
 	let faceCt = 0;
 	let triCt = 0;
-	
+
 	let vertIdx = 0;
 	let fIdx = 0;
 	let tIdx = 0;
-	
-	let ipoAnimName = '';
+
 	let meshKeyAnimName = '';
-	let skelAnimName = '';
-	
+
 	thisP.componentsToLoad = 1;
-	
+
 	let temp = meshFileLines[meshFileLines.length-2];
 	let words = temp.split(' ');
-	
+
 	if( temp[0] == 'c' && temp[1] == 't' ){
 		triCt = words[1];
 		//thisP.tris = new Array(triCt);
@@ -940,14 +823,30 @@ function QM_meshFileLoaded(meshFile, thisP)
 		DTPrintf("error parsing tri count " + thisP.meshName, "quadM parse error");
 		return;
 	}
-	
-	for( let mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx )
-	{
+
+	for( let mLIdx = 0; mLIdx < meshFileLines.length; ++mLIdx ){
 		temp = meshFileLines[mLIdx];
 		words = temp.split(' ');
-		
-		
-		if( words[0] == 'cg' ){
+
+		if( words[0] == 'cm' ){
+			let numMaterials = parseFloat(words[1]);
+			if( numMaterials == 0 ){
+				DTPrintf("warning 0 materials for " + thisP.meshName, "quadM parse warning");
+				numMaterials = 1;
+			}
+
+			thisP.faceIdxsForMatInsertIdx = new Array(numMaterials);
+			thisP.faceVertsCtForMat = new Array( numMaterials );
+			for(let i = 0; i < numMaterials; ++i ){
+				thisP.faceIdxsForMatInsertIdx[i]	= 0;
+				thisP.faceVertsCtForMat[i]			= 0;
+			}
+			thisP.faceIdxsForMat = new Array( numMaterials );
+
+		}
+
+
+		else if( words[0] == 'cg' ){ //read in weight groups for armature bone bindings
 			let numWghtGroups = parseFloat(words[1]);
 			thisP.weightGroupIdsToBoneNames = new Array(numWghtGroups);
 			
@@ -955,7 +854,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			{
 				temp = meshFileLines[mLIdx];
 				words = temp.split(' ');
-				if( temp[0] == 'g' ){
+				if( temp[0] == 'g' ){ //weight group name
 					thisP.weightGroupIdsToBoneNames[parseInt(words[1])] = words[2];
 				}else if( temp[0] == 'e' ){
 					break;
@@ -964,48 +863,12 @@ function QM_meshFileLoaded(meshFile, thisP)
 		}
 
 		//read in the mesh transformation matrix (translate, scale, rotate)
-		if( temp[0] == 'm' )
-		{
-			while( ++mLIdx < meshFileLines.length )
-			{
-				temp = meshFileLines[mLIdx];
-				let words = temp.split(' ');
-				//read in the origin rotation and size of the mesh
-				if( temp[0] == 'x' ){
-					thisP.origin =   new Float32Array([ 
-						parseFloat(words[1]), 
-						parseFloat(words[2]), 
-						parseFloat(words[3]) ] );
-				}else if( temp[0] == 'r' ){ //quaternion vec4
-					thisP.rotation = new Float32Array([ 
-						parseFloat(words[1]), 
-						parseFloat(words[2]), 
-						parseFloat(words[3]),
-						parseFloat(words[4]) ] );
-				}else if( temp[0] == 's' ){
-					thisP.scale =    new Float32Array([ 
-						parseFloat(words[1]), 
-						parseFloat(words[2]), 
-						parseFloat(words[3]) ] );
-				}else if( temp[0] == 'i' ){
-					ipoAnimName = words[1];
-					thisP.isAnimated = true;
-					thisP.componentsToLoad += 1; //need full count of async components to load before loading them
-				}else if( temp[0] == 'm' ){
-					meshKeyAnimName = words[1];
-					thisP.isAnimated = true;
-					thisP.componentsToLoad += 1;
-				}else if( temp[0] == 'a' ){
-					skelAnimName = words[1];
-					thisP.isAnimated = true;
-					thisP.componentsToLoad += 1;
-				}else if( temp[0] == 'e' ){
-					break;
-				}
-			}
+		if( words[0] == 'meshKeyShapeAnim' ){
+			meshKeyAnimName = words[1];
+			thisP.isAnimated = true;
+			thisP.componentsToLoad += 1;
 		}
-		
-		
+
 
 		//read in the number of vertices
 		else if( temp[0] == 'c' && temp[1] == 'v' ){
@@ -1063,7 +926,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			thisP.faces = new Array(faceCt);
 			for( let i = 0; i < faceCt; ++i )
 				thisP.faces[i] = new Face();
-			for( let i = 0; i < thisP.materials.length; ++i )
+			for( let i = 0; i < thisP.faceIdxsForMat.length; ++i )
 				thisP.faceIdxsForMat[i] = new Array( faceCt );
 		}
 		
@@ -1148,7 +1011,7 @@ function QM_meshFileLoaded(meshFile, thisP)
 			}
 		}
 	}
-	
+
 
 	if( !(Math.abs(thisP.vertPositions.length - numVerts*3) < 0.01) )
 		DPrintf("Quadmesh: verts read mismatch\n");
@@ -1162,13 +1025,10 @@ function QM_meshFileLoaded(meshFile, thisP)
 	DTPrintf('Quadmesh: ' + thisP.meshName +
 			', successfully read in faces: ' + thisP.faces.length + 
 			', verts: ' + thisP.vertPositions.length/3, "quadM ld" );
-			
-	if( ipoAnimName != '' )
-		GRPH_GetCached(ipoAnimName, thisP.sceneName, IPOAnimation, null, QM_IPOAnimReadyCallback, thisP);
+
 	if( meshKeyAnimName != '' )
 		GRPH_GetCached(meshKeyAnimName, thisP.sceneName, MeshKeyAnimation, null, QM_MeshKeyAnimReadyCallback, thisP);
-	if( skelAnimName != '' )
-		GRPH_GetCached(skelAnimName, thisP.sceneName, SkeletalAnimation, null, QM_ArmatureReadyCallback, thisP);
+
 
 	//initialize the aabb if not animated
 	QM_UpdateAABB( thisP, 0.0);

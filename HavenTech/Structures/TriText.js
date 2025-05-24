@@ -2,23 +2,24 @@
 
 
 let textScene = null;
-let glyphMeshes = {};
 let textMaterial = null;
 function TXTR_TextSceneLoaded(txtScene){
 	//get the letter meshes from the text scene
 	let mdlKeys = Object.keys(txtScene.models);
 	//console.log("text mdls");
+	//create a lookup by glyph name instead of uid
+	txtScene.glyphMeshes = {};
 	for( let i = 0; i < mdlKeys.length; ++i ){
 		let model = txtScene.models[mdlKeys[i]];
-		let glyphName = txtScene.models[mdlKeys[i]].meshName;
+		let glyphName = txtScene.models[mdlKeys[i]].modelName;
 		//console.log( txtScene.models[mdlKeys[i]].meshName );
-		glyphMeshes[glyphName] = model.quadmesh;
+		txtScene.glyphMeshes[glyphName] = model;
 	}
 
 	//get the letter material from the first object
 	if( mdlKeys.length > 0 ){
 		let model = txtScene.models[mdlKeys[0]];
-		textMaterial = model.quadmesh.materials[0];
+		textMaterial = model.materials[0];
 	}
 
 	//txtR_dbB = new DrawBatchBuffer( textMaterial );
@@ -212,7 +213,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 
 
 	if( txtR_dbB.bufSubRanges[ glyphStrKey ] == undefined ){
-	
+
 		let lwrACharCode = "a".charCodeAt(0);
 		let lwrZCharCode = "z".charCodeAt(0);
 
@@ -244,26 +245,38 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 			}
 
 			if( ltr != ' ' ){
-				strNumVerts += glyphMeshes[ltr].vertBufferForMat[0].length;
+				strNumVerts += textScene.glyphMeshes[ltr].quadmesh.vertBufferForMat[0].length;
 				//generate the tesselated vert Coords for the glyph if necessary
-				if( glyphMeshes[ltr].materialHasntDrawn[0] ){
-					QM_SL_GenerateDrawVertsNormsUVsForMat( glyphMeshes[ltr], null, 0, null );
+				if( textScene.glyphMeshes[ltr].materialHasntDrawn[0] ){
+					QM_SL_GenerateDrawVertsNormsUVsForMat( textScene.glyphMeshes[ltr], null, 0, null );
 				}
 			}
 		}
 
-		let strObj = new TRI_G_VertBufObj(strNumVerts, str, interactive);
+
+		let strQm = new TRI_G_VertBufQuadmesh(strNumVerts);
+
+		let mdlName = glyphStrKey;//ltr + " glyph";
+		let strMdl = new Model( mdlName, meshNameIn=null, armNameIn=null, ipoNameIn=null, 
+		materialNamesIn=[textMaterial.materialName], sceneNameIn=textScene.sceneName, AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				locationIn=[x,y,dpth], rotationIn=Quat_New(), scaleIn=[size,size,1],
+					modelLoadedParameters=null, modelLoadedCallback=null, isPhysical=false );
+		strMdl.quadmesh = strQm;
+		strMdl.str = str;
+		strMdl.interactive = interactive;
+		MDL_Update(strMdl, 0, null);
 
 		//allocate glyph vert buffer for the string
 		//GetDrawSubBatchBuffer( dbB, subRangeId, numVerts, subRangeQm, qmMatID )
-		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strObj, 0 );//, interactive );
+		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, strNumVerts, strMdl, 0 );//, interactive );
 		//set the matrix directly on the sub batch buffer,
-		//RastB_PrepareBatchToDraw only copies toWorldMatricies from raster batch .objs
+		//RastB_PrepareBatchToDraw only copies toWorldMatricies from raster batch .mdls
 		//(text bypasses it and makes the text ready to draw by calling GetDrawSubBatchBuffer
 		//and setting the length of the sub batch buffer)
-		Matrix_SetIdentity( queuedTextSbb.toWorldMatrix ); //this is used instead of per vertex x,y,dpth offset
-		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x,y,dpth] );
-		let strVertBufObj = queuedTextSbb.obj;
+		//Matrix_SetIdentity( queuedTextSbb.toWorldMatrix ); //this is used instead of per vertex x,y,dpth offset
+		//Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x,y,dpth] );
+		let strVertBufObj = queuedTextSbb.mdl;
+
 
 		let vertBufIdx = 0;
 		let normBufIdx = 0;
@@ -278,7 +291,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 		let posY = lNum*lVertSpc;
 		for( let i = 0; i < str.length; ++i ){
 
-			//apply offsets to each
+			//apply offsets to each glyph while copying its verts into the quadmesh representation
 
 			let ltr = str[i];
 			let ltrCharCode = ltr.charCodeAt(0);
@@ -303,7 +316,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 			}
 
 			if( ltr != ' ' ){
-				let glyphM = glyphMeshes[ltr];
+				let glyphM = textScene.glyphMeshes[ltr].quadmesh;
 				let glyphVerts = glyphM.vertBufferForMat[0];
 				let glyphNorms = glyphM.normBufferForMat[0];
 				let glyphUvs   = glyphM.uvBufferForMat[0];
@@ -311,20 +324,22 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 
 				for( let j = 0; j < numGlyphVerts; j+=vertCard ){
 					Vect3_CopyFromArr( tmpGlyphVert, glyphVerts, j );
-					tmpGlyphVert[0] = ((tmpGlyphVert[0]+posX) * size);// + x;
-					tmpGlyphVert[1] = ((tmpGlyphVert[1]+posY) * size);// + y;
+					tmpGlyphVert[0] = (tmpGlyphVert[0]+posX);// * size);// + x;
+					tmpGlyphVert[1] = (tmpGlyphVert[1]+posY);// * size);// + y;
 					//tmpGlyphVert[2] += dpth;
 					Vect_minMax( strMinTemp, strMaxTemp, tmpGlyphVert );
-					Vect3_CopyToArr(strVertBufObj.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
+					Vect3_CopyToArr(strQm.vertBufferForMat[0], vertBufIdx, tmpGlyphVert);
 
-					Vect_CopyToFromArr( strVertBufObj.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
-					Vect_CopyToFromArr( strVertBufObj.uvBufferForMat[0], uvBufIdx, glyphUvs, 0, uvCard );
+					Vect_CopyToFromArr( strQm.normBufferForMat[0], normBufIdx, glyphNorms, 0, normCard );
+					Vect_CopyToFromArr( strQm.uvBufferForMat[0], uvBufIdx, glyphUvs, 0, uvCard );
 					vertBufIdx += vertCard;
 					normBufIdx += normCard;
 					uvBufIdx += uvCard;
 
 				}
 			}
+			//Vect3_MultiplyScalar( strMinTemp, size );
+			//Vect3_MultiplyScalar( strMaxTemp, size );
 
 			escpdLen += 1; //above continue;'s prevent going to here until characters btwn : :'s have been condensed to one ltr
 			let xKrnOvrd = xKernOverrides[ltr];
@@ -333,50 +348,52 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 			else
 				posX += xKernSpc;
 		}
-		
+
 		//offset toWorldMatrix transform for center and right justification
 		if( justify != TxtJustify.Left ){
-			let strWdth = strMaxTemp[0] - strMinTemp[0];
+			let strWdth = (strMaxTemp[0] - strMinTemp[0]) * size;
 			if( justify == TxtJustify.Center ){
-				Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x-strWdth/2,y,dpth] );
+				Matrix_SetTranslate( queuedTextSbb.mdl.toWorldMatrix, [x-strWdth/2,y,dpth] );
 			}else if( justify == TxtJustify.Right ){
-				Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, [x-strWdth  ,y,dpth] );
+				Matrix_SetTranslate( queuedTextSbb.mdl.toWorldMatrix, [x-strWdth  ,y,dpth] );
 			}
 		}
 
 		//transform the min and max of the aabb so that RayIntersects in 
 		//RaycastPointer allows for detecting when the pointer selects interactable strings
-		Matrix_Multiply_Vect3( strAABBMin, queuedTextSbb.toWorldMatrix, strMinTemp );
-		Matrix_Multiply_Vect3( strAABBMax, queuedTextSbb.toWorldMatrix, strMaxTemp );
-		strVertBufObj.AABB = new AABB( strAABBMin, strAABBMax );
+		Matrix_Multiply_Vect3( strAABBMin, queuedTextSbb.mdl.toWorldMatrix, strMinTemp );
+		Matrix_Multiply_Vect3( strAABBMax, queuedTextSbb.mdl.toWorldMatrix, strMaxTemp );
+		strMdl.AABB = new AABB( strAABBMin, strAABBMax );
 		txtR_dbB.numSubBufferUpdatesToBeValid -= 1;
 
 
 		if( justify == TxtJustify.Center ){
-			queuedTextSbb.obj.textEndX = x; //likely not used
+			queuedTextSbb.mdl.textEndX = x; //likely not used
 		}else if( justify == TxtJustify.Right ){
-			queuedTextSbb.obj.textEndX = strAABBMin[0];
+			queuedTextSbb.mdl.textEndX = strAABBMin[0];
 		}else{ //left justify (default)
-			queuedTextSbb.obj.textEndX = strAABBMax[0];
+			queuedTextSbb.mdl.textEndX = strAABBMax[0];
 		}
-		
+
+		Matrix_Copy( queuedTextSbb.toWorldMatrix, queuedTextSbb.mdl.toWorldMatrix );
+
 		//glyphStrVertBuffers[ glyphStrKey ] = [ strVertBuffer, true ];
 	}else{
 		//restore the number of verts for the sub batch buffer to draw
 		queuedTextSbb = GetDrawSubBatchBuffer( txtR_dbB, glyphStrKey, 0, null, 0 );
 		if( queuedTextSbb.len < queuedTextSbb.maxLen ) //re enable for drawing (if prevents setting len to 0 if same text queued twice in a frame)
-			queuedTextSbb.len = queuedTextSbb.maxLen; //subb.obj.vertBufferForMat.length / vertCard;
+			queuedTextSbb.len = queuedTextSbb.maxLen; //subb.mdl.vertBufferForMat.length / vertCard;
 		//
 	}
-	
+
 	queuedTextSbb.overrideColor = overideColor;
 	queuedTextSbb.nonHighlightedColor = overideColor;
 	if( bilboard ){
 		let txtOri = [x, y, dpth];
-		Matrix_LookAt( queuedTextSbb.toWorldMatrix, rb2DTris.camWorldPos, txtOri );
-		//Quat_LookAt( blibQuat, rb2DTris.camWorldPos, txtOri );//queuedTextSbb.obj.origin ); //x, y, dpth
+		Matrix_LookAt( queuedTextSbb.mdl.toWorldMatrix, rb2DTris.camWorldPos, txtOri );
+		//Quat_LookAt( blibQuat, rb2DTris.camWorldPos, txtOri );//queuedTextSbb.mdl.origin ); //x, y, dpth
 		//Matrix_SetQuatRotate( queuedTextSbb.toWorldMatrix, blibQuat );
-		Matrix_SetTranslate( queuedTextSbb.toWorldMatrix, txtOri );
+		Matrix_SetTranslate( queuedTextSbb.mdl.toWorldMatrix, txtOri );
 	}
 
 /*
@@ -387,7 +404,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	//txtR_dbB.numBufSubRanges += 1;
 	*/
 
-	return queuedTextSbb.obj.textEndX;
+	return queuedTextSbb.mdl.textEndX;
 
 }
 
@@ -413,9 +430,9 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 	let subRngKeys = txtR_dbB.sortedSubRngKeys;
 	for( let i = 0; i < txtR_dbB.numBufSubRanges; ++i ){
 		let subRng = txtR_dbB.bufSubRanges[ subRngKeys[i] ];
-		if( !subRng.obj.interactive ) //skip non interactable text objects
+		if( !subRng.mdl.interactive ) //skip non interactable text objects
 			continue;
-		let aabb = subRng.obj.AABB;
+		let aabb = subRng.mdl.AABB;
 		Matrix_Multiply_Vect3( ndcSpaceAABB.minCoord, gOM, aabb.minCoord );
 		Matrix_Multiply_Vect3( ndcSpaceAABB.maxCoord, gOM, aabb.maxCoord );
 		//console.log( "aabbMin " + Vect_ToFixedPrecisionString( aabb.minCoord, 4 ) + " max " + Vect_ToFixedPrecisionString( aabb.maxCoord, 4 ) );
@@ -423,7 +440,7 @@ function TR_RaycastPointer(rb2DTris, pLoc){
 		if( AABB_RayIntersects(ndcSpaceAABB, tr_ptrRay, 0 ) > 0 ){
 			//change the text color
 			subRng.overrideColor = tr_highlightedColor;
-			mOvrdStrs[ numMOvrdStrs++ ] = subRng.obj.str;
+			mOvrdStrs[ numMOvrdStrs++ ] = subRng.mdl.str;
 		}else{
 			subRng.overrideColor = subRng.nonHighlightedColor;
 		}

@@ -172,6 +172,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 				textureReadyCallback(readyCallbackParams, texture);}
 	}
 	this.UnrefTexture = function(filename, sceneName) {}
+	/*
 	let concatName;
 	let quadMesh;
 	this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback){
@@ -185,6 +186,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			quadMeshReadyCallback( quadMesh, readyCallbackParameters );}
 	}
 	this.UnrefQuadMesh = function(filename, sceneName) {}
+	*/
 
 
 	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests

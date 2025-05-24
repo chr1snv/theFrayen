@@ -160,7 +160,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		*/
 	}
 	
-	DrawDefaultMainCam();
+	GatherModelsToDrawForDefaultMainCam();
 
 
 	//handle menu input

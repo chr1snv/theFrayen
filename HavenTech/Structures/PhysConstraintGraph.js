@@ -21,14 +21,16 @@ const PHYS_ELECTROSTATIC = 4
 const PHYS_MAGNETIC = 5
 //5 - radiative (optical/thermal)
 const PHYS_RADIATIVE = 6
+//)
 
 //for performance purposes 
-//an oct tree is to be used on
-//the physics graph to approximate the behavior of 
+//if a phys graph has above a certian number of objects
+//an oct tree should be used to model the graph as a fluid
+//to approximate the behavior of 
 //closely packed and continously touching inner objects with
 //liquid/solid regions to transmit impulses/waves to the outer surfaces
-//only objects that are exposed to free space (areas without other object constraints)
-//are simulated as objects with interactions
+//only objects that are exposed to free space (number of constraints below a limit) i.e. (areas without other object constraints)
+//should be simulated as objects with constraint interactions
 
 function GetOtherConstrObj(constrPair, tObj){
 	if( constrPair.ob2.uid.val == tObj.uid.val )
@@ -41,8 +43,9 @@ function PhysConstraintGraph(type, AABBmin, AABBmax, colisRootObj){
 	this.colisRootObj = colisRootObj;
 
 	//0-kinematic (collision), 1-static contact with other object, 2-fixed (all immutable objects)
-	//this.physType = 0; 
-	
+	//this.physType = 0; //this maybe can be removed because a physics graph only is the interactions of objects within itself
+	//not a field affecting all objects within it
+
 	this.AABB = new AABB(AABBmin, AABBmax);
 	this.aggregateObject = new PhysObj(this.AABB); //the approximate object 
 	this.aggregateObject.mass = 0;

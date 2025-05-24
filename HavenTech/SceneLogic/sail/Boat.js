@@ -7,7 +7,7 @@ let boatForCliDrawingMdl = null;
 let boatForCliDrawingQm = null;
 
 let windIndc = null;
-let windIndcQm = null;
+//let windIndcQm = null;
 
 let jibArm = null;
 let mainArm = null;
@@ -29,14 +29,18 @@ function BOAT_Init(scn){
 	SkelA_UpdateTransforms( girlArm, 0, true );
 
 
-	windIndcQm = graphics.cachedObjs[QuadMesh.name]["textMeshes"]["windIndc"][0];
-	windIndcQm.isAnimated = true;
+	//windIndcQm = textScene.glyphMeshes["windIndc"].quadmesh;
+	//windIndcQm.isAnimated = true;
 	
+	windIndc = textScene.glyphMeshes["windIndc"];
+	windIndc.isAnimated = true;
+	/*
 	for( let mdl in textScene.models ){
 		let model = textScene.models[mdl];
 		if( model.quadmesh.meshName == "windIndc" )
 			windIndc = model;
 	}
+	*/
 
 	/*
 	boatForCliDrawingQm = graphics.cachedObjs[QuadMesh.name][scn.sceneName]["viper650hull"][0];
@@ -46,9 +50,9 @@ function BOAT_Init(scn){
 			boatForCliDrawingMdl = model;
 	}
 	*/
-	
-	new Model( "cliBoatHull", "viper650hull", scn.sceneName, null, 
-					modelLoadedParameters=null, modelLoadedCallback=Boat_hullInstLd, isDynamic=false );
+
+	new Model( "cliBoatHull", "viper650hull", "", "", [], scn.sceneName, null, 
+					modelLoadedParameters=null, modelLoadedCallback=Boat_hullInstLd, isPhysical=false );
 
 }
 /*
@@ -254,9 +258,9 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 
 	//rotate the wind indicator to show the relative wind heading
 	//scale, rot, trans
-	if( windIndcQm.isValid ){
+	if( windIndc.isValid ){
 		let wIScl = 0.1;
-		Matrix_SetEulerTransformation( windIndcQm.toWorldMatrix, [wIScl,wIScl,wIScl], [-110/180*Math.PI, relWndHdg, 0], [0.4*scrnAspc, 0.8, 0] );
+		Matrix_SetEulerTransformation( windIndc.toWorldMatrix, [wIScl,wIScl,wIScl], [-110/180*Math.PI, relWndHdg, 0], [0.4*scrnAspc, 0.8, 0] );
 	}
 
 	//sail boat inertia gives the percent that the boat keeps its speed over 1 second
@@ -310,7 +314,7 @@ function BOAT_DrawOtherPlayer( rb3DTris, cliHdg, cliPos ){
 	console.log( "draw other player " + cliPos );
 	
 	if( boatForCliDrawingMdl ){
-		rb3DTris.objs[boatForCliDrawingMdl.uid.val] = boatForCliDrawingMdl;
+		rb3DTris.mdls[boatForCliDrawingMdl.uid.val] = boatForCliDrawingMdl;
 		boatForCliDrawingMdl.optTransformUpdated  = true;
 		Matrix_SetEulerTransformation( boatForCliDrawingMdl.optTransMat,
 					[1,1,1],

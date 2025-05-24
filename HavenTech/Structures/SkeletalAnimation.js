@@ -15,10 +15,10 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.skelAnimName = nameIn;
 	this.sceneName = sceneNameIn;
 	this.uid = NewUID();
-	
+
 	this.lastUpdateTime = -0.5;
-	
-	this.animatedMeshes = [];
+
+	this.animatedModels = [];
 
 	this.transformationMatricies = [];
 	this.isValid = false;
@@ -27,10 +27,10 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.boneNamesToIdxs = {};
 	this.duration = 0.0;
 	this.loop = true;
-	
+
 	this.lineDrawBuffer = null;
 	this.linePts = null;
-	
+
 	this.combinedBoneMatOffset = 0;
 	this.rastB = null;
 
@@ -120,7 +120,7 @@ function SkelA_ArmatureDebugDraw(skelA, buf, subB){
 
 	}
 	subB.len = skelA.bones.length * 8;
-	subB.obj = skelA.animatedMeshes[0];
+	subB.obj = skelA.animatedModels[0];
 	buf.vertsNotYetUploaded   = true;
 }
 
@@ -392,10 +392,10 @@ function SkelA_EnableBoneMatTexture(bmT){
 }
 
 
-function SkelA_writeBatchBoneMatsToGL(hvnsc){
-	//write the combined bone matricies to gl
+function SkelA_writeBatchBoneMatsToGL(rastB){
+	//write the combined bone matricies from the raster batch to gl
 	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, hvnsc.boneMatTexture);
+	gl.bindTexture(gl.TEXTURE_2D, rastB.boneMatTexture);
 
 	let internalFormat = gl.RGBA;
 	if( gl.glType == "webgl2" ){
@@ -403,15 +403,15 @@ function SkelA_writeBatchBoneMatsToGL(hvnsc){
 	}
 
 	gl.texImage2D(
-		gl.TEXTURE_2D, 
+		gl.TEXTURE_2D,
 		0,					//level
 		internalFormat,			//internal format
 		4,					//width 4 pixels, each pixel RGBA so 4 pixels is 16 vals
-		hvnsc.combinedBoneMats.length/matrixCard, //one row per bone (height is num matricies)
+		rastB.combinedBoneMats.length/matrixCard, //one row per bone (height is num matricies)
 		0,					//border
 		gl.RGBA,			//format
 		gl.FLOAT,			//type
-		hvnsc.combinedBoneMats
+		rastB.combinedBoneMats
 	);
 }
 

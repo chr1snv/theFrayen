@@ -27,12 +27,18 @@ function Ocean(){
 
 	this.ready = false;
 
-	this.quadmesh = new QuadMesh( "oceanSurface", "sailDefault", null, OCN_QMReady, this );
+	this.model = new Model( "oceanSurface", "oceanSurface", "", "", ["OceanMaterial"], "sailDefault", new AABB([-1,-1,-1], [1,1,1]),
+				Vect3_NewZero(), Quat_New_Identity(), Vect3_NewAllOnes(),
+					modelLoadedParameters=this, modelLoadedCallback=OCN_MDLReady, isPhysical=false );
+
+	//this.quadmesh = new QuadMesh( "oceanSurface", "sailDefault", null, OCN_QMReady, this );
 }
 
-function OCN_QMReady( qm, ocn ){
+function OCN_MDLReady( mdl, ocn ){
 
 	//allocate / initialize the verts, norms, and face idxs and uvs for the ocean surface
+
+	let qm = mdl.quadmesh;
 
 	let nQuads = OCN_NLvlsToNQuads(OCN_NUM_LVLS);
 	let nVerts = OCN_NLvlsToNVerts(OCN_NUM_LVLS);
@@ -112,7 +118,7 @@ function OCN_InitSubDivPositions( verts, norms, faces, lvl, maxLvls ){
 
 		}
 	}
-	
+
 	for( let j = 0; j < subDivVertsPerSide; ++j ){
 		for( let i = 0; i < subDivVertsPerSide; ++i ){
 			nonVertCardIndex = lvlVertOffset + (j * lvlVertsWidth + i);
@@ -288,8 +294,10 @@ function OCN_DistBtwnVertsAtLvl( lvl ){
 }
 */
 
+/*
 let triOriTempPos = Vect3_New();
 function distFromQuadIdxsInLvl( lvl, ray, vrtPosns, faces ){
+
 	let intrFound  = false;
 	let fqIdxInLvl = QCN_FirstQuadIdxAtLvl( lvl );
 	for( let i = 0; i < lvlQuadsWidth; ++i ){
@@ -336,6 +344,7 @@ function distFromQuadIdxsInLvl( lvl, ray, vrtPosns, faces ){
 	}
 	return intrFound;
 }
+*/
 
 let quadTris = [ new Triangle(), new Triangle() ];
 let hghtIntrRay = new Ray( null, [0,0,-1] );
@@ -350,6 +359,8 @@ function OCN_GetHeightAtMapPosition( x, y ){
 	//--|----|
 	OCN_HAMP_rel = [ x, y, 0 ];
 
+	let qm = ocean.model.quadmesh;
+
 	Vect3_Add( OCN_HAMP_rel, boatPosition );
 	Vect3_MultiplyScalar( OCN_HAMP_rel, 2 );
 
@@ -361,10 +372,10 @@ function OCN_GetHeightAtMapPosition( x, y ){
 	OCN_HAMP_lvl = 0;
 	//let relDistToCenter = [ OCN_HAMP_rel[0] / (ocnWidth_Length), OCN_HAMP_rel[1] / (ocnWidth_Length) ];
 	//let maxRelDistToCenter = Math.max( Math.abs(relDistToCenter[0]), Math.abs(relDistToCenter[1]) );
-	
+
 	let fstIdxAtLvl = OCN_FirstVertIdxAtLvl( OCN_HAMP_lvl+1 );
-	let nextLvlX = ocean.quadmesh.vertPositions[fstIdxAtLvl*3];
-	
+	let nextLvlX = qm.vertPositions[fstIdxAtLvl*3];
+
 	while(  Math.abs(OCN_HAMP_rel[0]) < -nextLvlX &&
 			Math.abs(OCN_HAMP_rel[1]) < -nextLvlX 
 		&& OCN_HAMP_lvl < OCN_NUM_LVLS){
@@ -372,7 +383,7 @@ function OCN_GetHeightAtMapPosition( x, y ){
 		OCN_HAMP_lvl += 1;
 
 		fstIdxAtLvl = OCN_FirstVertIdxAtLvl( OCN_HAMP_lvl+1 );
-		nextLvlX = ocean.quadmesh.vertPositions[fstIdxAtLvl*3];
+		nextLvlX = qm.vertPositions[fstIdxAtLvl*3];
 
 	}
 
@@ -404,7 +415,7 @@ function OCN_GetHeightAtMapPosition( x, y ){
 
 	let fqIdxAtLvl = QCN_FirstQuadIdxAtLvl( OCN_HAMP_lvl );
 	let fIdx = fqIdxAtLvl + OCN_HAMP_quadCoord[1]*lvlQuadsWidth + OCN_HAMP_quadCoord[0];
-	let face = ocean.quadmesh.faces[fIdx];
+	let face = qm.faces[fIdx];
 
 	if( face == undefined )
 		return 0;
@@ -413,12 +424,12 @@ function OCN_GetHeightAtMapPosition( x, y ){
 	//and trace to triangle surface to get height
 	OCN_HAMP_rel[2] = startHght;
 	hghtIntrRay.origin = OCN_HAMP_rel;
-	TRI_Setup( quadTris[0], 0, face, ocean.quadmesh.vertPositions );
-	TRI_Setup( quadTris[1], 1, face, ocean.quadmesh.vertPositions );
+	TRI_Setup( quadTris[0], 0, face, qm.vertPositions );
+	TRI_Setup( quadTris[1], 1, face, qm.vertPositions );
 
-	let rayDist = TRI_RayIntersection( quadTris[0], hghtIntrRay, ocean.quadmesh.vertPositions, face.vertIdxs[0*2] );
+	let rayDist = TRI_RayIntersection( quadTris[0], hghtIntrRay, qm.vertPositions, face.vertIdxs[0*2] );
 	if( rayDist < 0 ){
-		rayDist = TRI_RayIntersection( quadTris[1], hghtIntrRay, ocean.quadmesh.vertPositions, face.vertIdxs[1*2] );
+		rayDist = TRI_RayIntersection( quadTris[1], hghtIntrRay, qm.vertPositions, face.vertIdxs[1*2] );
 	}else{
 		//for( let i = 0; i < face.uvs.length; i += 2 )
 			//face.uvs[1] += 1; //signifiy triangle intersected
@@ -436,37 +447,39 @@ function OCN_GetHeightAtMapPosition( x, y ){
 
 function OCN_Update( ocn, rb3D, time, boatHeading ){
 
-	let vertPositns = ocn.quadmesh.vertPositions;
+	let qm = ocn.model.quadmesh;
+
+	let vertPositns = qm.vertPositions;
 	//let uvs         = ocn.quadmesh.uvs;
-	let norms       = ocn.vertNormals;
+	let norms       = qm.vertNormals;
 	let indx = 0;
 
 	OCN_UpdateSubDiv( time, vertPositns, norms, 0, OCN_NUM_LVLS );
 
-	ocn.quadmesh.materialHasntDrawn[0] = true; //re run the tesselate function (QM_SL_GenerateDrawVertsNormsUVsForMat) in RastB_PrepareBatchToDraw
-	ocn.quadmesh.isAnimated = true;
+	ocn.model.materialHasntDrawn[0] = true; //re run the tesselate function (QM_SL_GenerateDrawVertsNormsUVsForMat) in RastB_PrepareBatchToDraw
+	ocn.model.isAnimated = true;
 
-	//Quat_FromZRot( ocn.quadmesh.rotation, boatHeading );
-	ocn.quadmesh.origin[2] = 0.5;//-4; //move water surface down 4 units
-	//ocn.quadmesh.origin[0] = boatPosOffset[0]; //move water surface sideways under center of boat
-	//ocn.quadmesh.origin[1] = boatPosOffset[1];
-	ocn.quadmesh.origin[0] = boatMapPosition[0];
-	ocn.quadmesh.origin[1] = boatMapPosition[1];
-	ocn.quadmesh.scale = [0.5,0.5,0.5];
+	//Quat_FromZRot( qm.rotation, boatHeading );
+	ocn.model.origin[2] = 0.5;//-4; //move water surface down 4 units
+	//ocn.model.origin[0] = boatPosOffset[0]; //move water surface sideways under center of boat
+	//ocn.model.origin[1] = boatPosOffset[1];
+	ocn.model.origin[0] = boatMapPosition[0];
+	ocn.model.origin[1] = boatMapPosition[1];
+	ocn.model.scale = [0.5,0.5,0.5];
 	
 	
-	QM_Update( ocn.quadmesh, time ); //generate toWorld and wrldToLclMats
+	MDL_Update( ocn.model, time ); //generate toWorld and wrldToLclMats
 
-	rb3D.objs[ ocn.uid.val ] = ocn;
+	rb3D.mdls[ ocn.model.uid.val ] = ocn.model;
 	
 	/*
 	//qm.scale, qm.rotation, qm.origin
 
-	Matrix_SetEulerRotate( ocn.quadmesh.toWorldMatrix, [0,0,boatHeading] );
-	ocn.quadmesh.toWorldMatrix[4*2+3] = -4; //move water surface down 4 units
+	Matrix_SetEulerRotate( qm.toWorldMatrix, [0,0,boatHeading] );
+	qm.toWorldMatrix[4*2+3] = -4; //move water surface down 4 units
 	
-	ocn.quadmesh.toWorldMatrix[4*0+3] = boatPosOffset[0]; //move water surface sideways under center of boat
-	ocn.quadmesh.toWorldMatrix[4*1+3] = boatPosOffset[1];
+	qm.toWorldMatrix[4*0+3] = boatPosOffset[0]; //move water surface sideways under center of boat
+	qm.toWorldMatrix[4*1+3] = boatPosOffset[1];
 	*/
 	
 }

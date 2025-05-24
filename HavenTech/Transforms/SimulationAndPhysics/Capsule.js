@@ -50,7 +50,8 @@ function Capsule(){
 	this.BoundsColisPosGivenNormalAndTime = function( colisPos, thisS, thisD, thisR, colisNorm, colisTime ){
 		//advance the center of the obj to the time of colision
 		let thisCenterRay = new Ray( thisS, thisD );
-		thisCenterRay.PointAtTime( colisPos, colisTime );
+		RayPointAtTime(colisPos, thisCenterRay.origin, thisCenterRay.norm, colisTime);
+		//thisCenterRay.PointAtTime( colisPos, colisTime );
 		
 		//use the opposite bounds normal to get the surface position of the obj colision
 		Vect3_Copy( negColisNorm, colisNorm );

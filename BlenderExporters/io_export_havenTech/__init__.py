@@ -66,12 +66,12 @@ def ObjsOverlapInAllAxies( ob1Min, ob1Max, ob2Min, ob2Max ):
 
 Max_Node_Objects = 5
 class OctTreeNode( ): #I think here is where classes to derive from are placed
-    
+
     objects  = [] #the objects in this node sorted by position on the axis
     #of the node
     minNode = None #if this node subdivides  the x axis
     maxNode = None #then the subnodes divide the y, etc
-    
+
     #here is where constructor inputs are placed
     def __init__(self, nmin, nmax, axis):
         prPurple("oct tree node init" + str(nmin) + " : " + str(nmax) + str(axis) )
@@ -79,12 +79,12 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
         self.min  = nmin
         self.max  = nmax
         self.mid  = AveragePts( self.min, self.max )
-    
+
     def GetGreatestObjectLimit(self):
         return self.objects[-1].aabbMax[self.axis]
     def GetLeastObjectLimit(self):
         return self.objects[0].aabbMin[self.axis]
-    
+
     #check if there are overlaps with already added objects
     #if not check if should subdivide ( max objects added to node )
     def AddObject( self, obj ):
@@ -128,9 +128,9 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
             self.objects.insert( -1, obj )
             prGreen( "added object" )
             return
-            
+
         prLightPurple("there are too many objects in the node")
-        
+
         if( obj.aabbMin[self.axis] > self.mid[self.axis] ):
             prLightPurple("the object goes in the maxNode")
             if( self.maxNode == None ):
@@ -149,11 +149,11 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
             prLightPurple("check for overlaps in the max node")
             if( self.maxNode.checkOverlap( obj.aabbMin, obj.aabbMax ) ):
                 return False
-                
+
             #it overlaps the midpoint but not any objects, therefore
             #move the midpoint to halfway between the object max or min
             #and the next object in the min or max nodes
-            
+
             #since it doesn't overlap with any objects
             prLightPurple("shift the midpoint between the min and max nodes")
             prLightPurple("to add new object to one of them")
@@ -161,7 +161,7 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
             minNumObjects = self.minNode.NumObjects()
             maxLeast    = self.maxNode.GetLeastObjectLimit(    self.axis )
             maxNumObjects = self.maxNode.NumObjects()
-            
+
             #prefer the node with the least number of objects to place the
             #new object into
             if( minNumObjects < maxNumObjects ):
@@ -176,9 +176,9 @@ class OctTreeNode( ): #I think here is where classes to derive from are placed
                 self.maxNode.min[self.axis+1] = newMidPoint
                 self.maxNode.mid = AveragePts( self.maxNode.min + self.maxNode.max ) / 2
                 self.maxNode.AddObject( obj )
-            
-            
-            
+
+
+
 #component axis seperated occupancy linked lists for checking 
 #there aren't overlapping
 #objects (inserted into and checked with binary search)
@@ -204,7 +204,7 @@ class TreeObj():
 def writeScene(path):
     """Write a HavenTech scene file, and mesh, animation, light, and camera
     files for each of the items in the scene recognized by HavenTech"""
-    
+
     rootNode = OctTreeNode( [-100000, -100000, -100000 ], [100000, 100000, 100000 ], 0 )
 
     #get the haventech asset directory
@@ -221,7 +221,7 @@ def writeScene(path):
     if(sceneName == ""):
         sceneName = "NoName"
     sceneFileName = assetDirectory+"/scenes/"+sceneName+".hvtScene"
-    
+
     print( "sceneFileName %s" % (sceneFileName) )
 
     #make a directory structure for the scene
@@ -245,20 +245,20 @@ def writeScene(path):
 
     #get the current scene
     sce = bpy.data.scenes[0]#.active
-    
+
     xAxisOcupiedRegions = []
     yAxisOcupiedRegions = []
     zAxisOcupiedRegions = []
-    
+
     mshCt  = 0
     lghtCt = 0
     camCt  = 0
     armCt  = 0
     wMin = vec3NewScalar(  9999999 )
     wMax = vec3NewScalar( -9999999 )
-    
+
     depsGraph = bpy.context.evaluated_depsgraph_get() #objects with modifiers applied
-    
+
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
         obj = sce.objects[i]
@@ -278,24 +278,31 @@ def writeScene(path):
         #very slow compared to num rays * log ( num objects ) => 
         #1,000,000 * log(1,000,000) => 6,000,000
         #it would be 1,000,000 times lower frame rate
-        
+
+        try:
+         dObj = depsGraph.objects[obj.name]
+        except:
+        	print( "obj %s not in deps graph (likely not visible) \n" % (obj.name) )
+        	continue
+
+
         ipoFileName = writeObjectAnimationData(sceneDirectory, obj)
-        
+
         if obj.type == 'ARMATURE':
-            out.write( 'a %s\n' % (obj.name) )
+            out.write( 'a %s\n\n' % (obj.name) )
             mAABBws = writeArmature(sceneDirectory, obj)
             armCt += 1
         if obj.type == 'MESH':
-            out.write( 'm %s\n' % (obj.name) )
             print( 'idx %i mesh %s' % (i, obj.name) )
-            mAABBws = writeModel(sceneDirectory, obj, ipoFileName, depsGraph) #world space aabb
+            out.write( 'm %s\n' % (obj.name) )
+            mAABBws = writeModel(out, sceneDirectory, obj, ipoFileName, depsGraph) #world space aabb
             print( 'AABB %s' % mAABBws )
             if mAABBws == None:
                 print( 'Mesh object %s not exportable (AABB not returned)' % \
                     obj.name )
                 break
             else:
-                out.write( 'baabb %f %f %f  %f %f %f\n' % \
+                out.write( 'maabb %f %f %f  %f %f %f\n' % \
                     (mAABBws[0][0], mAABBws[0][1], mAABBws[0][2], 
                      mAABBws[1][0], mAABBws[1][1], mAABBws[1][2]) )
                 aabbMin = mAABBws[0]
@@ -311,12 +318,6 @@ def writeScene(path):
             #AddOccupiedRegion( AABB[0], AABB[3], 0 )
             #AddOccupideRegion( AABB[1], AABB[4], 1 )
             #AddOccupiedRegion( AABB[2], AABB[5], 2 )
-            out.write( 'mloc %f %f %f \n' % \
-                 (obj.location[0], obj.location[1], obj.location[2]))
-            out.write( 'mrot %f %f %f \n' % \
-                 (obj.rotation_euler[0], \
-                  obj.rotation_euler[1], \
-                  obj.rotation_euler[2]))
             mshCt += 1
             out.write( 'mEnd\n\n' )
         if obj.type == 'LIGHT':
@@ -347,11 +348,11 @@ def writeScene(path):
             out.write( 'cEnd\n\n' )
             vec3Min( wMin, obj.location )
             vec3Max( wMax, obj.location )
-        
+
         print(" ") #console output line break between objects
-    
+
     #write out the active camera
-    sceCamName = str( 'ac %s\n' % sce.camera.name )
+    sceCamName = str( 'ac %s\n\n' % sce.camera.name )
     out.write(sceCamName)
     print(sceCamName)
     sceStats = str('sceStats objs %i lghts %i cams %i armatures %i\nsceAABB %f %f %f  %f %f %f\nsceEnd' % 
@@ -360,8 +361,8 @@ def writeScene(path):
     print( sceStats )
     #close the output file
     out.close()
-    
-    
+
+
     #Blender.Draw.PupMenu('Success%t| Successfully wrote scene file: ' \
     #                                                           + sceneName)
 
@@ -390,7 +391,7 @@ class ExportHVTScene(bpy.types.Operator, ExportHelper):
             description="Write out an OBJ for each frame",
             default=False,
             )
-            
+
     def execute(self, context):
         print(str(context))
         """
@@ -411,7 +412,7 @@ class ExportHVTScene(bpy.types.Operator, ExportHelper):
         """
         writeScene(self.filepath)
         return {'FINISHED'}
-            
+
     def draw(self, context):
         pass
 
@@ -429,7 +430,7 @@ bl_info = \
     "category": "Export"
 }
 
-   
+
 classes = (
     ExportHVTScene,
 )
@@ -442,7 +443,7 @@ if "bpy" in locals():
 
 def menu_func_export(self, context):
     self.layout.operator(ExportHVTScene.bl_idname, text="HVT Export (.hvtscene)")
-    
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)

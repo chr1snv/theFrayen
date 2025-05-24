@@ -25,7 +25,7 @@
 
 
 
-function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, sceneMin, sceneMax ){
+function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, sceneMin, sceneMax, physNode=null ){
 
 	this.sceneLoadedCallback = sceneLoadedCallback;
 
@@ -34,15 +34,22 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 
 	this.ambientColor = Vect3_NewVals(0.05, 0.05, 0.1); 
 
-	//will likely be removed since stored in oct tree and a per scene
-	//array of objects may become very big
-	this.models    = {};
+	//dictionary/arrays of objects may become very big also stored in oct tree
+	this.modelNames = {}; //would be nice to avoid this, though needed by regatta and other per scene logic to access loaded models
+	this.models    = {}; //models stored by uid, maybe not used
 	this.lights    = new Array(8);
 	this.numLights = 0;
 	this.cameras   = [];
 	this.armatures = [];
 
-	this.pendingObjsToLoad = {};
+	this.pendingModelsToLoad = {};
+	
+	this.pendingModelsToAdd		= 0;
+	this.pendingLghtsToAdd 		= 0;
+	this.pendingCamsToAdd 		= 0;
+	this.pendingArmaturesToAdd 	= 0;
+
+	this.pendingObjsToAdd = 0;
 
 	this.boneMatTexture = null;
 
@@ -67,7 +74,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 
 	this.scnId = SceneNameToId( this.sceneName );
 
-	this.pendingObjsAdded = 0;
+
 
 	if( !createEmptyScene ){
 		//load from file constructor functionality begin asynchronous fetch of scene description
@@ -77,9 +84,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 		//initially empty programatically / runtime added to / generated scene
 		//"HVNSC_createEmptyScene(this);" (if this were a function)
 
-		this.modelNames = {};
-
-		this.octTree = new TreeNode( sceneMin, sceneMax, null );
+		this.octTree = new TreeNode( sceneMin, sceneMax, null, physNode );
 		this.octTree.name = this.sceneName + " scene";
 
 		let camArgs = [ '', 90, 0.1, 100, [0,0,0], [0,0,0] ];
@@ -119,7 +124,7 @@ let frus_temp3Remap = Vect_New(3);
 
 
 let treeNodesInFrame = new Map();
-function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris, rastB3DLines ){
+function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris, rastB3DLines, simPhys=false ){
 
 	if(!CheckIsValidFor( hvnsc, 'Update' ) )
 		return;
@@ -144,7 +149,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 //			}
 			//}
 			//DTPrintf("=====detect colis " + time.toPrecision(3), "loop");
-			TND_ApplyExternAccelAndDetectCollisions(node, time);
+			TND_ApplyExternAffectsAndDetectCollisions(node, time);
 			//DTPrintf("=====link graphs " + time.toPrecision(3), "loop");
 			TND_LinkPhysGraphs(node, time);
 			TND_AppyInterpenOffset(node, time);
@@ -163,12 +168,11 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 					TND_AppyInterpenOffset(node, time);
 				}
 			}
-			//DTPrintf( "===update " + time.toPrecision(3), "loop" );
-			TND_Update(node, time);
-
 		}
+		//DTPrintf( "===update " + time.toPrecision(3), "loop" );
+		TND_Update(node, time);
 
-		TND_addObjsAndArmaturesInNodeToRasterBatch( rastB3DTris.objs, rastB3DTris.armatureDict, node );
+		TND_addMdlsAndArmaturesInNodeToRasterBatch( rastB3DTris.mdls, rastB3DTris.armatureDict, node );
 	}
 	//DTPrintf( "treeNodesInFrame size " + treeNodesInFrame.size, "hvnsc debug", "color:white", 0 );
 
@@ -234,18 +238,31 @@ function HVNSC_HitModel(hvnsc, screenCoords){
 
 //check if finished asynchronously loading the scene
 function HVNSC_checkIfIsLoaded(hvnsc){
-	if( hvnsc.pendingObjsAdded <= 5 ){
-		DTPrintf("models left to load " + hvnsc.pendingObjsAdded, "hvnsc ld" );
-		//let notYetLoadedObjsStr = '';
-		//let objsToLoad = Object.keys(hvnsc.pendingObjsToLoad);
-		//for( let i = 0; i < objsToLoad.length; ++i )
-		//	notYetLoadedObjsStr += objsToLoad[i] + ' ' + objsToLoad[i].quadMesh + ' \n';
-		//DPrintf("not yet loaded models " + notYetLoadedObjsStr );
+	if( hvnsc.pendingObjsToAdd <= 5 ){
+		DTPrintf( hvnsc.sceneName + " left to load objs " + hvnsc.pendingObjsToAdd + 
+		" models " + hvnsc.pendingModelsToAdd +
+		" lghts " + hvnsc.pendingLghtsToAdd +
+		" cams " + hvnsc.pendingCamsToAdd +
+		" armatures " + hvnsc.pendingArmaturesToAdd
+		, "hvnsc ld" );
+
+		let notYetLoadedObjsStr = '';
+		let objsToLoad = Object.keys(hvnsc.pendingModelsToLoad);
+		for( let i = 0; i < objsToLoad.length; ++i ){
+			notYetLoadedObjsStr += objsToLoad[i] + ' : ';
+			let qm = hvnsc.pendingModelsToLoad[objsToLoad[i]].quadmesh;
+			if( qm )
+				notYetLoadedObjsStr += qm.meshName;
+			else
+				notYetLoadedObjsStr += 'null';
+			notYetLoadedObjsStr += ' \n';
+		}
+		DPrintf("not yet loaded models : meshes " + notYetLoadedObjsStr );
 	}
 
-	if( hvnsc.pendingObjsAdded <= 0 ){
+	if( hvnsc.pendingObjsToAdd <= 0 ){ //finish setup of scene
 
-		//look up and set its index
+		//look up (find) the camera and set its index
 		for(let j=0; j<hvnsc.cameras.length; ++j){
 			if(hvnsc.cameras[j].cameraName == hvnsc.activeCamera){
 				hvnsc.activeCameraIdx = j;
@@ -254,8 +271,14 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 			}
 		}
 
-		//allocate the float texture for armatures (does nothing if( skelAnims.length < 1 ) )
-		SkelA_AllocateBatchBoneMatTexture(hvnsc.armatures, hvnsc);
+
+		if( hvnsc.octTree.physNode ){
+			//init the physical world bounds
+			//let worldBoundsAABB = new AABB( worldMin, worldMax );
+			//worldBoundsObj = { linVel:[0,0,0], AABB:worldBoundsAABB }
+			let boundThickness = 0.1 * hvnsc.octTree.AABB.diagLen;
+			hvnsc.octTree.boundsObjs = CreateBoundsObjs( hvnsc.octTree.AABB.minCoord, hvnsc.octTree.AABB.maxCoord, boundThickness );
+		}
 
 		//HVNSC_Update( hvnsc, 0.0 ); //init animated objs
 		hvnsc.isValid = true;
@@ -264,27 +287,39 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 	}
 }
 
-function HVNSC_FinishAddingLoadedModelToProgramaticScene(hvnsc, mdl){
-	HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl);
-	hvnsc.modelNames[mdl.modelName] = mdl;
-}
 
 function HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl){
 	MDL_Update( mdl, 0 ); //update to generate AABB
-	MDL_AddToOctTree( mdl, hvnsc.octTree );
-	hvnsc.models[mdl.uid.val] = mdl;
-	delete hvnsc.pendingObjsToLoad[mdl.modelName];
+	hvnsc.modelNames[mdl.modelName] = mdl;
+	if( MDL_AddToOctTree( mdl, hvnsc.octTree ) ){
+		hvnsc.models[mdl.uid.val] = mdl;
+		delete hvnsc.pendingModelsToLoad[mdl.modelName];
+		hvnsc.pendingModelsToAdd -= 1;
+	}
 }
 
+
 function HVNSC_ObjLoadedCallback(obj, hvnsc){
-	statusElm.innerHTML = "Loading " + hvnsc.pendingObjsAdded + " Objs";
-	hvnsc.pendingObjsAdded-=1;
+	if(hvnsc.pendingObjsToAdd == 2){
+		console.log("stuck");
+		let objNamesRemainingToLoad = Object.keys( hvnsc.pendingModelsToLoad );
+		let remObjsStr = '';
+		for( let i = 0; i < objNamesRemainingToLoad.length; ++i )
+			remObjsStr += objNamesRemainingToLoad[i] + ' ';
+		console.log(hvnsc.sceneName + " stuck remaining objs " + remObjsStr + " remMdls " + hvnsc.pendingModelsToAdd + " remCams " + hvnsc.pendingCamsToAdd + " remLghts " + hvnsc.pendingLghtsToAdd + " remArmatures " + hvnsc.pendingArmaturesToAdd );
+	}
+	statusElm.innerHTML = "Loading " + hvnsc.pendingObjsToAdd + " Objs";
+	hvnsc.pendingObjsToAdd-=1;
 	if( obj.constructor.name == Camera.name ){
 		hvnsc.cameras[hvnsc.camInsertIdx++] = obj;
+		hvnsc.pendingCamsToAdd -= 1;
 	}else if( obj.constructor.name == Model.name ){
 		HVNSC_FinishAddingLoadedModelToScene(hvnsc, obj);
 	}else if( obj.constructor.name == SkeletalAnimation.name ){
 		hvnsc.armatures[hvnsc.armatureInsertIdx++] = obj;
+		hvnsc.pendingArmaturesToAdd -= 1;
+	}else if( obj.constructor.name == Light.name ){
+		hvnsc.pendingLghtsToAdd -= 1;
 	}
 	HVNSC_checkIfIsLoaded(hvnsc);
 }
@@ -307,14 +342,16 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		parseFloat( sceneAABBDimTxt[7] ) );
 	hvnsc.octTree = new TreeNode( sceneMin, sceneMax, null );
 	hvnsc.octTree.name = hvnsc.sceneName + " scene";
-	
+
 	let sceneObjLghtCamCtTxt = textFileLines[revStartIdx-2].split(' ');
-	let numObjs		 = parseInt( sceneObjLghtCamCtTxt[2] );
+	let numMdls		 = parseInt( sceneObjLghtCamCtTxt[2] );
 	let numLghts	 = parseInt( sceneObjLghtCamCtTxt[4] );
 	let numCams		 = parseInt( sceneObjLghtCamCtTxt[6] );
 	let numArmatures = parseInt( sceneObjLghtCamCtTxt[8] );
 
-	hvnsc.pendingObjsAdded = numObjs + numCams + numArmatures + 1;
+	hvnsc.pendingLghtsToAdd = numLghts;
+
+	hvnsc.pendingObjsToAdd = numMdls + numLghts + numCams + numArmatures + 1;
 
 	hvnsc.cameras = new Array(numCams);
 	hvnsc.camInsertIdx = 0;
@@ -322,25 +359,27 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	hvnsc.armatureInsertIdx = 0;
 
 	//per obj vars while parsing
-	let scneObjName = '';
-	let mdlMeshName = '';
-	let mAABB = null;
-	let mdlAABBmin = Vect3_NewZero();
-	let mdlAABBmax = Vect3_NewZero();
-	let mdlLoc = Vect3_NewZero();
-	let mdlRot = Vect3_NewZero();
+	let scneObjName			= '';
+	let mdlMeshName			= '';
+	let mdlArmName			= '';
+	let mdlIpoName			= '';
+	let mdlMaterialNames	= [];
+	let mAABB				= null;
+	let mdlAABBmin			= Vect3_NewZero();
+	let mdlAABBmax			= Vect3_NewZero();
+	let mdlLoc				= Vect3_NewZero();
+	let mdlRot				= Quat_New();
+	let mdlScl				= Vect3_NewZero();
 
-	let armatureName = '';
+	let lcol		= Vect3_NewZero();
+	let lenrg		= 0;
+	let lspotsz		= 0;
+	let lanim		= '';
 
-	let lcol = Vect3_NewZero();
-	let lenrg = 0;
-	let lspotsz = 0;
-	let lanim = '';
-
-	let camAng = 0;
-	let camStart = 0;
-	let camEnd = 0;
-	let camIpoName = '';
+	let camAng		= 0;
+	let camStart	= 0;
+	let camEnd		= 0;
+	let camIpoName	= '';
 
 	let txtNumLines = textFileLines.length;
 	for( let i = 0; i<txtNumLines; ++i )
@@ -351,35 +390,58 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		if(txtLineParts[0] == 'm' ){ //this is a model to be read in 
 		//(load the model and then append it to the scenegraph)
 			scneObjName = txtLineParts[1];
-			mdlMeshName = scneObjName;
+		}
+		else if(txtLineParts[0] == 'mMeshName'){
+			mdlMeshName = txtLineParts[1];
+		}else if(txtLineParts[0] == 'mArmName'){
+			mdlArmName = txtLineParts[1];
+		}else if(txtLineParts[0] == 'mIpoName'){
+			mdlIpoName = txtLineParts[1];
 		}else if( txtLineParts[0] == 'maabb' ){
-			Vect3_parse( mdlAABBmin, txtLineParts, 3 );
-			Vect3_parse( mdlAABBmax, txtLineParts, 7 );
-			
+			Vect3_parse( mdlAABBmin, txtLineParts, 1 );
+			Vect3_parse( mdlAABBmax, txtLineParts, 5 );
+
 			//try to read in an AABB from the model description line
 			//if there aren't values set the not a number flag
-			
 			if( !Vect3_containsNaN( mdlAABBmin ) && !Vect3_containsNaN( mdlAABBmax ) )
 				mAABB = new AABB( mdlAABBmin, mdlAABBmax );
-				
+
 		}else if( txtLineParts[0] == 'mloc' ){
 			Vect3_parse( mdlLoc, txtLineParts, 1 );
 		}else if( txtLineParts[0] == 'mrot' ){
-			Vect3_parse( mdlRot, txtLineParts, 1 );
+			Vect_parse( mdlRot, 4, txtLineParts, 1 );
+		}else if( txtLineParts[0] == 'mscl' ){
+			Vect3_parse( mdlScl, txtLineParts, 1 );
+		}else if( txtLineParts[0] == 'mMat' ){
+			mdlMaterialNames.push( txtLineParts[1] );
 		}else if( txtLineParts[0] == 'mEnd' ){
-			
+
 			//compared in check if is loaded
 			//to check if all models have finished loading
-			newMdl    = new Model( scneObjName, mdlMeshName, 
-					        hvnsc.sceneName, mAABB, hvnsc, HVNSC_ObjLoadedCallback );
-			hvnsc.pendingObjsToLoad[scneObjName] = newMdl;
-			
+			newMdl    = new Model( scneObjName, mdlMeshName, mdlArmName, mdlIpoName, mdlMaterialNames,
+					        hvnsc.sceneName, mAABB, mdlLoc, mdlRot, mdlScl, hvnsc, HVNSC_ObjLoadedCallback );
+			hvnsc.pendingModelsToLoad[scneObjName] = newMdl;
+			hvnsc.pendingModelsToAdd += 1;
+
+			//reset inputs for next model (incase some are not specified)
+			mdlMeshName			= '';
+			mdlArmName			= '';
+			mdlIpoName			= '';
+			mdlMaterialNames	= [];
+			mAABB				= null;
+			mdlAABBmin			= Vect3_NewZero();
+			mdlAABBmax			= Vect3_NewZero();
+			mdlLoc				= Vect3_NewZero();
+			mdlRot				= Quat_New();
+			mdlScl				= Vect3_NewZero();
+
 		}
 
 		else if( txtLineParts[0] == 'a' ){ //this is an armature to be read in
 			GRPH_GetCached( txtLineParts[1], hvnsc.sceneName, SkeletalAnimation, 
 				null,
 				HVNSC_ObjLoadedCallback, hvnsc );
+			hvnsc.pendingArmaturesToAdd += 1;
 		}
 
 
@@ -409,6 +471,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			hvnsc.lights[hvnsc.numLights++] = 
 				new Light(scneObjName, hvnsc.sceneName, 
 					lcol, lenrg, lampType, mdlLoc, mdlRot, lspotsz, lanim);
+			hvnsc.pendingLghtsToAdd -= 1;
+			hvnsc.pendingObjsToAdd -= 1;
 		}
 
 		//this is a camera to be read in
@@ -430,15 +494,15 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 
 			GRPH_GetCached(scneObjName, hvnsc.sceneName, Camera, 
 				[camIpoName, camAng, camStart, camEnd, mdlLoc, mdlRot], HVNSC_ObjLoadedCallback, hvnsc);
+			hvnsc.pendingCamsToAdd += 1;
 		}
 		//this is the name of the active camera to be read in
-		else if( txtLineParts[0] == 'ac' )
-		{
+		else if( txtLineParts[0] == 'ac' ){
 			hvnsc.activeCamera = txtLineParts[1];
 		}
 	}
 
-	--hvnsc.pendingObjsAdded;
+	--hvnsc.pendingObjsToAdd; //-1 for the scene file being read in
 	HVNSC_checkIfIsLoaded(hvnsc);
 }
 
@@ -446,7 +510,7 @@ function HVNSC_textFileLoadedCallback(txtFile, thisP)
 //called after scene description text file has been fetched
 {
 	let textFileLines = txtFile.split("\n");
-	
+
 	//begin loading the scene from text file
 	HVNSC_parseSceneTextFile( thisP, textFileLines );
 }

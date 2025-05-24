@@ -260,6 +260,12 @@ function Vect3_minMaxFromArr( m, M, arr, i ){
 	M[2] = M[2] > arr[i+2] ? M[2] : arr[i+2];
 }
 
+function Vect_parse( v, len, lnPrts, sIdx ){
+	for( let i = 0; i < len; ++i ){
+		v[i] = parseFloat( lnPrts[sIdx+i] );
+	}
+}
+
 function Vect3_parse( v, lnPrts, sIdx ){
 	v[0] = parseFloat( lnPrts[sIdx] );
 	v[1] = parseFloat( lnPrts[sIdx+1] );
