@@ -98,6 +98,7 @@ function StartSoundInput(){
 			amCtx = new AudioContext({sampleRate: micSampleRate});
 		else
 			amCtx = aCtx; //don't need to make a new context because it's the same sample rate
+		document.getElementById("soundInputShowGraphButton").style.display="";
 	}
 
 	//need to recreate nodes (script processor) for each audio context
@@ -418,6 +419,14 @@ function logMelFreqBinToDispVertCoord( bin, maxLogMelBin, maxY ){
 	return ( Math.sqrt(bin) * maxY ) / Math.sqrt(maxLogMelBin);
 }
 
+function ShowSoundInputGraph(showGraphButtonElm){
+	drawMicInputGraph = !drawMicInputGraph;
+	if( drawMicInputGraph )
+		showGraphButtonElm.textContent = "Hide Sound Input Graph";
+	else
+		showGraphButtonElm.textContent = "Show Sound Input Graph";
+}
+
 let spectCanvasElm = document.getElementById('spectInputVisCanvas');
 let svCtx = spectCanvasElm.getContext('2d');
 let horizIdx = 0;
@@ -428,7 +437,7 @@ let lastMicInputDisplayUpdateTime = 0;
 let drawMicInputGraph = false;
 let micInputGraph = new Graph("micInput");
 function updateMicInputSpectrogramDisplay(time){
-	if( keysDown[keyCodes.KEY_G] ) 
+	if( keysDown[keyCodes.KEY_G] )
 		drawMicInputGraph = !drawMicInputGraph;
 
 	let dT = time - lastMicInputDisplayUpdateTime;

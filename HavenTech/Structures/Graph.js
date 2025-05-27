@@ -54,33 +54,38 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 	//draw the graph entries
 
 	//breadth first traverse graph from the activeEntry
-	let travDepth = 0;
-	let travSpan = 0;
+	let travDepth = 0; //depth of the traversal iteration
 	let dpthObjs = new Array(1);
 	if( gph.activeEntry ){ //use the selected entry to start drawing the graph
-		dpthObjs[0] = gph.activeEntry;
-	}else{ //
+		dpthObjs[0] = [null,gph.activeEntry];
+	}else{ //no object selected get some objects from the entries dictionary to draw
 		dpthObjs = Object.entries( gph.graphEntries );
 		if( dpthObjs.length < 1 ){
 			travDepth = gph.drawMaxDepth; //don't try to traverse if graph is empty
 		}
-	}	
+	}
 	while( travDepth < gph.drawMaxDepth ){
 		let nextDpthObjs = new Array();
 
 		for( let j = 0; j < dpthObjs.length && j < gph.drawMaxSpanPerEntry; ++j ){
-			let travEntry = dpthObjs[j];
-			if( travEntry == null )
+			let LinkEntryPair = dpthObjs[j];
+			let objLinkedFrom = LinkEntryPair[0];
+			let entry         = LinkEntryPair[1];
+			if( entry == null )
 				break;
 
-			//add the entry to the scene if not added already
-			GRPH_AddEntryToScene( travEntry, gph.havenScene );
+			if( objLinkedFrom ){ //draw the link
+				GRPH_AddLinkToScene( objLinkedFrom, entry, gph.havenScene );
+			}
 
-			//breadth first gather next depth objects from links from the travEntry
-			let travLinkEntries = Object.entries(travEntry.links);
+			//add the entry to the scene if not added already
+			GRPH_AddEntryToScene( entry, gph.havenScene );
+
+			//breadth first gather next depth objects from links from the entry
+			let travLinkEntries = Object.entries(entry.links);
 			for ( let i = 0; i < travLinkEntries.length && i < gph.drawMaxSpanPerEntry; ++i ) {
 				const [key, value] = travLinkEntries[i];
-				nextDpthObjs.push( value.target );
+				nextDpthObjs.push( [entry, value.target] );
 			}
 
 		}
@@ -95,7 +100,7 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 }
 
 let lastGraphVisInsertPosition = [0,0,0];
-function GRPH_modelLoadedCb(model, cbData){
+function GRPH_modelLoadedCb( model, cbData ){
 	let hvnSc = cbData;
 
 	Vect3_Copy( model.origin, lastGraphVisInsertPosition );
@@ -112,7 +117,7 @@ function GRPH_modelLoadedCb(model, cbData){
 	//Quat_LookAt( cam.userRotation, model.quadmesh.origin, cam.userPosition );
 	Quat_FromXRot( cam.userRotation, -blndrToCubMapEulerRot[0] ); //Math.PI/2 );
 	//Matrix_SetEulerRotate( blndrToCubeMapRotMat, blndrToCubMapEulerRot );
-	
+
 	lastGraphVisInsertPosition[0] += 4;
 }
 
@@ -132,6 +137,22 @@ function GRPH_AddEntryToScene(gphEntry, hvnSc){
 
 }
 
+function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
+	let name = "lnk:"+objLinkedFrom.val+":"+entry.val;
+
+	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
+	if( hvnSc.modelNames[name] == undefined && hvnSc.pendingModelsToLoad[name] == undefined ){
+
+		let entryMdl = new Model( nameIn=name, meshNameIn='gphDefaultLinkMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
+								  sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+								  locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+								  modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=false );
+
+		hvnSc.pendingModelsToLoad[name] = entryMdl;
+		//create models for the links/lines to other concepts
+	}
+}
+
 
 //draws the scene
 function GRPH_Draw(gph, rastB, time){
@@ -145,14 +166,14 @@ function GRPH_Draw(gph, rastB, time){
 	rastB.camWorldPos = cam.camTranslation;
 
 
-	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( gph.havenScene, time, rastB, null, true );
+	HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( gph.havenScene, time, rastB, rastB3DLines=null, simPhys=true );
 	rastB.activeForFrame = true;
-	
+
 	FlyingCameraControlInput( time, camToUpdate=gph.havenScene.cameras[0] );
 
 	//hvnSc.models[gphEntry.val]
-	
-	
+
+
 	//if objects in havenscene have been out of view for too long
 	//and their are too many dormant objects then remove them
 

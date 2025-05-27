@@ -596,41 +596,47 @@ let lastUpdateCameraTime = 0;
 let updateCameraTimeDelta = 0;
 function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 	//default camera input
-	
+
 	if( camToUpdate == undefined )
 		return;
 
 	updateCameraTimeDelta = updateTime - lastUpdateCameraTime;
 
-	//generate the position update
+	Vect3_SetScalar( camPositionUpdate, 0 );
+	Vect3_SetScalar( camRotDelEuler, 0 );
+
+	//position (left right, forward back)
 	let moveOffset = moveAmt;
 	if( keys[keyCodes.SHIFT] == true ) //times 5 movement speed if shift is held
 		moveOffset *= 5;
-	camPositionUpdate[0] = 0; camPositionUpdate[1] = 0; camPositionUpdate[2] = 0;
-	if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
-		camPositionUpdate[2] -= moveOffset;
-	if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
-		camPositionUpdate[2] += moveOffset;
-	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
-		camPositionUpdate[0] -= moveOffset;
-	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
-		camPositionUpdate[0] += moveOffset;
 	
+	if( keys[keyCodes.KEY_W] == true || keys[keyCodes.UP_ARROW] == true )
+		camPositionUpdate[2] -= moveOffset;									//keyboard
+	if( keys[keyCodes.KEY_S] == true || keys[keyCodes.DOWN_ARROW] == true )
+		camPositionUpdate[2] += moveOffset;									//keyboard
+	if( keys[keyCodes.KEY_A] == true || keys[keyCodes.LEFT_ARROW] == true )
+		camPositionUpdate[0] -= moveOffset;									//keyboard
+	if( keys[keyCodes.KEY_D] == true || keys[keyCodes.RIGHT_ARROW] == true )
+		camPositionUpdate[0] += moveOffset;									//keyboard
+
+	camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;		//touch
+	camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;		//touch
+
+	//position (up down)
 	if( keys[keyCodes.KEY_R] == true )
-		camPositionUpdate[1] += moveOffset;
+		camPositionUpdate[1] += moveOffset; 								//keyboard
 	if( keys[keyCodes.KEY_F] == true )
-		camPositionUpdate[1] -= moveOffset;
-
-		camPositionUpdate[0] += touch.movementDelta[0]*touchMoveSenValue;
-		camPositionUpdate[2] += touch.movementDelta[1]*touchMoveSenValue;
+		camPositionUpdate[1] -= moveOffset;									//keyboard
+	camPositionUpdate[1] -= touch.upDownDelta*touchMoveSenValue;			//touch
 
 
-	//generate the rotation update
+	//rotation (left right , up down )
 
 	if( mDown ){
 		if(document.pointerLockElement == null)
 			requestPointerLock();
 	}
+
 	relMx = mCoordDelta.x;//mCoords.x - mDownCoords.x;
 	relMy = mCoordDelta.y;//mCoords.y - mDownCoords.y;
 	//relMw = mCoordDelta.w;
@@ -640,9 +646,9 @@ function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 	mY += touch.lookDelta[1]*touchLookSenValue;
 	mW = touch.rollDelta*touchLookSenValue;
 
-	camRotDelEuler[0] = -mY*Math.PI/180;
-	camRotDelEuler[1] = -mX*Math.PI/180;
-	camRotDelEuler[2] = -mW*Math.PI/180;
+	camRotDelEuler[0] += -mY*Math.PI/180;
+	camRotDelEuler[1] += -mX*Math.PI/180;
+	camRotDelEuler[2] += -mW*Math.PI/180;
 	mCoordDelta.x = mCoordDelta.y = mCoordDelta.w = 0;
 
 	//roll the camera around it's forward axis
