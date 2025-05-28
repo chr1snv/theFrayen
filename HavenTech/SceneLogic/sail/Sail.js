@@ -135,7 +135,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 	rb2DTris.mdls[windIndc.uid.val] = windIndc;
 
 	if( ocean && ocean.ready ){
-		OCN_Update( ocean, rb3DTris_array[0], time, boatHeading );
+		OCN_Update( ocean, rb3DTris_array[0], time, boatHeading,sgMode == SailModes.Menu );
 		//need regatta scene camera update to draw ocean
 		rb3DTris_array[0].activeForFrame = true;
 	}

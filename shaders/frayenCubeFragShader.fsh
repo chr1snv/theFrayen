@@ -23,6 +23,4 @@ void main() {
 	//gl_FragColor.xyz = vec3(1.0, 0.0, 0.0);
 	//gl_FragColor.xyz += normPos;
 	gl_FragColor.a = 1.0;
-	
-
 }

@@ -30,9 +30,6 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
          this.texturingEnabled_fU_I1_1_Loc         = null;
          this.texturingEnabled_fU_I1_1             = uIdx++  + unifLocOffset;
 
-         this.cubeTexEnabled_fU_I1_1_Loc           = null;
-         this.cubeTexEnabled_fU_I1_1               = uIdx++  + unifLocOffset;
-
           this.lightingEnabled_fU_I1_1_Loc         = null;
           this.lightingEnabled_fU_I1_1             = uIdx++  + unifLocOffset;
 
@@ -50,8 +47,8 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
           this.emisAndAmbColor_fU_F3_1_Loc         = null;
           this.emisAndAmbColor_fU_F3_1             = uIdx++  + unifLocOffset;
 
-    this.specularAmtHrdnessExp_fU_F2_1_Loc         = null;
-    this.specularAmtHrdnessExp_fU_F2_1             = uIdx++  + unifLocOffset;
+    this.specularAmtRoughness_fU_F2_1_Loc          = null;
+    this.specularAmtRoughness_fU_F2_1              = uIdx++  + unifLocOffset;
 
                //this.screenDims_fU_F2_1_Loc         = null;
                //this.screenDims_fU_F2_1             = 7  + unifLocOffset;
@@ -108,15 +105,12 @@ function TRIG_LoadComp(triG){
          triG.texturingEnabled_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'texturingEnabled'        );
 
 
-         triG.cubeTexEnabled_fU_I1_1_Loc           = gl.getUniformLocation( triG.glProgram.glProgId, 'cubeTexEnabled' );
-         GLP_setUnif_I1( triG.glProgram, triG.cubeTexEnabled_fU_I1_1_Loc, triG.cubeTexEnabled_fU_I1_1, false );
-
 	//fragment shader color uniforms
 	        triG.difTexSampler_fU_TI_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'texSampler' );
                     triG.alpha_fU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'alpha'                   );
                   triG.diffCol_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'diffuseColor'            );
           triG.emisAndAmbColor_fU_F3_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'emissionAndAmbientColor' );
-    triG.specularAmtHrdnessExp_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'specularAmtHrdnessExp'   );
+    triG.specularAmtRoughness_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'specularAmtRoughness'   );
                //triG.screenDims_fU_F2_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'screenDims'              );
 	//fragment shader lighting uniforms
            triG.cubeTexSampler_fU_TI_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'cubeTexSampler' );
@@ -358,9 +352,11 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 		GLP_setUnif_F3( triG.glProgram,       triG.emisAndAmbColor_fU_F3_1_Loc,       triG.emisAndAmbColor_fU_F3_1,  buf.material.lumCol );
 	}else{
 		GLP_setUnif_I1( triG.glProgram,       triG.lightingEnabled_fU_I1_1_Loc,       triG.lightingEnabled_fU_I1_1,  1 );
-		GLP_setUnif_F2( triG.glProgram, triG.specularAmtHrdnessExp_fU_F2_1_Loc, triG.specularAmtHrdnessExp_fU_F2_1,  buf.material.specularAmtExponent );
+		GLP_setUnif_F2( triG.glProgram, triG.specularAmtRoughness_fU_F2_1_Loc, triG.specularAmtRoughness_fU_F2_1,  buf.material.specularAmtRoughness );
 		GLP_setUnif_F3( triG.glProgram,       triG.emisAndAmbColor_fU_F3_1_Loc,       triG.emisAndAmbColor_fU_F3_1,  triG.ambientColor );
 		GLP_setUnif_F1( triG.glProgram,    triG.subSurfaceExponent_fU_F1_1_Loc,    triG.subSurfaceExponent_fU_F2_1,   buf.material.subSurfaceExponent );
+
+
 	}
 
 

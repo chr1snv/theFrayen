@@ -5,7 +5,6 @@ precision highp float;
 
 //constant variables
 uniform bool      texturingEnabled;
-uniform bool      cubeTexEnabled;
 
 uniform sampler2D	texSampler;		//the diffuseTexture
 uniform samplerCube	cubeTexSampler;	//for reflection
@@ -14,7 +13,7 @@ uniform samplerCube	cubeTexSampler;	//for reflection
 uniform float     alpha;
 
 uniform vec3      diffuseColor;
-uniform vec2      specularAmtHrdnessExp;
+uniform vec2      specularAmtRoughness;
 
 uniform float     subSurfaceExponent;
 
@@ -38,9 +37,31 @@ varying vec3      worldSpaceFragPosition;
 varying vec3      normalVarying;//in vec3      normalVarying;
 varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
+/*
 float modI(float a,float b) {
 	float m=a-floor((a+0.5)/b)*b;
 	return floor(m+0.5);
+}
+*/
+
+vec4 diffuseAndSpecularLightContribution( float specularExpPow, vec3 lightPos, vec3 fragPosToCamVecUnit, vec4 diffuseAndAlphaCol, vec3 specularCol ){
+	//diffuse calculation
+	vec3 fragPosToLightVecUnit = normalize(lightPos-worldSpaceFragPosition);
+	float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
+	float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
+	vec4 retColContribution = vec4( diffuseAndAlphaCol.xyz * diffuseLightAmt, 0);
+
+
+	//specular calculation
+	vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
+	float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
+	float expVal = clamp(toCamLightAmt*specularAmtRoughness[0], 0.0, 1.0);
+	float specularLightAmt = pow( expVal, specularExpPow );
+	specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
+	retColContribution += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
+	//gl_FragColor = vec4(expVal,expPow,specularLightAmt,1);
+	
+	return retColContribution;
 }
 
 //out vec4 gl_FragColor; //for gles 3
@@ -66,54 +87,67 @@ void main() {
 			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.a);
 		}
 
-	}else{
-	
-		if( texturingEnabled ){
-			diffuseAndAlphaCol *= texture2D( texSampler, texCoordVarying );
-		}
+	}else{ //lighting model  
+	//( emission + 
+	//  subsurface lighting + 
+	//  diffuse (color * texture) * diffuseLight + 
+	//  specular light )
 
-		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
+		//lookups and calculations used later
+		if( texturingEnabled )
+			diffuseAndAlphaCol *= texture2D( texSampler, texCoordVarying );
 
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
 
-		if( subSurfaceExponent > 0.0 )
+
+		//emission lighting
+		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
+
+
+		//subsurface rim lighting for skin / soft materials
+		if( subSurfaceExponent > 0.0 ) 
 			gl_FragColor += vec4( 
 					pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, 
 						subSurfaceExponent) * vec3(1.0,0.5,0.0), 
 						0
 					);
 
-		if( cubeTexEnabled ){
+
+		const float cubeMapRoughnessLimit = 0.1;
+
+		float specularExpPow = 5.0*specularAmtRoughness[1];
+		if( specularAmtRoughness[1] < cubeMapRoughnessLimit ) //if going to use cubemap (very smooth surface) reduce the glare of specular from lights
+			specularExpPow = 10.0;
+
+
+		//light diffuse and specular contributions
+		if( numLights > 0 )
+			gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+		//if( numLights > 1 )
+		//	gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+		//if( numLights > 2 )
+		//	gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+
+		//skybox reflection contribution
+		
+		if( specularAmtRoughness[1] < cubeMapRoughnessLimit ){ 
+			float cubeMapAmt = 1.0 - (specularAmtRoughness[1]/cubeMapRoughnessLimit);
+			vec3 reflectedCamToSurfaceVec = reflect( fragPosToCamVecUnit, normalVarying ); //the view vector reflected into the skybox
+			//because let blenderToCubeMapEulerRot = [-Math.PI/2, 0, 0]
+			//need to rotate -90 deg on x axis
+			//mapping z -> y and -y -> z
+			vec3 cubeMapCoords = vec3( reflectedCamToSurfaceVec.x, reflectedCamToSurfaceVec.z, -reflectedCamToSurfaceVec.y );
+
 			//calculate cube map specular contribution
-			gl_FragColor = textureCube( cubeTexSampler, worldSpaceFragPosition ); //vec3(texCoordVarying,0) ); //normalize(wsfp)
-			//gl_FragColor = vec4(1,1,1,1);
-		}
+			float cubeLightAmt = specularAmtRoughness[0] * cubeMapAmt;
 
-		//calculate light contributions
-		if( 0 < numLights ){
-			//diffuse calculation
-			vec3 fragPosToLightVecUnit = normalize(lightPos[0]-worldSpaceFragPosition);
-			float toLightPosDotFragNorm   = dot( normalVarying, fragPosToLightVecUnit );
-			float diffuseLightAmt  = clamp(toLightPosDotFragNorm, 0.0,1.0);
-			gl_FragColor += vec4( diffuseAndAlphaCol.xyz * diffuseLightAmt, 0);
-
-
-			//specular calculation
-			vec3 reflectedToLightVec = normalize(reflect( fragPosToLightVecUnit, normalVarying ));
-			float toCamLightAmt = dot( reflectedToLightVec, fragPosToCamVecUnit );
-			float expPow = 5.0*specularAmtHrdnessExp[1];
-			float expVal = clamp(toCamLightAmt*specularAmtHrdnessExp[0], 0.0, 1.0);
-			float specularLightAmt = pow( expVal, expPow );
-			specularLightAmt = clamp( specularLightAmt, 0.0, 1.0);
-			gl_FragColor += vec4(specularCol.xyz * specularLightAmt, specularLightAmt);
-			//gl_FragColor = vec4(expVal,expPow,specularLightAmt,1);
-		}
-		if( 1 < numLights ){
+			vec4 skyboxContribution = textureCube( cubeTexSampler, cubeMapCoords );
+			gl_FragColor += skyboxContribution * cubeLightAmt;
 		}
 
 
 	}
-	
+
 
 	//use discard instead of alpha blending to avoid z sorting requirement for alpha blend mode
 	//gl_FragColor.a = 1.0;

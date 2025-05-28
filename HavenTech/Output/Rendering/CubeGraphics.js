@@ -129,15 +129,15 @@ function CUBE_G_allocateVertPosArray(){
 
 
 var cubeWorldToCamMat = Matrix_New();
-let blndrToCubeMapRotMat = Matrix_New();
-let blndrToCubMapEulerRot = [-Math.PI/2, 0, 0]
-Matrix_SetEulerRotate( blndrToCubeMapRotMat, blndrToCubMapEulerRot );
+let blenderToCubeMapEulerRotMat = Matrix_New();
+let blenderToCubeMapEulerRot = [-Math.PI/2, 0, 0]
+Matrix_SetEulerRotate( blenderToCubeMapEulerRotMat, blenderToCubeMapEulerRot );
 let tqvrts = null;
 let tqvrtsBufID = -1;
 function CUBE_G_DrawSkyBox(cubeG, mainCam){
 
 	if( cubeWorldToCamMat ){
-		Matrix_Multiply(tempMat, cubeWorldToCamMat, blndrToCubeMapRotMat );
+		Matrix_Multiply(tempMat, cubeWorldToCamMat, blenderToCubeMapEulerRotMat );
 		Matrix_Transpose( transMat, tempMat );
 		gl.uniformMatrix4fv( cubeG.proj_vU_M1_1_Loc, false, transMat );
 	}

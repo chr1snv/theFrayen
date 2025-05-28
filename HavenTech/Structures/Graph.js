@@ -110,13 +110,13 @@ function GRPH_modelLoadedCb( model, cbData ){
 
 	let cam = hvnSc.cameras[0];
 	//hvnSc.cameras[0].lookAtWorldPos = model.quadmesh.origin;
-	//blndrToCubMapEulerRot
+	//blenderToCubeMapEulerRot
 
 	cam.userPosition = new Float32Array([0,-2,0]);
 
 	//Quat_LookAt( cam.userRotation, model.quadmesh.origin, cam.userPosition );
-	Quat_FromXRot( cam.userRotation, -blndrToCubMapEulerRot[0] ); //Math.PI/2 );
-	//Matrix_SetEulerRotate( blndrToCubeMapRotMat, blndrToCubMapEulerRot );
+	Quat_FromXRot( cam.userRotation, -blenderToCubeMapEulerRot[0] ); //Math.PI/2 );
+	//Matrix_SetEulerRotate( blenderToCubeMapEulerRot, blenderToCubeMapEulerRot );
 
 	lastGraphVisInsertPosition[0] += 4;
 }

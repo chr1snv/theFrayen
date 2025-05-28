@@ -40,8 +40,8 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 
 	this.alpha = 1.0;
 	this.normalMix = 0;
-	this.specularAmtExponent = Vect_New(2);
-	this.specularAmtExponent[0] = 0; this.specularAmtExponent[1] = 1;
+	this.specularAmtRoughness = Vect_New(2);
+	this.specularAmtRoughness[0] = 0; this.specularAmtRoughness[1] = 1;
 	this.emitMix = 0;
 	this.diffuseTextureAlpha = false;
 	if( programaticlyCreatedFromTexture )
@@ -134,8 +134,8 @@ function MAT_materialTextLoaded(materialFile, thisP){
 				thisP.diffuseMix = 1;
 			}
 			if( temp[0] == 'specMixHrd' ){ //read in specular color
-				thisP.specularAmtExponent[0] =	parseFloat( temp[1] );
-				thisP.specularAmtExponent[1] =	parseFloat( temp[2] );
+				thisP.specularAmtRoughness[0] =	parseFloat( temp[1] );
+				thisP.specularAmtRoughness[1] =	parseFloat( temp[2] );
 			}
 			if(temp[0] == 'alph'){ // read in alpha amount
 				thisP.alpha = parseFloat( temp[1] );

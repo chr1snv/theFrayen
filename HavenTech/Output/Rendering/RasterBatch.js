@@ -532,7 +532,7 @@ function RasterBatch( drawFunc, clearDepth=false ){
 
 	this.mdls = {};
 
-	this.ambientColor = Vect3_NewVals(0.4,0.3,0);
+	this.ambientColor = Vect3_NewVals(0.05, 0.05, 0.1);
 	this.numLights = 0;
 	this.lights = null;
 

@@ -445,7 +445,7 @@ function OCN_GetHeightAtMapPosition( x, y ){
 	return OCN_HAMP_rel[2]/2;//tempRel[2];
 }
 
-function OCN_Update( ocn, rb3D, time, boatHeading ){
+function OCN_Update( ocn, rb3D, time, boatHeading, inMenu ){
 
 	let qm = ocn.model.quadmesh;
 
@@ -460,7 +460,10 @@ function OCN_Update( ocn, rb3D, time, boatHeading ){
 	ocn.model.isAnimated = true;
 
 	//Quat_FromZRot( qm.rotation, boatHeading );
-	ocn.model.origin[2] = 0.5;//-4; //move water surface down 4 units
+	if( !inMenu )
+		ocn.model.origin[2] = 0.5;//-4; //move water surface down 4 units
+	else
+		ocn.model.origin[2] = -4.0;
 	//ocn.model.origin[0] = boatPosOffset[0]; //move water surface sideways under center of boat
 	//ocn.model.origin[1] = boatPosOffset[1];
 	ocn.model.origin[0] = boatMapPosition[0];

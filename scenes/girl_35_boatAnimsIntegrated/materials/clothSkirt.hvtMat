@@ -4,6 +4,6 @@ fileName polkaDots_512.png
 e
 
 difCol		 0.800000 0.800000 0.800000
-specMixHrd	 0.500000 0.500000
+specMixHrd	 0.500000 10.000000
 alph		 1.000000
 lumCol		 0.000000 0.000000 0.000000
