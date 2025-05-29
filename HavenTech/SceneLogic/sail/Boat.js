@@ -320,6 +320,6 @@ function BOAT_DrawOtherPlayer( rb3DTris, cliHdg, cliPos ){
 		Matrix_SetEulerTransformation( boatForCliDrawingMdl.optTransMat,
 					[1,1,1],
 					[0, 0, -cliHdg-Math.PI],
-					[cliPos[0], cliPos[1], 0] );
+					[cliPos[0], cliPos[1], 1] );
 	}
 }
