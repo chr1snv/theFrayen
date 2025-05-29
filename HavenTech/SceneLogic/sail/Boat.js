@@ -51,7 +51,8 @@ function BOAT_Init(scn){
 	}
 	*/
 
-	new Model( "cliBoatHull", "viper650hull", "", "", [], scn.sceneName, null, 
+	new Model( "cliBoatHull", "viper650HullMesh", "", "", ["Hull"], scn.sceneName, new AABB([-1,-1,-1], [1,1,1]),
+				Vect3_NewZero(), Quat_New_Identity(), Vect3_NewAllOnes(),
 					modelLoadedParameters=null, modelLoadedCallback=Boat_hullInstLd, isPhysical=false );
 
 }
