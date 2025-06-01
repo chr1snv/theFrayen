@@ -8,12 +8,12 @@ function TXTR_TextSceneLoaded(txtScene){
 	let mdlKeys = Object.keys(txtScene.models);
 	//console.log("text mdls");
 	//create a lookup by glyph name instead of uid
-	txtScene.glyphMeshes = {};
+	txtScene.glyphModels = {};
 	for( let i = 0; i < mdlKeys.length; ++i ){
 		let model = txtScene.models[mdlKeys[i]];
 		let glyphName = txtScene.models[mdlKeys[i]].modelName;
 		//console.log( txtScene.models[mdlKeys[i]].meshName );
-		txtScene.glyphMeshes[glyphName] = model;
+		txtScene.glyphModels[glyphName] = model;
 	}
 
 	//get the letter material from the first object
@@ -245,10 +245,10 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 			}
 
 			if( ltr != ' ' ){
-				strNumVerts += textScene.glyphMeshes[ltr].quadmesh.vertBufferForMat[0].length;
+				strNumVerts += textScene.glyphModels[ltr].quadmesh.vertBufferForMat[0].length;
 				//generate the tesselated vert Coords for the glyph if necessary
-				if( textScene.glyphMeshes[ltr].materialHasntDrawn[0] ){
-					QM_SL_GenerateDrawVertsNormsUVsForMat( textScene.glyphMeshes[ltr], null, 0, null );
+				if( textScene.glyphModels[ltr].materialHasntDrawn[0] ){
+					QM_SL_GenerateDrawVertsNormsUVsForMat( textScene.glyphModels[ltr], null, 0, null );
 				}
 			}
 		}
@@ -316,7 +316,7 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 			}
 
 			if( ltr != ' ' ){
-				let glyphM = textScene.glyphMeshes[ltr].quadmesh;
+				let glyphM = textScene.glyphModels[ltr].quadmesh;
 				let glyphVerts = glyphM.vertBufferForMat[0];
 				let glyphNorms = glyphM.normBufferForMat[0];
 				let glyphUvs   = glyphM.uvBufferForMat[0];
