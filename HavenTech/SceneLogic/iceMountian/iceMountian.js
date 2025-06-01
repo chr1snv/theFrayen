@@ -179,7 +179,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 							sgMode = IcemModes.Gameplay;
 						}
 						if( mOvrdStrs[i] == "HOST" ){
-							Server_startListening(4);
+							Host_startListening(4);
 						}
 						if( mOvrdStrs[i] == "CLIENT" ){
 							Client_joinGame(4);
@@ -195,7 +195,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						sgMode = IcemModes.Menu;
 					}
 					if( mOvrdStrs[i] == "START REGATTA" ){
-						Server_startGame();
+						Host_startGame();
 					}
 					break;
 				case IcemModes.ClntWatingForStart:

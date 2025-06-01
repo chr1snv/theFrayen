@@ -1,4 +1,6 @@
 
+//this is not currently used (May 30th 2025) because using only a websocket is simpler / supported on more browsers
+
 //ICE - Interactive Connectivity Establishment
 //for connections/communication between a peerServer and peers through WebRTC using
 //STUN - Session Traversal Utilities for NAT

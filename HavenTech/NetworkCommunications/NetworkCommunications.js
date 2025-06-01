@@ -1,4 +1,7 @@
 
+//was originally planning to use webRTC Datachannels to do browser peer to peer udp networking,
+//though it turned out to require a websocket to establish / negotiate the connection
+//researched the following terminology 
 //ICE - Interactive Connectivity Establishment
 //for connections/communication between a peerServer and peers through WebRTC using
 //STUN - Session Traversal Utilities for NAT
@@ -6,6 +9,14 @@
 //or
 //TURN - Traversal Using Relay around NAT
 //(routing from   peer <-> dedicated server <-> peer )
+
+//because NetworkCommunications.js is meant for games between mobile/desktop/etc devices,
+//and most mobile and isp networks have firewalls preventing peer to peer communications
+//it's simpler to use only the websocket (tcp, https) connection
+//in a TURN style connection
+//with clients/host <-websocket-> server
+
+//Host is a client that creates / starts gameplay in a game
 
 const NetworkGameModes = {
 	GatheringPlayers	: 0,
@@ -111,7 +122,7 @@ function NetworkGame_Parse(game, parts, sIdx){
 let localUid = null;
 let maxServerPlayers = 0;
 let networkGame = null;
-function Server_startListening( numPlayersToWaitFor ){
+function Host_startListening( numPlayersToWaitFor ){
 
 	if( localUid == null )
 		localUid = NewRandUID();
@@ -119,10 +130,12 @@ function Server_startListening( numPlayersToWaitFor ){
 	sendWebsocketServerMessage( "serverStarted maxPlayers: " + numPlayersToWaitFor + " uid: " + localUid.val, true );
 
 }
-function Server_startGame(){
+//signal to everyone in the game gameplay is beginning
+function Host_startGame(){
 	sendWebsocketServerMessage( "svrStartGame " + localUid.val );
 }
 
+//leave the game (as either a client or host)
 function Network_LeaveGame(){
 	if( networkGame != null ){
 		sendWebsocketServerMessage( "leaveGame " + networkGame.svrUidVal + " " + localUid.val, true );
@@ -130,7 +143,7 @@ function Network_LeaveGame(){
 	}
 }
 
-//join the first open game
+//join the first open game as a client
 function Client_joinGame(){
 	if( localUid == null )
 		localUid = NewRandUID();
@@ -201,9 +214,10 @@ function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=fals
 			console.log("signalingWebSocket.onclose code: " + event.code);
 		}
 
+		//message recieved from server
 		signalingWebSocket.onmessage = (event) => {
 			let response = event.data;
-			console.log("signalingWebSocket.onmessage " + response);
+			//console.log("signalingWebSocket.onmessage " + response);
 			//parts = response.split("action-");
 			responseParts = response.split(" "); //parts[1]
 
@@ -234,11 +248,11 @@ function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=fals
 						++i;
 						networkGame = new NetworkGame();
 						NetworkGame_Parse(networkGame, responseParts, ++i)
-						sgMode = SailModes.SvrWaitingForPlayers;
+						sgMode = SailModes.HostWaitingForPlayers;
 						lastNetworkUpdateTime = sceneTime;
 					}
 					break;
-				case NetworkResponseTypes.gameInfo:
+				case NetworkResponseTypes.gameInfo: //data brodcast to everyone in a game
 					if( responseParts[1] == "joined" ){
 						if( networkGame == null )
 							networkGame = new NetworkGame();

@@ -35,12 +35,14 @@ function SAIL_sceneSpecificLoad(cmpCb){
 
 }
 
+const NumMultiplayerGamePlayers = 4;
+
 
 const SailModes = {
 	Menu				: 0,
 	Gameplay			: 1,
 	Leaderboard			: 2,
-	SvrWaitingForPlayers: 3,
+	HostWaitingForPlayers: 3,
 	ClntWatingForStart	: 4,
 	NetworkGameplay		: 5,
 	Credits				: 6
@@ -62,6 +64,7 @@ let gameplaySongIdx = 0;
 let sgMusicMode = 0;
 let lastSgMusicMode = 0;
 
+
 function SAIL_stopMusicAndSelectNewSongs(){
 	SND_playSoundFile( 'music/menu/' + menuSongs[menuSongIdx], 'sailDefault', 0, playOrStop=false );
 	SND_playSoundFile( 'music/gameplay/' + gameplaySongs[gameplaySongIdx], 'sailDefault', 0, playOrStop=false);
@@ -75,7 +78,7 @@ function SAIL_PlayMusicForMode( sgMode ){
 	switch( sgMode ){
 		case SailModes.Menu:
 		case SailModes.Leaderboard:
-		case SailModes.SvrWaitingForPlayers:
+		case SailModes.HostWaitingForPlayers:
 		case SailModes.ClntWatingForStart:
 		case SailModes.Credits:
 			sgMusicMode = 0;
@@ -163,8 +166,9 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 
 			break;
-		case SailModes.SvrWaitingForPlayers:
+		case SailModes.HostWaitingForPlayers:
 			TR_QueueText( rb2DTris, 0.0, -0.4, 0.02, 0.07, "START REGATTA", true, TxtJustify.Center, menuTxtColor);
+			//also do the below if host (update display of clients waiting for the game to start)
 		case SailModes.ClntWatingForStart:
 			TR_QueueText( rb2DTris,-0.43,  0.19, 0.02, 0.07, "Main Menu", true, TxtJustify.Left, menuTxtColor );
 			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "SAIL", false, TxtJustify.Center );
@@ -206,11 +210,12 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			let place = NetworkGame_CliUidPlace( networkGame, localUid );
 			let placeStr = positionToStr(place);
 			TR_QueueText( rb2DTris, 0.95*graphics.GetScreenAspect(), 0.83, 0.03, 0.1, placeStr, false, TxtJustify.Right );
-			
+
+
 			for( let cliUid in networkGame.clients ){
 				if( cliUid != localUid.val ){
 					let cli = networkGame.clients[ cliUid ];
-					BOAT_DrawOtherPlayer( rb3DTris_array[0], cli.hdg, cli.boatMapPosition );
+					BOAT_DrawOtherPlayer( rb3DTris_array[0], cli.hdg, cli.boatMapPosition, cliUid );
 				}
 			}
 		case SailModes.Gameplay:
@@ -276,9 +281,11 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 							sgMode = SailModes.Gameplay;
 						}
 						if( mOvrdStrs[i] == "HOST" ){
-							Server_startListening(4);
+							Boat_SetupToDrawNMultiplayerOtherPlayers(NumMultiplayerGamePlayers-1, mainScene);
+							Host_startListening(NumMultiplayerGamePlayers);
 						}
 						if( mOvrdStrs[i] == "CLIENT" ){
+							Boat_SetupToDrawNMultiplayerOtherPlayers(NumMultiplayerGamePlayers-1, mainScene);
 							Client_joinGame(4);
 						}
 					}
@@ -289,13 +296,13 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						sgMode = SailModes.Credits;
 					}
 					break;
-				case SailModes.SvrWaitingForPlayers:
+				case SailModes.HostWaitingForPlayers:
 					if( mOvrdStrs[i] == "Main Menu" ){
 						Network_LeaveGame();
 						sgMode = SailModes.Menu;
 					}
 					if( mOvrdStrs[i] == "START REGATTA" ){
-						Server_startGame();
+						Host_startGame();
 					}
 					break;
 				case SailModes.ClntWatingForStart:

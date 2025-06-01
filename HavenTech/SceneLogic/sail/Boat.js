@@ -3,8 +3,8 @@
 //auto tack/jib animation frame selection based on the boat velocity / heading to the
 //wind and tide
 
-let boatForCliDrawingMdl = null;
-let boatForCliDrawingQm = null;
+let boatForCliDrawingMdls = [];
+let cliUidsToBoatMdlIdxs = {};
 
 let windIndc = null;
 //let windIndcQm = null;
@@ -29,10 +29,10 @@ function BOAT_Init(scn){
 	SkelA_UpdateTransforms( girlArm, 0, true );
 
 
-	//windIndcQm = textScene.glyphMeshes["windIndc"].quadmesh;
+	//windIndcQm = textScene.glyphModels["windIndc"].quadmesh;
 	//windIndcQm.isAnimated = true;
 	
-	windIndc = textScene.glyphMeshes["windIndc"];
+	windIndc = textScene.glyphModels["windIndc"];
 	windIndc.isAnimated = true;
 	/*
 	for( let mdl in textScene.models ){
@@ -41,19 +41,17 @@ function BOAT_Init(scn){
 			windIndc = model;
 	}
 	*/
+}
 
-	/*
-	boatForCliDrawingQm = graphics.cachedObjs[QuadMesh.name][scn.sceneName]["viper650hull"][0];
-	for( let mdl in scn.models ){
-		let model = scn.models[mdl];
-		if( model.quadmesh.meshName == "viper650hull" )
-			boatForCliDrawingMdl = model;
-	}
-	*/
+function Boat_SetupToDrawNMultiplayerOtherPlayers(numMultiplayerPlayers, scn){
 
-	new Model( "cliBoatHull", "viper650HullMesh", "", "", ["Hull"], scn.sceneName, new AABB([-1,-1,-1], [1,1,1]),
-				Vect3_NewZero(), Quat_New_Identity(), Vect3_NewAllOnes(),
+	cliUidsToBoatMdlIdxs = {}; //start of multiplayer game clear references of last games clientUids to boat indicies
+
+	for( let i = boatForCliDrawingMdls.length-1; i < numMultiplayerPlayers; ++i ){
+		new Model( "cliBoatHull", "viper650HullMesh", "", "", ["Hull"], scn.sceneName, new AABB([-1,-1,-1], [1,1,1]),
+					Vect3_NewZero(), Quat_New_Identity(), Vect3_NewAllOnes(),
 					modelLoadedParameters=null, modelLoadedCallback=Boat_hullInstLd, isPhysical=false );
+	}
 
 }
 /*
@@ -65,7 +63,7 @@ function Rgta_directionUiQmInstMatLd(mat){
 }
 */
 function Boat_hullInstLd(mdl){
-	boatForCliDrawingMdl = mdl;
+	boatForCliDrawingMdls.push( mdl );
 }
 
 //130 port wing on wing 			(270-180deg)
@@ -311,15 +309,24 @@ function BOAT_Update( rb2DTris, time, wndHdg ){
 	lastBoatUpdateTime = time;
 }
 
-function BOAT_DrawOtherPlayer( rb3DTris, cliHdg, cliPos ){
-	console.log( "draw other player " + cliPos );
+function BOAT_DrawOtherPlayer( rb3DTris, cliHdg, cliPos, cliUid ){
+	//console.log( "draw other player " + cliPos );
+	let cliBoatMdlIdx = cliUidsToBoatMdlIdxs[cliUid];
+	if( cliBoatMdlIdx == undefined ){ //if not yet assigned assign next avaliable boat model
+		let cliUidsAssignedMdlIdxs = Object.keys(cliUidsToBoatMdlIdxs);
+		cliBoatMdlIdx = cliUidsAssignedMdlIdxs.length;
+		cliUidsToBoatMdlIdxs[cliUid] = cliBoatMdlIdx;
+	}
 	
-	if( boatForCliDrawingMdl ){
-		rb3DTris.mdls[boatForCliDrawingMdl.uid.val] = boatForCliDrawingMdl;
-		boatForCliDrawingMdl.optTransformUpdated  = true;
-		Matrix_SetEulerTransformation( boatForCliDrawingMdl.optTransMat,
-					[1,1,1],
-					[0, 0, -cliHdg-Math.PI],
-					[cliPos[0], cliPos[1], 1] );
+	if( cliBoatMdlIdx < boatForCliDrawingMdls.length ){
+		let cliBoatMdl = boatForCliDrawingMdls[cliBoatMdlIdx];
+		if( cliBoatMdl ){
+			rb3DTris.mdls[cliBoatMdl.uid.val] = cliBoatMdl;
+			cliBoatMdl.optTransformUpdated  = true;
+			Matrix_SetEulerTransformation( cliBoatMdl.optTransMat,
+						[1,1,1],
+						[0, 0, -cliHdg-Math.PI],
+						[cliPos[0], cliPos[1], 1] );
+		}
 	}
 }
