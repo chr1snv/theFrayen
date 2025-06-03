@@ -14,7 +14,7 @@
 function CubeGraphics(loadCompleteCallback, unifLocOffset){
 
 	this.loadCompleteCallback = loadCompleteCallback;
-	this.glProgram = new GlProgram('frayenCube', this, TRIG_LoadComp);
+	this.glProgram = new GlProgram('frayenCube', this, CUBE_G_LoadComp);
 
 	this.unifLocOffset = unifLocOffset;
 
@@ -27,9 +27,12 @@ function CubeGraphics(loadCompleteCallback, unifLocOffset){
 }
 
 function CUBE_G_LoadComp(cubeG){
-	triG.position_vA_F3_A_Loc         = gl.getAttribLocation( cubeG.glProgram.glProgId, 'position'                );
-	
-	triG.proj_vU_M1_1_Loc = gl.getUniformLocation( cubeG.glProgram.glProgId, 'projMatrix'              );
+	cubeG.position_vA_F3_A_Loc         = gl.getAttribLocation( cubeG.glProgram.glProgId, 'position'                );
+
+	cubeG.proj_vU_M1_1_Loc = gl.getUniformLocation( cubeG.glProgram.glProgId, 'projMatrix'              );
+
+	if( cubeG.loadCompleteCallback != null )
+		cubeG.loadCompleteCallback(cubeG);
 }
 
 function CUBE_G_cubeTexLoaded(cubeTex, cubeG){

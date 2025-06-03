@@ -203,6 +203,9 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	//setup the gl state
 	gl.clearColor( 0.6, 0.7, 1.0, 1.0 );
 	gl.clearDepth(1.0);
+	
+	//get the default framebuffer
+	this.renderBuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 
 	//gl.viewport(0, 0, this.screenWidth, this.screenHeight);
 
@@ -252,9 +255,16 @@ function GRPH_loadTriGraphics(){
 }
 
 function GRPH_loadCubeGraphics(){
-	graphics.cubeGraphics = new CubeGraphics(graphics.loadCompleteCallback, 300);
+	graphics.cubeGraphics = new CubeGraphics(GRPH_loadDepthGraphics, 300);
 	graphics.glPrograms['cube'] = graphics.cubeGraphics.glProgram;
 	CheckGLError( "after load cube gl program" );
+	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgramName = 'cube';
+}
+function GRPH_loadDepthGraphics(){
+	graphics.depthGraphics = new DepthGraphics(graphics.loadCompleteCallback, 400);
+	graphics.glPrograms['depth'] = graphics.depthGraphics.glProgram;
+	CheckGLError( "after load depth gl program" );
 	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
 	graphics.currentProgramName = 'cube';
 }

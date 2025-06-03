@@ -238,6 +238,7 @@ function HVNSC_HitModel(hvnsc, screenCoords){
 
 //check if finished asynchronously loading the scene
 function HVNSC_checkIfIsLoaded(hvnsc){
+/*
 	if( hvnsc.pendingObjsToAdd <= 5 ){
 		DTPrintf( hvnsc.sceneName + " left to load objs " + hvnsc.pendingObjsToAdd + 
 		" models " + hvnsc.pendingModelsToAdd +
@@ -259,6 +260,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		}
 		DPrintf("not yet loaded models : meshes " + notYetLoadedObjsStr );
 	}
+*/
 
 	if( hvnsc.pendingObjsToAdd <= 0 ){ //finish setup of scene
 
@@ -289,7 +291,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 
 
 function HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl){
-	MDL_Update( mdl, 0 ); //update to generate AABB
+	MDL_Update ( mdl, sceneTime ); //update to generate AABB (closest to now time to avoid large delta t in phys obj update
 	hvnsc.modelNames[mdl.modelName] = mdl;
 	if( MDL_AddToOctTree( mdl, hvnsc.octTree ) ){
 		hvnsc.models[mdl.uid.val] = mdl;

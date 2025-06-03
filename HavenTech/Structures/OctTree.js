@@ -65,7 +65,7 @@ function TND_initObjects(t){
 function TND_ApplyExternAffectsAndDetectCollisions( t, time ){
 	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.ApplyExternAffectsAndDetectCollisions(time, t );
+			PHYSOBJ_ApplyExternAffectsAndDetectCollisions( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i ) //recurse to sub nodes
@@ -75,27 +75,28 @@ function TND_ApplyExternAffectsAndDetectCollisions( t, time ){
 function TND_LinkPhysGraphs( t, time ){ //combine constraint groups from each object
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.LinkPhysGraphs(time);
+			PHYSOBJ_LinkPhysGraphs( t.objects[ i ].physObj, time );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
-			LinkPhysGraphs( t.subNodes[i], time );
+			TND_LinkPhysGraphs( t.subNodes[i], time );
 }
 function TND_AppyInterpenOffset( t, time ){ //apply interpenetration offsets for constraint groups
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.ApplyInterpenOffset(time);
+			PHYSOBJ_ApplyInterpenOffset( t.objects[ i ].physObj, time );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
-			AppyInterpenOffset( t.subNodes[i], time );
+			TND_AppyInterpenOffset( t.subNodes[i], time );
 }
-function TND_TransferEnergy( t, time ){ //transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
+function TND_TransferEnergy( t, time ){ //(accel -> vel update step)
+	//transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			t.objects[ i ].physObj.TransferEnergy(time, t);
+			PHYSOBJ_TransferEnergy( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
@@ -109,7 +110,7 @@ function TND_DetectAdditionalCollisions( t, time ){
 	let additionalColis = 0;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			additionalColis += t.objects[ i ].physObj.DetectAdditionalCollisions(time, t);
+			additionalColis += PHYSOBJ_DetectAdditionalCollisions( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )

@@ -45,6 +45,7 @@ function GRPH_AddEntry(gph, gEntry){
 function GRPH_AddObjsToSceneToDraw( gph, time ){
 	if ( gph.havenScene == null ){
 		gph.havenScene = new HavenScene(gph.name, null, true, [-100,-100,-100], [100,100,100], new PhysNode() );
+		gph.havenScene.octTree.physNode.gravAccelVec[1] *= 0.1;
 	}
 
 	//active entry is the selected node or one closest to the camera
@@ -103,8 +104,8 @@ let lastGraphVisInsertPosition = [0,0,0];
 function GRPH_modelLoadedCb( model, cbData ){
 	let hvnSc = cbData;
 
-	Vect3_Copy( model.origin, lastGraphVisInsertPosition );
-	MDL_Update ( model, sceneTime );
+	//Vect3_Copy( model.origin, lastGraphVisInsertPosition );
+
 	HVNSC_FinishAddingLoadedModelToScene( hvnSc, model );
 
 
@@ -118,7 +119,7 @@ function GRPH_modelLoadedCb( model, cbData ){
 	Quat_FromXRot( cam.userRotation, -blenderToCubeMapEulerRot[0] ); //Math.PI/2 );
 	//Matrix_SetEulerRotate( blenderToCubeMapEulerRot, blenderToCubeMapEulerRot );
 
-	lastGraphVisInsertPosition[0] += 4;
+	
 }
 
 function GRPH_AddEntryToScene(gphEntry, hvnSc){
@@ -128,11 +129,13 @@ function GRPH_AddEntryToScene(gphEntry, hvnSc){
 		//shape for the graph concept / entry / datapoint
 		let entryMdl = new Model( nameIn=gphEntry.val, meshNameIn='gphDefaultEntryMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
 				sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
-				locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
-				modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=false );
+				locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+				modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
 		hvnSc.pendingModelsToLoad[gphEntry.val] = entryMdl;
 		//create models for the links/lines to other concepts
+
+		lastGraphVisInsertPosition[0] += 4;
 	}
 
 }
@@ -145,11 +148,13 @@ function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
 
 		let entryMdl = new Model( nameIn=name, meshNameIn='gphDefaultLinkMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
 								  sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
-								  locationIn=Vect3_NewZero(), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
-								  modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=false );
+								  locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+								  modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
 		hvnSc.pendingModelsToLoad[name] = entryMdl;
 		//create models for the links/lines to other concepts
+
+		lastGraphVisInsertPosition[0] += 4;
 	}
 }
 

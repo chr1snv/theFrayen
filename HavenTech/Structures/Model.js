@@ -93,8 +93,10 @@ function Model( nameIn, meshNameIn=null, armNameIn=null, ipoNameIn=null, materia
 	this.AABB = AABBIn;
 
 	this.physObj = null;
-	if( isPhysical )
+	if( isPhysical ){
 		this.physObj = new PhysObj(this.AABB, this, 0);
+		this.isAnimated = true;
+	}
 
 	this.otType = OT_TYPE_Model;
 
@@ -210,16 +212,23 @@ function MDL_Update( mdl, time, treeNd ){
 		if( mdl.skelAnimation != null )
 			updated = SkelA_UpdateTransforms(mdl.skelAnimation, time );
 
+
+		QM_Update( mdl.quadmesh, time ); //update the verts and AABB of the mesh
+
 		//if ipo animation is present for model will be polled in MDL_UpdateToWorldMatrix
 		MDL_UpdateToWorldMatrix(mdl, time);
 
-		QM_Update( mdl.quadmesh, time );
+		
 
 		if( mdl.physObj ){
-			mdl.physObj.Update(time, treeNd);
+			if( treeNd ){ //can only update physics once added to oct tree
+				PHYSOBJ_Update( mdl.physObj, time, treeNd );
+			}else{
+				mdl.physObj.lastUpdtTime = time; //to prevent a large delta time when first updated after added to oct tree
+			}
 		}
 
-		MDL_UpdateAABB(mdl, time);
+		MDL_UpdateAABB(mdl, time); //update the models AABB from mdl.toWorldMatrix and the local to modelspace AABB of the quadmesh
 
 		mdl.lastUpdateTime = time;
 
@@ -232,7 +241,8 @@ function MDL_UpdateToWorldMatrix(mdl, time){
 
 	if( mdl.lastToWorldMatrixUpdateTime == time )
 		return false;
-	if( mdl.ipoAnimation != null ){
+
+	if( mdl.ipoAnimation != null && mdl.physObj == null ){
 		IPOA_GetMatrix( mdl.ipoAnimation, mdl.toWorldMatrix, time );
 		//if there is an ipo animation, ignore other animations
 	}else{
@@ -334,7 +344,7 @@ function MDL_getQuadMeshCb( quadMesh, cbObj ){ //get loaded parameters and call 
 	thisP.quadmesh = quadMesh;
 
 	QM_Reset(thisP.quadmesh);
-	MDL_Update( thisP, 0, null );
+	MDL_Update( thisP, sceneTime, null );
 	//quadMesh.models.push( thisP ); //for use by armature lookup of objects to be animated
 	thisP.componentsToLoad -= 1;
 

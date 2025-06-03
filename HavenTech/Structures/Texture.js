@@ -129,7 +129,7 @@ function TEX_ImgLoaded(evnt){
 
 	//register the successfully loaded texture with the global texture list
 	//so when it is asked for again the cached data can be fetched
-	graphics.AppendTexture( texP.texName, texP.sceneName, texP );
+	//graphics.AppendTexture( texP.texName, texP.sceneName, texP );
 	if(texP.textureReadyCallback)
 		texP.textureReadyCallback(texP, texP.readyCallbackParams); //when the image is loaded, return
 

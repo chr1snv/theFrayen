@@ -45,6 +45,7 @@ var incFiles = ['DPrintf.js',
 				'Output/Rendering/TriGraphics.js',
 				'Output/Rendering/LineGraphics.js',
 				'Output/Rendering/CubeGraphics.js',
+				'Output/Rendering/DepthGraphics.js',
 
 				'Structures/Model.js',
 				'Structures/Triangle.js',

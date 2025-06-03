@@ -57,7 +57,9 @@ function PhysObj(AABB, obj, time){
 	//(0-kinetic/static colision, 1-spring/rope, 2-electrostatic, 3-magnetic, 4-radiative)
 	this.physGraph = undefined; 
 	this.radius = (AABB.maxCoord[0] - AABB.minCoord[0])*0.5; //spherical radius of the colider
-	this.capsule = new Capsule(this.radius, this.linVel, AABB.center); //sphere collision time calculator
+	this.capsule = new Capsule(this.radius, this.linVel, this.obj.origin); //sphere swept over time collision time calculator
+
+}
 
 
 	//an object may collide with multiple objects in a time step.
@@ -68,470 +70,470 @@ function PhysObj(AABB, obj, time){
 	//after must be equal or lesser (entropy must increase, and localized energy gradients (/per object decrease)
 
 
+function PHYSOBJ_GenColisRestitutionVects(pObj, stepTime, intTime, otherObj, colisPosVect, colisVelVect){
+	let intDt = pObj.lastUpdtTime; //time in seconds to advance object positions to
+	let afterIntDt = stepTime - intTime;
+	let restDir = Vect3_CopyNew( pObj.obj.origin );
+	Vect3_Subtract( restDir, otherObj.obj.origin  ); //vector from other obj center to this center
+	//let restDir = Vect3_CopyNew( otherObj.linVel );
+	//Vect3_MultiplyScalar(restDir, -1);
+	//Vect3_Subtract( restDir, pObj.linVel );
+	//Vect3_Normal( restDir );
+	//find the surfaces of both objects that intersect with the vector 
+	//between the cg of the objects (aabb midpoint for now)
+	//for a more detailed collision algorithm it would need to check all of 
+	//the object verticies to find if they are inside
+	//of the other object which could be sped up by using the object oct tree 
+	//to cast rays opposite to the relative motion of the two objects
+	//from the verticies of each object
 
-	this.GenColisRestitutionVects = function(stepTime, intTime, otherObj, colisPosVect, colisVelVect){
-		let intDt = this.lastUpdtTime; //time in seconds to advance object positions to
-		let afterIntDt = stepTime - intTime;
-		let restDir = Vect3_CopyNew( this.AABB.center );
-		Vect3_Subtract( restDir, otherObj.AABB.center ); //vector from other obj center to this center
-		//let restDir = Vect3_CopyNew( otherObj.linVel );
-		//Vect3_MultiplyScalar(restDir, -1);
-		//Vect3_Subtract( restDir, this.linVel );
-		//Vect3_Normal( restDir );
-		//find the surfaces of both objects that intersect with the vector 
-		//between the cg of the objects (aabb midpoint for now)
-		//for a more detailed collision algorithm it would need to check all of 
-		//the object verticies to find if they are inside
-		//of the other object which could be sped up by using the object oct tree 
-		//to cast rays opposite to the relative motion of the two objects
-		//from the verticies of each object
+	let ray = new Ray(pObj.obj.origin , restDir);
+	let otherObjPenPoint = new Float32Array(3);
+	let aabbintTime = AABB_RayIntersects(otherObj.AABB, ray, 0 );
+	RayPointAtTime( otherObjPenPoint, ray.origin, ray.norm, aabbIntTime );
+	let thisEntPoint = new Float32Array(3);
+	aabbIntTime = AABB_RayIntersects(pObj.AABB, ray, 0 );
+	RayPointAtTime( thisEntPoint, ray.origin, ray.norm, aabbIntTime );
 
-		let ray = new Ray(this.AABB.center, restDir);
-		let otherObjPenPoint = new Float32Array(3);
-		let aabbintTime = AABB_RayIntersects(otherObj.AABB, ray, 0 );
-		RayPointAtTime( otherObjPenPoint, ray.origin, ray.norm, aabbIntTime );
-		let thisEntPoint = new Float32Array(3);
-		aabbIntTime = AABB_RayIntersects(this.AABB, ray, 0 );
-		RayPointAtTime( thisEntPoint, ray.origin, ray.norm, aabbIntTime );
+	Vect3_Copy( colisVect, thisEntPoint );
+	Vect3_Subtract( colisVect, otherObjPenPoint );
+	let intAmt = Vect3_Length(colisVect);
+	Vect3_Normal( colisVect );
+	let restAmt = pObj.colisCoef * intAmt;
+	Vect3_MultiplyScalar( colisVect, restAmt );
+}
 
-		Vect3_Copy( colisVect, thisEntPoint );
-		Vect3_Subtract( colisVect, otherObjPenPoint );
-		let intAmt = Vect3_Length(colisVect);
-		Vect3_Normal( colisVect );
-		let restAmt = this.colisCoef * intAmt;
-		Vect3_MultiplyScalar( colisVect, restAmt );
-	}
+//if the object collides with a bound then the group/combined kinetic energy 
+//is set to 0 with inifinte mass (subtracting individual object energy doesn't change it)
+function PHYSOBJ_FindBoundsCollisions( pObj, dt, worldRootTnd, statColisCheck=false ){ //dt is length of physics step
+	let numColis = 0;
+	let worldBoundsAABB = worldRootTnd.AABB;
+	let secsTillHitWorldBounds = pObj.capsule.ExitAABBTime(pObj.obj.origin, 
+				pObj.linVel, pObj.radius, worldBoundsAABB);
+	if( secsTillHitWorldBounds < Number.POSITIVE_INFINITY && secsTillHitWorldBounds < dt ){
+		let timeOfWorldBoundCollision = secsTillHitWorldBounds + pObj.lastUpdtTime;
+		let boundAxis = pObj.capsule.intAxis;
+		let boundObj = worldRootTnd.boundsObjs[pObj.capsule.intAxis * 2 + pObj.capsule.intSide];
 
-	//if the object collides with a bound then the group/combined kinetic energy 
-	//is set to 0 with inifinte mass (subtracting individual object energy doesn't change it)
-	this.FindBoundsCollisions = function( dt, worldRootTnd, statColisCheck=false ){ //dt is length of physics step
-		let numColis = 0;
-		let worldBoundsAABB = worldRootTnd.AABB;
-		let secsTillHitWorldBounds = this.capsule.ExitAABBTime(this.AABB.center, 
-					this.linVel, this.radius, worldBoundsAABB);
-		if( secsTillHitWorldBounds < Number.POSITIVE_INFINITY && secsTillHitWorldBounds < dt ){
-			let timeOfWorldBoundCollision = secsTillHitWorldBounds + this.lastUpdtTime;
-			let boundAxis = this.capsule.intAxis;
-			let boundObj = worldRootTnd.boundsObjs[this.capsule.intAxis * 2 + this.capsule.intSide];
+		//get the inner side of the bound obj for the bound coord
+		let boundCoord = boundObj.AABB.maxCoord[boundAxis];
+		if( pObj.capsule.intSide )
+			boundCoord = boundObj.AABB.minCoord[boundAxis];
 
-			//get the inner side of the bound obj for the bound coord
-			let boundCoord = boundObj.AABB.maxCoord[boundAxis];
-			if( this.capsule.intSide )
-				boundCoord = boundObj.AABB.minCoord[boundAxis];
-
-			let colisNormal = Vect3_NewZero();
-			colisNormal[ this.capsule.intAxis ] = (this.capsule.intSide * -2) + 1; //1 or -1 on the world bound axis
-			let colisPoint = Vect3_NewZero();
-			this.capsule.BoundsColisPosGivenNormalAndTime( colisPoint, this.AABB.center, 
-					this.linVel, this.radius, colisNormal, secsTillHitWorldBounds );
-			//check the colision pos vs the surface to get penetration depth
-			let interpenD = 0;
-			let colisType = PHYS_SURFCOLIS;
-			if( secsTillHitWorldBounds < 0 ){
-				interpenD = -this.capsule.penD;
-				colisType = PHYS_INTERPEN;
-				timeOfWorldBoundCollision = this.lastUpdtTime;
-			}
-			this.physGraph.AddConstraint( colisType, timeOfWorldBoundCollision, 
-						colisNormal, colisPoint, interpenD, this, boundObj.physObj );
-			numColis += 1;
+		let colisNormal = Vect3_NewZero();
+		colisNormal[ pObj.capsule.intAxis ] = (pObj.capsule.intSide * -2) + 1; //1 or -1 on the world bound axis
+		let colisPoint = Vect3_NewZero();
+		pObj.capsule.BoundsColisPosGivenNormalAndTime( colisPoint, pObj.obj.origin, 
+				pObj.linVel, pObj.radius, colisNormal, secsTillHitWorldBounds );
+		//check the colision pos vs the surface to get penetration depth
+		let interpenD = 0;
+		let colisType = PHYS_SURFCOLIS;
+		if( secsTillHitWorldBounds < 0 ){
+			interpenD = -pObj.capsule.penD;
+			colisType = PHYS_INTERPEN;
+			timeOfWorldBoundCollision = pObj.lastUpdtTime;
 		}
-		return numColis;
+		PHYSGRPH_AddConstraint( pObj.physGraph, colisType, timeOfWorldBoundCollision, 
+					colisNormal, colisPoint, interpenD, pObj, boundObj.physObj );
+		numColis += 1;
 	}
-	this.FindColidingObjsAndTimes = function( dt, statColisCheck=false ){
-		let numColis = 0;
-		let checkedObjs = {};
-		checkedObjs[this.uid.val] = 1;
-		let treeNodes = this.obj.treeNodes;
-		//check if coliding with any objects
-		let totRestVect = Vect3_NewZero();
-		for( let ndKey in treeNodes ){ //check all possibly adjacent objs (treeNodes is a dict)
-			let tN = treeNodes[ndKey];
-			let tNObjs = tN.objects[0];
-			let colisVect = Vect3_NewZero();
-			for( let i = 0; i < tNObjs.length; ++i ){
-				let oOb = tNObjs[i].physObj;
-				if( !checkedObjs[oOb.uid.val] ){
-					checkedObjs[oOb.uid.val] = 1;
-					let intTime = this.capsule.CapIntrTime( this.AABB.center, 
-						this.linVel, this.radius, oOb.AABB.center, oOb.linVel, oOb.radius );
-					if( !isNaN(intTime) ){
-						if( intTime <= dt ){
-							if( intTime >= 0 ){ //not NaN and occurs within this timestep
-								let colisNormal = Vect3_NewZero();
-								let colisPos = Vect3_NewZero();
-								let interpenD = this.capsule.OthrCapCollisNormalPosDepth( 
-									colisNormal, colisPos,
-									this.AABB.center, this.linVel, this.radius, 
-									oOb.AABB.center, oOb.linVel, oOb.radius, intTime );
-								let timeOfColis = intTime + this.lastUpdtTime;
-								this.physGraph.AddConstraint( PHYS_SURFCOLIS, timeOfColis,
-									colisNormal, colisPos, interpenD, this, oOb );
-								//DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
-								numColis += 1;
-							}else{// inter penetration (negative colision time)
-								//DTPrintf( "time " + intTime, "phys detc" );
-								let colisNormal = Vect3_NewZero();
-								let colisPos = Vect3_NewZero();
-								let interpenD = 0;
-								interpenD = this.capsule.OthrCapCollisNormalPosDepth( colisNormal, colisPos,
-									this.AABB.center, this.linVel, this.radius, 
-									oOb.AABB.center, oOb.linVel, oOb.radius, 0 ); //zero to get interpentation at start of frame
-								this.physGraph.AddConstraint( PHYS_INTERPEN, this.lastUpdtTime, 
-									colisNormal, colisPos, interpenD, this, oOb );
-								//DTPrintf( "add " + this.uid.val + " " + oOb.uid.val, "phys detc" );
-								numColis += 1;
-							}
+	return numColis;
+}
+
+function PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
+	let numColis = 0;
+	let checkedObjs = {};
+	checkedObjs[pObj.uid.val] = 1;
+	let treeNodes = pObj.obj.treeNodes;
+	//check if coliding with any objects
+	let totRestVect = Vect3_NewZero();
+	for( let ndKey in treeNodes ){ //check all possibly adjacent objs (treeNodes is a dict)
+		let tN = treeNodes[ndKey];
+		let tNObjs = tN.objects[0];
+		let colisVect = Vect3_NewZero();
+		for( let i = 0; i < tNObjs.length; ++i ){
+			let oOb = tNObjs[i].physObj;
+			if( !checkedObjs[oOb.uid.val] ){
+				checkedObjs[oOb.uid.val] = 1;
+				let intTime = pObj.capsule.CapIntrTime( pObj.obj.origin, 
+					pObj.linVel, pObj.radius, oOb.obj.origin, oOb.linVel, oOb.radius );
+				if( !isNaN(intTime) ){
+					if( intTime <= dt ){
+						if( intTime >= 0 ){ //not NaN and occurs within this timestep
+							let colisNormal = Vect3_NewZero();
+							let colisPos = Vect3_NewZero();
+							let interpenD = pObj.capsule.OthrCapCollisNormalPosDepth( 
+								colisNormal, colisPos,
+								pObj.obj.origin, pObj.linVel, pObj.radius, 
+								oOb.obj.origin, oOb.linVel, oOb.radius, intTime );
+							let timeOfColis = intTime + pObj.lastUpdtTime;
+							pObj.physGraph.AddConstraint( PHYS_SURFCOLIS, timeOfColis,
+								colisNormal, colisPos, interpenD, pObj, oOb );
+							//DTPrintf( "add " + pObj.uid.val + " " + oOb.uid.val, "phys detc" );
+							numColis += 1;
+						}else{// inter penetration (negative colision time)
+							//DTPrintf( "time " + intTime, "phys detc" );
+							let colisNormal = Vect3_NewZero();
+							let colisPos = Vect3_NewZero();
+							let interpenD = 0;
+							interpenD = pObj.capsule.OthrCapCollisNormalPosDepth( colisNormal, colisPos,
+								pObj.obj.origin, pObj.linVel, pObj.radius, 
+								oOb.obj.origin, oOb.linVel, oOb.radius, 0 ); //zero to get interpentation at start of frame
+							PHYSGRPH_AddConstraint( pObj.physGraph, PHYS_INTERPEN, pObj.lastUpdtTime, 
+								colisNormal, colisPos, interpenD, pObj, oOb );
+							//DTPrintf( "add " + pObj.uid.val + " " + oOb.uid.val, "phys detc" );
+							numColis += 1;
 						}
 					}
 				}
 			}
 		}
-		return numColis;
 	}
+	return numColis;
+}
 
-	this.ApplyExternAffectsAndDetectCollisions = function( time, tnd ){
-		if( time == this.lastDetectTime )
-			return;
+function PHYSOBJ_ApplyExternAffectsAndDetectCollisions( pObj, time, tnd ){
+	if( time == pObj.lastDetectTime )
+		return;
 
-		let dt = time - this.lastUpdtTime;
+	let dt = time - pObj.lastUpdtTime;
 
-		//DTPrintf("externAccel linvel " + this.linVel + " uid " + this.uid.val, "linvel");
+	//DTPrintf("externAccel linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
 
-		let numCollisions = 0;
+	let numCollisions = 0;
 
-		if( tnd.physNode )
-			Vect3_Copy( this.linAccel, tnd.physNode.gravAccelVec );
+	if( tnd.physNode )
+		Vect3_Copy( pObj.linAccel, tnd.physNode.gravAccelVec );
 
-		if( !this.resting ){
-			//a = 1/2v^2 (accel is dv/dt)
-			//f = ma   f=(d/dt)mv
-			//find and apply the change in velocity
-			let accel = Vect3_CopyNew( this.linAccel );
-			Vect3_MultiplyScalar( accel, dt );
-			Vect3_Add( this.linVel, accel );
-			KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
-			if( isNaN(Vect3_Length(this.linearMomentum)) )
-					DTPrintf("detect nan externAccel add", "phys detc" );
-
-
-			//find any object collisions using linear object position extrapolation from lastUpdtTime to time
-			this.physGraph = new PhysConstraintGraph(0, this.AABB.minCoord, 
-				this.AABB.maxCoord, this); //clear previous list;
-
-			numCollisions += this.FindColidingObjsAndTimes(dt);
+	if( !pObj.resting ){
+		//a = 1/2v^2 (accel is dv/dt)
+		//f = ma   f=(d/dt)mv
+		//find and apply the change in velocity
+		let accel = Vect3_CopyNew( pObj.linAccel );
+		Vect3_MultiplyScalar( accel, dt );
+		Vect3_Add( pObj.linVel, accel );
+		KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
+		if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+				DTPrintf("detect nan externAccel add", "phys detc" );
 
 
-			numCollisions += this.FindBoundsCollisions(dt, tnd.root); //check if coliding with ground ( y = 0 or canv.height)
+		//find any object collisions using linear object position extrapolation from lastUpdtTime to time
+		pObj.physGraph = new PhysConstraintGraph(0, pObj.AABB.minCoord, 
+			pObj.AABB.maxCoord, pObj); //clear previous list;
+
+		numCollisions += PHYSOBJ_FindColidingObjsAndTimes( pObj, dt );
 
 
-			if( numCollisions >= 1 ){
-				//DTPrintf( "detect " + numCollisions + " uid " + this.uid.val, "detc additional" );
-				//subtract the linear velocity (because it was integrated 
-				//over the entire timestep, though the colision occured before then)
-				Vect3_Subtract( this.linVel, accel );
-				KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
-				if( isNaN(Vect3_Length(this.linearMomentum)) )
-							DTPrintf("detect nan remKinEn", "phys detc" );
-			}
+		numCollisions += PHYSOBJ_FindBoundsCollisions( pObj, dt, tnd.root); //check if coliding with ground ( y = 0 or canv.height)
 
-			//now have a list of object collisions and times
-			//sort them by time (needed for finding time of first colision)
-			this.physGraph.SortByTime();
+
+		if( numCollisions >= 1 ){
+			//DTPrintf( "detect " + numCollisions + " uid " + pObj.uid.val, "detc additional" );
+			//subtract the linear velocity (because it was integrated 
+			//over the entire timestep, though the colision occured before then)
+			Vect3_Subtract( pObj.linVel, accel );
+			KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
+			if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+						DTPrintf("detect nan remKinEn", "phys detc" );
 		}
 
-		//may need to store node updated from so can check where updated from
-
-		this.lastDetectTime = time; //remember to prevent being called twice from different tree nodes
-
-		this.interpenOffsetApplied = false;
-
-		return numCollisions;
+		//now have a list of object collisions and times
+		//sort them by time (needed for finding time of first colision)
+		PHYSGRPH_SortByTime( pObj.physGraph );
 	}
 
-	this.LinkPhysGraphs = function( time ){
-		if( time == this.lastAggColisTime )
-			return;
+	//may need to store node updated from so can check where updated from
 
-		//check if any object in the colision group have a colisGroup with different sum of obj uids
-		if( !this.resting && this.physGraph )
-			this.physGraph.ConsolidateGraphs();
+	pObj.lastDetectTime = time; //remember to prevent being called twice from different tree nodes
+
+	pObj.interpenOffsetApplied = false;
+
+	return numCollisions;
+}
+
+function PHYSOBJ_LinkPhysGraphs( pObj, time ){
+	if( time == pObj.lastAggColisTime )
+		return;
+
+	//check if any object in the colision group have a colisGroup with different sum of obj uids
+	if( !pObj.resting && pObj.physGraph )
+		PHYSGRPH_ConsolidateGraphs( pObj.physGraph );
 
 
-		this.lastAggColisTime = time;
+	pObj.lastAggColisTime = time;
+}
+
+function PHYSOBJ_ApplyInterpenOffset( pObj, time ){
+	if( !pObj.resting && pObj.physGraph && !pObj.interpenOffsetApplied ){
+		//DTPrintf("interpen linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
+		PHYSGRPH_ApplyInterpenOffset( pObj.physGraph, pObj );
+		pObj.interpenOffsetApplied = true;
 	}
-
-	this.ApplyInterpenOffset = function( time ){
-		if( !this.resting && this.physGraph && !this.interpenOffsetApplied ){
-			//DTPrintf("interpen linvel " + this.linVel + " uid " + this.uid.val, "linvel");
-			this.physGraph.ApplyInterpenOffset(this);
-			this.interpenOffsetApplied = true;
-		}
-	}
+}
 
 
-	let aDiffLinEnVec = Vect3_NewZero();
-	let aDiffLinVel = Vect3_NewZero();
-	this.TransferEnergy = function( time, treeNode ){
-		if( time == this.lastTransEnergTime )
-			return;
-		//DTPrintf("transEnergy linvel " + this.linVel + " uid " + this.uid.val, "linvel");
-		if( !this.resting ){
-			//dt is the timestep for integrating forces into and accelerations into position changes
-			let dt = time - this.lastUpdtTime; //time from end of last frame until end of this
-			let constrGraph = this.physGraph;
-			if( constrGraph ){
+let aDiffLinEnVec = Vect3_NewZero();
+let aDiffLinVel = Vect3_NewZero();
+function PHYSOBJ_TransferEnergy( pObj, time, treeNode ){
+	if( time == pObj.lastTransEnergTime )
+		return;
+	//DTPrintf("transEnergy linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
+	if( !pObj.resting ){
+		//dt is the timestep for integrating forces into and accelerations into position changes
+		let dt = time - pObj.lastUpdtTime; //time from end of last frame until end of this update interaval frame
+		let constrGraph = pObj.physGraph;
+		if( constrGraph ){
 
-				if( constrGraph.constrPairs[this.uid.val] ){
+			if( constrGraph.constrPairs[pObj.uid.val] ){
 
-					//time from last end of frame until first constraint this frame (time when velocity is changed)
-					let timeSortedConstrPairs = constrGraph.constrPairs[this.uid.val]['timeSorted'];
-					if( timeSortedConstrPairs.length >= 1 ){
-						
-						let constrPair = timeSortedConstrPairs[0];
-						
-						dt = constrPair.time - this.lastUpdtTime;
-						
-						let constrObj = GetOtherConstrObj(constrPair, this);
-						
-						let constrNormal = Vect3_CopyNew( constrPair.normal );
-						//given the ratio of kinetic energy (velocity and mass) of  this vs combined objects
-						//(and the restitution coef of both?) find the transfered amount of energy
-						//ex. two objs with r=1 m=1 vel=[1,0,0] cr1=0.8 vel2=[-1,0,0] cr2=0.8
-						//surface area of a sphere = 4   pi r^2
-						//volume of a sphere       = 4/3 pi r^3
-						//avgObj m=2 r=1.259 v=[0,0,0]
+				//time from last end of frame until first constraint this frame (time when velocity is changed)
+				let timeSortedConstrPairs = constrGraph.constrPairs[pObj.uid.val]['timeSorted'];
+				if( timeSortedConstrPairs.length >= 1 ){
+					
+					let constrPair = timeSortedConstrPairs[0];
+					
+					dt = constrPair.time - pObj.lastUpdtTime;
+					
+					let constrObj = GetOtherConstrObj(constrPair, pObj);
+					
+					let constrNormal = Vect3_CopyNew( constrPair.normal );
+					//given the ratio of kinetic energy (velocity and mass) of  pObj vs combined objects
+					//(and the restitution coef of both?) find the transfered amount of energy
+					//ex. two objs with r=1 m=1 vel=[1,0,0] cr1=0.8 vel2=[-1,0,0] cr2=0.8
+					//surface area of a sphere = 4   pi r^2
+					//volume of a sphere       = 4/3 pi r^3
+					//avgObj m=2 r=1.259 v=[0,0,0]
 
-						if( constrPair.type == PHYS_INTERPEN ){
-							//set all object velocities in group to move out of the interpenetrating object
-							//colisNormal
-						}else if( constrPair.type == PHYS_SURFCOLIS ){
+					if( constrPair.type == PHYS_INTERPEN ){
+						//set all object velocities in group to move out of the interpenetrating object
+						//colisNormal
+					}else if( constrPair.type == PHYS_SURFCOLIS ){
 
-							//rotat velocity, heat, composition (conductance), sum of mass and center of inertia
-							let diffObjMomentum = Vect3_NewZero();
-							constrGraph.GetAggWithoutObjMomentum( diffObjMomentum, this.linearMomentum );
-							let diffPrior = Vect3_CopyNew( diffObjMomentum );
-							Vect3_Subtract( diffObjMomentum, this.linearMomentum ); //inverted agg -> this for reflection below
-							let diffMomentumMagnitude = Vect3_Length( diffObjMomentum );
-							let combinedCOR = constrObj.colisCOR * this.colisCOR;
-							let magnitudeOfMomentumCvtToHeat = diffMomentumMagnitude * (1- combinedCOR);
+						//rotat velocity, heat, composition (conductance), sum of mass and center of inertia
+						let diffObjMomentum = Vect3_NewZero();
+						PHYSGRPH_GetAggWithoutObjMomentum( constrGraph, diffObjMomentum, pObj.linearMomentum );
+						let diffPrior = Vect3_CopyNew( diffObjMomentum );
+						Vect3_Subtract( diffObjMomentum, pObj.linearMomentum ); //inverted agg -> pObj for reflection below
+						let diffMomentumMagnitude = Vect3_Length( diffObjMomentum );
+						let combinedCOR = constrObj.colisCOR * pObj.colisCOR;
+						let magnitudeOfMomentumCvtToHeat = diffMomentumMagnitude * (1- combinedCOR);
 
-							//reflect the difference in momentum vector across the normal
-							let momentLenNormProjLen = Vect3_Dot( constrNormal, diffObjMomentum );
-							Vect3_MultiplyScalar( constrNormal, momentLenNormProjLen ); //scale the colision plane normal to the height of the momentum vector
-							let colisMomntHalfTang = Vect3_CopyNew( constrNormal );
-							Vect3_Subtract( colisMomntHalfTang, diffObjMomentum ); //get 1/2 len vector from end of momentum vector to its reflection
-							let reflectedLinVel = Vect3_CopyNew( constrNormal );
-							Vect3_Add( reflectedLinVel, colisMomntHalfTang ); //add the appropriate length tangent to get reflection
-							let lenDiffPrior =  Vect3_Length( diffPrior );
-							let lenDiffMom = Vect3_Length( diffObjMomentum );
+						//reflect the difference in momentum vector across the normal
+						let momentLenNormProjLen = Vect3_Dot( constrNormal, diffObjMomentum );
+						Vect3_MultiplyScalar( constrNormal, momentLenNormProjLen ); //scale the colision plane normal to the height of the momentum vector
+						let colisMomntHalfTang = Vect3_CopyNew( constrNormal );
+						Vect3_Subtract( colisMomntHalfTang, diffObjMomentum ); //get 1/2 len vector from end of momentum vector to its reflection
+						let reflectedLinVel = Vect3_CopyNew( constrNormal );
+						Vect3_Add( reflectedLinVel, colisMomntHalfTang ); //add the appropriate length tangent to get reflection
+						let lenDiffPrior =  Vect3_Length( diffPrior );
+						let lenDiffMom = Vect3_Length( diffObjMomentum );
 
-							/*
-							console.log("colGph "    + colisGraph.uid.val    + " obj " + this.uid.val          + 
-										" colObj "   + colisObj.uid.val      + " ob1 " + colisPair.ob1.uid.val + 
-										" type "     + colisPair.type +
-										" ob2 "      + colisPair.ob2.uid.val + 
-										" aggMom "   + Vect3_Length( colisGraph.aggregateObject.linearMomentum ).toPrecision(5) +
-										" aggM "     + colisGraph.aggregateObject.mass +
-										" diffMomP " + lenDiffPrior.toPrecision(5) +
-										" difMom "   + lenDiffMom.toPrecision(5)     +
-										" prevMom "  + Vect3_Length( this.linearMomentum ).toPrecision(5) + 
-										" reflMom "  + Vect3_Length( reflectedLinVel ).toPrecision(5) );
-							*/
+						/*
+						console.log("colGph "    + colisGraph.uid.val    + " obj " + pObj.uid.val          + 
+									" colObj "   + colisObj.uid.val      + " ob1 " + colisPair.ob1.uid.val + 
+									" type "     + colisPair.type +
+									" ob2 "      + colisPair.ob2.uid.val + 
+									" aggMom "   + Vect3_Length( colisGraph.aggregateObject.linearMomentum ).toPrecision(5) +
+									" aggM "     + colisGraph.aggregateObject.mass +
+									" diffMomP " + lenDiffPrior.toPrecision(5) +
+									" difMom "   + lenDiffMom.toPrecision(5)     +
+									" prevMom "  + Vect3_Length( pObj.linearMomentum ).toPrecision(5) + 
+									" reflMom "  + Vect3_Length( reflectedLinVel ).toPrecision(5) );
+						*/
 
 
-							if( isNaN(lenDiffMom) )
-								console.log("nan difMom");
+						if( isNaN(lenDiffMom) )
+							console.log("nan difMom");
 
-							kineticEnergyToVelocity( reflectedLinVel, diffMomentumMagnitude * combinedCOR, this.mass );
-							Vect3_MultiplyScalar( reflectedLinVel, 0.5 ); //assuming equal and opposite reaction divides momentum between two objs
+						kineticEnergyToVelocity( reflectedLinVel, diffMomentumMagnitude * combinedCOR, pObj.mass );
+						Vect3_MultiplyScalar( reflectedLinVel, 0.5 ); //assuming equal and opposite reaction divides momentum between two objs
 
-							this.linVel = reflectedLinVel;
+						pObj.linVel = reflectedLinVel;
 
-							KineticEnergyVector( this.linearMomentum, this.linVel, this.mass ); //recalculate whenever linear velocity is updated
-							if( isNaN(Vect3_Length(this.linearMomentum)) )
-								console.log("nan linmomentum transfer energy");
+						KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass ); //recalculate whenever linear velocity is updated
+						if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+							console.log("nan linmomentum transfer energy");
 
-							Quat_Identity(this.rotVelQuat); //x,y,z axis, radian rotation / sec
+						Quat_Identity(pObj.rotVelQuat); //x,y,z axis, radian rotation / sec
 
-							//dt = time - this.constraintGraph.colisGroupTimesAndObjs[0].time; //for external accel use time from collision vel update to end of frame
-						}
-
+						//dt = time - pObj.constraintGraph.colisGroupTimesAndObjs[0].time; //for external accel use time from collision vel update to end of frame
 					}
+
 				}
 			}
 		}
-
-		this.lastTransEnergTime = time;
 	}
+
+	pObj.lastTransEnergTime = time;
+}
 
 	//if after transfering energy the update will cause this object to be in colision again
 	//need to add the new object the kinetic collision graph and re evolve from the beginning of the timestep
 	///////////then make a static (collision continuing past this update) constraint for the object
-	this.DetectAdditionalCollisions = function(time, tnd){
-		if( time == this.lastDetectStaticTime )
-			return;
-		//DTPrintf("detcAddit linvel " + this.linVel + " uid " + this.uid.val, "linvel");
-		let numCollisions = 0;
+function PHYSOBJ_DetectAdditionalCollisions( pObj, time, tnd){
+	if( time == pObj.lastDetectStaticTime )
+		return;
+	//DTPrintf("detcAddit linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
+	let numCollisions = 0;
 
-		if( !this.resting ){
+	if( !pObj.resting ){
 
-			let constrGraph = this.physGraph;
-			if( constrGraph ){
-				if( constrGraph.constrPairs[this.uid.val] ){
-					//time from last end of frame until first interaction this frame (time when velocity is changed)
-					let constrPair = this.physGraph.constrPairs[this.uid.val]['timeSorted'][0];
-					let dt = time - constrPair.time;
+		let constrGraph = pObj.physGraph;
+		if( constrGraph ){
+			if( constrGraph.constrPairs[pObj.uid.val] ){
+				//time from last end of frame until first interaction this frame (time when velocity is changed)
+				let constrPair = pObj.physGraph.constrPairs[pObj.uid.val]['timeSorted'][0];
+				let dt = time - constrPair.time;
 
-					//generate list of objects collided with
-					//check other objects
-					//this.FindCollisionTimesAndObjs(colisGroupTimesAndObjs);
-					//check if coliding with ground ( y = 0 or canv.height)
-					//this.FindBoundsCollisions(colisGroupTimesAndObjs);
-					//if there are still collisions (then group the touching  objects
-					//and set their relative velocities to zero)
+				//generate list of objects collided with
+				//check other objects
+				//pObj.FindCollisionTimesAndObjs(colisGroupTimesAndObjs);
+				//check if coliding with ground ( y = 0 or canv.height)
+				//pObj.FindBoundsCollisions(colisGroupTimesAndObjs);
+				//if there are still collisions (then group the touching  objects
+				//and set their relative velocities to zero)
 
-					let accel = Vect3_CopyNew( this.linAccel );
-					Vect3_MultiplyScalar( accel, dt );
-					Vect3_Add( this.linVel, accel );
-					KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
-					if( isNaN(Vect3_Length(this.linearMomentum)) )
-							console.log("nan linMom detect additional");
-
-
-					numCollisions += this.FindColidingObjsAndTimes(dt, true);
-
-					numCollisions += this.FindBoundsCollisions(dt, tnd.root, true); //check if coliding with ground ( y = 0 or canv.height)
+				let accel = Vect3_CopyNew( pObj.linAccel );
+				Vect3_MultiplyScalar( accel, dt );
+				Vect3_Add( pObj.linVel, accel );
+				KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
+				if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+						console.log("nan linMom detect additional");
 
 
-					if( numCollisions >= 1 ){
-						//DTPrintf( "detectAdditional " + numCollisions + " uid " + this.uid.val, "detc additional" );
-						//subtract the extern accel 
-						//(because it was integrated over the entire timestep, 
-						//though the colision occured before then)
+				numCollisions += PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, true );
 
-						Vect3_Subtract( this.linVel, accel );
-						KineticEnergyVector( this.linearMomentum, this.linVel, this.mass );
-						if( isNaN(Vect3_Length(this.linearMomentum)) )
-							console.log("nan linMom detect additional remove accel");
-					}
+				numCollisions += PHYSOBJ_FindBoundsCollisions( pObj, dt, tnd.root, true ); //check if coliding with ground ( y = 0 or canv.height)
 
 
-					//now have a list of object collisions and times
-					//sort them by time (needed for finding time of first colision)
-					this.physGraph.SortByTime();
+				if( numCollisions >= 1 ){
+					//DTPrintf( "detectAdditional " + numCollisions + " uid " + pObj.uid.val, "detc additional" );
+					//subtract the extern accel 
+					//(because it was integrated over the entire timestep, 
+					//though the colision occured before then)
+
+					Vect3_Subtract( pObj.linVel, accel );
+					KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
+					if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+						console.log("nan linMom detect additional remove accel");
 				}
-			}
 
+
+				//now have a list of object collisions and times
+				//sort them by time (needed for finding time of first colision)
+				PHYSGRPH_SortByTime( pObj.physGraph );
+			}
 		}
 
-		this.lastDetectStaticTime = time;
-
-		return numCollisions;
 	}
+
+	pObj.lastDetectStaticTime = time;
+
+	return numCollisions;
+}
 
 	//axis angle rotational velocity  inertia determined by mass distribution, around center of gravity
 	//x,y,z linear velocity  inertia from mass
 	//coefficent of restitution affects acceleration and heat/sound generation from impact
-	this.Update = function(time, externAccel, treeNode){
-		if(time == this.lastUpdtTime) //only once per frame (avoid multiple tree node calls)
-			return;
-		let dt = time - this.lastUpdtTime;
-		//DTPrintf("updt linvel " + this.linVel + " uid " + this.uid.val, "linvel" );
-		//if linVel is below a threshold and obj is resting dont update position
-		if( !this.resting ){
+function PHYSOBJ_Update( pObj, time, treeNode){
+	if(time == pObj.lastUpdtTime) //only once per frame (avoid multiple tree node calls)
+		return;
+	let dt = time - pObj.lastUpdtTime;
+	//DTPrintf("updt linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel" );
+	//if linVel is below a threshold and obj is resting dont update position
+	if( !pObj.resting ){
 
-			let prevPosition = Vect3_CopyNew(this.AABB.center);
+		let prevPosition = Vect3_CopyNew(pObj.obj.origin);
 
-			if( Vect3_Length( this.linVel ) < RESTING_VEL && 
-				this.physGraph && this.physGraph.totalConstrPairs > 0 ){
-				//if there is a contact normal that is opposing the linAccel for this frame
-				//then the object should stop moving
-				let normExternAccel = Vect3_CopyNew( this.linAccel );
-				Vect3_Normal( normExternAccel );
-				let constrPairs = this.physGraph.constrPairs[this.uid.val];
-				let constrPairKeys = Object.keys( constrPairs );
-				for( let i = 0; i < constrPairKeys.length; ++i ){
-					if( constrPairKeys[i] == 'timeSorted' )
-						continue;
-					if( constrPairs[constrPairKeys[i]].type == 0) //resolve interpenetration before suspending updates for object
-						continue;
-					let constrNormDot = Vect3_Dot( constrPairs[constrPairKeys[i]].normal, normExternAccel );
-					if( constrNormDot < -0.8 ){
-						this.resting = true;
-						break;
-					}
-				}
-			}else{
-
-				//update the position
-				let delP = Vect3_CopyNew(this.linVel);
-				Vect3_MultiplyScalar( delP, dt );
-				AABB_OffsetPos(this.AABB, delP);
-
-				//console.log( 
-				//	" linVel " + Vect_ToFixedPrecisionString( this.linVel, 5 ) + 
-				//	" center " + Vect_ToFixedPrecisionString( this.AABB.center, 5 ) );
-
-			}
-
-
-			//check all subNodes added to if it has moved outside of their bounds
-			//do this also when transitioning to resting because position may have been updated by apply interpen offset
-			let ReAddToOctTree = false;
-			let totOvlapPct = 0;
-			let nodesToRemoveFrom = {};
-			for( let nd in this.obj.treeNodes ){
-				let ndOvLapPct = AABB_OthrObjOverlap(
-							this.obj.treeNodes[nd].AABB.minCoord,
-							this.obj.treeNodes[nd].AABB.maxCoord,
-							this.AABB.minCoord,
-							this.AABB.maxCoord );
-				totOvlapPct += ndOvLapPct;
-				if( ndOvLapPct < 0.01 ){
-					//remove from the node the obj has moved out of
-					nodesToRemoveFrom[nd] = ndOvLapPct;
+		if( Vect3_Length( pObj.linVel ) < RESTING_VEL && 
+			pObj.physGraph && pObj.physGraph.totalConstrPairs > 0 ){
+			//if there is a contact normal that is opposing the externAccel (gravity) for this frame
+			//then the object should stop moving
+			let normGravAccel = Vect3_CopyNew( treeNode.physNode.gravAccelVec ); //pObj.linAccel );
+			Vect3_Normal( normGravAccel );
+			let constrPairs = pObj.physGraph.constrPairs[pObj.uid.val];
+			let constrPairKeys = Object.keys( constrPairs );
+			for( let i = 0; i < constrPairKeys.length; ++i ){
+				if( constrPairKeys[i] == 'timeSorted' )
+					continue;
+				if( constrPairs[constrPairKeys[i]].type == 0) //resolve interpenetration before suspending updates for object
+					continue;
+				let constrNormDot = Vect3_Dot( constrPairs[constrPairKeys[i]].normal, normGravAccel );
+				if( constrNormDot < -0.8 ){
+					pObj.resting = true;
+					break;
 				}
 			}
+		}else{
 
-			if( nodesToRemoveFrom.length > 0 ){
-				//moved into a new subnode or out of bounds
-				//need to check it's possible to move into the new subnode before
-				//changing the position and removing from the old nodes
-			}
-			
-			//some part of the obj is now in a new node, need to add to that one
-			let addSuccess = true;
-			if(totOvlapPct < 0.99){
-				let nLvsMDpth = [0, 0];
-				subDivAddDepth = 0;
-				TND_AddObject( treeNode.root, nLvsMDpth, this.obj );
-				if( nLvsMDpth[0] < 0 ){
-					//failed to add to the new node
-					addSuccess = false;
-				}
-			}
+			//update the position
+			let delP = Vect3_CopyNew(pObj.linVel);
+			Vect3_MultiplyScalar( delP, dt );
+			Vect3_Add(pObj.obj.origin, delP);
+			//AABB_OffsetPos(pObj.AABB, delP);
 
-			if( addSuccess ){
-				for( nd in nodesToRemoveFrom ){
-					let tNd = this.obj.treeNodes[nd];
-					if( tNd != undefined ){
-						TND_RemoveFromThisNode(tNd, this.obj); //node may unsubdivide during remove
-						delete(this.obj.treeNodes[nd]);
-					}
-				}
-			}else{
-				if( nodesToRemoveFrom.length > 0 ){
-					//revert to previous position (and collide with the node boundry or set zero velocity)
-					AABB_MoveCenter(this.AABB, prevPosition);
-					Vect3_SetScalar(this.linVel, 0);
-				}
-			}
+			//console.log( 
+			//	" linVel " + Vect_ToFixedPrecisionString( pObj.linVel, 5 ) + 
+			//	" center " + Vect_ToFixedPrecisionString( pObj.obj.origin, 5 ) );
 
 		}
 
-		this.lastUpdtTime = time;
+
+		//check all subNodes added to if it has moved outside of their bounds
+		//do this also when transitioning to resting because position may have been updated by apply interpen offset
+		let ReAddToOctTree = false;
+		let totOvlapPct = 0;
+		let nodesToRemoveFrom = {};
+		for( let nd in pObj.obj.treeNodes ){
+			let ndOvLapPct = AABB_OthrObjOverlap(
+						pObj.obj.treeNodes[nd].AABB.minCoord,
+						pObj.obj.treeNodes[nd].AABB.maxCoord,
+						pObj.AABB.minCoord,
+						pObj.AABB.maxCoord );
+			totOvlapPct += ndOvLapPct;
+			if( ndOvLapPct < 0.01 ){
+				//remove from the node the obj has moved out of
+				nodesToRemoveFrom[nd] = ndOvLapPct;
+			}
+		}
+
+		if( nodesToRemoveFrom.length > 0 ){
+			//moved into a new subnode or out of bounds
+			//need to check it's possible to move into the new subnode before
+			//changing the position and removing from the old nodes
+		}
+		
+		//some part of the obj is now in a new node, need to add to that one
+		let addSuccess = true;
+		if(totOvlapPct < 0.99){
+			let nLvsMDpth = [0, 0];
+			subDivAddDepth = 0;
+			TND_AddObject( treeNode.root, nLvsMDpth, pObj.obj );
+			if( nLvsMDpth[0] < 0 ){
+				//failed to add to the new node
+				addSuccess = false;
+			}
+		}
+
+		if( addSuccess ){
+			for( nd in nodesToRemoveFrom ){
+				let tNd = pObj.obj.treeNodes[nd];
+				if( tNd != undefined ){
+					TND_RemoveFromThisNode(tNd, pObj.obj); //node may unsubdivide during remove
+					delete(pObj.obj.treeNodes[nd]);
+				}
+			}
+		}else{
+			if( nodesToRemoveFrom.length > 0 ){
+				//revert to previous position (and collide with the node boundry or set zero velocity)
+				AABB_MoveCenter(pObj.AABB, prevPosition);
+				Vect3_SetScalar(pObj.linVel, 0);
+			}
+		}
+
 	}
+
+	pObj.lastUpdtTime = time;
 }
 
 const earthGravityAccel = new Float32Array([0,9.8, 0]);

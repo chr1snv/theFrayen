@@ -453,6 +453,23 @@ function MainLoop()
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent menu bg z depth write prevents the scene behind it from being drawn if done first)
 
+	//now that the batches are ready to draw generate the directional light shadow map if a directional light (sun) is present
+	let shadowmapDrawn = false;
+	for( let j = 0; j < !shadowmapDrawn && rastBatch3dTris_array.length; ++j ){
+		let trisBatch = rastBatch3dTris_array[j];
+		if( trisBatch.lights ){
+			for( let i = 0; !shadowmapDrawn && i < trisBatch.numLights; ++i ){
+				let light = trisBatch.lights[i];
+				if( light.lightType == LightType.SUN ){
+					Light_RenderShadowTexture(light);
+					shadowmapDrawn = true;
+				}
+			}
+		}
+	}
+	//return to default framebuffer
+	gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+
 	CUBE_G_Setup(graphics.cubeGraphics);
 	//disable depth buffer write/read test (infinite distance to skybox)
 	graphics.enableDepthTest(false);
@@ -474,17 +491,6 @@ function MainLoop()
 			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
 		}
 	}
-	/*
-	graphics.enableDepthMask(false);
-	//draw transparent materials (back to front)
-	for( let i = rastBatch3dTris_array.length-1; i >= 0; --i ){
-		let rastB = rastBatch3dTris_array[i];
-		if( rastB.activeForFrame ){
-			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
-		}
-	}
-	graphics.enableDepthMask(true);
-	*/
 
 	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
 	graphics.ClearDepth();
