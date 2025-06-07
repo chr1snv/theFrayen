@@ -258,6 +258,10 @@ def writeScene(path):
     wMax = vec3NewScalar( -9999999 )
 
     depsGraph = bpy.context.evaluated_depsgraph_get() #objects with modifiers applied
+    
+    #lists of properties for meshes that may be used on multiple models so they only get written to the output folder once
+    writtenMaterials = [] 
+    writtenTextures = []
 
     #loop through each of the objects in the scene
     for i in range(len(sce.objects)):
@@ -293,10 +297,10 @@ def writeScene(path):
             mAABBws = writeArmature(sceneDirectory, obj)
             armCt += 1
         if obj.type == 'MESH':
-            print( 'idx %i mesh %s' % (i, obj.name) )
+            #print( 'idx %i mesh %s' % (i, obj.name) )
             out.write( 'm %s\n' % (obj.name) )
-            mAABBws = writeModel(out, sceneDirectory, obj, ipoFileName, depsGraph) #world space aabb
-            print( 'AABB %s' % mAABBws )
+            mAABBws = writeModel(out, sceneDirectory, obj, ipoFileName, depsGraph, writtenMaterials, writtenTextures) #world space aabb
+            #print( 'AABB %s' % mAABBws )
             if mAABBws == None:
                 print( 'Mesh object %s not exportable (AABB not returned)' % \
                     obj.name )

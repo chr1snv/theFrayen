@@ -33,500 +33,507 @@ def writeArmature(assetDirectory, ob):
 	writeArmatureAnim(assetDirectory, ob)
 
 #asset directory is the dir that contains the folders meshes, animations, ..etc.
-def writeModel(out, assetDirectory, ob, ipoFileName, depsGraph):
-    """Write a HavenTech model and animation file from the current blender
-    scene, returns the Axis aligned bounding box min and max vect3's for
-    inital adding to the haven scene oct tree"""
+def writeModel(out, assetDirectory, ob, ipoFileName, depsGraph, writtenMaterials, writtenTextures):
+	"""Write a HavenTech model and animation file from the current blender
+	scene, returns the Axis aligned bounding box min and max vect3's for
+	inital adding to the haven scene oct tree"""
 
-    #check the given object is a mesh type model
-    if not ob:
-        print('Error%t| write model called with null ob')
-        return
-    #check that the selected object is a Mesh
-    if not ob.type == 'MESH':
-        print('Error%t| Active object is not a Mesh')
-        return
+	#check the given object is a mesh type model
+	if not ob:
+		print('Error%t| write model called with null ob')
+		return
+	#check that the selected object is a Mesh
+	if not ob.type == 'MESH':
+		print('Error%t| Active object is not a Mesh')
+		return
 
-    #write the mesh scale, rotation, translation and modifiers
-    out.write( 'mscl %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
-    if ob.rotation_mode == 'XYZ':
-    	quatRot = ob.rotation_euler.to_quaternion()
-    elif ob.rotation_mode == 'QUATERNION':
-    	quatRot = ob.rotation_quaternion
-    print("rotation mode %s rot %s" % (ob.rotation_mode, str(quatRot)) )
-    out.write( 'mrot %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
-    loc = ob.location
-    out.write( 'mloc %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
+	#write the mesh scale, rotation, translation and modifiers
+	out.write( 'mscl %f %f %f\n' % (ob.scale[0], ob.scale[1], ob.scale[2])) #SizeX, ob.SizeZ, ob.SizeY))
+	if ob.rotation_mode == 'XYZ':
+		quatRot = ob.rotation_euler.to_quaternion()
+	elif ob.rotation_mode == 'QUATERNION':
+		quatRot = ob.rotation_quaternion
+	#print("rotation mode %s rot %s" % (ob.rotation_mode, str(quatRot)) )
+	out.write( 'mrot %f %f %f %f\n' % (quatRot[1], quatRot[2], quatRot[3], quatRot[0])) #ob.RotX, ob.RotZ, -ob.RotY))
+	loc = ob.location
+	out.write( 'mloc %f %f %f\n' % (loc[0], loc[1], loc[2])) #ob.LocX, ob.LocZ, -ob.LocY))
 
-    if ipoFileName != None:
-        out.write('mIpoName %s\n' % ipoFileName)
+	if ipoFileName != None:
+		out.write('mIpoName %s\n' % ipoFileName)
 
-    #check if the model has an armature modifier
-    usesArmature = False
-    for modifier in ob.modifiers:
-        if modifier.type == 'ARMATURE':
-            usesArmature = True
-            armatureObj = modifier.object
-            #check the armature modifier does not use envelopes
-            if modifier.use_bone_envelopes:
-                print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
-                return
-            #check the armature modifer uses vertex groups
-            if not modifier.use_vertex_groups:
-                print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
-                return
-            out.write('mArmName %s\n' % (armatureObj.name) )
+	#check if the model has an armature modifier
+	usesArmature = False
+	for modifier in ob.modifiers:
+		if modifier.type == 'ARMATURE':
+			usesArmature = True
+			armatureObj = modifier.object
+			#check the armature modifier does not use envelopes
+			if modifier.use_bone_envelopes:
+				print('Error%t|Armature modifier uses envelopes,' + ' only vertex groups are allowed')
+				return
+			#check the armature modifer uses vertex groups
+			if not modifier.use_vertex_groups:
+				print('Error%t|Armature modifier on obj: ' + ob.name + ' does not use vertex groups')
+				return
+			out.write('mArmName %s\n' % (armatureObj.name) )
 
-    #----write the mesh file----
-    #---------------------------
-    mesh = ob.data
-    out.write( 'mMeshName %s\n' % (mesh.name) )
+	#----write the mesh file----
+	#---------------------------
+	mesh = ob.data
+	out.write( 'mMeshName %s\n' % (mesh.name) )
 
-    [AABBMin, AABBMax] = writeMesh(assetDirectory, ob, usesArmature, depsGraph)
+	[AABBMin, AABBMax] = writeMesh(assetDirectory, ob, usesArmature, depsGraph)
 
-    #----write the model materials----
-    #-------------------------------------
-    writeModelMaterials(out, assetDirectory, ob)
+	#----write the model materials----
+	#-------------------------------------
+	writeModelMaterials(out, assetDirectory, ob, writtenMaterials, writtenTextures)
 
-    #apply object location, rotation and scale to AABB
-    AABBmin = ob.matrix_world @ AABBMin
-    AABBmax = ob.matrix_world @ AABBMax
+	#apply object location, rotation and scale to AABB
+	AABBmin = ob.matrix_world @ AABBMin
+	AABBmax = ob.matrix_world @ AABBMax
 
-    return [AABBmin, AABBmax]
+	return [AABBmin, AABBmax]
 
-def writeModelMaterials(out, assetDirectory, ob):
-    """Write the names of materials for an object, and a haven tech material file for each of the
-    materials associated with the given haven tech model"""
+def writeModelMaterials(out, assetDirectory, ob, writtenMaterials, writtenTextures):
+	"""Write the names of materials for an object, and a haven tech material file for each of the
+	materials associated with the given haven tech model"""
 
-    #check that the mesh only uses its own materials (and not materials of its
-    #parent object)
-    #if(ob.colbits != 0):
-    #    Blender.Draw.PupMenu('Error%t| Mesh object: ' + ob.name + \
-    #            ' uses Parent Object materials' + ' (colbits != 0)')
-    #    return
+	#check that the mesh only uses its own materials (and not materials of its
+	#parent object)
+	#if(ob.colbits != 0):
+	#    Blender.Draw.PupMenu('Error%t| Mesh object: ' + ob.name + \
+	#            ' uses Parent Object materials' + ' (colbits != 0)')
+	#    return
 
-    #get the mesh
-    materials = ob.material_slots
-    #check that geting the mesh data worked
-    if not materials:
-        print('Error%t| writeModelMaterials Can\'t get material_slots for obj: ' + ob.name)
-        return
+	#get the mesh
+	materials = ob.material_slots
+	#check that geting the mesh data worked
+	if not materials:
+		print('Error%t| writeModelMaterials Can\'t get material_slots for obj: ' + ob.name)
+		return
 
-    #matFileName = assetDirectory + "/meshMaterials/" + ob.name + ".hvtMeshMat"
-    
-    #open the output file
-    #out = open(matFileName, "w")
+	#matFileName = assetDirectory + "/meshMaterials/" + ob.name + ".hvtMeshMat"
 
-    #out.write( 'n %s\n' % len(mesh.materials) )
+	#open the output file
+	#out = open(matFileName, "w")
 
-    for mat in materials:
-        #write a line for the material 
-        print( 'material %s' % (mat.name) )
-        out.write( 'mMat %s\n' % (mat.name))
-        #write a hvtMat file for the material
-        writeMaterial(assetDirectory, mat.material)
-    #out.close()
+	#out.write( 'n %s\n' % len(mesh.materials) )
 
-def writeMaterial(assetDirectory, mat):
-    """Write a hvtMat file for the given blender material:
-    	principledBDSF values and texture names the material uses"""
+	for mat in materials:
+		#write a line for the material 
+		print( 'material %s' % (mat.name) )
+		out.write( 'mMat %s\n' % (mat.name))
+		#write a hvtMat file for the material
+		if not mat.name in writtenMaterials:
+			writeMaterial(assetDirectory, mat.material, writtenTextures)
+			writtenMaterials.append( mat.name )
+	#out.close()
 
-    matFileName = assetDirectory + "/materials/" + mat.name + ".hvtMat"
-    print("writeMaterial matFileName %s" % (matFileName) )
+def writeMaterial(assetDirectory, mat, writtenTextures):
+	"""Write a hvtMat file for the given blender material:
+		principledBDSF values and texture names the material uses"""
 
-    #example of walking material node graph and getting  
-    #bpy.context.scene.objects[17].data.materials[0].node_tree.nodes[0].inputs['Surface'].node
-    #>bpy.data.materials['metal'].node_tree.nodes["Material Output"]
+	matFileName = assetDirectory + "/materials/" + mat.name + ".hvtMat"
+	#print("writeMaterial matFileName %s" % (matFileName) )
 
-    #check that the shader is of type Principled BSDF
-    #to keep the haven exporter from blender simple it only supports this shader type because it can do plastic, metal, and transparent materials
-    #https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html
-    #"The base layer is a user controlled mix between diffuse, metal, subsurface scattering and transmission. On top of that there is a specular layer, sheen layer and clearcoat layer."
-    principledBsdfCount = mat.node_tree.nodes.keys().count('Principled BSDF')
-    print( 'Principled BSDF count %i' % (principledBsdfCount) )
-    if principledBsdfCount < 1:
-        print("Haven Exporter unsupported material - Principled BSDF node not found for material: %s" % (mat.name) )
-        return
+	#example of walking material node graph and getting  
+	#bpy.context.scene.objects[17].data.materials[0].node_tree.nodes[0].inputs['Surface'].node
+	#>bpy.data.materials['metal'].node_tree.nodes["Material Output"]
 
-    p = bpy_extras.node_shader_utils.PrincipledBSDFWrapper(mat)
+	#check that the shader is of type Principled BSDF
+	#to keep the haven exporter from blender simple it only supports this shader type because it can do plastic, metal, and transparent materials
+	#https://docs.blender.org/manual/en/latest/render/shader_nodes/shader/principled.html
+	#"The base layer is a user controlled mix between diffuse, metal, subsurface scattering and transmission. On top of that there is a specular layer, sheen layer and clearcoat layer."
+	principledBsdfCount = mat.node_tree.nodes.keys().count('Principled BSDF')
+	#print( 'Principled BSDF count %i' % (principledBsdfCount) )
+	if principledBsdfCount < 1:
+		print("Haven Exporter unsupported material - Principled BSDF node not found for material: %s" % (mat.name) )
+		return
 
-    #open the output file
-    out = open(matFileName, "w")
+	p = bpy_extras.node_shader_utils.PrincipledBSDFWrapper(mat)
 
-    #print( "writeShader: %s" % (mat.name) )
+	#open the output file
+	out = open(matFileName, "w")
 
-
-    #output the textures the Material uses
-    ####################################
-    diffuseTextureFilename = "" #used for checking the alpha texture is the same as the diffuse
-    for node in mat.node_tree.nodes:
-        #skip non supported configurations
-        if node.name != 'Image Texture':
-            #print( "node.name != 'Image Texture': %s" % (node.name) )
-            continue
-        if node.image != None:
-            tex = node.image
-            #print("found image shader node")
+	#print( "writeShader: %s" % (mat.name) )
 
 
-            if node.inputs[0].links[0].from_socket.name != 'UV':
-                print("Texture doesn't use UV coordinates: node.inputs[0].links[0].from_socket.name: %s" % (node.inputs[0].links[0].from_socket.name) )
-                continue
-            else:
-                #write the texture type and filename
-                ######
+	#output the textures the Material uses
+	####################################
+	diffuseTextureFilename = "" #used for checking the alpha texture is the same as the diffuse
+	for node in mat.node_tree.nodes:
+		#skip non supported configurations
+		if node.name != 'Image Texture':
+			#print( "node.name != 'Image Texture': %s" % (node.name) )
+			continue
+		if node.image != None:
+			tex = node.image
+			#print("found image shader node")
 
-                #get the texture filename
-                path = tex.filepath
-                directory, filename = os.path.split(path)
-                #filename = os.path.splitext(filename)[0] #strip the file type
 
-                #write the texture type
-                out.write('tex\n')
-                #bpy.data.scenes[0].objects[2].material_slots[0].material.node_tree.nodes['Image Texture'].extension
-                if node.extension == 'EXTEND' :
-	                out.write( 'wrapType clamp\n' )
-                try:
-                    if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
-                        diffuseMix = 1
-                        diffuseTextureFilename = filename
-                        out.write('difTex\t %f\n' % (diffuseMix) ) #diffuse texture
-                    if node.outputs['Color'].links[0].to_socket.name == 'Normal':
-                        normalMix = 1#texture.norfac
-                        out.write('normTex\t %f\n' % (normalMix) ) #normal texture
-                    if node.outputs['Color'].links[0].to_socket.name == 'Emission':
-                        emitTextureFilename = filename
-                        emitAmount = 1#texture.dvar
-                        out.write('lumTex\t %f\n' % (emitAmount)) #emissive texture
-                except:
-                    None
-                try:
-                    if node.outputs['Alpha'].links[0].to_socket.name == 'Alpha' or\
-                       (len(node.outputs['Alpha'].links) >= 1 and node.outputs['Alpha'].links[0].to_socket.name == 'Alpha') :
-                        if( filename == diffuseTextureFilename ):
-                            out.write('difTexAisAlpha\n')  #write out a flag if the alpha channel of the diffuse texture is used
-                        elif ( filename == emitTextureFilename ):
-                            out.write('emitTexAisAlpha\n')
-                        else:
-                            #don't support seperate alpha/diffuse textures
-                            print("Alpha texture is not diffuse or emit Texture ")
-                            out.write('e\n')
-                            continue
-                except:
-                    None
-                #
-                #write out the texture filename
-                out.write( 'fileName %s \n' % (filename))
-                out.write('e\n')
-                #
-                #check that the texture exists
-                #absPath = Blender.sys.expandpath(path)
-                full_path = bpy.path.abspath(tex.filepath, library=tex.library)
-                absPath = os.path.normpath(full_path)
-                #absPath = bpy.path.abspath( mat.node_tree.nodes["Image Texture"].image.filepath[2:])
-                if( not os.path.isfile(absPath) ):
-                    print("Cannot find texture file " + absPath + " of  mat: " + mat.name)
-                    out.close()
-                    return
+			if len(node.inputs) < 1 or len(node.inputs[0].links) < 1:
+				print("Texture doesn't use UV coordinates: %s" % (node.image.name) )
+				continue
+			elif node.inputs[0].links[0].from_socket.name != 'UV':
+				print("Texture doesn't use UV coordinates: node.inputs[0].links[0].from_socket.name: %s" % (node.inputs[0].links[0].from_socket.name) )
+				continue
+			else:
+				#write the texture type and filename
+				######
 
-                #copy the texture file into the proper folder
-                newPath = assetDirectory+"/textures/"+filename
-                print( "copying texturefile from absPath %s newPath %s" % (absPath, newPath) ) 
-                img = imbuf.load(absPath)
-                potSize = ( nextPot(img.size[0]), nextPot(img.size[1]) )
-                newimg = img.resize( potSize )#, Image.ANTIALIAS )
-                imbuf.write(img, filepath=newPath)
-                #shutil.copyfile(absPath, newPath)
-    out.write('\n')
+				#get the texture filename
+				path = tex.filepath
+				directory, filename = os.path.split(path)
+				#filename = os.path.splitext(filename)[0] #strip the file type
 
-    #write out the shader settings
-    ##############################
-    
-    noBaseCol = False
+				#write the texture type
+				out.write('tex\n')
+				#bpy.data.scenes[0].objects[2].material_slots[0].material.node_tree.nodes['Image Texture'].extension
+				if node.extension == 'EXTEND' :
+					out.write( 'wrapType clamp\n' )
+				try:
+					if node.outputs['Color'].links[0].to_socket.name == 'Base Color':
+						diffuseMix = 1
+						diffuseTextureFilename = filename
+						out.write('difTex\t %f\n' % (diffuseMix) ) #diffuse texture
+					if node.outputs['Color'].links[0].to_socket.name == 'Normal':
+						normalMix = 1#texture.norfac
+						out.write('normTex\t %f\n' % (normalMix) ) #normal texture
+					if node.outputs['Color'].links[0].to_socket.name == 'Emission':
+						emitTextureFilename = filename
+						emitAmount = 1#texture.dvar
+						out.write('lumTex\t %f\n' % (emitAmount)) #emissive texture
+				except:
+					None
+				try:
+					if node.outputs['Alpha'].links[0].to_socket.name == 'Alpha' or\
+						(len(node.outputs['Alpha'].links) >= 1 and node.outputs['Alpha'].links[0].to_socket.name == 'Alpha') :
+						if( filename == diffuseTextureFilename ):
+							out.write('difTexAisAlpha\n')  #write out a flag if the alpha channel of the diffuse texture is used
+						elif ( filename == emitTextureFilename ):
+							out.write('emitTexAisAlpha\n')
+						else:
+							#don't support seperate alpha/diffuse textures
+							print("Alpha texture is not diffuse or emit Texture ")
+							out.write('e\n')
+							continue
+				except:
+					None
+				#
+				#write out the texture filename
+				out.write( 'fileName %s \n' % (filename))
+				out.write('e\n')
+				#
+				#check that the texture exists
+				#absPath = Blender.sys.expandpath(path)
+				full_path = bpy.path.abspath(tex.filepath, library=tex.library)
+				absPath = os.path.normpath(full_path)
+				#absPath = bpy.path.abspath( mat.node_tree.nodes["Image Texture"].image.filepath[2:])
+				if( not os.path.isfile(absPath) ):
+					print("Cannot find texture file " + absPath + " of  mat: " + mat.name)
+					out.close()
+					return
 
-    #output the shader diffuse color and amount
-    print( 'base color: %s' % str(p.base_color) )
-    [r, g, b] = p.base_color
-    if( r == 0 and g == 0 and b == 0):
-        noBaseCol = True
-    out.write('difCol\t\t %f %f %f\n' % (r, g, b))
-    #output the shader specular color amount and hardness
-    out.write('specMixHrd\t %f %f\n' % (p.specular, p.roughness))
-    #output the material alpha value
-    out.write('alph\t\t %f\n' % (p.alpha))
-    #output the material emission color
-    [r, g, b] = p.emission_color
-    out.write('lumCol\t\t %f %f %f\n' % (r, g, b))
-    if( p.emission_strength > 0 and noBaseCol ):
-        out.write('shadeless')
-    out.close()
+				#copy the texture file into the proper folder
+				if not absPath in writtenTextures:
+					newPath = assetDirectory+"/textures/"+filename
+					print( "copying texturefile from absPath %s newPath %s" % (absPath, newPath) ) 
+					img = imbuf.load(absPath)
+					potSize = ( nextPot(img.size[0]), nextPot(img.size[1]) )
+					newimg = img.resize( potSize )#, Image.ANTIALIAS )
+					imbuf.write(img, filepath=newPath)
+					#shutil.copyfile(absPath, newPath)
+					writtenTextures.append( absPath )
+	out.write('\n')
+
+	#write out the shader settings
+	##############################
+
+	noBaseCol = False
+
+	#output the shader diffuse color and amount
+	print( 'base color: %s' % str(p.base_color) )
+	[r, g, b] = p.base_color
+	if( r == 0 and g == 0 and b == 0):
+		noBaseCol = True
+	out.write('difCol\t\t %f %f %f\n' % (r, g, b))
+	#output the shader specular color amount and hardness
+	out.write('specMixHrd\t %f %f\n' % (p.specular, p.roughness))
+	#output the material alpha value
+	out.write('alph\t\t %f\n' % (p.alpha))
+	#output the material emission color
+	[r, g, b] = p.emission_color
+	out.write('lumCol\t\t %f %f %f\n' % (r, g, b))
+	if( p.emission_strength > 0 and noBaseCol ):
+		out.write('shadeless')
+	out.close()
 
 def writeMesh(assetDirectory, ob, usesArmature, depsGraph):
-    """Write a HavenTech mesh file from the passed in blender object"""
+	"""Write a HavenTech mesh file from the passed in blender object"""
 
-    #get the mesh data
-    #https://blender.stackexchange.com/questions/7196/how-to-get-a-new-mesh-with-modifiers-applied-using-blender-python-api
+	#get the mesh data
+	#https://blender.stackexchange.com/questions/7196/how-to-get-a-new-mesh-with-modifiers-applied-using-blender-python-api
 
-    #deselect all objects
-    for obj in bpy.context.view_layer.objects.selected:
-    	obj.select_set(False)
+	#deselect all objects
+	for obj in bpy.context.view_layer.objects.selected:
+		obj.select_set(False)
 
-    #bpy.context.view_layer.objects.active
+	#bpy.context.view_layer.objects.active
 
 
 	#bpy.data.scenes[0].objects['viper650hull'].modifiers[0].show_viewport = True
-    #d = bpy.context.evaluated_depsgraph_get()
+	#d = bpy.context.evaluated_depsgraph_get()
 	#bpy.ops.object.mode_set(mode='EDIT')
 
-    mesh = ob.data #getData()
+	mesh = ob.data #getData()
 
-    #print( "writeMesh: %s" %(ob.name) ) 
+	#print( "writeMesh: %s" %(ob.name) ) 
 
-    #check that geting the raw mesh data worked
-    if not mesh:
-        print("Can\'t get Mesh data for obj: " + ob.name )
-        return
+	#check that geting the raw mesh data worked
+	if not mesh:
+		print("Can\'t get Mesh data for obj: " + ob.name )
+		return
 
-    #check the mesh has UV's
-    if not mesh.uv_layers: #.hasFaceUV():
-        print( "Mesh: " + mesh.name + " does not have uv coordinates" )
-        return
+	#check the mesh has UV's
+	if not mesh.uv_layers: #.hasFaceUV():
+		print( "Mesh: " + mesh.name + " does not have uv coordinates" )
+		return
 
-    meshFileName = assetDirectory + "/meshes/" + mesh.name + ".hvtMesh"
+	meshFileName = assetDirectory + "/meshes/" + mesh.name + ".hvtMesh"
 
-    #check the user is ok with saving over an old file (if it exists)
-    #if not BPyMessages.Warning_SaveOver(meshFileName):
-    #    return
-    
-    #----write the keyframes file----
-    #--------------------------------
-    keyFrameFileName = writeKeyframeMeshData(assetDirectory, ob)
+	#check the user is ok with saving over an old file (if it exists)
+	#if not BPyMessages.Warning_SaveOver(meshFileName):
+	#    return
+
+	#----write the keyframes file----
+	#--------------------------------
+	keyFrameFileName = writeKeyframeMeshData(assetDirectory, ob)
 
 
-    #open the ouput file
-    out = open( meshFileName, "w" )
+	#open the ouput file
+	out = open( meshFileName, "w" )
 
-    if keyFrameFileName != None:
-        out.write( 'meshKeyShapeAnim %i\n' % meshKeyShapeAnim )
+	if keyFrameFileName != None:
+		out.write( 'meshKeyShapeAnim %i\n' % meshKeyShapeAnim )
 
-    out.write( 'cm %i\n' % (len(mesh.materials)) )
+	out.write( 'cm %i\n' % (len(mesh.materials)) )
 
-    if not usesArmature: #use the modified version (mirror modifer etc applied)
-        mesh = depsGraph.objects[ob.name].data
+	if not usesArmature: #use the modified version (mirror modifer etc applied)
+		mesh = depsGraph.objects[ob.name].data
 
-    #keep track of the min and max corners of the AABB
-    wMinV = vec3NewScalar( sys.float_info.max )
+	#keep track of the min and max corners of the AABB
+	wMinV = vec3NewScalar( sys.float_info.max )
 
-    wMaxV = vec3NewScalar( sys.float_info.min )
+	wMaxV = vec3NewScalar( sys.float_info.min )
 
-    #get the vertex group names
-    vGNames = {vgroup.index: vgroup.name for vgroup in ob.vertex_groups}
-    out.write( 'cg %i\n' % ( len(vGNames) )  )
-    for i in vGNames:
-        out.write( 'g %i %s\n' %(i,vGNames[i]) )
-    out.write( 'e\n' )
-    out.write( '\n' )
+	#get the vertex group names
+	vGNames = {vgroup.index: vgroup.name for vgroup in ob.vertex_groups}
+	out.write( 'cg %i\n' % ( len(vGNames) )  )
+	for i in vGNames:
+		out.write( 'g %i %s\n' %(i,vGNames[i]) )
+	out.write( 'e\n' )
+	out.write( '\n' )
 
-    #write the verticies (position, normal, texture coordinate, and bone weight)
-    numVerts = len(mesh.vertices)
-    out.write( 'cv %i\n' % (numVerts) )
-    out.write( '\n' )
-    for i in range(numVerts):
-        vert = mesh.vertices[i]  #verts[i]
-        wVert = ob.matrix_world @ vert.co
-        vec3Max( wMaxV, wVert )
-        vec3Min( wMinV, wVert )
-        out.write( 'v %.2f %.2f %.2f\n' % (vert.co.x, vert.co.y, vert.co.z) )
-        out.write( 'n %.2f %.2f %.2f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
-        #gather bone weights for the vertex
-        boneWeights = []
-        boneWeightTotal = 0.0
-        for influencingGroup in vert.groups:
-            boneWeight = [influencingGroup.group, influencingGroup.weight]
-            if boneWeight[1] < 0.0:
-                print('Error%t|Negative Bone Weight')
-                out.close()
-                return
-            boneWeightTotal += boneWeight[1]
-            boneWeights.append(boneWeight)
-        #normalize the weights
-        for w in boneWeights:
-            w[1] /= boneWeightTotal
-        #remove small bone weights
-        wIdx = 0
-        boneWeightTotal = 1
-        while wIdx < len(boneWeights):
-            if( boneWeights[wIdx][1] < 0.1 ):
-                boneWeightTotal -= boneWeights[wIdx][1]
-                del boneWeights[wIdx]
-            else:
-                wIdx += 1
-        #renormalize the most significant weights
-        for w in boneWeights:
-            w[1] /= boneWeightTotal
-        #print out the bone weights
-        for boneWeight in boneWeights:
-            #a bone weight is a (name, weight) pair
-            out.write( 'w %s %.2f\n' % ( boneWeight[0],
-                                       boneWeight[1]/boneWeightTotal ) )
-        out.write( 'e\n' )
+	#write the verticies (position, normal, texture coordinate, and bone weight)
+	numVerts = len(mesh.vertices)
+	out.write( 'cv %i\n' % (numVerts) )
+	out.write( '\n' )
+	for i in range(numVerts):
+		vert = mesh.vertices[i]  #verts[i]
+		wVert = ob.matrix_world @ vert.co
+		vec3Max( wMaxV, wVert )
+		vec3Min( wMinV, wVert )
+		out.write( 'v %.2f %.2f %.2f\n' % (vert.co.x, vert.co.y, vert.co.z) )
+		out.write( 'n %.2f %.2f %.2f\n' % (vert.normal.x, vert.normal.y, vert.normal.z) )
+		#gather bone weights for the vertex
+		boneWeights = []
+		boneWeightTotal = 0.0
+		for influencingGroup in vert.groups:
+			boneWeight = [influencingGroup.group, influencingGroup.weight]
+			if boneWeight[1] < 0.0:
+				print('Error%t|Negative Bone Weight')
+				out.close()
+				return
+			boneWeightTotal += boneWeight[1]
+			boneWeights.append(boneWeight)
+		#normalize the weights
+		for w in boneWeights:
+			w[1] /= boneWeightTotal
+		#remove small bone weights
+		wIdx = 0
+		boneWeightTotal = 1
+		while wIdx < len(boneWeights):
+			if( boneWeights[wIdx][1] < 0.1 ):
+				boneWeightTotal -= boneWeights[wIdx][1]
+				del boneWeights[wIdx]
+			else:
+				wIdx += 1
+		#renormalize the most significant weights
+		for w in boneWeights:
+			w[1] /= boneWeightTotal
+		#print out the bone weights
+		for boneWeight in boneWeights:
+			#a bone weight is a (name, weight) pair
+			out.write( 'w %s %.2f\n' % ( boneWeight[0],
+										boneWeight[1]/boneWeightTotal ) )
+		out.write( 'e\n' )
 
-    #write the faces
-    out.write('cf %i\n' % (len(mesh.polygons)))
-    triCt = 0
-    for face in mesh.polygons:
-        fVertCt = len(face.vertices)
-        if not (len(face.vertices) == 4 or len(face.vertices)==3):
-            print('Error%t|Mesh: ' + mesh.name + ' not entirely quads and tris')
-            out.close()
-            return
-        if fVertCt == 3:
-            triCt += 1
-        else:
-            triCt += 2
-        out.write('f\n')
-        out.write('m %i\n' % (face.material_index)) #write the index of the face material
-        out.write('v')
-        for vert in face.vertices:
-            out.write( ' %i' % (vert) )
-        out.write('\n')
-        try:
-            out.write('u')
-            for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
-                uv_coords = mesh.uv_layers.active.data[loop_idx].uv
-                #print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
-                out.write( ' %.3f %.3f' % (uv_coords[0], 1-uv_coords[1]) )
-        except:
-        	print( "can't read uv data, make sure %s isn't in edit mode" % (ob.name) )
-        out.write('\ne\n')
+	#write the faces
+	out.write('cf %i\n' % (len(mesh.polygons)))
+	triCt = 0
+	for face in mesh.polygons:
+		fVertCt = len(face.vertices)
+		if not (len(face.vertices) == 4 or len(face.vertices)==3):
+			print('Error%t|Mesh: ' + mesh.name + ' not entirely quads and tris')
+			out.close()
+			return
+		if fVertCt == 3:
+			triCt += 1
+		else:
+			triCt += 2
+		out.write('f\n')
+		out.write('m %i\n' % (face.material_index)) #write the index of the face material
+		out.write('v')
+		for vert in face.vertices:
+			out.write( ' %i' % (vert) )
+		out.write('\n')
+		try:
+			out.write('u')
+			for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
+				uv_coords = mesh.uv_layers.active.data[loop_idx].uv
+				#print("face idx: %i, vert idx: %i, uvs: %f, %f" % (face.index, vert_idx, uv_coords.x, uv_coords.y))
+				out.write( ' %.3f %.3f' % (uv_coords[0], 1-uv_coords[1]) )
+		except:
+			print( "can't read uv data, make sure %s isn't in edit mode" % (ob.name) )
+		out.write('\ne\n')
 
-    #end of mesh data
-    out.write('ct %i\n' % (triCt))
-    out.close()
+	#end of mesh data
+	out.write('ct %i\n' % (triCt))
+	out.close()
 
-    return [ wMinV, wMaxV ]
+	return [ wMinV, wMaxV ]
 
 def writeObjectAnimationData(assetDirectory, obj):
 
-    print( "checking animation curves for " + obj.name )
+	#print( "checking animation curves for " + obj.name )
 
-    #check that the data we need exists (if there isn't animation for the object it won't have animData.action)
-    animData = obj.animation_data
-    if animData == None or animData.action == None or len(animData.action.fcurves) < 1:
-        print( "animData not found for " + obj.name )
-        return None
+	#check that the data we need exists (if there isn't animation for the object it won't have animData.action)
+	animData = obj.animation_data
+	if animData == None or animData.action == None or len(animData.action.fcurves) < 1:
+		#print( "animData not found for " + obj.name )
+		return None
 
-    print( "animData found for " + obj.name )
-    curves = obj.animation_data.nla_tracks.data.action.fcurves.items()
+	print( "animData found for " + obj.name )
+	curves = obj.animation_data.nla_tracks.data.action.fcurves.items()
 
-    ipoFileName = assetDirectory + "/IPOs/" + obj.name + ".hvtIPO"
-    #open the output file
-    out = open(ipoFileName, "w")
+	ipoFileName = assetDirectory + "/IPOs/" + obj.name + ".hvtIPO"
+	#open the output file
+	out = open(ipoFileName, "w")
 
-    writeAnimationCurves(out, curves)
+	writeAnimationCurves(out, curves)
 
-    out.close()
-    print("animFileClosed " + ipoFileName )
+	out.close()
+	print("animFileClosed " + ipoFileName )
 
-    return obj.name
+	return obj.name
 
 
 def writeAnimationCurves(outputFile, curves):
-    #---write the ipo curves---
-    #-------------------------------
-    print( "writeAnimationCurves" )
-    for curveTuple in curves:#Ipo.getCurves():
-        curve = curveTuple[1]
-        cType = curve.data_path.replace (" ", "_")
-        if( cType == 'location' or cType == 'rotation_quaternion' or cType == 'rotation_euler' or cType == 'scale' ):
-            writeAnimationCurveData(outputFile, curve, cType)
+	#---write the ipo curves---
+	#-------------------------------
+	print( "writeAnimationCurves" )
+	for curveTuple in curves:#Ipo.getCurves():
+		curve = curveTuple[1]
+		cType = curve.data_path.replace (" ", "_")
+		if( cType == 'location' or cType == 'rotation_quaternion' or cType == 'rotation_euler' or cType == 'scale' ):
+			writeAnimationCurveData(outputFile, curve, cType)
 
 def writeAnimationCurveData(out, curve, cType):
 
-    #print("writeAnimationCurveData data_path " + curve.data_path )
+	#print("writeAnimationCurveData data_path " + curve.data_path )
 
-    out.write('C %s %s %i\n' % (cType, curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
-    #curve.getName())) #interpolation type #num bezier points
-    for keyframe_point in curve.keyframe_points:#bezierPoint in curve.bezierPoints:
-        point = keyframe_point.co
-        #knot = bezierPoint.vec[1]
+	out.write('C %s %s %i\n' % (cType, curve.keyframe_points[0].interpolation, len(curve.keyframe_points)))
+	#curve.getName())) #interpolation type #num bezier points
+	for keyframe_point in curve.keyframe_points:#bezierPoint in curve.bezierPoints:
+		point = keyframe_point.co
+		#knot = bezierPoint.vec[1]
 
-        [time, value] = [point[0], point[1]] #knot
-        [handle_left_time, handle_left_value]   = [keyframe_point.handle_left[0], keyframe_point.handle_left[1]]
-        [handle_right_time, handle_right_value] = [keyframe_point.handle_right[0], keyframe_point.handle_right[1]]
+		[time, value] = [point[0], point[1]] #knot
+		[handle_left_time, handle_left_value]   = [keyframe_point.handle_left[0], keyframe_point.handle_left[1]]
+		[handle_right_time, handle_right_value] = [keyframe_point.handle_right[0], keyframe_point.handle_right[1]]
 
-        out.write('p %.2f %.2f %.2f %.2f %.2f %.2f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
-    out.write('e\n') #end of points and curve
+		out.write('p %.2f %.2f %.2f %.2f %.2f %.2f\n' % (time, value, handle_left_time, handle_left_value, handle_right_time, handle_right_value)) #write out the point knot
+	out.write('e\n') #end of points and curve
 
 
 
 def writeKeyframeMeshData(assetDirectory, ob):
-    """
-    writes the mesh key shapes and animation curves
-    """
+	"""
+	writes the mesh key shapes and animation curves
+	"""
 
-    keyFileName = assetDirectory + "/meshKeys/" + ob.name + ".hvtKeys"
+	keyFileName = assetDirectory + "/meshKeys/" + ob.name + ".hvtKeys"
 
-    #check the data we need exists
-    mesh = ob.data
-    if mesh == None:
-        print("writeKeyFrames for a non mesh object: " + ob.name)
-        return None
-    keyObject = mesh.shape_keys
-    if keyObject == None:
-        #Blender.Draw.PupMenu('Error%t| writeKeyFrames no key data for object: ' 
-        #                       + ob.name)
-        return None
+	#check the data we need exists
+	mesh = ob.data
+	if mesh == None:
+		print("writeKeyFrames for a non mesh object: " + ob.name)
+		return None
+	keyObject = mesh.shape_keys
+	if keyObject == None:
+		#Blender.Draw.PupMenu('Error%t| writeKeyFrames no key data for object: ' 
+		#                       + ob.name)
+		return None
 
-    if keyObject.animation_data == None:
-        print("writeKeyFrameShapes for a keyObject without animation data: " + ob.name)
-        return None
+	if keyObject.animation_data == None:
+		print("writeKeyFrameShapes for a keyObject without animation data: " + ob.name)
+		return None
 
-    curves = keyObject.animation_data.nla_tracks.data.action.fcurves.items()
+	curves = keyObject.animation_data.nla_tracks.data.action.fcurves.items()
 
-    #open the output file
-    out = open(keyFileName, "w")
+	#open the output file
+	out = open(keyFileName, "w")
 
-    #---write the keyframe curves---
-    #-------------------------------
-    writeAnimationCurves(out, curves)
-    for curve in keyIpo.getCurves():
-        out.write('c %s\n' % (curve.data_path.replace (" ", "_")))
-        out.write('i %i\n' % (curve.interpolation)) #write out the interpolation type of the curve
-        out.write('b\n') #indicate the start of the bezier points
-        out.write('c %i\n' % len(curve.bezierPoints)) #num bezier points
-        for bezierPoint in curve.bezierPoints:
-            knot = bezierPoint.vec[1]
-            [x, y, z] = knot
-            out.write('p %.3f %.3f %.3f\n' % (x, y, z)) #write out the point knot
-        out.write('e\n') #end of points
-        out.write('e\n') #end of curve
+	#---write the keyframe curves---
+	#-------------------------------
+	writeAnimationCurves(out, curves)
+	for curve in keyIpo.getCurves():
+		out.write('c %s\n' % (curve.data_path.replace (" ", "_")))
+		out.write('i %i\n' % (curve.interpolation)) #write out the interpolation type of the curve
+		out.write('b\n') #indicate the start of the bezier points
+		out.write('c %i\n' % len(curve.bezierPoints)) #num bezier points
+		for bezierPoint in curve.bezierPoints:
+			knot = bezierPoint.vec[1]
+			[x, y, z] = knot
+			out.write('p %.3f %.3f %.3f\n' % (x, y, z)) #write out the point knot
+		out.write('e\n') #end of points
+		out.write('e\n') #end of curve
 
 
-    #---write the keyframe shapes---
-    #-------------------------------
-    #unfortunately, blender keyframe data only contains the new vertex
-    #locations at a keyframe point in time
-    #we need both normals and the vert positions
-    #so to get this, get the ipo curves controlling the interpolation between
-    #the keyframes, and insert keyframes it so that we can can recover the
-    #keyframe shapes and normals
+	#---write the keyframe shapes---
+	#-------------------------------
+	#unfortunately, blender keyframe data only contains the new vertex
+	#locations at a keyframe point in time
+	#we need both normals and the vert positions
+	#so to get this, get the ipo curves controlling the interpolation between
+	#the keyframes, and insert keyframes it so that we can can recover the
+	#keyframe shapes and normals
 
-    for block in keyObject.key_blocks:
-        out.write('k %s\n' % (block.name.replace (" ", "_")))
-        blockData = block.data
-        if blockData == None:
-            print("writeKeyFrames no block data for block: " +block.name + 'object: ' + ob.name)
-            out.close()
-            return
-        out.write('c %i\n' % len(blockData)) #count of verticies
-        for vert in blockData:
-            out.write('v %.3f %.3f %.3f\n' % (vert.co[0], vert.co[1], -vert.co[2])) #vert positions
-        out.write('e\n')
+	for block in keyObject.key_blocks:
+		out.write('k %s\n' % (block.name.replace (" ", "_")))
+		blockData = block.data
+		if blockData == None:
+			print("writeKeyFrames no block data for block: " +block.name + 'object: ' + ob.name)
+			out.close()
+			return
+		out.write('c %i\n' % len(blockData)) #count of verticies
+		for vert in blockData:
+			out.write('v %.3f %.3f %.3f\n' % (vert.co[0], vert.co[1], -vert.co[2])) #vert positions
+		out.write('e\n')
 
-    out.close()
+	out.close()
 
-    return keyFileName
+	return keyFileName
 
 
 #debug console data probing example
@@ -542,127 +549,127 @@ def writeKeyframeMeshData(assetDirectory, ob):
 # a.data.bones['Bone'].tail
 
 def writeArmatureAnim(assetDirectory, ob):
-    """Write a haven tech animation file from the given blender armature object"""
+	"""Write a haven tech animation file from the given blender armature object"""
 
-    animFileName = assetDirectory + "/skelAnimations/" + ob.name + ".hvtAnim"
+	animFileName = assetDirectory + "/skelAnimations/" + ob.name + ".hvtAnim"
 
-    #look for the objects armature modifier
-    armatureObj = ob
+	#look for the objects armature modifier
+	armatureObj = ob
 
 
-    if armatureObj == None:
-        #Blender.Draw.PupMenu('Notice%t|Object: ' + ob.name + \
-        #                            ' does not have an Armature modifier')
-        return
+	if armatureObj == None:
+		#Blender.Draw.PupMenu('Notice%t|Object: ' + ob.name + \
+		#                            ' does not have an Armature modifier')
+		return
 
-    #get the armature from the object
-    armature = armatureObj.data
+	#get the armature from the object
+	armature = armatureObj.data
 
-    #check there is an armature
-    if armature == None:
-        print('Error%t|Failed to get Armature data')
-        return
+	#check there is an armature
+	if armature == None:
+		print('Error%t|Failed to get Armature data')
+		return
 
-    #check the user is ok with saving over an old file (if it exists)
-    #if not BPyMessages.Warning_SaveOver(animFileName):
-    #    return
+	#check the user is ok with saving over an old file (if it exists)
+	#if not BPyMessages.Warning_SaveOver(animFileName):
+	#    return
 
-    #open the output file
-    out = open(animFileName, "w")
-    
-    #write out the armatures scale, rotation and translation
-    out.write( 's %f %f %f\n' % \
-                (armatureObj.scale.x, armatureObj.scale.y, armatureObj.scale.z))
-    out.write( 'r %f %f %f\n' % \
-                (armatureObj.rotation_euler.x,  armatureObj.rotation_euler.y,  armatureObj.rotation_euler.z))
-    out.write( 'x %f %f %f\n' % \
-                (armatureObj.location.x,  armatureObj.location.y,  armatureObj.location.z))
+	#open the output file
+	out = open(animFileName, "w")
 
-    armatureBoneCurves = genArmatureBoneCurves(armatureObj)
+	#write out the armatures scale, rotation and translation
+	out.write( 's %f %f %f\n' % \
+				(armatureObj.scale.x, armatureObj.scale.y, armatureObj.scale.z))
+	out.write( 'r %f %f %f\n' % \
+				(armatureObj.rotation_euler.x,  armatureObj.rotation_euler.y,  armatureObj.rotation_euler.z))
+	out.write( 'x %f %f %f\n' % \
+				(armatureObj.location.x,  armatureObj.location.y,  armatureObj.location.z))
 
-    #bpy.context.view_layer.objects.active = armatureObj
-    #bpy.ops.object.mode_set(mode='EDIT')
+	armatureBoneCurves = genArmatureBoneCurves(armatureObj)
 
-    #write each bone's rest data and animation data
-    for (boneName, bone) in armature.bones.items():
-        numBoneCurves = 0
-        try:
-            boneChannelCurves = armatureBoneCurves[ boneName ]
-            numBoneCurves = len( boneChannelCurves )
-        except:
-            print( "no curves for bone %s\n" % boneName )
-        out.write( 'b %i\n' % numBoneCurves )
-        out.write( 'N %s\n' % boneName )
-        if bone.parent != None:
-            out.write( 'p %s\n' % bone.parent.name )
-        else:
-            out.write( 'p %s\n' % "None" )
+	#bpy.context.view_layer.objects.active = armatureObj
+	#bpy.ops.object.mode_set(mode='EDIT')
 
-        for child in bone.children:
-            out.write( 'c %s\n' % child.name )
+	#write each bone's rest data and animation data
+	for (boneName, bone) in armature.bones.items():
+		numBoneCurves = 0
+		try:
+			boneChannelCurves = armatureBoneCurves[ boneName ]
+			numBoneCurves = len( boneChannelCurves )
+		except:
+			print( "no curves for bone %s\n" % boneName )
+		out.write( 'b %i\n' % numBoneCurves )
+		out.write( 'N %s\n' % boneName )
+		if bone.parent != None:
+			out.write( 'p %s\n' % bone.parent.name )
+		else:
+			out.write( 'p %s\n' % "None" )
 
-        #write out bind pose data (bonespace)
-        head = bone.head
-        #headArmSpc = bone.head_local
-        #write the location of the bones head in relation to its parents tail
-        out.write( 'H %.2f %.2f %.2f\n' % (head[0], head[1], head[2]) )
-        #out.write( 'HA %f %f %f\n' % (headArmSpc[0], headArmSpc[1], headArmSpc[2]) )
-        #write the location of the bones tail
-        tail = bone.tail
-        #tailArmSpc = bone.tail_local
-        out.write( 'T %.2f %.2f %.2f\n' % (tail[0], tail[1], tail[2]) )
-        #out.write( 'TA %f %f %f\n' % (tailArmSpc[0], tailArmSpc[1], tailArmSpc[2]) )
-        #https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
-        #bRot = bone.matrix.to_euler()
-        yRoll = bone.AxisRollFromMatrix(bone.matrix, axis=bone.y_axis)[1]
-        out.write( "R %.2f\n" % (yRoll) )#'R %.2f\n' % (armature.edit_bones[boneName].roll) )
+		for child in bone.children:
+			out.write( 'c %s\n' % child.name )
 
-        #write out the animation data of the bone
-        writeBoneKeyframes(out, armatureBoneCurves, boneName)
-        #mark the end of the bone data
-        out.write('e\n')
+		#write out bind pose data (bonespace)
+		head = bone.head
+		#headArmSpc = bone.head_local
+		#write the location of the bones head in relation to its parents tail
+		out.write( 'H %.2f %.2f %.2f\n' % (head[0], head[1], head[2]) )
+		#out.write( 'HA %f %f %f\n' % (headArmSpc[0], headArmSpc[1], headArmSpc[2]) )
+		#write the location of the bones tail
+		tail = bone.tail
+		#tailArmSpc = bone.tail_local
+		out.write( 'T %.2f %.2f %.2f\n' % (tail[0], tail[1], tail[2]) )
+		#out.write( 'TA %f %f %f\n' % (tailArmSpc[0], tailArmSpc[1], tailArmSpc[2]) )
+		#https://blender.stackexchange.com/questions/165742/using-python-how-do-you-get-the-roll-of-a-pose-bone
+		#bRot = bone.matrix.to_euler()
+		yRoll = bone.AxisRollFromMatrix(bone.matrix, axis=bone.y_axis)[1]
+		out.write( "R %.2f\n" % (yRoll) )#'R %.2f\n' % (armature.edit_bones[boneName].roll) )
 
-    #bpy.ops.object.mode_set(mode='OBJECT')
+		#write out the animation data of the bone
+		writeBoneKeyframes(out, armatureBoneCurves, boneName)
+		#mark the end of the bone data
+		out.write('e\n')
 
-    #end of animation data
-    out.write('\n')
-    out.close()
+	#bpy.ops.object.mode_set(mode='OBJECT')
+
+	#end of animation data
+	out.write('\n')
+	out.close()
 
 ### Helper functions ###
 #----for writeAnim-----
 
 def genArmatureBoneCurves(armature):
-    fcurves = armature.animation_data.nla_tracks.data.action.fcurves.items()
-    curves = {}
-    for c in fcurves:
-        cNameParts = c[1].data_path.split('"')
-        #name parts [1] is the bone name
-        #name parts [2] is the curve type
-        #print( "C %s | %s | %s" % (c[1].data_path, cNameParts[1], cNameParts[2]) )
-        try:
-            curves[cNameParts[1]]
-        except:
-            #print( "appending to curves %s\n" % (cNameParts[1]) )
-            curves[cNameParts[1]] = []
-        curves[cNameParts[1]].append(c[1])
-    return curves
+	fcurves = armature.animation_data.nla_tracks.data.action.fcurves.items()
+	curves = {}
+	for c in fcurves:
+		cNameParts = c[1].data_path.split('"')
+		#name parts [1] is the bone name
+		#name parts [2] is the curve type
+		#print( "C %s | %s | %s" % (c[1].data_path, cNameParts[1], cNameParts[2]) )
+		try:
+			curves[cNameParts[1]]
+		except:
+			#print( "appending to curves %s\n" % (cNameParts[1]) )
+			curves[cNameParts[1]] = []
+		curves[cNameParts[1]].append(c[1])
+	return curves
 
 def writeBoneKeyframes(out, armatureBoneCurves, boneName):
-    #get the Ipo channel corresponding to the bone
-    #print("writeBoneKeyframes\n")
+	#get the Ipo channel corresponding to the bone
+	#print("writeBoneKeyframes\n")
 
-    try:
-        boneChannelCurves = armatureBoneCurves[ boneName ]
-    except:
-        #there are no keyframes for the bone
-        print( "No keyframes for: %s" % boneName )
-        return
+	try:
+		boneChannelCurves = armatureBoneCurves[ boneName ]
+	except:
+		#there are no keyframes for the bone
+		print( "No keyframes for: %s" % boneName )
+		return
 
-    #print the keyframes for each type of motion for the bone
-    cIdx = 0
-    for boneCurve in boneChannelCurves:
-        outputName = ""
-        cType = boneCurve.data_path.split('"].')[1]
-        writeAnimationCurveData(out, boneCurve, cType)
+	#print the keyframes for each type of motion for the bone
+	cIdx = 0
+	for boneCurve in boneChannelCurves:
+		outputName = ""
+		cType = boneCurve.data_path.split('"].')[1]
+		writeAnimationCurveData(out, boneCurve, cType)
 
 

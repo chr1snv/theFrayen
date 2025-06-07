@@ -536,29 +536,42 @@ function PHYSOBJ_Update( pObj, time, treeNode){
 	pObj.lastUpdtTime = time;
 }
 
-const earthGravityAccel = new Float32Array([0,9.8, 0]);
+const earthGravityAccel = new Float32Array([0,0, -9.8]);
 
 const PHYS_FILL_VACCUM	= 0;
 const PHYS_FILL_AIR		= 1;
 const PHYS_FILL_WATER	= 2;
 const PHYS_FILL_SOLID	= 3;
 
-//field physics simulation (as opposed to constraint graph)
+//field physics simulation (as opposed to particles connected by constraint graph)
 //definition/data of affects on objects that are within a region of space / treeNode
+//idea of doing multiple types of physics simulation in a game inspired by prior games i.e.
+//quantum conundrum, half life, mass effect
+//and engineering tools i.e. solidworks, comsol, matlab
 function PhysNode(){
 	//fill/occupancy type
 	//i.e vaccum, air, water, elemental material, etc
 	//(for ray energy dissipation / participating media scattering )
 
 	this.gravAccelVec = Vect3_CopyNew( earthGravityAccel );
-	this.fillType = PHYS_FILL_AIR;
-	this.relHumidity = 0.5;
-	this.pH = 7;
-	this.degC = 27;
+	this.fillType    = PHYS_FILL_AIR;
+	this.relHumidity = 0.5; //for heat conduction, condensate precipiation etc
+	this.pH = 7; //also indicates oxygen/oxidizer percentage
+	this.degC = 27; //affects rigidity/expansion of objects and can cause them to solidify/melt/react with fill type
 	//https://www.omnicalculator.com/physics/air-density
-	this.densityKgM3 = 1.168;
-	this.psi = 14.7;
+	this.densityKgM3 = 1.168; //affects bouyancy of objects
+	this.psi = 14.7; //affects forces on membranes, flow through pipes, piston movement etc
 	//this.dewPoint
+	this.fluidFlowVec = Vect3_NewZero(); //psi is the w component
+	//it's not practical to simulate atoms / sub atom scale physics so everything is an approximation of types of affects 
+	this.electricVec  = Vect_NewZero(4); //xyz flux magitude and w divergence (in or out magnitude in all axies)
+	//diffrent frequency scales of electro magnetic energy
+	this.gammaRayVec  = Vect_NewZero(4); //breaks chemical bonds without changing material phase, can reveal diffaction patterns, gets absorbed / scattered by objects
+	this.lightRayVec  = Vect_NewZero(4); //affects global illuminaton (bounce light) and can be absorbed by photovoltaics
+	this.radioFluxVec = Vect_NewZero(4); //can be absorbed / converted into heat by objects
+	this.magneticVec  = Vect_NewZero(4); //affects iorn and conductive objects
+	this.dustOpacity = 0; //amount of light scattering / attenuation by dust in air or turbidity in water
+	this.fuelPct = 0; //ex. when ph (oxygen level is high enough) and temperature or energy vectors are high enough, combustion or explosion occurs
 
 }
 

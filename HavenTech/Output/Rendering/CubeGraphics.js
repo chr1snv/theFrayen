@@ -166,16 +166,30 @@ function CUBE_G_DrawSkyBox(cubeG, mainCam){
 		tqvrts.length, 
 		false);
 	//buf.regenAndUploadEntireBuffer = true;
-
-	gl.vertexAttribPointer(cubeG.glProgram.attribLocBufPtrs[tqvrtsBufID][0], vertCard, gl.FLOAT, false, 0, 0);
+	
+	/*
+	GLP_vertexAttribSetFloats( cubeG.glProgram,
+	 tqvrtsBufID,
+	 vertCard, 
+	 tqvrts, 
+	 cubeG.position_vA_F3_A_Loc, 
+	 dynamic=false );
+	 */
 	
 	//GLP_vertexAttribSetSubFloats( glp, attribInstID, offset, arr )
+	
 	GLP_vertexAttribSetSubFloats( 
 		cubeG.glProgram, 
 		tqvrtsBufID, 
 		0,//vertCard, 
 		tqvrts );
+	
 	//GLP_vertexAttribSetSubFloats( cubeG.glProgram, bufID+2, startIdx*uvCard,      subRange.obj.uvBufferForMat       [subRange.objMatIdx] );
+	
+	//specifies the location and data format of the vertex attribute array
+	//binds buffer bound to gl.ARRAY_BUFFER to AttribLocation and specifies format
+	gl.vertexAttribPointer(cubeG.glProgram.attribLocBufPtrs[tqvrtsBufID][0], vertCard, gl.FLOAT, false, 0, 0);
+	
 	gl.drawArrays( gl.TRIANGLES, 0, tqvrts.length/vertCard );
 
 }

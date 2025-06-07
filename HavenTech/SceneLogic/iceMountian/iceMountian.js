@@ -160,6 +160,8 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		*/
 	}
 	
+	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[0].worldToScreenSpaceMat);
+	
 	GatherModelsToDrawForDefaultMainCam();
 
 
