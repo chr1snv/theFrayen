@@ -124,7 +124,7 @@ function GRPH_modelLoadedCb( model, cbData ){
 
 function GRPH_AddEntryToScene(gphEntry, hvnSc){
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
-	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingModelsToLoad[gphEntry.val] == undefined ){
+	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingModelNamesToLoad[gphEntry.val] == undefined ){
 
 		hvnSc.pendingModelNamesToLoad[gphEntry.val] = 1;
 
@@ -144,7 +144,7 @@ function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
 	let name = "lnk:"+objLinkedFrom.val+":"+entry.val;
 
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
-	if( hvnSc.modelNames[name] == undefined && hvnSc.pendingModelsToLoad[name] == undefined ){
+	if( hvnSc.modelNames[name] == undefined && hvnSc.pendingModelNamesToLoad[name] == undefined ){
 
 		hvnSc.pendingModelNamesToLoad[name] = 1;
 
