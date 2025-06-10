@@ -126,14 +126,14 @@ function GRPH_AddEntryToScene(gphEntry, hvnSc){
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
 	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingModelsToLoad[gphEntry.val] == undefined ){
 
+		hvnSc.pendingModelNamesToLoad[gphEntry.val] = 1;
+
 		//shape for the graph concept / entry / datapoint
 		let entryMdl = new Model( nameIn=gphEntry.val, meshNameIn='gphDefaultEntryMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
 				sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
 				locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
 				modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
-		hvnSc.pendingModelsToLoad[gphEntry.val] = entryMdl;
-		//create models for the links/lines to other concepts
 
 		lastGraphVisInsertPosition[0] += 4;
 	}
@@ -146,13 +146,14 @@ function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
 	if( hvnSc.modelNames[name] == undefined && hvnSc.pendingModelsToLoad[name] == undefined ){
 
+		hvnSc.pendingModelNamesToLoad[name] = 1;
+
+		//create model for the links/lines to other concepts
 		let entryMdl = new Model( nameIn=name, meshNameIn='gphDefaultLinkMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
 								  sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
 								  locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
 								  modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
-		hvnSc.pendingModelsToLoad[name] = entryMdl;
-		//create models for the links/lines to other concepts
 
 		lastGraphVisInsertPosition[0] += 4;
 	}

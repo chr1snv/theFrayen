@@ -56,6 +56,8 @@ function CUBE_G_Setup(cubeG){
 		TEX_BindCube( cubeG.cubeTex );
 	}
 
+
+	gl.enableVertexAttribArray(cubeG.position_vA_F3_A_Loc);
 }
 
 
@@ -191,5 +193,6 @@ function CUBE_G_DrawSkyBox(cubeG, mainCam){
 	gl.vertexAttribPointer(cubeG.glProgram.attribLocBufPtrs[tqvrtsBufID][0], vertCard, gl.FLOAT, false, 0, 0);
 	
 	gl.drawArrays( gl.TRIANGLES, 0, tqvrts.length/vertCard );
+
 
 }

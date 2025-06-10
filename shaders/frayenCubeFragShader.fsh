@@ -6,7 +6,7 @@ precision highp float;
 //constant variables
 uniform samplerCube texSampler;
 
-uniform vec3      diffuseColor;
+//uniform vec3      diffuseColor;
 
 
 //variables passed from the vertex shader

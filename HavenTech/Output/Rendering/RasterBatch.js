@@ -369,12 +369,12 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 		}
 	}
 
-	if( mdlKeys.length > 0 ){
+	//if( mdlKeys.length > 0 ){
 		SortSubBatches(rastBatch.drawBatchBuffers, rastBatch.camWorldPos, CmpSbbMdlsFtoB );
 		SortSubBatches(rastBatch.alphaDrawBatchBuffers, rastBatch.camWorldPos, CmpSbbMdlsBtoF );
 		//sorts sub batches by distance from camera and checks if
 		//the vertex gl attribute buffers need to be resized (in which case make sure each model is ready to upload to gl)
-	}
+	//}
 
 
 	for( let i = 0; i < mdlKeys.length; ++i ){

@@ -199,6 +199,12 @@ function TRI_G_Setup(triG){
 }
 
 
+function TriG_Cleanup(triG){
+	gl.disableVertexAttribArray(triG.position_vA_F3_1_Loc );
+	gl.disableVertexAttribArray(triG.norm_vA_F3_1_Loc     );
+	gl.disableVertexAttribArray(triG.texCoord_vA_F2_1_Loc );
+}
+
 
 let trigLightPosVec = Vect_NewZero(8*vertCard);
 function TRI_G_SetupLights(triG, rastB ){

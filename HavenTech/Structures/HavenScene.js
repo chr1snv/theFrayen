@@ -42,7 +42,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 	this.cameras   = [];
 	this.armatures = [];
 
-	this.pendingModelsToLoad = {};
+	this.pendingModelNamesToLoad = {};
 	
 	this.pendingModelsToAdd		= 0;
 	this.pendingLghtsToAdd 		= 0;
@@ -295,7 +295,8 @@ function HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl){
 	hvnsc.modelNames[mdl.modelName] = mdl;
 	if( MDL_AddToOctTree( mdl, hvnsc.octTree ) ){
 		hvnsc.models[mdl.uid.val] = mdl;
-		delete hvnsc.pendingModelsToLoad[mdl.modelName];
+		if( hvnsc.pendingModelNamesToLoad[mdl.modelName] )
+			delete hvnsc.pendingModelNamesToLoad[mdl.modelName];
 		hvnsc.pendingModelsToAdd -= 1;
 	}
 }
@@ -303,12 +304,12 @@ function HVNSC_FinishAddingLoadedModelToScene(hvnsc, mdl){
 
 function HVNSC_ObjLoadedCallback(obj, hvnsc){
 	if(hvnsc.pendingObjsToAdd == 2){
-		console.log("stuck");
-		let objNamesRemainingToLoad = Object.keys( hvnsc.pendingModelsToLoad );
+		console.log("possibly stuck");
+		let objNamesRemainingToLoad = Object.keys( hvnsc.pendingModelNamesToLoad );
 		let remObjsStr = '';
 		for( let i = 0; i < objNamesRemainingToLoad.length; ++i )
 			remObjsStr += objNamesRemainingToLoad[i] + ' ';
-		console.log(hvnsc.sceneName + " stuck remaining objs " + remObjsStr + " remMdls " + hvnsc.pendingModelsToAdd + " remCams " + hvnsc.pendingCamsToAdd + " remLghts " + hvnsc.pendingLghtsToAdd + " remArmatures " + hvnsc.pendingArmaturesToAdd );
+		console.log(hvnsc.sceneName + " stuck remaining " + hvnsc.pendingObjsToAdd + " objs " + remObjsStr + " remMdls " + hvnsc.pendingModelsToAdd + " remCams " + hvnsc.pendingCamsToAdd + " remLghts " + hvnsc.pendingLghtsToAdd + " remArmatures " + hvnsc.pendingArmaturesToAdd );
 	}
 	statusElm.innerHTML = "Loading " + hvnsc.pendingObjsToAdd + " Objs";
 	hvnsc.pendingObjsToAdd-=1;
@@ -352,6 +353,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let numArmatures = parseInt( sceneObjLghtCamCtTxt[8] );
 
 	hvnsc.pendingLghtsToAdd = numLghts;
+	
+	hvnsc.pendingSceneFileRead = true;
 
 	hvnsc.pendingObjsToAdd = numMdls + numLghts + numCams + numArmatures + 1;
 
@@ -418,12 +421,12 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 			mdlMaterialNames.push( txtLineParts[1] );
 		}else if( txtLineParts[0] == 'mEnd' ){
 
-			//compared in check if is loaded
-			//to check if all models have finished loading
+			//in case model has already been loaded have to append to list before starting model loading
+			hvnsc.pendingModelsToAdd += 1; //compared in check if is loaded
+			hvnsc.pendingModelNamesToLoad[scneObjName] = scneObjName; //to check if all models have finished loading in case of errors
+
 			newMdl    = new Model( scneObjName, mdlMeshName, mdlArmName, mdlIpoName, mdlMaterialNames,
 					        hvnsc.sceneName, mAABB, mdlLoc, mdlRot, mdlScl, hvnsc, HVNSC_ObjLoadedCallback );
-			hvnsc.pendingModelsToLoad[scneObjName] = newMdl;
-			hvnsc.pendingModelsToAdd += 1;
 
 			//reset inputs for next model (incase some are not specified)
 			mdlMeshName			= '';
@@ -493,10 +496,9 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}else if( txtLineParts[0] == 'c_anim' ){
 			camIpoName = txtLineParts[1];
 		}else if( txtLineParts[0] == 'cEnd' ){
-
+			hvnsc.pendingCamsToAdd += 1;
 			GRPH_GetCached(scneObjName, hvnsc.sceneName, Camera, 
 				[camIpoName, camAng, camStart, camEnd, mdlLoc, mdlRot], HVNSC_ObjLoadedCallback, hvnsc);
-			hvnsc.pendingCamsToAdd += 1;
 		}
 		//this is the name of the active camera to be read in
 		else if( txtLineParts[0] == 'ac' ){
@@ -504,6 +506,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}
 	}
 
+	hvnsc.pendingSceneFileRead = false;
 	--hvnsc.pendingObjsToAdd; //-1 for the scene file being read in
 	HVNSC_checkIfIsLoaded(hvnsc);
 }

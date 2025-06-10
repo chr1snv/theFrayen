@@ -64,7 +64,6 @@ function canvasMouseUpHandler(e){
 
 
 
-
 function canvasMouseMoveHandler(e){
 
 	canvas.relMouseCoords(e);
@@ -254,3 +253,29 @@ keyCodes = {
 	CLOSE_BRACKET: 221,
 	SINGLE_QUOTE: 222
 };
+
+
+//attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
+//(first person like mouse input)
+var ptrLck = null;
+async function requestPointerLock(){
+
+	console.log("reqPtrLck " + sceneTime );
+
+	//request mouse pointer lock
+	//https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
+	canvas.rqstPtrLck = 
+	canvas.requestPointerLock ||
+	canvas.mozRequestPointerLock;
+
+	/*ptrLck =*/await canvas.rqstPtrLck({unadjustedMovement: true,});
+
+}
+//release the mouse
+function releasePointerLock(){
+	canvas.relPtrLck =
+	canvas.releasePointerCapture;
+
+	canvas.relPtrLck(ptrLck);
+	ptrLck = null;
+}

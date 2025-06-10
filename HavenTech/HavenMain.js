@@ -36,7 +36,7 @@ var fullScrCanvWidthElm  = document.getElementById('fullScrCanvWidth');
 var fullScrCanvHeightElm = document.getElementById('fullScrCanvHeight');
 var canvWidthElm = document.getElementById('canvWidth');
 var canvHeightElm = document.getElementById('canvHeight');
-function EnterFullscreen(){
+async function EnterFullscreen(){
 	//change the canvas resolution if in fullscreen or browser window mode
 	document.addEventListener('fullscreenchange', (event) => {
 		// document.fullscreenElement will point to the element that
@@ -62,7 +62,7 @@ function EnterFullscreen(){
 			graphics.canvas.msRequestFullscreen ||
 			graphics.canvas.requestFullscreen;
 		
-		promise = graphics.canvas.requestFullscreen({unadjustedMovement: true,});
+		/*promise =*/await graphics.canvas.requestFullscreen({unadjustedMovement: true,});
 		//alert("promise " + promise );
 	}
 
@@ -73,29 +73,9 @@ function SetCanvasSize(){
 							canvHeightElm.value);
 }
 
-//attempts to lock the mousepointer to the canvas to allow endlessly moving the mouse to rotate the camera
-//(first person like mouse input)
-var ptrLck = null;
+
 var canvas = document.getElementById('frayenCanvas');
-function requestPointerLock(){
 
-	//request mouse pointer lock
-	//https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
-	canvas.rqstPtrLck = 
-	canvas.requestPointerLock ||
-	canvas.mozRequestPointerLock;
-
-	ptrLck = canvas.rqstPtrLck();
-
-}
-//release the mouse
-function releasePointerLock(){
-	canvas.relPtrLck =
-	canvas.releasePointerCapture;
-
-	canvas.relPtrLck(ptrLck);
-	ptrLck = null;
-}
 
 function ExitFullscreen(){
 
@@ -496,6 +476,7 @@ function MainLoop()
 	graphics.ClearDepth();
 	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
 	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
+	TriG_Cleanup(graphics.triGraphics);
 
 	//draw armature debug lines
 	let linesToDraw = false;

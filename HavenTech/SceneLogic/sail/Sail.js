@@ -2,7 +2,8 @@
 var sailScripts = [
 	'SceneLogic/sail/Ocean.js',
 	'SceneLogic/sail/Boat.js',
-	'SceneLogic/sail/Regatta.js'
+	'SceneLogic/sail/Regatta.js',
+	'SceneLogic/sail/SailMissions.js'
 ];
 let ocean = null;
 function SAIL_ScriptLoadCmp(){

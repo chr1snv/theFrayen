@@ -3,6 +3,7 @@
 
 var iceMScripts = [
 	//'iceMountain/*.js',
+	'SceneLogic/iceMountian/icemMissions.js'
 ];
 
 function ICEM_ScriptLoadCmp(){
@@ -24,7 +25,7 @@ function ICEM_sceneSpecificLoad(cmpCb){
 
 	loadScriptLoop();
 
-	icemMode = IcemModes.Gameplay;
+	icemMode = IcemModes.Menu;
 
 }
 
@@ -32,6 +33,7 @@ function ICEM_sceneSpecificLoad(cmpCb){
 const IcemModes = {
 	Menu				: 0,
 	Gameplay			: 1,
+	Objectives			: 2
 	//Leaderboard			: 2,
 	//SvrWaitingForPlayers: 3,
 	//ClntWatingForStart  : 4,
@@ -66,19 +68,22 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			//menu heading text
 			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "ICE MTN", false, TxtJustify.Center );
 			//rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null
-			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "LOCAL",       false, TxtJustify.Left,   menuHdgColor );
-			TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "START",       true,  TxtJustify.Center, menuTxtColor );
-			TR_QueueText( rb2DTris, -0.4, -0.07, 0.02, 0.07, "Multiplayer", false, TxtJustify.Left,   menuHdgColor );
-			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",      true,  TxtJustify.Left,   menuTxtColor );
-			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   menuTxtColor );
-			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, menuTxtColor );
+			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "LOCAL",       false, TxtJustify.Left,   icemMenuHdgColor );
+			TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "START",       true,  TxtJustify.Center, icemMenuTxtColor );
+			TR_QueueText( rb2DTris, -0.4, -0.07, 0.02, 0.07, "Multiplayer", false, TxtJustify.Left,   icemMenuHdgColor );
+			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",        true,  TxtJustify.Left,   icemMenuTxtColor );
+			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   icemMenuTxtColor );
+			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, icemMenuTxtColor );
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
 					'menuBg0.png', 'sailDefault',
-					sailMenuBgCenPos, sailMenuBgWdthHight,
-					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
+					icemMenuBgCenPos, icemMenuBgWdthHight,
+					icemMenuBgMinUv, icemMenuBgMaxUv, 0.01 );
 
+			break;
+		case IcemModes.Objectives:
+			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "Objectives",       false, TxtJustify.Left,   icemMenuHdgColor );
 			break;
 		/*
 		case IcemModes.SvrWaitingForPlayers:
@@ -136,7 +141,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		case IcemModes.Gameplay:
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
-			
+
 			FlyingCameraControlInput(time);
 
 			numActiveBatches = 2;
@@ -159,9 +164,9 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 		*/
 	}
-	
+
 	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[0].worldToScreenSpaceMat);
-	
+
 	GatherModelsToDrawForDefaultMainCam();
 
 
@@ -175,26 +180,25 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		for( let i = 0; i < numMOvrdStrs; ++i ){
 			switch( icemMode ){
 				case IcemModes.Menu:
-					if( RGTA_Ready ){
-						if( mOvrdStrs[i] == "START" ){
-							RGTTA_Start(time); //init the regatta
-							sgMode = IcemModes.Gameplay;
-						}
-						if( mOvrdStrs[i] == "HOST" ){
-							Host_startListening(4);
-						}
-						if( mOvrdStrs[i] == "CLIENT" ){
-							Client_joinGame(4);
-						}
+					
+					if( mOvrdStrs[i] == "START" ){
+						icemMode = IcemModes.Gameplay;
 					}
+					if( mOvrdStrs[i] == "HOST" ){
+						Host_startListening(4);
+					}
+					if( mOvrdStrs[i] == "CLIENT" ){
+						Client_joinGame(4);
+					}
+
 					if( mOvrdStrs[i] == "LEADERBOARD" ){
-						sgMode = IcemModes.Leaderboard;
+						icemMode = IcemModes.Leaderboard;
 					}
 					break;
 				case IcemModes.SvrWaitingForPlayers:
 					if( mOvrdStrs[i] == "Main Menu" ){
 						Network_LeaveGame();
-						sgMode = IcemModes.Menu;
+						icemMode = IcemModes.Menu;
 					}
 					if( mOvrdStrs[i] == "START REGATTA" ){
 						Host_startGame();
@@ -203,20 +207,20 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 				case IcemModes.ClntWatingForStart:
 					if( mOvrdStrs[i] == "Main Menu" ){ //remove from networkGame and return to main menu
 						Network_LeaveGame();
-						sgMode = IcemModes.Menu;
+						icemMode = IcemModes.Menu;
 					}
 					break;
 				case IcemModes.NetworkGameplay:
 				case IcemModes.Gameplay:
 					if( mOvrdStrs[i] == ":Gear:" )
-						sgMode = IcemModes.Menu;
+						icemMode = IcemModes.Menu;
 					if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
 				   (touchMDown && mCoords.x < 40 && mCoords.y < 40) )
-						sgMode = IcemModes.Menu;
+						icemMode = IcemModes.Menu;
 					break;
 				case IcemModes.Leaderboard:
 					if( mOvrdStrs[i] == "Main Menu" ){
-						sgMode = IcemModes.Menu;
+						icemMode = IcemModes.Menu;
 					}
 			}
 		}

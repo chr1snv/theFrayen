@@ -13,5 +13,7 @@ function Mission(){
 }
 
 function Objective(){
-	this.
+	this.explination = "";
+	this.completed = false;
+	
 }

@@ -11,6 +11,7 @@
 
 //helper function for printing gl errors
 function CheckGLError(where){
+	WebGLDebugUtils.init(gl);
 	var error = gl.getError();
 	var iter = 0;
 	while(error != gl.NO_ERROR && iter < 100){
