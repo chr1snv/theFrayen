@@ -12,6 +12,8 @@ function ICEM_ScriptLoadCmp(){
 
 	//ICEM_Init(mainScene);
 
+	sceneTime = 0;
+
 	iceMLdCmpCb();
 }
 
@@ -165,8 +167,10 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		*/
 	}
 
+	//set skybox rotation
 	Matrix_CopyOnlyRotateScale(cubeWorldToCamMat, rb3DTris_array[0].worldToScreenSpaceMat);
 
+	mainCam.Update(sceneTime);
 	GatherModelsToDrawForDefaultMainCam();
 
 
@@ -180,9 +184,11 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		for( let i = 0; i < numMOvrdStrs; ++i ){
 			switch( icemMode ){
 				case IcemModes.Menu:
-					
+
 					if( mOvrdStrs[i] == "START" ){
 						icemMode = IcemModes.Gameplay;
+						sceneTime = 0;
+						SND_playSoundFile( 'music/infinite-vibes-1-233422.mp3', 'iceMountianSideHouse2', vol=0.5, true, true);
 					}
 					if( mOvrdStrs[i] == "HOST" ){
 						Host_startListening(4);
@@ -215,7 +221,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					if( mOvrdStrs[i] == ":Gear:" )
 						icemMode = IcemModes.Menu;
 					if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
-				   (touchMDown && mCoords.x < 40 && mCoords.y < 40) )
+						(touchMDown && mCoords.x < 40 && mCoords.y < 40) )
 						icemMode = IcemModes.Menu;
 					break;
 				case IcemModes.Leaderboard:

@@ -641,7 +641,7 @@ function QM_PrintHierarchy(qm, name, par){
 let tempVert = Vect3_New();
 //get the axis aligned bounding box of the mesh
 function QM_UpdateAABB(qm, time) {
-	if( qm.AABBUpdateTime < time ){
+	if( qm.AABBUpdateTime != time ){
 		qm.AABBUpdateTime = qm.lastMeshUpdateTime;
 
 		AABB_UpdateMinMaxCenter(qm.AABB, qm.lclMinCorner, qm.lclMaxCorner );
@@ -718,8 +718,7 @@ function QM_UpdateOctTree(qm, octUpdateCmpCallback){
 function QM_Update( qm, animationTime ) {
 
 	let vertsUpdated = false;
-	//if the new update time is newer (don't update twice for the same frame)
-	if( animationTime > qm.lastMeshUpdateTime ){
+	if( animationTime != qm.lastMeshUpdateTime ){ //(don't update twice for the same frame)
 		
 		//let worldTransformUpdated = QM_UpdateToWorldMatrix(qm, animationTime );
 		

@@ -185,7 +185,7 @@ let signalingWebSocket = null;
 let queuedSignalingMessage = null;
 function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=false){
 
-	if( ( sceneTime - lastNetworkUpdateTime < networkUpdateInterval ) && !nonRateLimitedMessage )
+	if( ( Math.abs(sceneTime - lastNetworkUpdateTime) < networkUpdateInterval ) && !nonRateLimitedMessage )
 		return;
 
 	lastNetworkUpdateTime = sceneTime;

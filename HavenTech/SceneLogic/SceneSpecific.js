@@ -76,6 +76,16 @@ function GatherModelsToDrawForDefaultMainCam(batchArrayIdx=0){
 
 //returns the number of active rasterBatches
 function sceneSpecificUpdateAndGatherObjsToDraw(scnId, time, cam, rb2DTris, rb3DTris_array, rb3DLines_array){
+
+	if(AnimPlaybackEnabled){
+		let now = Date.now();
+		if( lastSceneTimeUpdate <= 0 || lastSceneTimeUpdate > now )
+			lastSceneTimeUpdate = now;
+		let delTime = ( now - lastSceneTimeUpdate ) /1000;
+		sceneTime += delTime;
+		lastSceneTimeUpdate = now;
+	}
+
 	switch( scnId ){
 		case ScnIds.Sail:
 			return SAIL_sceneSpecificUpdateAndGatherObjsToDraw(time, cam, rb2DTris, rb3DTris_array, rb3DLines_array);

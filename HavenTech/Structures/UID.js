@@ -48,3 +48,24 @@ function AddColorHexStrings( b, c ){
 		a.push( Math.round(Number.parseInt( b[i] , 16 ) + Number.parseInt( c[i] , 16 ) ).toString(16)[0] );
 	return "#" + a.join("");
 }
+
+
+function generateRandomString(len, useLetters=true, useNumbers=false, useSymbols=false){
+	const symbols = '!@#$%^&*()_-+{}[]<>*~';
+	const numbers = '0123456789';
+	const letters = 'ABCDEEFGHIJKLMNOPabcdefghijklmnop';
+	let choices = '';
+	if( useLetters )
+		choices += letters;
+	if( useNumbers )
+		choices += numbers;
+	if( useSymbols )
+		choices += symbols;
+	let retStr = '';
+	let numChoices = choices.length;
+	for( let i = 0; i < len; ++i ){
+		let idx = Math.floor(Math.random() * numChoices);
+		retStr += choices[idx];
+	}
+	return retStr;
+}

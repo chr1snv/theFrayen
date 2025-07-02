@@ -296,12 +296,12 @@ function playBuffer(){
 }
 
 
-function SND_playSoundFileReady(sndFile, params){
+function SND_playWhenSoundFileReady(sndFile, params){
 	let vol = params[0];
 	let clearCanPlayOnce = params[1];
 	SNDF_Play( sndFile, aCtx, vol, clearCanPlayOnce );
 }
-function SND_stopSoundFileReady(sndFile, params){
+function SND_stopWhenSoundFileReady(sndFile, params){
 	let clearCanPlayOnce = params[1];
 	SNDF_Stop( sndFile, aCtx, clearCanPlayOnce );
 }
@@ -309,9 +309,9 @@ function SND_playSoundFile( name, sceneName, vol=1.0, playOrStop=true, clearCanP
 	if( aCtx == null )
 		return;
 
-	let objRdyCb = SND_playSoundFileReady;
+	let objRdyCb = SND_playWhenSoundFileReady;
 	if( !playOrStop )
-		objRdyCb = SND_stopSoundFileReady;
+		objRdyCb = SND_stopWhenSoundFileReady;
 
 	GRPH_GetCached(name, sceneName, SoundFile, 
 				ObjConstructorArgs		=[aCtx, true], 
@@ -319,6 +319,9 @@ function SND_playSoundFile( name, sceneName, vol=1.0, playOrStop=true, clearCanP
 				readyCallbackParameters	=[vol, clearCanPlayOnce] );
 }
 
+function SND_StopAllPlayingSoundFiles(){
+	SND_RestartSoundContext();
+}
 
 
 /*
@@ -414,7 +417,6 @@ function loadSceneSounds(){
 	}
 
 
-	sceneLoadedTime = Date.now();
 	running = true;
 	window.setTimeout(MainLoop, 300);
 }

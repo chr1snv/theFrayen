@@ -256,6 +256,8 @@ function stop(){
 	GRPH_Cleanup(graphics);
 	delete( mainScene );
 
+	SND_StopAllPlayingSoundFiles();
+
 }
 
 function ResetSettings(){
@@ -268,7 +270,7 @@ function ResetSettings(){
 
 //callback once a scene has finished loading
 var sceneTime = 0;
-var sceneLoadedTime = 0;
+var lastSceneTimeUpdate = 0;
 var mainScene = null;
 var mainCam = null;
 function sceneLoaded(havenScene)
@@ -349,10 +351,6 @@ function MainLoop()
 	if( !running )
 		return;
 
-	if(AnimPlaybackEnabled)
-		sceneTime = ( Date.now() - sceneLoadedTime ) /1000;
-	//graphics.Clear();
-	//graphics.ClearDepth();
 
 	if( keysDown[keyCodes.KEY_P] == true )
 		simPhys = !simPhys;
@@ -395,7 +393,7 @@ function MainLoop()
 		Overlay_DrawInputHint(rastBatch2dTris);
 	
 	framesSinceLastFPSOutputTime += 1;
-	if( sceneTime - lastSceneFPSOutputTime >= 1 ){
+	if( Math.abs(sceneTime - lastSceneFPSOutputTime) >= 1 ){
 		lastFps = framesSinceLastFPSOutputTime;
 		lastSceneFPSOutputTime = sceneTime;
 		framesSinceLastFPSOutputTime = 0;

@@ -163,7 +163,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 	}
 
 	//apply the Cameras transformation
-	this.GenWorldToFromScreenSpaceMats = function()
+	this.GenWorldToFromScreenSpaceMats = function(time)
 	//world space to camera space matrix 
 	//( invert the projection matrix (camera space to screen space) * camera to world space matrix )
 	{
@@ -174,7 +174,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 		//to transform the camera to its position in the world, but we want the
 		//model view matrix to be the inverse of that, the matrix required to
 		//bring the world into the view of the camera)
-		this.genCameraToWorldMatrix();
+		this.genCameraToWorldMatrix(time);
 		Matrix_Copy( tempMat, this.camToWorldMat ); //save before inverting
 		Matrix_Inverse( this.worldToCamMat, tempMat );
 
@@ -230,6 +230,8 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 	//update the Cameras position based on its animation
 	this.Update = function(timeIn)
 	{
+		if( this.ipoAnimation != null )
+			IPOA_GetMatrix( this.ipoAnimation, this.toWorldMatrix, time );
 		this.lastUpdateTime = timeIn;
 	}
 

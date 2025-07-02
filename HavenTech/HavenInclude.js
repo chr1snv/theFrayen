@@ -92,8 +92,6 @@ let loadScriptCmpCb = function(){ havenMain(); }
 function loadScriptLoop(){
 	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 
-	if( incFileList.length < 1 )
-		checkScriptsLoaded();
 
 	while( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
@@ -103,9 +101,12 @@ function loadScriptLoop(){
 			let script = CreateScript( scriptName );
 			//scriptsToAttach.push( script );
 			htmlHead.appendChild( script );
+		}else{
+			numScriptsLoaded += 1;
 		}
 	}
 
+	checkScriptsLoaded();
 }
 window.addEventListener('load', loadScriptLoop, false);
 
