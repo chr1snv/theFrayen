@@ -247,6 +247,7 @@ function TRI_G_VertBufQuadmesh( numVerts ){
 	this.uvBufferForMat   = [new Float32Array(numVerts*uvCard)  ];
 	this.lclMinCorner = Vect3_NewZero();
 	this.lclMaxCorner = Vect3_NewZero();
+	this.keyedPositions = [];
 }
 
 
