@@ -493,7 +493,7 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 		}else if( txtLineParts[0] == 'cstartend' ){
 			camStart = parseFloat( txtLineParts[1] );
 			camEnd = parseFloat( txtLineParts[2] );
-		}else if( txtLineParts[0] == 'c_anim' ){
+		}else if( txtLineParts[0] == 'cIpoName' ){
 			camIpoName = txtLineParts[1];
 		}else if( txtLineParts[0] == 'cEnd' ){
 			hvnsc.pendingCamsToAdd += 1;

@@ -3601,6 +3601,7 @@ cloc 14.762379 -34.794788 3.708142
 crot 1.377809 0.035741 -5.085639
 cang 1.369810
 cstartend 1.000000 10000.000000
+cIpoName Camera
 cEnd
 
 m entranceRoomCupboardEndWallOuter
