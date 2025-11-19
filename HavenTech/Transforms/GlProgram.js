@@ -8,8 +8,8 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 
 	this.glProgId = gl.createProgram();  //should also maybe gl.deleteProgram(Object program) when done using
 
-	this.vertShaderFilename = 'shaders/' + nameIn + 'VertShader.vsh';
-	this.fragShaderFilename = 'shaders/' + nameIn + 'FragShader.fsh';
+	this.vertShaderFilename = 'HavenTech/shaders/' + nameIn + 'VertShader.vsh';
+	this.fragShaderFilename = 'HavenTech/shaders/' + nameIn + 'FragShader.fsh';
 
 	this.unifVals = {}; //dictionary of glUniformLocations to last values
 

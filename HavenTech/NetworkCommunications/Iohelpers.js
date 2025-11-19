@@ -3,7 +3,21 @@
 
 //requests loading of file and when ready
 //calls the callback to read in the flat file (text file) data
+
+pendingTextFiles = [];
 function loadTextFile(filename, callback, thisP){
+	if( IOTRequest ){
+		getFile( finishGetLoadTextFile, filename, [callback, thisP] );
+	}else{
+		finishLoadTextFile(filename, callback, thisP);
+	}
+}
+
+function finishGetLoadTextFile(key, params ){
+	finishLoadTextFile( params[0] + "?" + key, params[1][0], params[1][1] );
+}
+
+function finishLoadTextFile(filename, callback, thisP){
 	if(callback === undefined)
 		DPrintf("callback undefined");
 	try{

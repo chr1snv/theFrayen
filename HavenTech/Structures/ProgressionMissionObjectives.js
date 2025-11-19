@@ -4,16 +4,17 @@
 //objective - a task to be completed (has conditions)
 
 function Progression(){
+	this.completedMissions = [];
 	this.missions = [];
 }
 
 function Mission(){
 	this.objectives = [];
-	
+	this.mname = "";
 }
 
 function Objective(){
 	this.explination = "";
 	this.completed = false;
-	
+	this.hiddenUntilPrevObjectiveCompleted = true;
 }

@@ -58,7 +58,6 @@ var incFiles = ['DPrintf.js',
 				'Output/Rendering/RasterBatch.js',
 
 				'Output/HierarchyView.js',
-				'HavenMain.js',
 
 				'Structures/TriText.js',
 
@@ -69,12 +68,17 @@ var incFiles = ['DPrintf.js',
 				'Input/CapacitiveAndGFieldSensing/InertialSensors.js',
 				//'CameraStream.js',
 
+
+				'HavenMain.js',
+
 				'Output/Sound/Sound.js',
 				'Output/Sound/SoundFile.js',
 				//'fft.js',
 				'Input/Sound/SoundInput.js',
 
 				'NetworkCommunications/NetworkCommunications.js',
+
+				'Structures/ProgressionMissionObjectives.js',
 
 				'SceneLogic/SceneSpecific.js'
 				];
@@ -85,11 +89,15 @@ let htmlHead = document.getElementsByTagName('head')[0];
 
 includedScripts = {};
 
+var IOTRequest = false;
+
 let numScriptsLoaded = 0;
 var incFileIdx = 0;
 let incFileList = incFiles;
 let loadScriptCmpCb = function(){ havenMain(); }
-function loadScriptLoop(){
+function loadScriptLoop(useIOTAppend=false, loadCompCb=loadScriptCmpCb){
+	IOTRequest = useIOTAppend;
+	loadScriptCmpCb = loadCompCb;
 	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 
 
@@ -98,24 +106,35 @@ function loadScriptLoop(){
 		let scriptName = 'HavenTech/'+incFileList[incFileIdx++];
 		if( !includedScripts[scriptName] ){ //prevent including files twice
 			includedScripts[scriptName] = 1;
-			let script = CreateScript( scriptName );
-			//scriptsToAttach.push( script );
-			htmlHead.appendChild( script );
+			if( !useIOTAppend ){
+				let script = CreateScript( scriptName );
+				//scriptsToAttach.push( script );
+				htmlHead.appendChild( script );
+			}else{
+				getFile( finishAppendScript, scriptName, [htmlHead, checkScriptsLoaded] );
+			}
 		}else{
 			numScriptsLoaded += 1;
 		}
 	}
 
-	checkScriptsLoaded();
+	checkScriptsLoadedNoInc();
 }
-window.addEventListener('load', loadScriptLoop, false);
+//window.addEventListener('load', loadScriptLoop, false);
+
 
 function checkScriptsLoaded(){
+	numScriptsLoaded += 1;
+	checkScriptsLoadedNoInc();
+}
+
+function checkScriptsLoadedNoInc(){
+	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 	if( numScriptsLoaded >= incFileList.length ){
 		//done loading include files
 		window.removeEventListener( 'load', loadScriptLoop );
 		//attach files to html document
-		
+
 		//for( let i = 0; i < scriptsToAttach.length; ++i )
 		//	head.appendChild( scriptsToAttach[i] );
 		numScriptsLoaded = 0;
@@ -125,15 +144,14 @@ function checkScriptsLoaded(){
 }
 
 function CreateScript(scriptName, callback){
-	
+
 	let script= document.createElement('script');
 	script.type= 'text/javascript';
 	script.src= scriptName;
 	script.async = false;
 	script.onload = function(){
-		numScriptsLoaded += 1;
-		statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 		checkScriptsLoaded();
 	}
 	return script;
 }
+

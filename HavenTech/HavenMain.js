@@ -325,14 +325,10 @@ function hidePage(hide){
 		befrCanvElm.style.display = 'none';
 		aftrCanvElm.style.display = 'none';
 		//cntrlsTxtElm.style.display = 'none';
-		document.body.style.backgroundColor = '#000000FF';
-		document.body.style.backgroundImage = '';
 	}else{
 		befrCanvElm.style.display = '';
 		aftrCanvElm.style.display = '';
 	//	cntrlsTxtElm.style.display = '';
-		document.body.style.backgroundColor = '#7fceed';
-		document.body.style.backgroundImage = 'linear-gradient(to bottom right, #7fceed, #505d71)';
 	}
 }
 

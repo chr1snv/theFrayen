@@ -150,7 +150,7 @@ function Client_joinGame(){
 	sendWebsocketServerMessage( "clientStarted uid: " + localUid.val, true );
 }
 const networkUpdateInterval = 0.10;
-let lastNetworkUpdateTime = 0;
+let lastNetworkMsgTime = 0;
 function Client_Update( boatHeading, boatMapPosition, wayps, distToNextWayP, completionTime ){
 
 	sendWebsocketServerMessage( "cliUpdS " + networkGame.svrUidVal + " " + localUid.val + 
@@ -185,10 +185,10 @@ let signalingWebSocket = null;
 let queuedSignalingMessage = null;
 function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=false){
 
-	if( ( Math.abs(sceneTime - lastNetworkUpdateTime) < networkUpdateInterval ) && !nonRateLimitedMessage )
+	if( ( Math.abs(sceneTime - lastNetworkMsgTime) < networkUpdateInterval ) && !nonRateLimitedMessage )
 		return;
 
-	lastNetworkUpdateTime = sceneTime;
+	lastNetworkMsgTime = sceneTime;
 
 	if( signalingWebSocket == null ){
 		queuedSignalingMessage = signalingMessage;
@@ -239,7 +239,7 @@ function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=fals
 						let serverUid = responseParts[i];
 						if( serverUid != -1 ){
 							sgMode = SailModes.ClntWatingForStart;
-							lastNetworkUpdateTime = sceneTime;
+							lastNetworkMsgTime = sceneTime;
 						}
 					}
 					break;
@@ -249,7 +249,7 @@ function sendWebsocketServerMessage(signalingMessage, nonRateLimitedMessage=fals
 						networkGame = new NetworkGame();
 						NetworkGame_Parse(networkGame, responseParts, ++i)
 						sgMode = SailModes.HostWaitingForPlayers;
-						lastNetworkUpdateTime = sceneTime;
+						lastNetworkMsgTime = sceneTime;
 					}
 					break;
 				case NetworkResponseTypes.gameInfo: //data brodcast to everyone in a game

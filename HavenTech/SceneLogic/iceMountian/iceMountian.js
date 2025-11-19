@@ -76,6 +76,8 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",        true,  TxtJustify.Left,   icemMenuTxtColor );
 			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   icemMenuTxtColor );
 			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, icemMenuTxtColor );
+			
+			TR_QueueText( rb2DTris,  0.1,  0.05, 0.02, 0.1,  "Objectives",       true,  TxtJustify.Left, icemMenuTxtColor );
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
@@ -86,7 +88,11 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			break;
 		case IcemModes.Objectives:
 			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "Objectives",       false, TxtJustify.Left,   icemMenuHdgColor );
+			
+			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
+			
 			break;
+		
 		/*
 		case IcemModes.SvrWaitingForPlayers:
 			TR_QueueText( rb2DTris, 0.0, -0.4, 0.02, 0.07, "START REGATTA", true, TxtJustify.Center, menuTxtColor);
@@ -188,7 +194,12 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					if( mOvrdStrs[i] == "START" ){
 						icemMode = IcemModes.Gameplay;
 						sceneTime = 0;
+						Quat_Identity( mainCam.userRotation );
+						Vect3_SetScalar( mainCam.userPosition, 0 );
 						SND_playSoundFile( 'music/infinite-vibes-1-233422.mp3', 'iceMountianSideHouse2', vol=0.5, true, true);
+					}
+					if( mOvrdStrs[i] == "Objectives" ){
+						icemMode = IcemModes.Objectives;
 					}
 					if( mOvrdStrs[i] == "HOST" ){
 						Host_startListening(4);
@@ -201,6 +212,10 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 						icemMode = IcemModes.Leaderboard;
 					}
 					break;
+				case IcemModes.Objectives:
+					if( mOvrdStrs[i] == ":Gear:" ){
+						icemMode = IcemModes.Gameplay;
+					}
 				case IcemModes.SvrWaitingForPlayers:
 					if( mOvrdStrs[i] == "Main Menu" ){
 						Network_LeaveGame();

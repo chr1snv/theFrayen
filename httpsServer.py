@@ -107,8 +107,8 @@ def loopCheckIpHasChanged():
 			print('ip has changed, need to rebind servers to new interface addresses')
 			svrIp = currentIp
 			
-			if backend_thread != None:
-				backend_thread.stop()
+			#if backend_thread != None:
+			#	backend_thread.stop() #no such function stop() use set_result signal below
 			
 			server_address = (svrIp, 8000)
 			print( "starting httpAsyncServer at " + server_address[0] + " port " + str(server_address[1]) )
