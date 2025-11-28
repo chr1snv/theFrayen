@@ -1,4 +1,4 @@
-//Ray.js - provides functions dealing with ray intersections
+//# sourceURL=Transforms/Ray.js - provides functions dealing with ray intersections
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 // derivation using computer algebra (wolframalpha) and algebreic steps

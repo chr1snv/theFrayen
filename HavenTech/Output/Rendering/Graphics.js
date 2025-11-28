@@ -1,4 +1,4 @@
-//Graphics.js - to request use permission please contact chris@itemfactorystudio.com
+//# sourceURL=Output/Rendering/Graphics.js - to request use permission please contact chris@itemfactorystudio.com
 
 
 //contains dictionaries of
@@ -51,6 +51,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.textureRefCts   = {};
 	this.shaderRefCts    = {};
 	this.quadMeshRefCts  = {};
+	this.sceneZips		 = {};
 	
 	this.glPrograms = {};
 	this.currentProgram = null;
@@ -268,6 +269,31 @@ function GRPH_loadDepthGraphics(){
 	CheckGLError( "after load depth gl program" );
 	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
 	graphics.currentProgramName = 'cube';
+}
+
+function GRPH_GetSceneZip(sceneName, callback, cbParams){
+	if( graphics.sceneZips[sceneName] == undefined ){ //hasn't been asked to load yet, start loading
+		graphics.sceneZips[sceneName] = [null, [[callback, cbParams]]];
+		loadFile("scenes/"+sceneName+".zip", GRPH_GetSceneZipLoaded, sceneName );
+	}else if( graphics.sceneZips[sceneName][0] == null ){ //append to the list of functions to call once it loads
+		graphics.sceneZips[sceneName][1].push( [callback, cbParams] );
+	}else{ //it's loaded, return it
+		callback( graphics.sceneZips[sceneName][0], cbParams );
+	}
+}
+function GRPH_GetSceneZipLoaded( sceneZip, sceneName ){
+	let loadedZip = new JSZip();
+	loadedZip.loadAsync(sceneZip)
+		.then(function(zip) {
+			graphics.sceneZips[sceneName][0] = zip; //keep a reference to the zip
+			//call each queued callback
+			let callbacks = graphics.sceneZips[sceneName][1];
+			for( cbIdx in callbacks ){
+				let callbackParams = callbacks[cbIdx];
+				callbackParams[0]( zip, callbackParams[1] );
+			}
+			graphics.sceneZips[sceneName][1] = [];
+		});
 }
 
 //object caching system to avoid fetching resources multiple times

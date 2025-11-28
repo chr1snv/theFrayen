@@ -1,4 +1,4 @@
-//Matrix.js - implementation of matrix
+//# sourceURL=Transforms/Matrix.js - implementation of matrix
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 MatrixType =

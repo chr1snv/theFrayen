@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Rendering/LineGraphics.js
 function LineGraphics(loadCompleteCallback, unifLocOffset){
 
 	this.loadCompleteCallback = loadCompleteCallback;

@@ -1,4 +1,4 @@
-//QuadMesh.js - implementation of QuadMesh
+//# sourceURL=Structures/QuadMesh.js - implementation of QuadMesh
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //a polygonal mesh with faces of 3 or 4 (quad) verticies
@@ -123,10 +123,12 @@ function QuadMesh(nameIn, sceneNameIn, args, quadMeshReadyCallback, readyCallbac
 
 	this.AABBUpdateTime = -1;
 
-	
-	
-	let meshFileName = "scenes/" + this.sceneName + "/meshes/" + this.meshName + ".hvtMesh";
-	loadTextFile( meshFileName, QM_meshFileLoaded, this );
+
+
+	this.meshFileName = this.sceneName + "/meshes/" + this.meshName + ".hvtMesh";
+	let thisP = this;
+	getFileFromSceneZip(thisP.sceneName, thisP.meshFileName, "string", QM_meshFileLoaded, thisP);
+
 	//when completed calls to mesh file loaded function
 
 }

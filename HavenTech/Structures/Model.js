@@ -1,4 +1,4 @@
-//Model.js
+//# sourceURL=Structures/Model.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //a representation of a model in a haven scene

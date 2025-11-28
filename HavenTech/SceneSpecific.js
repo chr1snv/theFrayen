@@ -1,3 +1,4 @@
+//# sourceURL=SceneSpecific.js
 
 let sceneScripts = [
 	'sail/Sail.js',

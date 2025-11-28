@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Rendering/CubeGraphics.js
 //for drawing cube map (skyboxes)
 //likely a cube instead of a sphere to use existing triangle rasterization
 //engine in gpu (a cube has fewer verts than a sphere)

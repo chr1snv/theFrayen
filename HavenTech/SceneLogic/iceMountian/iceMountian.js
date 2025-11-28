@@ -1,4 +1,4 @@
-
+//# sourceURL=SceneLogic/iceMountian/iceMountian.js
 
 
 var iceMScripts = [
@@ -25,7 +25,7 @@ function ICEM_sceneSpecificLoad(cmpCb){
 	incFileList = iceMScripts;
 	loadScriptCmpCb = ICEM_ScriptLoadCmp;
 
-	loadScriptLoop();
+	loadScriptLoop(havenSourceZip);
 
 	icemMode = IcemModes.Menu;
 

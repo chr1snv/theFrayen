@@ -1,4 +1,4 @@
-//HavenInclude.js
+//# sourceURL=HavenInclude.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 //loads all of the haven tech scripts into the dom
@@ -89,30 +89,22 @@ let htmlHead = document.getElementsByTagName('head')[0];
 
 includedScripts = {};
 
-var IOTRequest = false;
-
 let numScriptsLoaded = 0;
 var incFileIdx = 0;
 let incFileList = incFiles;
 let loadScriptCmpCb = function(){ havenMain(); }
-function loadScriptLoop(useIOTAppend=false, loadCompCb=loadScriptCmpCb){
-	IOTRequest = useIOTAppend;
+function loadScriptLoop(zip, loadCompCb=loadScriptCmpCb){
 	loadScriptCmpCb = loadCompCb;
 	statusElm.innerHTML = "Script " + incFileIdx + " / " + incFileList.length;
 
 
 	while( incFileIdx < incFileList.length ){
 		//include files while there are still files to be included
-		let scriptName = 'HavenTech/'+incFileList[incFileIdx++];
+		let scriptName = incFileList[incFileIdx++];
 		if( !includedScripts[scriptName] ){ //prevent including files twice
 			includedScripts[scriptName] = 1;
-			if( !useIOTAppend ){
-				let script = CreateScript( scriptName );
-				//scriptsToAttach.push( script );
-				htmlHead.appendChild( script );
-			}else{
-				getFile( finishAppendScript, scriptName, [htmlHead, checkScriptsLoaded] );
-			}
+			
+			appendScriptFromZip(zip, scriptName, htmlHead);
 		}else{
 			numScriptsLoaded += 1;
 		}
@@ -143,15 +135,32 @@ function checkScriptsLoadedNoInc(){
 	}
 }
 
-function CreateScript(scriptName, callback){
-
-	let script= document.createElement('script');
-	script.type= 'text/javascript';
-	script.src= scriptName;
-	script.async = false;
-	script.onload = function(){
-		checkScriptsLoaded();
-	}
-	return script;
+//loads a javascript from zip file and appends it to the elmToAppendTo on the page so it can be used
+function appendScriptFromZip(zip, scriptName, elmToAppendTo ){
+	zip.file(scriptName).async("string").then( function(scriptText){
+		appendScriptFromText( scriptName, scriptText, [elmToAppendTo, checkScriptsLoaded] );
+	} );
 }
 
+
+//gets the requested file and returns it to the callback
+function getFileFromZip(zip, fileName, type, callback, callbackParams){
+	let zFile = zip.file(fileName);
+		if(zFile != null ){
+			zFile.async(type).then( function(fileText){
+			callback(fileText, callbackParams);
+			} );
+		}else{
+			DPrintf( "file " + fileName + " not found" );
+		}
+	
+}
+
+
+//helper function to preven't needing to put this pattern in every Haven Structure type needing to load data from zip
+function getFileFromSceneZip(sceneName, fileName, type, callback, cbArgs ){
+	GRPH_GetSceneZip( sceneName, 
+		function( sceneZip ){
+			getFileFromZip( sceneZip, fileName, type, callback, cbArgs );
+		}, cbArgs);
+}

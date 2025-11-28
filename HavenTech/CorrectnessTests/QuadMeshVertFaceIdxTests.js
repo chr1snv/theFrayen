@@ -1,3 +1,4 @@
+//# sourceURL=CorrectnessTests/QuadMeshVertFaceIdxTests.js
 console.log( "verts" );
 for( let i = 0; i < this.transformedVerts.length/3; ++i ){
 	let v = [ this.transformedVerts[i*3+0], this.transformedVerts[i*3+1], this.transformedVerts[i*3+2] ];

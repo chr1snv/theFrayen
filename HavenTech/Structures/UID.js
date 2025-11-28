@@ -1,4 +1,4 @@
-
+//# sourceURL=Structures/UID.js
 //generates uniqely identifiable identifiers that can be linearly added/subtracted
 //Integers in js (numbers without a period or exponent notation) are accurate up to 15 digits.
 

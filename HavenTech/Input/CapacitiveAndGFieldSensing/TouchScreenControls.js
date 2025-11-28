@@ -1,4 +1,4 @@
-
+//# sourceURL=Input/CapacitiveAndGFieldSensing/TouchScreenControls.js
 function TouchScreenControls(){
 
 	this.menuDelta     = new Float32Array(2);

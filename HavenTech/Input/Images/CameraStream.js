@@ -1,4 +1,4 @@
-//CameraStream.js - provides navigator.getUserMedia access
+//# sourceURL=Input/Images/CameraStream.js - provides navigator.getUserMedia access
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 function CameraStream(){

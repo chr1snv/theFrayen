@@ -1,4 +1,4 @@
-//InertialSensors.js
+//# sourceURL=Input/CapacitiveAndGFieldSensing/InertialSensors.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //for reading data from the Gyroscope / Acclerometer / Compass for tilt control

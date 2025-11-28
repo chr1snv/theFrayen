@@ -1,4 +1,4 @@
-//Camera.js
+//# sourceURL=Output/Rendering/Camera.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 var gOM = new Float32Array(4*4);
 function glOrtho(left, right, bottom, top, nearVal, farVal)

@@ -1,4 +1,4 @@
-//Bone.js: Animation Bone Implementation
+//# sourceURL=Structures/Bone.js : Animation Bone Implementation
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 function Bone( expectedCurvesToRead ){

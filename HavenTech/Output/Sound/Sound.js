@@ -1,4 +1,4 @@
-//Sound.js
+//# sourceURL=Output/Sound/Sound.js
 
 //the table of frequencies came from a tutorial site
 //and the functions are based on other tutorials

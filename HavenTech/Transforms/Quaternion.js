@@ -1,4 +1,4 @@
-//Quaternion.js: Functions for representing and manipulating rotation Quaternions
+//# sourceURL=Transforms/Quaternion.js : Functions for representing and manipulating rotation Quaternions
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //when applying transformations in multi-dimensonal space, permultations of

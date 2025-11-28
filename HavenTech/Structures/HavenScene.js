@@ -1,4 +1,4 @@
-//HavenScene.js
+//# sourceURL=Structures/HavenScene.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 //haven scenes are collections of models, lights, cameras, etc
@@ -78,8 +78,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 
 	if( !createEmptyScene ){
 		//load from file constructor functionality begin asynchronous fetch of scene description
-		loadTextFile("scenes/"+this.sceneName+".hvtScene",
-					HVNSC_textFileLoadedCallback, this);
+		let thisP = this;
+		getFileFromSceneZip(thisP.sceneName, thisP.sceneName + ".hvtScene", "string", HVNSC_textFileLoadedCallback, thisP);
 	}else{
 		//initially empty programatically / runtime added to / generated scene
 		//"HVNSC_createEmptyScene(this);" (if this were a function)
@@ -99,6 +99,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 	}
 
 }
+
+
 
 function CheckIsValidFor( hvnsc, operationName ){
 
@@ -510,6 +512,8 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	--hvnsc.pendingObjsToAdd; //-1 for the scene file being read in
 	HVNSC_checkIfIsLoaded(hvnsc);
 }
+
+
 
 function HVNSC_textFileLoadedCallback(txtFile, thisP) 
 //called after scene description text file has been fetched

@@ -1,4 +1,4 @@
-//HierarchyView.js
+//# sourceURL=Output/HierarchyView.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 //gives a visual editor view of the scene oct tree for performance diagnosis

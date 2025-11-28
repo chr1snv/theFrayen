@@ -1,4 +1,4 @@
-//OctTree.js
+//# sourceURL=Structures/OctTree.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 //the idea behind this was to mix between a binary space partioning tree and

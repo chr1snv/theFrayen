@@ -1,4 +1,4 @@
-
+//# sourceURL=SceneLogic/sail/Boat.js
 
 //auto tack/jib animation frame selection based on the boat velocity / heading to the
 //wind and tide

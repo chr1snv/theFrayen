@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Rendering/PointGraphics.js
 
 function PointGraphics(loadCompleteCallback){
 

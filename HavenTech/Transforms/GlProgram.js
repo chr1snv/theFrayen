@@ -1,4 +1,4 @@
-//glProgram.js: - to request use permission please contact chris@itemfactorystudio.com
+//# sourceURL=Transforms/GlProgram.js : - to request use permission please contact chris@itemfactorystudio.com
 
 //encapsulates web gl Shader setup and compilation from file
 
@@ -8,8 +8,8 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 
 	this.glProgId = gl.createProgram();  //should also maybe gl.deleteProgram(Object program) when done using
 
-	this.vertShaderFilename = 'HavenTech/shaders/' + nameIn + 'VertShader.vsh';
-	this.fragShaderFilename = 'HavenTech/shaders/' + nameIn + 'FragShader.fsh';
+	this.vertShaderFilename = 'shaders/' + nameIn + 'VertShader.vsh';
+	this.fragShaderFilename = 'shaders/' + nameIn + 'FragShader.fsh';
 
 	this.unifVals = {}; //dictionary of glUniformLocations to last values
 
@@ -20,9 +20,10 @@ function GlProgram(nameIn, readyCallbackParams, programReadyCallback)
 	this.readyCallbackParams = readyCallbackParams;
 	this.programReadyCallback = programReadyCallback;
 	//start fetching and loading the vertex shader
-	loadTextFile(this.vertShaderFilename, GLP_vertShaderLoaded, this);
+	getFileFromZip(havenSourceZip, this.vertShaderFilename, "string", GLP_vertShaderLoaded, this);
 
 }
+
 
 
 	//once the fragment shader has been loaded, compile and configure it
@@ -61,7 +62,7 @@ function GLP_vertShaderLoaded(textFile, thisP){
 	//	alert('vertex shader log: ' + gl.getShaderInfoLog(vertexShader));
 	gl.attachShader(thisP.glProgId, vertexShader);
 
-	loadTextFile( thisP.fragShaderFilename, GLP_fragShaderLoaded, thisP );
+	getFileFromZip(havenSourceZip, thisP.fragShaderFilename, "string", GLP_fragShaderLoaded, thisP );
 }
 
 

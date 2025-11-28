@@ -1,4 +1,4 @@
-
+//# sourceURL=NetworkCommunications/NetworkCommunications.js
 //was originally planning to use webRTC Datachannels to do browser peer to peer udp networking,
 //though it turned out to require a websocket to establish / negotiate the connection
 //researched the following terminology 

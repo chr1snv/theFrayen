@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Sound/SoundFile.js
 
 function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallbackParams ){
 	this.sndName = nameIn;
@@ -11,31 +11,31 @@ function SoundFile( nameIn, sceneNameIn, args, soundReadyCallback, readyCallback
 	this.soundReadyCallback = soundReadyCallback;
 	this.readyCallbackParams = readyCallbackParams;
 
-	this.filename = "scenes/"+this.sceneName+"/sound/"+this.sndName;
+	this.filename = this.sceneName+"/sound/"+this.sndName;
 
-	let req = new XMLHttpRequest();
-	req.open( 'GET', this.filename, true);
-	req.responseType = 'arraybuffer';
-	req.onload = SNDF_FileLoaded;
-	req.sndFile = this;
+	//let req = new XMLHttpRequest();
+	//req.open( 'GET', this.filename, true);
+	//req.responseType = 'arraybuffer';
+	//req.onload = SNDF_FileLoaded;
+	//req.sndFile = this;
 
 	this.hasPlayed = false;
 	this.isPlaying = false;
 	this.isValid = false;
 
-	req.send();
+	getFileFromSceneZip(this.sceneName, this.filename, "arraybuffer", SNDF_FileLoaded, this )
+	//req.send();
 }
 
-function SNDF_FileLoaded(){
+function SNDF_FileLoaded(sndFileArrayB, thisP){
 
-	let sndFile = this.sndFile;
-
-	sndFile.aCtx.decodeAudioData( this.response, function(buffer){
-		sndFile.buffer = buffer;
-		sndFile.isValid = true;
+	//let sndFileUrl = URL.createObjectURL( sndFileBlob, { type: 'audio/mpeg' } );
+	thisP.aCtx.decodeAudioData( sndFileArrayB, function(buffer){
+		thisP.buffer = buffer;
+		thisP.isValid = true;
 		
-		if( sndFile.soundReadyCallback != null )
-			sndFile.soundReadyCallback( sndFile, sndFile.readyCallbackParams );
+		if( thisP.soundReadyCallback != null )
+			thisP.soundReadyCallback( thisP, thisP.readyCallbackParams );
 	} );
 
 

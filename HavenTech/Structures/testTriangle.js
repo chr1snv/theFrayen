@@ -1,3 +1,4 @@
+//# sourceURL=Structures/testTriangle.js
 
 let idx = tri.i1;
 DTPrintf( [ qMesh.vertPositions[ idx ], qMesh.vertPositions[ idx+1 ], qMesh.vertPositions[ idx+2 ] ], "test" );

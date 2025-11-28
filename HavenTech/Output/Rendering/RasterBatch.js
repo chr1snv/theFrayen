@@ -1,3 +1,4 @@
+//# sourceURL=Output/Rendering/RasterBatch.js
 //collection of draw and subDraw Batch buffers with a common 
 //"camera" world to screen space projection matrix to render to the screen
 

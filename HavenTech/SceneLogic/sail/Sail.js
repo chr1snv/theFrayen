@@ -1,4 +1,4 @@
-
+//# sourceURL=SceneLogic/sail/Sail.js
 var sailScripts = [
 	'SceneLogic/sail/Ocean.js',
 	'SceneLogic/sail/Boat.js',
@@ -30,7 +30,7 @@ function SAIL_sceneSpecificLoad(cmpCb){
 	incFileList = sailScripts;
 	loadScriptCmpCb = SAIL_ScriptLoadCmp;
 
-	loadScriptLoop();
+	loadScriptLoop(havenSourceZip);
 
 	sgMode = SailModes.Menu;
 

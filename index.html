@@ -153,12 +153,40 @@
 		<canvas id="spectInputVisCanvas" width=512px; height=512px;></canvas>
 		<button type="button" id="soundInputShowGraphButton" onclick="ShowSoundInputGraph(this)" style="display: none;">Show Sound Input Graph</button>
 	</div>
+	
+	<div id="cliId">0</div>
 
 </body>
+
+<script src="commonFunctions.js"></script>
+<script src="HavenTech/NetworkCommunications/Iohelpers.js"></script>
 <script src="HavenTech/jszip.min.js"></script>
-<script src="HavenTech/HavenInclude.js"></script>
 <script>
-	window.addEventListener('load', function(){loadScriptLoop(false);}, false);
+
+	function havenLoadCompFileViewer(){
+		console.log("havenLoadCompFileViewer");
+		havenMain();
+	}
+
+	function startHavenTechLoading(){
+		console.log("startHavenTechLoading");
+		loadScriptLoop(havenSourceZip, havenLoadCompFileViewer);
+	}
+	
+	
+	IOTRequest = false; //request files directly from http without getkey authentication
+	function begin(){
+	
+		thisCliId = document.getElementById("cliId").innerHTML;
+		
+		statusElm = document.getElementById("status");
+		//assignDefaultImgSrcs();
+		loadFile("HavenTech/havenTech.zip", havenZipReady, null );
+		//getFile(finishAppendScript, "HavenTech/HavenInclude.js", [document.getElementsByTagName("body")[0], startHavenTechLoading] );
+		console.log("end begin");
+	}
+	window.addEventListener('load', begin, false);
+
 	//document.onload = function() { loadScriptLoop(); }
 </script>
 

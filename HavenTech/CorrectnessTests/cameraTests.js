@@ -1,4 +1,4 @@
-
+//# sourceURL=CorrectnessTests/cameraTests.js
 
 //test cam matrices
 function testCamMatricies(cam, octTreeRoot){

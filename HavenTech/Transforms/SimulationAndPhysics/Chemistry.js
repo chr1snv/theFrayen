@@ -1,3 +1,4 @@
+//# sourceURL=Transforms/SimulationAndPhysics/Chemistry.js
 //non detailed (macro scale approximate) chemical equation solver for simulating and explaining
 // chemical interactions of objects at temperatures
 

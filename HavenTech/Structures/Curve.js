@@ -1,4 +1,4 @@
-//Curve.js: implementation of curve
+//# sourceURL=Structures/Curve.js : implementation of curve
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 const Curve_Interp_Type_CONSTANT = 0;

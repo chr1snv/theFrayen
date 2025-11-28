@@ -1,3 +1,4 @@
+//# sourceURL=Structures/Triangle.js
 
 function Triangle( ){
 	//verticies start with v

@@ -1,4 +1,4 @@
-//Timeline.js
+//# sourceURL=Structures/Timeline.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
  //thing to hold and manage a sequence of events

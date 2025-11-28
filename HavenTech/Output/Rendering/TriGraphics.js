@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Rendering/TriGraphics.js
 function TriGraphics(loadCompleteCallback, unifLocOffset){
 
 	this.currentTexId     = -1;

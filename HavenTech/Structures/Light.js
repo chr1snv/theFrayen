@@ -1,4 +1,4 @@
-//Light.js
+//# sourceURL=Structures/Light.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 let LightType = {

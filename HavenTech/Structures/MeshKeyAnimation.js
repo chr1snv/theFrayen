@@ -1,4 +1,4 @@
-//MeshKeyAnimation.js - keyframe animation for a QuadMesh
+//# sourceURL=Structures/MeshKeyAnimation.js - keyframe animation for a QuadMesh
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 function MeshKey(){

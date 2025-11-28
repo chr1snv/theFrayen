@@ -1,4 +1,4 @@
-//Material.js: - to request use permission please contact chris@itemfactorystudio.com
+//# sourceURL=Structures/Material.js : - to request use permission please contact chris@itemfactorystudio.com
 
 //originally there was one shared gl program and
 //had per object settings passed to it.
@@ -75,15 +75,15 @@ function Material( nameIn, sceneNameIn, args, materialReadyCallback, readyCallba
 		this.materialReadyCallback( this, this.readyCallbackParams );
 	}else{
 		//read in the material settings from a file
-
 		
 		
 		//calculate the material file filename
-		let filename = "scenes/"+this.sceneName+"/materials/"+this.materialName+".hvtMat";
+		this.filename = this.sceneName+"/materials/"+this.materialName+".hvtMat";
+		let thisP = this;
 
 		//open the material file (unless its a programatically created material)
 		if( !programaticlyCreatedFromTexture ){
-			loadTextFile(filename, MAT_materialTextLoaded, this);
+			getFileFromSceneZip(this.sceneName, thisP.filename, "string", MAT_materialTextLoaded, thisP);
 		}else{
 			this.numTexturesToLoad += 1;
 			GRPH_GetCached(nameIn, this.sceneName, Texture, 1, MAT_textureLoaded, this);

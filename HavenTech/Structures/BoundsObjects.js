@@ -1,3 +1,4 @@
+//# sourceURL=Structures/BoundsObjects.js
 //World bounds object
 
 function BoundsObj(min, max){

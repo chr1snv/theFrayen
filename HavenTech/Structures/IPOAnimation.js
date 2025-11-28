@@ -1,4 +1,4 @@
-//IPOAnimation.js
+//# sourceURL=Structures/IPOAnimation.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 var ipoChanAxisIdx = 0;
@@ -52,7 +52,8 @@ function IPOAnimation(nameIn, sceneNameIn, args, readyCallback, readyCallbackPar
 	//constructor functionality
 	this.loadCompCallback = readyCallback;
 	this.loadCompCbParams = readyCallbackParams;
-	loadTextFile( 'scenes/' + this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', IPOA_textFileLoaded, this );
+
+	getFileFromSceneZip(this.sceneName, this.sceneName + '/IPOs/' + this.ipoName + '.hvtIPO', "string", IPOA_textFileLoaded, this );
 };
 
 function IPOA_GetLocation(ipoa, ret, time){

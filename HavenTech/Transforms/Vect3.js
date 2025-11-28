@@ -1,4 +1,4 @@
-//Vect3.js
+//# sourceURL=Transforms/Vect3.js
 //I didn't invent math, though I coded this implementation
 //for use or code/art requests please contact chris@itemfactorystudio.com
 

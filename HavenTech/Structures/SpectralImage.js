@@ -1,4 +1,4 @@
-//SpectralImage.js
+//# sourceURL=Structures/SpectralImage.js
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //idea for denoising the sparse number of samples that can be obtained when

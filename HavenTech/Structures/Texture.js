@@ -1,4 +1,4 @@
-//Texture.js: texture implementation
+//# sourceURL=Structures/Texture.js : texture implementation
 //for use or code/art requests please contact chris@itemfactorystudio.com
 
 //called to create a new texture,
@@ -20,7 +20,7 @@ function Texture( nameIn, sceneNameIn, wrapType, textureReadyCallback, readyCall
 	this.wrapType = wrapType;
 	this.isValid   = false;
 
-	this.filename = "scenes/"+this.sceneName+"/textures/"+this.texName;
+	this.filename = this.sceneName+"/textures/"+this.texName;
 
 	if( wrapType == 2 ){ //cube texture
 		this.numCubeTexsLoaded = 0;
@@ -56,7 +56,7 @@ function GenCubeTexFilename(texP, idx){
 	return texP.filename + CubeTexIdxToName[idx] + '.jpg';
 }
 function initTextLoadImage(texP, loadFileName){
-	lImg = new Image();
+	let lImg = new Image();
 	lImg.onload = TEX_ImgLoaded;
 
 	//if the texture doesn't load from the server correctly
@@ -67,8 +67,22 @@ function initTextLoadImage(texP, loadFileName){
 	//begin the asynchronous loading of the texture image file
 	lImg.hvnTex = texP;
 	
-	lImg.src = loadFileName;
+	//console.log("attempt to load texture " + loadFileName);
+
+	getFileFromSceneZip(texP.sceneName, loadFileName, "blob", TEX_ImgFetched, [loadFileName, texP, lImg]);
+	
 	return lImg;
+}
+
+function TEX_ImgFetched(texBlob, params){
+	//console.log("textureBlob loaded " + params[1].filename);
+	let typeStrParts = params[0].split('.');
+	let type = typeStrParts[typeStrParts.length-1];
+	if(type == 'jpg')
+		type = 'jpeg';
+	let imgUrl = URL.createObjectURL( texBlob, { type: 'image/'+type } );
+	params[2].src = imgUrl;
+
 }
 function StartNewTexLoad(texP, cubeTexIdx=0, cubeTex=false){
 

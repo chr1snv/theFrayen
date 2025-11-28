@@ -1,4 +1,4 @@
-//SkeletalAnimation.js: Implementation of SkeletalAnimation
+//# sourceURL=Structures/SkeletalAnimation.js : Implementation of SkeletalAnimation
 //a heirarchical matrix transformation for animating quadMeshes
 //Author: Christopher Hoffman
 //for use or code/art requests please contact chris@itemfactorystudio.com
@@ -45,8 +45,9 @@ function SkeletalAnimation( nameIn, sceneNameIn, args, readyCallback, readyCallb
 	this.loadCompCbParams = readyCallbackParams;
 
 	//open the file for reading
-	let fileName = "scenes/"+this.sceneName+"/skelAnimations/"+this.skelAnimName+".hvtAnim";
-	loadTextFile(fileName, SkelA_AnimFileLoaded, this );
+	this.fileName = this.sceneName+"/skelAnimations/"+this.skelAnimName+".hvtAnim";
+	let thisP = this;
+	getFileFromSceneZip(thisP.sceneName, thisP.fileName, "string", SkelA_AnimFileLoaded, thisP);
 }
 
 

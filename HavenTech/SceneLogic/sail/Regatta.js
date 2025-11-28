@@ -1,4 +1,4 @@
-
+//# sourceURL=SceneLogic/sail/Regatta.js
 //maintains the status of the sailing competition
 
 var rgtaScene = null;

@@ -1,4 +1,4 @@
-//Capsule.js
+//# sourceURL=Transforms/SimulationAndPhysics/Capsule.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 
 //exists to hold working variables for calculation, parameters are passed in

@@ -1,4 +1,4 @@
-//HavenMain.js - to request use permission please contact chris@itemfactorystudio.com
+//# sourceURL=HavenMain.js - to request use permission please contact chris@itemfactorystudio.com
 
 //HavenMain has the loop entry / initalization function
 //the mainloop and transitions between fullscreen and windowed

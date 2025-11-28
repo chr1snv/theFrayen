@@ -1,4 +1,4 @@
-
+//# sourceURL=SceneLogic/SceneSpecific.js
 let sceneScripts = [
 	'sail/Sail.js',
 	'iceMountian/iceMountian.js'
@@ -50,7 +50,7 @@ function sceneSpecificLoad(scnId, cmpCb){
 		loadScnId = scnId;
 		ldScnLdCmpCb = cmpCb;
 		
-		loadScriptLoop();
+		loadScriptLoop(havenSourceZip);
 	}else{
 		cmpCb();
 	}

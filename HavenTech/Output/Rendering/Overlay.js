@@ -1,4 +1,4 @@
-
+//# sourceURL=Output/Rendering/Overlay.js
 var lastInputTime = -10;
 const noInputDisplayHelpOverlayTime = 3; //display help if no user input for 3 seconds
 const numTimesBtwnInputHelpOverlayReset = 2;
