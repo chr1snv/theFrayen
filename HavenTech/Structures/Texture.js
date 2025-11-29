@@ -133,10 +133,12 @@ function TEX_ImgLoaded(evnt){
 		texP.numCubeTexsLoaded += 1;
 		if( texP.numCubeTexsLoaded  < texP.loadedImages.length ){
 			return;
+		}else{
+			texP.isValid = true;
 		}
+	}else{
+		texP.isValid = true;
 	}
-
-	texP.isValid = true;
 
 
 	//console.log( texP.pixData[0] + ", " + texP.pixData[1] + ", " + texP.pixData[2] );
