@@ -1,7 +1,7 @@
 //# sourceURL=Output/Rendering/Camera.js
 //to request use or code/art please contact chris@itemfactorystudio.com
 var gOM = new Float32Array(4*4);
-function glOrtho(left, right, bottom, top, nearVal, farVal)
+function glOrtho(left, right, bottom, top, nearVal, farVal, gOM)
 {
 	//generates an orthographic (rectangular non perspective)
 	//projection matrix for the camera
@@ -9,14 +9,14 @@ function glOrtho(left, right, bottom, top, nearVal, farVal)
 	let tx = -(right+left)/(right-left);
 	let ty = -(top+bottom)/(top-bottom);
 	let tz = -(farVal+nearVal)/(farVal-nearVal);
-	let xs =  2/(right-left);
-	let ys =  2/(top-bottom);
-	let zs = -2/(farVal-nearVal);
+	let xs =  2.0/(right-left);
+	let ys =  2.0/(top-bottom);
+	let zs = -2.0/(farVal-nearVal);
 
 	gOM[0*4+0]=xs;gOM[0*4+1]=0 ;gOM[0*4+2]=0; gOM[0*4+3]=tx;
 	gOM[1*4+0]=0; gOM[1*4+1]=ys;gOM[1*4+2]=0; gOM[1*4+3]=ty;
 	gOM[2*4+0]=0; gOM[2*4+1]=0; gOM[2*4+2]=zs;gOM[2*4+3]=tz;
-	gOM[3*4+0]=0; gOM[3*4+1]=0; gOM[3*4+2]=0;gOM[3*4+3]=1;
+	gOM[3*4+0]=0; gOM[3*4+1]=0; gOM[3*4+2]=0; gOM[3*4+3]=1.0;
 
 	//return Float32Array([ xs,  0,  0, tx,
 	//                       0, ys,  0, ty,
@@ -186,7 +186,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 		{
 			glOrtho( -graphics.GetScreenAspect(), graphics.GetScreenAspect(),
 					-graphics.screenHeight, graphics.screenHeight,
-					-1, 1 );
+					-1, 1, gOM );
 			Matrix_Multiply( this.worldToScreenSpaceMat, gOM, this.worldToCamMat );
 		}
 		else
@@ -199,11 +199,11 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 											);
 			Matrix_Multiply( this.worldToScreenSpaceMat, gPM, this.worldToCamMat );
 		}
-		
+
 		//invert the cam to world matrix 
 		Matrix_Copy( tempMat, this.worldToScreenSpaceMat );
 		Matrix_Inverse( this.screenSpaceToWorldMat, tempMat );
-		
+
 	}
 
 

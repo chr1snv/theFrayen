@@ -29,6 +29,16 @@ function Light(nameIn, sceneNameIn, colorIn, intensityIn, lightTypeIn, posIn, ro
 	Vect3_Copy(this.color, colorIn);
 	if(this.lightType == LightType.SUN){
 		Quat_Copy(this.rot, rotIn);
+		//generate the light camera matrix to render the depth buffer from
+		this.sunMat    = Matrix_New();
+		let tempOriMat = Matrix_New();
+		let lOM = Matrix_New();
+		Matrix_SetQuatTransformation( tempOriMat, Vect3_AllOnesConst, this.rot, this.pos );
+		let left = -30.0; let right = 10.0;
+		let bottom = -20.0; let top = 50.0;
+		let nearVal = -10.0; let farVal = 15.0;
+		glOrtho(left, right, bottom, top, nearVal, farVal, lOM);
+		Matrix_Multiply( this.sunMat, lOM, tempOriMat );
 	}
 	else if(this.lightType == LightType.POINT){
 		Vect3_Copy(this.pos, posIn);
@@ -55,30 +65,34 @@ function Light_Update(l, time) {
 
 const lightShadowTextureDim = 512;
 function Light_RenderShadowTexture( l, rasterBatch ){
-	if( !l.shadowFramebuffer ){
-		l.shadowTexture = gl.createTexture();
-		gl.bindTexture(gl.TEXTURE_2D, l.shadowTexture );
-		gl.texImage2D(target=gl.TEXTURE_2D, level=0, internalFormat=gl.RGBA, 
-					  width=lightShadowTextureDim, height=lightShadowTextureDim, 
-					  border=0, format=gl.RGBA, type=gl.UNSIGNED_BYTE, data=null);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		
-		l.shadowFramebuffer = gl.createFramebuffer();
-		gl.bindFramebuffer( gl.FRAMEBUFFER, l.shadowFramebuffer );
-		let attachPt = gl.COLOR_ATTACHMENT0;
-		gl.framebufferTexture2D(
-			gl.FRAMEBUFFER, attachPt, gl.TEXTURE_2D, l.shadowTexture, level=0 );
-	}else{
-		gl.bindFramebuffer( gl.FRAMEBUFFER, l.shadowFramebuffer );
+
+	if( !l.shadowTexture ){ //create the depth texture
+		//CheckGLError("Light before create shadow texture");
+		l.shadowTexture = new Texture( "shdwBuf"+l.lname, l.sceneName, 3, null, null );
+	}
+	//already created, bind it
+
+
+	TEX_BindFramebuffer( l.shadowTexture );
+
+/*
+	for( let i = 0; i < 8; ++i ){
+		if( i == 1 )
+			continue;
+		gl.activeTexture(gl.TEXTURE0+i);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+	}
+	*/
+
+
+	//draw the raster batch into the bound shadow depth texture/framebuffer
+	if( rasterBatch.activeForFrame ){
+		rasterBatch.shdwTexture = l.shadowTexture;
+		DEPTH_G_DrawDepth(graphics.depthGraphics, /*mainCam.worldToScreenSpaceMat*/ l.sunMat, rasterBatch, sceneTime); //only draw opaque objects
 	}
 
-	DEPTH_G_Setup(graphics.depthGraphics);
-	
-	//for( let i = 0; i < 3dRasterBatches.length; ++i ){
-	//	//draw the raster batch into the shadow texture
-	//}
+	//CheckGLError("shadow texture after render");
+
 }
 
 

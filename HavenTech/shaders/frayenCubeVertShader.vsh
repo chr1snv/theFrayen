@@ -1,4 +1,4 @@
-//#version 300 es
+#version 300 es
 
 //precision qualifier for the shader code
 precision highp float; //on android mobile lowp causes z depth flickering
@@ -11,7 +11,7 @@ uniform mat4 projMatrix;
 //uniform float bnMatIdxOffset;
 
 //MAX_VERTEX_ATTRIBS: 16
-attribute vec3 position;//in vec3 position;
+in vec3 position; //attribute vec3 position;
 
 
 //webgl minimum system specifications
@@ -24,7 +24,7 @@ attribute vec3 position;//in vec3 position;
 //variables passed to the fragment shader
 
 //for cubemap fragment shader
-varying vec3 worldSpaceFragPosition;
+out vec3 worldSpaceFragPosition; //for gl2 varying
 
 
 void main() {

@@ -43,18 +43,16 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	
 	//WebGLDebugUtils.init(this.canvas);
 
-	//maps used to keep track of primative graphics objects
-	this.textures        = {};
-	this.materials       = {};
-	this.quadMeshes      = {};
+	//maps used to keep track of primative graphics objects to avoid multiple fetches
+	//cachedObjs contains textures, materials, quadMeshes
 	this.cachedObjs      = {};
-	this.textureRefCts   = {};
-	this.shaderRefCts    = {};
-	this.quadMeshRefCts  = {};
+	//this.textureRefCts   = {};
+	//this.shaderRefCts    = {};
+	//this.quadMeshRefCts  = {};
 	this.sceneZips		 = {};
 	
-	this.glPrograms = {};
-	this.currentProgram = null;
+	this.glPrograms = {}; //used to cleanup all programs between scenes
+	this.currentProgram = null; //not currently used, was planned/previously used by material and light to set parameters when bound
 	this.currentProgamName = '';
 
 	this.maxLights        = 8;
@@ -65,9 +63,9 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	this.bpp              = 0;
 
 	//information about the rendering state (used to minimize the number of calls to gl)
-	this.tex2Denb         = false;
-	this.lightingEnb      = false;
-	this.colorMaterialEnb = false;
+	//this.tex2Denb         = false;
+	//this.lightingEnb      = false; //tex2Denb, lightingEnb, colorMaterialEnb may have been used before multiple programs and GLP_setUniform state caching was added
+	//this.colorMaterialEnb = false;
 	this.depthMaskEnb     = false;
 	this.depthTestEnb     = false;
 
@@ -109,7 +107,7 @@ function Graphics( canvasIn, loadCompleteCallback ){
 		//generate the 2d camera orthographic matrix
 		glOrtho(-graphics.GetScreenAspect(), graphics.GetScreenAspect(),
 			-1,1,//-graphics.screenHeight, graphics.screenHeight,
-			-1, 1);
+			-1, 1, gOM);
 		rastBatch2dTris.worldToScreenSpaceMat = gOM;
 	}
 
@@ -128,82 +126,17 @@ function Graphics( canvasIn, loadCompleteCallback ){
 			this.depthTestEnb = val;
 			val ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);}
 	}
-	this.setTexture = function(texId){
-		if(this.currentTexId != texId){
-			this.currentTexId = texId;
-			gl.bindTexture(gl.TEXTURE_2D, this.currentTexId);}
-	}
-
-
-	//content access functions
-	this.CopyMaterial = function( newName, newSceneName, oldMaterial ) {}
-	this.GetMaterial = function( filename, sceneName, readyCallbackParams, materialReadyCallback ){
-		var concatName = filename + sceneName;
-		if(filename === undefined){
-			filename = "Material";
-			concatName = filename + sceneName;}
-		var material = this.materials[ concatName ];
-		if( material === undefined ){
-			//shader is not loaded, load the new shader and return it
-			new Material( filename, sceneName, readyCallbackParams, 
-				function( newMaterial, readyCallbackParams1 ){
-					//if( newShader.isValid )
-					graphics.materials[concatName] = newMaterial;
-					if(materialReadyCallback)
-						materialReadyCallback(newMaterial, readyCallbackParams1);});
-		}else{
-			materialReadyCallback(material, readyCallbackParams);}
-	}
-	this.UnrefMaterial = function(filename, sceneName) {}
-	
-	//cache the texture for later use (called from Texture when it's image file successfully loads)
-	this.AppendTexture = function(textureName, sceneName, newValidTexture){
-		var concatName = textureName + sceneName;
-		this.textures[concatName] = newValidTexture;
-	}
-	//get a texture that has been previously requested or attempt to load it from the servertextureReadyCallback(newTexture);
-	this.GetTexture = function(filename, sceneName, readyCallbackParams, textureReadyCallback){
-		var concatName = filename + sceneName;
-		var texture = this.textures[concatName];
-		if(texture === undefined){
-			//texture is not loaded, load the new texture and have it return when it's ready (async load)
-			new Texture(filename, sceneName, readyCallbackParams, textureReadyCallback );
-		}else{
-			//the cached texture is ready, have it return through the callback
-			if(textureReadyCallback)
-				textureReadyCallback(readyCallbackParams, texture);}
-	}
-	this.UnrefTexture = function(filename, sceneName) {}
-	/*
-	let concatName;
-	let quadMesh;
-	this.GetQuadMesh = function(filename, sceneName, readyCallbackParameters, quadMeshReadyCallback){
-		concatName = filename + sceneName;
-		quadMesh = this.quadMeshes[concatName];
-		if(quadMesh === undefined){
-			//mesh is not loaded, load the new mesh and return it (asynchronous load)
-			this.quadMeshes[concatName] =
-				new QuadMesh(filename, sceneName, quadMeshReadyCallback, readyCallbackParameters);
-		}else{
-			quadMeshReadyCallback( quadMesh, readyCallbackParameters );}
-	}
-	this.UnrefQuadMesh = function(filename, sceneName) {}
-	*/
-
-
-	//used to cache asynchronously loaded components between scene changes, view changes, etc to avoid unnecessary http requests
-
 
 
 	//initialization code
-	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true });//, premultipliedAlpha:false});
+	gl = WebGLUtils.setupWebGL(canvasIn, { antialias: true, depth: true, /*preserveDrawingBuffer: true*/ });//, premultipliedAlpha:false});
 	//gl = WebGLDebugUtils.makeDebugContext(gl);
 
 	//gl.width = 2000;
 	//gl.height = 1000;
 
 	//setup the gl state
-	gl.clearColor( 0.6, 0.7, 1.0, 1.0 );
+	//gl.clearColor( 0.6, 0.7, 1.0, 1.0 );
 	gl.clearDepth(1.0);
 	
 	//get the default framebuffer
@@ -221,10 +154,10 @@ function Graphics( canvasIn, loadCompleteCallback ){
 	gl.depthFunc(gl.LESS);
 
 
-	//load and compile the point, line, and triangle drawing gl programs
+	//load and compile the point, line, triangle, cubemap, and depth drawing gl programs
 	this.pointGraphics = new PointGraphics(GRPH_loadLineGraphics, 0);
 	this.glPrograms['point'] = this.pointGraphics.glProgram;
-	this.currentProgram = this.pointGraphics.glProgram.glShaderProgramRefId;
+	this.currentProgram = this.pointGraphics.glProgram.glProgId;
 	this.currentProgramName = 'point';
 
 
@@ -244,7 +177,7 @@ function GRPH_loadLineGraphics(){
 	graphics.lineGraphics = new LineGraphics(GRPH_loadTriGraphics, 100);
 	graphics.glPrograms['line'] = graphics.lineGraphics.glProgram;
 	CheckGLError( "after load line gl program" );
-	graphics.currentProgram = graphics.lineGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgram = graphics.lineGraphics.glProgram.glProgId;
 	graphics.currentProgramName = 'line';
 }
 
@@ -252,7 +185,7 @@ function GRPH_loadTriGraphics(){
 	graphics.triGraphics = new TriGraphics(GRPH_loadCubeGraphics, 200);
 	graphics.glPrograms['tri'] = graphics.triGraphics.glProgram;
 	CheckGLError( "after load tri gl program" );
-	graphics.currentProgram = graphics.triGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgram = graphics.triGraphics.glProgram.glProgId;
 	graphics.currentProgramName = 'tri';
 }
 
@@ -260,15 +193,15 @@ function GRPH_loadCubeGraphics(){
 	graphics.cubeGraphics = new CubeGraphics(GRPH_loadDepthGraphics, 300);
 	graphics.glPrograms['cube'] = graphics.cubeGraphics.glProgram;
 	CheckGLError( "after load cube gl program" );
-	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
+	graphics.currentProgram = graphics.cubeGraphics.glProgram.glProgId;
 	graphics.currentProgramName = 'cube';
 }
 function GRPH_loadDepthGraphics(){
 	graphics.depthGraphics = new DepthGraphics(graphics.loadCompleteCallback, 400);
 	graphics.glPrograms['depth'] = graphics.depthGraphics.glProgram;
 	CheckGLError( "after load depth gl program" );
-	graphics.currentProgram = graphics.cubeGraphics.glProgram.glShaderProgramRefId;
-	graphics.currentProgramName = 'cube';
+	graphics.currentProgram = graphics.depthGraphics.glProgram.glProgId;
+	graphics.currentProgramName = 'depth';
 }
 
 function GRPH_GetSceneZip(sceneName, callback, cbParams){

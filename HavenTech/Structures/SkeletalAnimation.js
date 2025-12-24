@@ -1,4 +1,5 @@
-//# sourceURL=Structures/SkeletalAnimation.js : Implementation of SkeletalAnimation
+//# sourceURL=Structures/SkeletalAnimation.js 
+//Implementation of SkeletalAnimation
 //a heirarchical matrix transformation for animating quadMeshes
 //Author: Christopher Hoffman
 //for use or code/art requests please contact chris@itemfactorystudio.com

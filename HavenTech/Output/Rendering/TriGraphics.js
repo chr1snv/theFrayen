@@ -1,21 +1,12 @@
 //# sourceURL=Output/Rendering/TriGraphics.js
 function TriGraphics(loadCompleteCallback, unifLocOffset){
 
-	this.currentTexId     = -1;
-	this.currentColor     = [0.0, 0.0, 0.0, 0.0];
-	this.ambAndDiffuse    = [0.0, 0.0, 0.0, 0.0];
-	this.emission         = [0.0, 0.0, 0.0, 0.0];
-	this.specular         = [0.0, 0.0, 0.0, 0.0];
-	this.shinyness        = 0;
-
 
 	this.loadCompleteCallback = loadCompleteCallback;
 	this.glProgram = new GlProgram('frayen', this, TRIG_LoadComp);
 
 	this.cubeTex = null;
 	this.cubeTexLoadingStarted = false;
-
-	//this.textures = {};
 
 
 	//uniform references/pointers
@@ -37,6 +28,9 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
     //uniforms - fragment
             this.difTexSampler_fU_TI_1_Loc         = null;
             this.difTexSampler_fU_TI_1             = uIdx++  + unifLocOffset;
+            
+            this.shdwMapSampler_fU_TI_1_Loc        = null;
+            this.shdwMapSampler_fU_TI_1            = uIdx++  + unifLocOffset;
 
                     this.alpha_fU_F1_1_Loc         = null;
                     this.alpha_fU_F1_1             = uIdx++  + unifLocOffset;
@@ -81,6 +75,9 @@ function TriGraphics(loadCompleteCallback, unifLocOffset){
 
                       this.mdl_vU_M1_1_Loc         = null;
                       this.mdl_vU_M1_1             = uIdx++  + unifLocOffset;
+                      
+                      this.shdMap_vU_M1_1_Loc      = null;
+                      this.shdMap_vU_M1_1          = uIdx++  + unifLocOffset;
 
 
     //attributes per vertex
@@ -119,12 +116,16 @@ function TRIG_LoadComp(triG){
                 triG.numLights_fU_I1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'numLights'               );
                  triG.LightPos_fU_F3_3_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'lightPos'                );
 
+           triG.shdwMapSampler_fU_TI_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'shdwMapSampler' );
+
 
  triG.boneMatrixTextureSampler_vU_TI_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'boneMatrixTexture'       );
 	//vertex shader matrix uniforms
                      triG.proj_vU_M1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'projMatrix'              );
                       triG.mdl_vU_M1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'mMatrix'                 );
                  triG.numBones_vU_F1_1_Loc         = gl.getUniformLocation( triG.glProgram.glProgId, 'numBones'                );
+
+                 triG.shdMap_vU_M1_1_Loc           = gl.getUniformLocation( triG.glProgram.glProgId, 'worldToShadowMapSpaceMatrix' );
 
 	//vertex shader per vertex attributes
                  triG.position_vA_F3_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'position'                );
@@ -133,8 +134,18 @@ function TRIG_LoadComp(triG){
              triG.indexWeights_vA_F4_A_Loc         = gl.getAttribLocation(  triG.glProgram.glProgId, 'indexWeights'            );
 
 
-	if( triG.loadCompleteCallback != null )
+	//select which texture units sampler uniforms are bound to
+	//https://stackoverflow.com/questions/54931941/correspondance-between-texture-units-and-sampler-uniforms-in-opengl
+	GLP_setUnif_I1(triG.glProgram, triG.difTexSampler_fU_TI_1_Loc, triG.difTexSampler_fU_TI_1, 0);
+	GLP_setUnif_I1(triG.glProgram, triG.boneMatrixTextureSampler_vU_TI_1_Loc, triG.boneMatrixTextureSampler_vU_TI_1, 1); //binds to gl TEXTURE1 unit
+	GLP_setUnif_I1(triG.glProgram, triG.cubeTexSampler_fU_TI_1_Loc, triG.cubeTexSampler_fU_TI_1, 2);
+	GLP_setUnif_I1(triG.glProgram, triG.shdwMapSampler_fU_TI_1_Loc, triG.shdwMapSampler_fU_TI_1, 3);
+
+
+	if( triG.loadCompleteCallback != null ){
 		triG.loadCompleteCallback(triG);
+		triG.loadCompleteCallback = null;
+	}
 }
 
 function TRI_G_cubeTexLoaded(cubeTex, triG){
@@ -149,24 +160,15 @@ let tempZero = [ 0,0,0,1];
 function TRI_G_Setup(triG){
 	//called when switching from another program (i.e. line or point drawing gl program)
 
-	let progId = triG.glProgram.glProgId;
-
-	gl.useProgram(progId);
+	GLP_switchToProgram(triG);
 	//CheckGLError( "after enable tri glProgram " );
-	
-	//select which texture units sampler uniforms are bound to
-	//https://stackoverflow.com/questions/54931941/correspondance-between-texture-units-and-sampler-uniforms-in-opengl
-	GLP_setUnif_I1(triG.glProgram, triG.difTexSampler_fU_TI_1_Loc, triG.difTexSampler_fU_TI_1, 0);
-	GLP_setUnif_I1(triG.glProgram, triG.cubeTexSampler_fU_TI_1_Loc, triG.cubeTexSampler_fU_TI_1, 2);
-	GLP_setUnif_I1(triG.glProgram, triG.boneMatrixTextureSampler_vU_TI_1_Loc, triG.boneMatrixTextureSampler_vU_TI_1, 1); //binds to gl TEXTURE1 unit
 
-	GLP_setUnif_I1( triG.glProgram, triG.difTexSampler_fU_TI_1_Loc, triG.difTexSampler_fU_TI_1, 0 );
-	//GLP_setIntUniform(triG.glProgram, 'texSampler', 0);
+	//TRIG_LoadComp(triG);
 
 
 	//set the rendering state varaibles (init them to 0 then set to 1 to ensure we are tracking the gl state)
 
-	
+
 
 	GLP_setUnif_F3(triG.glProgram, triG.diffCol_fU_F3_1_Loc, triG.diffCol_fU_F3_1, temp);
 	//triG.glProgram.setVec4Uniform('ambient', temp);
@@ -176,11 +178,11 @@ function TRI_G_Setup(triG){
 	//GLP_setUnif_I1( triG.glProgram, triG.lightingEnabled_fU_I1, triG.lightingEnabled_Unif_I1Loc, 0 );
 
 	//enable program vertexAttrib arrays
-	gl.enableVertexAttribArray(triG.position_vA_F3_1_Loc );
-	gl.enableVertexAttribArray(triG.norm_vA_F3_1_Loc     );
-	gl.enableVertexAttribArray(triG.texCoord_vA_F2_1_Loc );
+	gl.enableVertexAttribArray(triG.position_vA_F3_A_Loc );
+	gl.enableVertexAttribArray(triG.norm_vA_F3_A_Loc     );
+	gl.enableVertexAttribArray(triG.texCoord_vA_F2_A_Loc );
 
-	//gl.enableVertexAttribArray(triG.indexWeights_vA_F4_A_Loc);
+	gl.enableVertexAttribArray(triG.indexWeights_vA_F4_A_Loc);
 	
 	//GLP_setUnif_F2( triG.glProgram, triG.screenDims_fU_F2_1_Loc, triG.screenDims_fU_F2_1, [1,1]);//[graphics.canvas.width*0.03, graphics.canvas.height*0.03]);
 
@@ -190,8 +192,10 @@ function TRI_G_Setup(triG){
 			triG.cubeTexLoadingStarted = true;
 			GRPH_GetCached( 'cloudy/bluecloud', 'sailDefault', Texture, 2, CUBE_G_cubeTexLoaded, triG ); //wrapType2 
 		}
-	}else if( triG.cubeTex.isValid ){
+		return false;
+	}else{
 		TEX_BindCube( triG.cubeTex, gl.TEXTURE2 );
+		return true;
 	}
 
 
@@ -199,10 +203,11 @@ function TRI_G_Setup(triG){
 }
 
 
-function TriG_Cleanup(triG){
-	gl.disableVertexAttribArray(triG.position_vA_F3_1_Loc );
-	gl.disableVertexAttribArray(triG.norm_vA_F3_1_Loc     );
-	gl.disableVertexAttribArray(triG.texCoord_vA_F2_1_Loc );
+function TRI_G_Cleanup(triG){
+	gl.disableVertexAttribArray(triG.position_vA_F3_A_Loc			);
+	gl.disableVertexAttribArray(triG.norm_vA_F3_A_Loc				);
+	gl.disableVertexAttribArray(triG.texCoord_vA_F2_A_Loc			);
+	gl.disableVertexAttribArray(triG.indexWeights_vA_F4_A_Loc		);
 }
 
 
@@ -223,6 +228,16 @@ function TRI_G_SetupLights(triG, rastB ){
 	GLP_setUnif_F3( triG.glProgram, triG.LightPos_fU_F3_3_Loc, triG.LightPos_fU_F3_3, trigLightPosVec );
 	//triG.glProgram.setVec4Uniform( 'lightPos', trigLightPosVec );
 
+	if( rastB.shdwTexture ){
+		gl.uniformMatrix4fv( triG.shdMap_vU_M1_1_Loc, true, rastB.worldToShdwMapMat );
+
+		TEX_Bind( rastB.shdwTexture, gl.TEXTURE3 );
+		//TEX_Bind( rastB.shdwTexture, gl.TEXTURE0 );
+		//TEX_Bind( rastB.shdwTexture, gl.TEXTURE2 );
+		
+		//if( triG.cubeTex && triG.cubeTex.isValid )
+		//	TEX_Bind( triG.cubeTex, gl.TEXTURE3 );
+	}
 }
 
 /*
@@ -328,9 +343,10 @@ function TRI_G_prepareScreenSpaceTexturedQuad(triG, rB2DTris, textureName, scene
 	*/
 }
 
+
 function TRI_G_setCamMatrix( triG, camMat, camWorldPos ){
-	Matrix_Transpose( transMat, camMat );
-	gl.uniformMatrix4fv( triG.proj_vU_M1_1_Loc, false, transMat );
+	//Matrix_Transpose( transMat, camMat );
+	gl.uniformMatrix4fv( triG.proj_vU_M1_1_Loc, true/*false*/, camMat );//transMat );
 	GLP_setUnif_F3( triG.glProgram, triG.camWorldPos_fU_F3_1_Loc, triG.camWorldPos_fU_F3_1, camWorldPos );
 }
 
@@ -459,8 +475,8 @@ function TRI_G_drawTriangles( triG, buf, totalNumBones, time ){
 
 		//set the model matrix
 		//transpose=true requires webgl2.0
-		Matrix_Transpose( transMat, subRange.toWorldMatrix );
-		gl.uniformMatrix4fv( triG.mdl_vU_M1_1_Loc, false, transMat );//, 0, 4*4 );
+		//Matrix_Transpose( transMat, subRange.toWorldMatrix );
+		gl.uniformMatrix4fv( triG.mdl_vU_M1_1_Loc, true/*false*/, subRange.toWorldMatrix );//transMat );//, 0, 4*4 );
 
 		let vertBufferEndIdx = buf.bufferIdx;
 		let subRangeEndIdx = startIdx + subRange.len;

@@ -226,7 +226,6 @@ function MAT_GetTexCoordBounds(mat){
 
 
 	let texture = GRPH_GetCached( mat.diffuseTextureName, mat.sceneName, Texture, mat.wrapType, mat.textureLoaded, thisP);
-	let texture = graphics.GetTexture( this.diffuseTextureName, this.sceneName );
 	if( texture == NULL )
 		return texture;
 	

@@ -387,7 +387,7 @@ function MainLoop()
 
 	if( mainScene.scnId < 0 )
 		Overlay_DrawInputHint(rastBatch2dTris);
-	
+
 	framesSinceLastFPSOutputTime += 1;
 	if( Math.abs(sceneTime - lastSceneFPSOutputTime) >= 1 ){
 		lastFps = framesSinceLastFPSOutputTime;
@@ -417,32 +417,48 @@ function MainLoop()
 	}
 
 
-	//clear the render buffer and reset rendering state
-	graphics.Clear();
-	//graphics.ClearDepth();
-	//graphics.Flush();
-	//graphics.ClearLights();
 
 	//enable vertex attribute objects and call glDrawArrays to rasterize
 	//have to draw menu after 3d scene because of transparent textures
 	//(the transparent menu bg z depth write prevents the scene behind it from being drawn if done first)
 
-	//now that the batches are ready to draw generate the directional light shadow map if a directional light (sun) is present
+
+	//now that the batches are ready to draw generate the directional light shadow maps if directional lights (sun) are present
+	DEPTH_G_Setup(graphics.depthGraphics);
+
+	//get a list of the directional light
+
 	let shadowmapDrawn = false;
-	for( let j = 0; j < !shadowmapDrawn && rastBatch3dTris_array.length; ++j ){
+	let shdwIdx = 0;
+	for( let j = 0; (!shadowmapDrawn) && (j < rastBatch3dTris_array.length); ++j ){
 		let trisBatch = rastBatch3dTris_array[j];
 		if( trisBatch.lights ){
 			for( let i = 0; !shadowmapDrawn && i < trisBatch.numLights; ++i ){
 				let light = trisBatch.lights[i];
 				if( light.lightType == LightType.SUN ){
-					Light_RenderShadowTexture(light);
-					shadowmapDrawn = true;
+					if( light.lname == "Lamp.001" ){
+						Light_RenderShadowTexture(light, trisBatch);
+						//DPrintf(shdwIdx +light.lname);
+						shadowmapDrawn = true;
+					}
+					
 				}
 			}
 		}
 	}
+	DEPTH_G_Cleanup(graphics.depthGraphics);
+
+
 	//return to default framebuffer
 	gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+	
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+	
+	//clear the render buffer and reset rendering state
+	//graphics.Clear();
+	graphics.ClearDepth();
+	//graphics.Flush();
+	//graphics.ClearLights();
 
 	CUBE_G_Setup(graphics.cubeGraphics);
 	//disable depth buffer write/read test (infinite distance to skybox)
@@ -453,24 +469,28 @@ function MainLoop()
 	gl.enable(gl.CULL_FACE);
 	graphics.enableDepthMask(true);
 	graphics.enableDepthTest(true);
+	CUBE_G_Cleanup(graphics.cubeGraphics);
+
 
 	//enable/switch to the triangle glProgram
-	TRI_G_Setup(graphics.triGraphics);
+	if( TRI_G_Setup(graphics.triGraphics) ){
 
-	//draw opaque then transparent materials for each batch
-	for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
-		let rastB = rastBatch3dTris_array[i];
-		if( rastB.activeForFrame ){
-			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
-			rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
+		//draw opaque then transparent materials for each batch
+		for( let i = 0; i < rastBatch3dTris_array.length; ++i ){
+			let rastB = rastBatch3dTris_array[i];
+			if( rastB.activeForFrame ){
+				rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime);
+				rastBatch3dTris_array[i].DrawFunc(rastBatch3dTris_array[i], sceneTime, true);
+			}
 		}
-	}
 
-	//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
-	graphics.ClearDepth();
-	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
-	rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
-	TriG_Cleanup(graphics.triGraphics);
+
+		//draw the 2d ui (would save energy to draw it first though then 3d objects with less depth can clip through)
+		graphics.ClearDepth();
+		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime);
+		rastBatch2dTris.DrawFunc(rastBatch2dTris, sceneTime, true);
+	}
+	TRI_G_Cleanup(graphics.triGraphics);
 
 	//draw armature debug lines
 	let linesToDraw = false;
@@ -490,6 +510,7 @@ function MainLoop()
 		graphics.enableDepthMask(true);
 		graphics.enableDepthTest(true);
 	}
+
 
 	//deallocate things that haven't been used in gl memory for a while 
 	RASTB_DefragBufferAllocs(rastBatch2dTris);

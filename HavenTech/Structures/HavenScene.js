@@ -276,6 +276,21 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		}
 
 
+		//sort the lights (so sun/directional lights that cast a shadow are first)
+		hvnsc.lights.sort((l1, l2) => {
+			// comparison logic (order SUN, SPOT, POINT)
+			if( l1.lightType == l2.lightType )
+				return 0;
+			if( l1.lightType == LightType.SUN )
+				return -1;
+			if( l2.lightType == LightType.SUN )
+				return 1;
+			if( l1.lightType == LightType.SPOT )
+				return -1;
+			return 1; //arent equal and l1 is type POINT (so l2 is either SPOT or SUN)
+		});
+
+
 		if( hvnsc.octTree.physNode ){
 			//init the physical world bounds
 			//let worldBoundsAABB = new AABB( worldMin, worldMax );

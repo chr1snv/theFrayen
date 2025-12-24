@@ -1,4 +1,4 @@
-//#version 300 es
+#version 300 es
 
 //precision qualifier for the shader code
 precision highp float;
@@ -10,17 +10,17 @@ uniform samplerCube texSampler;
 
 
 //variables passed from the vertex shader
-varying vec3      worldSpaceFragPosition;
+in vec3      worldSpaceFragPosition;
 //varying vec3      normalVarying;//in vec3      normalVarying;
 //varying vec2      texCoordVarying;//in vec2      texCoordVarying;
 
 
-//out vec4 gl_FragColor; //for gles 3
+out vec4 FragColor; //for gles 3 (for 2 gl_FragColor)
 void main() {
 	vec3 normPos = normalize(worldSpaceFragPosition);
-	gl_FragColor = textureCube( texSampler, -worldSpaceFragPosition ); //normalize(wsfp)
+	FragColor = texture( texSampler, -worldSpaceFragPosition ); //normalize(wsfp) //textureCube
 	//gl_FragColor.xyz *= diffuseColor;
 	//gl_FragColor.xyz = vec3(1.0, 0.0, 0.0);
 	//gl_FragColor.xyz += normPos;
-	gl_FragColor.a = 1.0;
+	FragColor.a = 1.0;
 }

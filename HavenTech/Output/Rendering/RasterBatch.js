@@ -526,6 +526,8 @@ function RasterBatch( drawFunc, clearDepth=false ){
 
 	this.DrawFunc = drawFunc;
 
+	this.worldToShdwMapMat = Matrix_New();
+
 	this.worldToScreenSpaceMat = Matrix_New();
 	this.screenSpaceToWorldMat = Matrix_New();
 	this.camWorldPos = Vect_New(3);

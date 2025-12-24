@@ -7,7 +7,7 @@
 //+x, -x, +y, -y, +z -z
 let CubeTexIdxToName = [ '_rt', '_lf', '_up', '_dn', '_ft', '_bk', ];
 
-function Texture( nameIn, sceneNameIn, wrapType, textureReadyCallback, readyCallbackParams ){
+function Texture( nameIn, sceneNameIn, wrapOrTexType, textureReadyCallback, readyCallbackParams ){
 
 	this.textureReadyCallback = textureReadyCallback;
 	this.readyCallbackParams = readyCallbackParams;
@@ -15,20 +15,83 @@ function Texture( nameIn, sceneNameIn, wrapType, textureReadyCallback, readyCall
 	this.textureHandle = null;
 	this.texName = nameIn;
 	this.sceneName = sceneNameIn;
-	this.maxXCoord = 0.0;
-	this.maxYCoord = 0.0;
-	this.wrapType = wrapType;
+	this.width = 0;
+	this.height = 0;
+	this.wrapOrTexType = wrapOrTexType;
 	this.isValid   = false;
 
 	this.filename = this.sceneName+"/textures/"+this.texName;
 
-	if( wrapType == 2 ){ //cube texture
+
+	if( wrapOrTexType == 3 ){ //framebuffer
+		this.width = 1024;//closestLargerPowerOfTwo( graphics.screenWidth );
+		this.height = 1024;//closestLargerPowerOfTwo( graphics.screenHeight );
+	
+		gl.activeTexture(gl.TEXTURE7); //avoid bindTexture call while on a texture unit that will cause a same texture same pass read write error
+
+
+		//create depth output texture
+		const ext = gl.getExtension('EXT_color_buffer_float');
+		if (!ext) {
+			console.error("Rendering to floating point textures is not supported on this platform!");
+			// Fallback to the original RGBA8 solution with precision hints, or a workaround
+		}
+		this.textureHandle = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.textureHandle );
+		gl.texImage2D(target=gl.TEXTURE_2D, level=0, internalFormat=gl.RGBA, 
+					  width= this.width, height= this.height , 
+					  border=0, format=gl.RGBA, type=gl.UNSIGNED_BYTE, data=null); //RGBA //UNSIGNED_BYTE
+  		//gl.generateMipmap(gl.TEXTURE_2D);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);//LINEAR_MIPMAP_LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+
+
+		// Create a depth texture
+		this.depthTextureHandle = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.depthTextureHandle ); //depthTextureHandle );
+		gl.texImage2D(gl.TEXTURE_2D, level=0, internalFormat=gl.DEPTH_COMPONENT16,//32F,//32F,//16,//32F,//16,//16 
+						width=this.width, height= this.height, border=0, format=gl.DEPTH_COMPONENT, type=gl.UNSIGNED_SHORT, data=null); //FLOAT
+
+		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);				
+
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);//LINEAR);//_MIPMAP_NEAREST);//NEAREST); //no mimap needed for depth buffer
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);//LINEAR);//_MIPMAP_NEAREST);//NEAREST);
+		//gl.generateMipmap(gl.TEXTURE_2D);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+
+		this.framebuffer = gl.createFramebuffer();
+		gl.bindFramebuffer( gl.FRAMEBUFFER, this.framebuffer );
+
+		gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTextureHandle, level=0); //depthTextureHandle
+		gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.textureHandle, level=0 );
+
+		//gl.drawBuffers([gl.NONE]); 
+		//gl.readBuffer(gl.NONE);
+
+
+		if( gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE)
+			console.error("Framebuffer is not complete");
+			
+			
+		gl.bindTexture(gl.TEXTURE_2D, null);
+
+
+		this.isValid = true;
+	}
+	else if( wrapOrTexType == 2 ){ //cube texture
 		this.numCubeTexsLoaded = 0;
+		this.numCubeTexsLoadedToGL = 0;
 		this.loadedImages = new Array(6);
 		for( var i = 0; i < 6; ++i )
 			StartNewTexLoad(this, i, true);
 	}
-	else{
+	else{ //repeat or clamp 2d texture
 		StartNewTexLoad(this);
 	}
 
@@ -129,7 +192,7 @@ function TEX_ImgLoaded(evnt){
 	}
 	*/
 
-	if( texP.wrapType == 2 ){ //cube texture
+	if( texP.wrapOrTexType == 2 ){ //cube texture
 		texP.numCubeTexsLoaded += 1;
 		if( texP.numCubeTexsLoaded  < texP.loadedImages.length ){
 			return;
@@ -145,7 +208,6 @@ function TEX_ImgLoaded(evnt){
 
 	//register the successfully loaded texture with the global texture list
 	//so when it is asked for again the cached data can be fetched
-	//graphics.AppendTexture( texP.texName, texP.sceneName, texP );
 	if(texP.textureReadyCallback)
 		texP.textureReadyCallback(texP, texP.readyCallbackParams); //when the image is loaded, return
 
@@ -166,35 +228,73 @@ function TEX_Bind(texP, glTexNum=gl.TEXTURE0){
 		gl.generateMipmap(gl.TEXTURE_2D);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-		let wrapType = gl.REPEAT;
-		if( texP.wrapType == 0 )
-			wrapType = gl.CLAMP_TO_EDGE;
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapType );
+		let wrapOrTexType = gl.REPEAT;
+		if( texP.wrapOrTexType == 0 )
+			wrapOrTexType = gl.CLAMP_TO_EDGE;
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapOrTexType ); // GL_REPEAT
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapOrTexType );
 	}else{
 		gl.activeTexture(glTexNum);
 		gl.bindTexture(gl.TEXTURE_2D, texP.textureHandle);
 	}
 }
 
+
 function TEX_BindCube(texP, glTexNum=gl.TEXTURE0){
 	if( !texP.textureHandle ){
 		texP.textureHandle = gl.createTexture(); //gl.deleteTexture(Object texture)
 		gl.activeTexture(glTexNum);
 		gl.bindTexture(gl.TEXTURE_CUBE_MAP, texP.textureHandle);
+		const placeholderColor = new Uint8Array([0, 0, 255, 255]); 
 		for(let i = 0; i < 6; ++i){
-			gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, texP.loadedImages[i]);
+			if( i < texP.numCubeTexsLoaded && i >= texP.numCubeTexsLoadedToGL ){ //actual image
+				gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, texP.loadedImages[i]);
+				texP.numCubeTexsLoadedToGL += 1;
+			}else{ // placeholder
+				gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, placeholderColor );
+			}
+			
 		}
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 		//clamp to edge may be preferred for cubemaps
-		let wrapType = gl.CLAMP_TO_EDGE;
-		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, wrapType ); // GL_REPEAT
-		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, wrapType );
-		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, wrapType );
+		let wrapOrTexType = gl.CLAMP_TO_EDGE;
+		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, wrapOrTexType ); // GL_REPEAT
+		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, wrapOrTexType );
+		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, wrapOrTexType );
 		gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 	}else{
 		gl.activeTexture(glTexNum);
 		gl.bindTexture(gl.TEXTURE_CUBE_MAP, texP.textureHandle);
 	}
+}
+
+function TEX_BindFramebuffer(texP){
+	gl.bindFramebuffer( gl.FRAMEBUFFER, texP.framebuffer );
+
+	gl.viewport(0, 0, texP.width, texP.height );
+
+	//gl.disable(gl.CULL_FACE);
+	
+	//gl.clearDepth(0.0);
+	//gl.depthMask(true);
+	//gl.disable(gl.DEPTH_TEST);
+	//gl.enable(gl.DEPTH_TEST);
+	//gl.depthFunc(gl.LESS);
+
+	//gl.clearColor(1.0,0,0,0.5);
+	
+	
+	//gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		
+
+	//clear the render buffer and reset rendering state
+	//graphics.ClearColor();
+	//graphics.Clear();
+	graphics.ClearDepth();
+	//gl.colorMask(true, true, true, true);
+	//graphics.Flush();
+	//graphics.ClearLights();
+	//gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	//gl.flush();
 }

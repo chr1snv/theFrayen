@@ -66,6 +66,13 @@ function GLP_vertShaderLoaded(textFile, thisP){
 }
 
 
+function GLP_switchToProgram(glp){
+	let progId = glp.glProgram.glProgId;
+	//glp.glProgram.unifVals = {};
+	gl.useProgram(progId);
+	graphics.currentProgram = progId;
+}
+
 function GLP_setUnif_F4( glp, unifLoc, unifLocInt, value ){
 	if( glp.unifVals[unifLocInt] == undefined )
 		glp.unifVals[unifLocInt] = Vect_New(value.length);

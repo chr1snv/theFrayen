@@ -42,9 +42,7 @@ function CUBE_G_cubeTexLoaded(cubeTex, cubeG){
 function CUBE_G_Setup(cubeG){
 	//called when switching from another program (i.e. line or point drawing gl program)
 
-	let progId = cubeG.glProgram.glProgId;
-
-	gl.useProgram(progId);
+	GLP_switchToProgram( cubeG );
 
 
 	if( cubeG.cubeTex == null ){
@@ -58,6 +56,10 @@ function CUBE_G_Setup(cubeG){
 
 
 	gl.enableVertexAttribArray(cubeG.position_vA_F3_A_Loc);
+}
+
+function CUBE_G_Cleanup(cubeG){
+	gl.disableVertexAttribArray(cubeG.position_vA_F3_A_Loc);
 }
 
 
@@ -140,6 +142,9 @@ Matrix_SetEulerRotate( blenderToCubeMapEulerRotMat, blenderToCubeMapEulerRot );
 let tqvrts = null;
 let tqvrtsBufID = -1;
 function CUBE_G_DrawSkyBox(cubeG, mainCam){
+
+	if( !cubeG.cubeTex || !cubeG.cubeTex.isValid )
+		return; 
 
 	if( cubeWorldToCamMat ){
 		Matrix_Multiply(tempMat, cubeWorldToCamMat, blenderToCubeMapEulerRotMat );

@@ -1,13 +1,16 @@
-//#version 300 es
+#version 300 es
 
 //precision qualifier for the shader code
 precision highp float;
+precision highp sampler2D;
 
 //constant variables
 uniform bool      texturingEnabled;
 
 uniform sampler2D	texSampler;		//the diffuseTexture
 uniform samplerCube	cubeTexSampler;	//for reflection
+
+uniform highp sampler2D shdwMapSampler;
 
 
 uniform float     alpha;
@@ -33,9 +36,10 @@ uniform vec3      camWorldPos;
 
 
 //variables passed from the vertex shader
-varying vec3      worldSpaceFragPosition;
-varying vec3      normalVarying;//in vec3      normalVarying;
-varying vec2      texCoordVarying;//in vec2      texCoordVarying;
+in vec3      worldSpaceFragPosition;  //in gl2 use varying instead of in keyword
+in vec3      normalVarying;
+in vec2      texCoordVarying;
+in vec3      shdwSpacePosition;
 
 /*
 float modI(float a,float b) {
@@ -64,7 +68,7 @@ vec4 diffuseAndSpecularLightContribution( float specularExpPow, vec3 lightPos, v
 	return retColContribution;
 }
 
-//out vec4 gl_FragColor; //for gles 3
+out vec4 FragColor; //for gles 3 (for 2 use gl_FragColor)
 void main() {
 
 	//calculate the diffuse color
@@ -81,10 +85,10 @@ void main() {
 	if( !lightingEnabled ){
 		//color is either from texture or assigned from uniform variable
 		if( texturingEnabled ){ //emission only
-			gl_FragColor = texture2D( texSampler, texCoordVarying );
-			gl_FragColor.xyz *= emissionAndAmbientColor;
+			FragColor = texture( texSampler, texCoordVarying );
+			FragColor.xyz *= emissionAndAmbientColor;
 		}else{
-			gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.a);
+			FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.a);
 		}
 
 	}else{ //lighting model  
@@ -92,21 +96,22 @@ void main() {
 	//  subsurface lighting + 
 	//  diffuse (color * texture) * diffuseLight + 
 	//  specular light )
+		
+		vec3 shdwMap = texture( shdwMapSampler, shdwSpacePosition.xy ).rgb;
 
 		//lookups and calculations used later
 		if( texturingEnabled )
-			diffuseAndAlphaCol *= texture2D( texSampler, texCoordVarying );
+			diffuseAndAlphaCol *= texture( texSampler, texCoordVarying ); //shdwSpacePosition.xy);//
 
 		vec3 fragPosToCamVecUnit = normalize( worldSpaceFragPosition.xyz - camWorldPos );
 
 
 		//emission lighting
-		gl_FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
-
+		FragColor = vec4(emissionAndAmbientColor, diffuseAndAlphaCol.w);
 
 		//subsurface rim lighting for skin / soft materials
 		if( subSurfaceExponent > 0.0 ) 
-			gl_FragColor += vec4( 
+			FragColor += vec4( 
 					pow((1.0-dot( fragPosToCamVecUnit, -normalVarying )) * 1.0, 
 						subSurfaceExponent) * vec3(1.0,0.5,0.0), 
 						0
@@ -121,15 +126,18 @@ void main() {
 
 
 		//light diffuse and specular contributions
-		if( numLights > 0 )
-			gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
-		//if( numLights > 1 )
-		//	gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
-		//if( numLights > 2 )
-		//	gl_FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+		if( numLights > 0 ){
+			if( shdwSpacePosition.z < (shdwMap.z+0.01) ){ //less depth than closest surface to the light theirfore not in shadow
+				FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+			}
+		}
+		if( numLights > 1 )
+			FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
+		if( numLights > 2 )
+			FragColor += diffuseAndSpecularLightContribution( specularExpPow, lightPos[0], fragPosToCamVecUnit, diffuseAndAlphaCol, specularCol );
 
 		//skybox reflection contribution
-		
+
 		if( specularAmtRoughness[1] < cubeMapRoughnessLimit ){ 
 			float cubeMapAmt = 1.0 - (specularAmtRoughness[1]/cubeMapRoughnessLimit);
 			vec3 reflectedCamToSurfaceVec = reflect( fragPosToCamVecUnit, normalVarying ); //the view vector reflected into the skybox
@@ -141,17 +149,19 @@ void main() {
 			//calculate cube map specular contribution
 			float cubeLightAmt = specularAmtRoughness[0] * cubeMapAmt;
 
-			vec4 skyboxContribution = textureCube( cubeTexSampler, cubeMapCoords );
-			gl_FragColor += skyboxContribution * cubeLightAmt;
+			vec4 skyboxContribution = texture( cubeTexSampler, cubeMapCoords );
+			FragColor += skyboxContribution * cubeLightAmt; //scaled by 0.1 to test shadowmap
 		}
 
+		//FragColor.rgb = FragColor.rgb*0.1 + shdwSpacePosition;
+		//FragColor.r = shdwMap.z;
 
 	}
 
 
 	//use discard instead of alpha blending to avoid z sorting requirement for alpha blend mode
 	//gl_FragColor.a = 1.0;
-	if (gl_FragColor.a <= 0.0){
+	if (FragColor.a <= 0.0){
 		discard;
 		return;
 	}
