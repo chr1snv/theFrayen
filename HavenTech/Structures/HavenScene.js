@@ -151,7 +151,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 //			}
 			//}
 			//DTPrintf("=====detect colis " + time.toPrecision(3), "loop");
-			TND_ApplyExternAffectsAndDetectCollisions(node, time);
+			TND_ApplyFieldAffectsAndDetectCollisions(node, time);
 			//DTPrintf("=====link graphs " + time.toPrecision(3), "loop");
 			TND_LinkPhysGraphs(node, time);
 			TND_AppyInterpenOffset(node, time);
@@ -161,7 +161,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 			let numAddionalColis = 1;
 			while( numAddionalColis > 0 ){
 				//DTPrintf("=====trans energy " + time.toPrecision(3), "loop" );
-				TND_TransferEnergy(node, time);
+				TND_TransferEnergyViaConstraints(node, time);
 				//DTPrintf("=====detect additional " + time.toPrecision(3), "loop" );
 				numAddionalColis = TND_DetectAdditionalCollisions(node, time);
 				if( numAddionalColis > 0 ){

@@ -62,15 +62,15 @@ function TND_initObjects(t){
 }
 
 //where field properties influence objects i.e. gravity, temperature, gas/liquid drag etc and connections/constraints between objects are found
-function TND_ApplyExternAffectsAndDetectCollisions( t, time ){
+function TND_ApplyFieldAffectsAndDetectCollisions( t, time ){
 	for( let i = 0; i < t.objInsertIdx; ++i ){ //loop through the objects
 		if( t.objects[ i ].physObj != null )
-			PHYSOBJ_ApplyExternAffectsAndDetectCollisions( t.objects[ i ].physObj, time, t );
+			PHYSOBJ_ApplyFieldAffectsAndDetectCollisions( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i ) //recurse to sub nodes
 		if( t.subNodes[i] )
-			TND_ApplyExternAffectsAndDetectCollisions( t.subNodes[i], time );
+			TND_ApplyFieldAffectsAndDetectCollisions( t.subNodes[i], time );
 }
 function TND_LinkPhysGraphs( t, time ){ //combine constraint groups from each object
 	for( let i = 0; i < t.objInsertIdx; ++i ){
@@ -92,16 +92,16 @@ function TND_AppyInterpenOffset( t, time ){ //apply interpenetration offsets for
 		if( t.subNodes[i] )
 			TND_AppyInterpenOffset( t.subNodes[i], time );
 }
-function TND_TransferEnergy( t, time ){ //(accel -> vel update step)
+function TND_TransferEnergyViaConstraints( t, time ){ //(accel -> vel update step)
 	//transfer energy through constraints and forces from tree parent and per treeNode (vac, water/air etc)
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			PHYSOBJ_TransferEnergy( t.objects[ i ].physObj, time, t );
+			PHYSOBJ_TransferEnergyViaConstraints( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
-			TND_TransferEnergy( t.subNodes[i], time );
+			TND_TransferEnergyViaConstraints( t.subNodes[i], time );
 }
 function TND_DetectAdditionalCollisions( t, time ){
 	//check if objects are still going to collide, 

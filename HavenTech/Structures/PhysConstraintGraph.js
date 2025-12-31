@@ -25,7 +25,7 @@ const PHYS_RADIATIVE = 6
 
 //for performance purposes 
 //if a phys graph has above a certian number of objects
-//an oct tree should be used to model the graph as a fluid
+//an oct tree should be used to model the graph as a fluid/finite element field
 //to approximate the behavior of 
 //closely packed and continously touching inner objects with
 //liquid/solid regions to transmit impulses/waves to the outer surfaces
@@ -38,13 +38,12 @@ function GetOtherConstrObj(constrPair, tObj){
 	return constrPair.ob2;
 }
 
-function PhysConstraintGraph(type, AABBmin, AABBmax, colisRootObj){
+function PhysConstraintGraph(AABBmin, AABBmax, colisRootObj){
 
 	this.colisRootObj = colisRootObj;
 
-	//0-kinematic (collision), 1-static contact with other object, 2-fixed (all immutable objects)
-	//this.physType = 0; //this maybe can be removed because a physics graph only is the interactions of objects within itself
-	//not a field affecting all objects within it
+	//a physics graph is only the interactions of objects within itself
+	//not a field affecting all objects within it (unless reaching a performance threshold number of constraints)
 
 	this.AABB = new AABB(AABBmin, AABBmax);
 	this.aggregateObject = new PhysObj(this.AABB, {}); //the approximate object 
@@ -57,13 +56,22 @@ function PhysConstraintGraph(type, AABBmin, AABBmax, colisRootObj){
 
 
 	this.firstCollisTime = Number.POSITIVE_INFINITY;
-	this.timeSortedConstraints = []; //time sorted object interactions
-	this.totalConstrPairs = 0;
-	this.constrPairs = {}; //dictionary of per object constraints
+	this.timeSortedConstraints = []; //time sorted object interactions for the entire graph (currently not used)
+	this.totalConstraints = 0;
+	this.constrPairs = {}; //dictionary of time sorted arrays(or binary trees) of constraintPairs per object physObj uid
+	//i.e. 2 physObjs with a spring and colision constraint between a and b it would be stored as
+	
+	//this.constrPairs[a.uid.val] = {'timeSorted':[sprPair, colisPair], b.uid.val:[sprPair, colisPair]};
+	//this.constrPairs[b.uid.val] = {'timeSorted':[sprPair, colisPair], a.uid.val:[sprPair, colisPair]};
+	
+	//so that Object.keys( this.constrPairs ) returns all object uids in the graph/list
+	//all constraints (sorted by which occurs first) on an object can be found with this.constrPairs[a.uid.val]
+
 	this.uid = NewUID();
 
 }
 
+// helper function for below PHYSGRPH_RemoveObjConstraintsFromGraph
 function PHYSGRPH_removeFromOthrObjPairs( othrObjPairs, objUid ){
 	//
 	delete(othrObjPairs[objUid]);
@@ -109,55 +117,51 @@ function PHYSGRPH_RemoveObjConstraintsFromGraph( physG, obj, type ){
 
 }
 
-	//dictionary[obj1] of dictionaries[obj2]
-function PHYSGRPH_AddConstraint( physG, typeIn, intTime, contactNormal, contactPos, interpenDepth, ob1In, ob2In ){
-	if( isNaN(contactNormal[0]) ){
-		console.log("nan contact normal");
-		return;
+//add constraint indexed on one of the objects i.e.
+//this.constrPairs[a.uid.val] = {'timeSorted':[sprPair, colisPair], b.uid.val:[sprPair, colisPair]};
+//needs to be called twice to store a constraint under both object indicies
+function PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1, ob2 ){
+
+	let ob1UidVal = ob1.uid.val;
+	let ob2UidVal = ob2.uid.val;
+
+	let constraintAdded = false;
+
+	//store in the constrPairs indexed on the specified ob/end point of the constraint
+	let obConstrs = physG.constrPairs[ob1UidVal];
+	if( obConstrs == undefined ){ //create entry for object (ob doesn't have any constraints in the PhysConstraintGraph yet)
+		//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
+		obConstrs = { };
+		obConstrs['timeSorted'] = [constrPair];
+		let ob1ob2Constrs = {};
+		obConstrs[ob2UidVal] = ob1ob2Constrs;
+		ob1ob2Constrs[constrPair.cnstrId] = constrPair;
+
+
+		physG.constrPairs[ob1UidVal] = obConstrs;
+		constraintAdded = true;
+
+		//not yet used (to model the graph as a fluid/finite element field or aggregate to improve performance if there are many interconnected objects)
+		AddAggregateKineticEnergyAndMass( physG.aggregateObject, ob1.linearMomentum, ob1.mass );
+		AddUIDs( physG.uid, ob1UidVal ); //used to 
+	}else{ //other constraints exist on object, check if this one is not yet added
+	
+		let ob1ob2Constrs = obConstrs[ob2UidVal];
+		if( ob1ob2Constrs == undefined ){ //don't yet have a collection of constraints under ob1 -> ob2
+			ob1ob2Constrs = {};
+			obConstrs[ob2UidVal] = ob1ob2Constrs;
+		}
+		let alreadyAddedPair = ob1ob2Constrs[constrPair.cnstrId];
+		if( alreadyAddedPair == undefined ){
+			ob1ob2Constrs[constrPair.cnstrId] = constrPair;
+			constraintAdded = true;
+		}else{
+			DTPrintf("ob1 constrs pair already added ob2 uid " + ob2UidVal + " ob2 mass " + ob2.mass, "constr msg");
+			return; //don't need to time sort because didn't add a new constraint
+		}
+
 	}
-
-	if( physG.firstCollisTime > intTime )
-		physG.firstCollisTime = intTime;
-
-
-	if( intTime == undefined ){
-		console.log("undefined intersection time");
-		return;
-	}
-
-	if( typeIn == PHYS_INTERPEN && interpenDepth < 0.05 )
-		return; //reject too small interpenetration depth
-
-	//add the object to the connections of object interaction  times
-	//and sum the properties of the coliding object into the aggregate object
-	//to get the relative forces on each object
-	let constrPair = {type:typeIn, time:intTime, normal:contactNormal, pos:contactPos, intrD:interpenDepth, ob1:ob1In, ob2:ob2In};
-	DTPrintf("add constrPair " +
-			 " type " + constrPair.type + 
-			 " time " + constrPair.time.toPrecision(3) +
-			 " normal " + Vect_ToFixedPrecisionString( constrPair.normal, 3 ) +
-			 " pos " + Vect_ToFixedPrecisionString( constrPair.pos, 3 ) +
-			 " intrD " + Vect_ToFixedPrecisionString( constrPair.intrD, 3 ) +
-			 " ob1 " + constrPair.ob1.uid.val +
-			 " ob2 " + constrPair.ob2.uid.val
-			 , "constr msg");
-	let pairAdded = false;
-	//store indexed on the first object
-	let ob1Constrs = physG.constrPairs[ob1In.uid.val];
-	if( ob1Constrs == undefined ){
-		physG.constrPairs[ob1In.uid.val] = {};
-		ob1Constrs = physG.constrPairs[ob1In.uid.val];
-		ob1Constrs['timeSorted'] = [];
-		AddAggregateKineticEnergyAndMass( physG.aggregateObject, ob1In.linearMomentum, ob1In.mass );
-		AddUIDs( physG.uid, ob1In.uid );
-	}
-	if( ob1Constrs[ob2In.uid.val] == undefined ){
-		ob1Constrs[ob2In.uid.val] = constrPair;
-		pairAdded = true;
-	}else{
-		DTPrintf("ob1 constrs pair already added ob2 uid " + ob2In.uid.val + " ob2 mass " + ob2In.mass, "constr msg");
-		return;
-	}
+	/*
 	let ob1TimeSortedConstrs = ob1Constrs['timeSorted'];
 	if( ob1TimeSortedConstrs.length > 0 ){ 
 		for( let i = 0; i < ob1TimeSortedConstrs.length; ++i ){
@@ -169,47 +173,90 @@ function PHYSGRPH_AddConstraint( physG, typeIn, intTime, contactNormal, contactP
 	}else{
 		ob1TimeSortedConstrs.push( constrPair );
 	}
+	*/
 
+	return constraintAdded;
+}
 
-	//store indexed on the second object
-	let ob2Constrs = physG.constrPairs[ob2In.uid.val];
-	if( ob2Constrs == undefined ){
-		physG.constrPairs[ob2In.uid.val] = {};
-		ob2Constrs = physG.constrPairs[ob2In.uid.val];
-		ob2Constrs['timeSorted'] = [];
-		AddAggregateKineticEnergyAndMass( physG.aggregateObject, ob2In.linearMomentum, ob2In.mass );
-		AddUIDs( physG.uid, ob2In.uid );
-	}
-	if( ob2Constrs[ob1In.uid.val] == undefined ){
-		ob2Constrs[ob1In.uid.val] = constrPair;
-		pairAdded = true;
-	}else{
-		DTPrintf("ob2 constrs pair already added ob1 uid " + ob1In.uid.val, "constr msg");
-		return;
-	}
-	let ob2TimeSortedConstrs = ob2Constrs['timeSorted'];
-	if( ob2TimeSortedConstrs.length > 0 ){ 
-		//insertion sort, should be a binary tree instead of array
-		for( let i = 0; i < ob2TimeSortedConstrs.length; ++i ){
-			if( ob2TimeSortedConstrs[i].time > constrPair.time ){
-				ob2TimeSortedConstrs.splice( i, 0, constrPair );
-				break;
+function PHYGRPH_GenConstraintID( type, ob1UidVal, ob2UidVal ){
+	return ob1UidVal + ob2UidVal + type;
+}
+
+	//dictionary[obj1] of dictionaries[obj2]
+function PHYSGRPH_AddConstraint( physG, constrPair ){
+
+	let typeIn = constrPair['type'];
+	let ob1In  = constrPair['ob1'];
+	let ob2In  = constrPair['ob2'];
+
+	if( typeIn == PHYS_INTERPEN || typeIn == PHYS_SURFCOLIS || typeIn == PHYS_SPRING ){
+
+		if( typeIn == PHYS_INTERPEN || typeIn == PHYS_SURFCOLIS ){
+
+			let intTime			= constrPair['time'];
+			let contactNormal	= constrPair['normal'];
+			let contactPos		= constrPair['pos'];
+			let interpenDepth	= constrPair['intrD'];
+
+			if( isNaN(contactNormal[0]) ){
+				console.log("nan contact normal");
+				return;
 			}
+
+			if( physG.firstCollisTime > intTime )
+				physG.firstCollisTime = intTime;
+
+
+			if( intTime == undefined ){
+				console.log("undefined intersection time");
+				return;
+			}
+
+			if( typeIn == PHYS_INTERPEN && interpenDepth < 0.05 )
+				return; //reject too small interpenetration depth
+
+			//add the object to the connections of object interaction  times
+			//and sum the properties of the coliding object into the aggregate object
+			//to get the relative forces on each object
+
+			/*
+			DTPrintf("add constrPair " +
+					 " type " + constrPair.type + 
+					 " time " + constrPair.time.toPrecision(3) +
+					 " normal " + Vect_ToFixedPrecisionString( constrPair.normal, 3 ) +
+					 " pos " + Vect_ToFixedPrecisionString( constrPair.pos, 3 ) +
+					 " intrD " + Vect_ToFixedPrecisionString( constrPair.intrD, 3 ) +
+					 " ob1 " + constrPair.ob1.uid.val +
+					 " ob2 " + constrPair.ob2.uid.val
+					 , "constr msg");
+			*/
+
 		}
-	}else{
-		ob2TimeSortedConstrs.push( constrPair );
+		else if( typeIn == PHYS_SPRING ){
+
+			//constrPair is passed into PHYSGRPH_AddConstraint function call
+		}
+
+
+		let constraintAdded = 
+			PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1In, ob2In ) ||
+			PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob2In, ob1In );
+
+
+		if( typeIn == PHYS_INTERPEN ){
+			//Vect3_Add( physG.interPenNormal, contactNormal );
+			physG.numInterPen += 1;
+		}
+
+		if( constraintAdded )
+			physG.totalConstrints += 1;
+
+	}
+	else{ //field type interaction PHYS_PRESSURE, PHYS_ELECTROSTATIC, PHYS_MAGNETIC, PHYS_RADIATIVE
 	}
 
 
-	if( typeIn == PHYS_INTERPEN ){
-		//Vect3_Add( physG.interPenNormal, contactNormal );
-		physG.numInterPen += 1;
-	}
-
-	if( pairAdded )		
-		physG.totalConstrPairs += 1;
-
-	DTPrintf("total pairs " + physG.totalConstrPairs + " numInterpen " + physG.numInterPen, "constr msg");
+	DTPrintf("total pairs " + physG.totalConstraints + " numInterpen " + physG.numInterPen, "constr msg");
 }
 
 function PHYSGRPH_SortByTime( physG ){
@@ -225,52 +272,64 @@ function PHYSGRPH_SortByTime( physG ){
 }
 
 //consolidate dictionary[obj1] of dictionaries[obj2]
-function PHYSGRPH_ConsolidateGraphs(physG){
-	//check if any object in the colision group have a colisGroup with different sum of obj uids
-	let constrPairKeys = Object.keys( physG.constrPairs );
-	for( let i = 0; i < constrPairKeys.length; ++i ){
-		if(constrPairKeys[i] == 'timeSorted')
+function PHYSGRPH_ConsolidateGraphs( framePhysG, persistPhysG ){
+
+	//combine the constraint pairs from obj1 persistant physGraph into obj1's framePhysG
+	//so that in PHYSOBJ_TransferEnergy there is a unified list
+	if( persistPhysG != undefined ){
+		let persistConstrPairOtherObjectIds = Object.keys( persistPhysG.constrPairs );
+		for( let i = 0; i < persistConstrPairOtherObjectIds.length; ++i ){
+			let otherObjectConstraints = persistPhysG.constrPairs[persistConstrPairOtherObjectIds[i]];
+			framePhysG.constrPairs[persistConstrPairOtherObjectIds[i]] = otherObjectConstraints;
+		}
+	}
+
+	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (first checking sum of obj uids could be an optimization)
+	let graphObjIds = Object.keys( framePhysG.constrPairs );
+	for( let i = 0; i < graphObjIds.length; ++i ){
+		if(graphObjIds[i] == 'timeSorted') //skip time sorted list (will be rebuilt after consolidation)
 			continue;
-		DTPrintf("consolidate 1", "consolidate");
-		let colisObjs = physG.constrPairs[constrPairKeys[i]]; //objs that the key object colides with
-		let colisObjKeys = Object.keys( colisObjs );
-		if( colisObjKeys.length > 0 ){
-			for( let j = 0; j < colisObjKeys.length; ++j ){
-				if( colisObjKeys[j] == 'timeSorted' )
-					continue;
-				DTPrintf("consolidate 2", "consolidate");
-				let ob2 = colisObjs[colisObjKeys[j]].ob2;
-				if( ob2.physGraph ){
-					let objGraph = ob2.physGraph;
-					if( objGraph && objGraph.uid.val != physG.uid.val ){
-						//need to combine colisGroupTimesAndObjs[i].obj colision group and physG
-						//console.log( "combine graphs " + objGraph.uid.val + " and " + physG.uid.val );
-						let objKeys = Object.keys( objGraph.constrPairs );
+		let obj1Constraints = framePhysG.constrPairs[graphObjIds[i]]; //objs that the key/this object interacts with
+		let obj2Ids = Object.keys( obj1Constraints );
+		for( let j = 0; j < obj2Ids.length; ++j ){
+			if( obj2Ids[j] == 'timeSorted' )
+				continue;
+			//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
+			let ob1ob2Constrs = obj1Constraints[obj2Ids[j]];
+			let ob1ob2ConstrIds = Object.keys(ob1ob2Constrs);
+			for( let k = 0; k < ob1ob2ConstrIds.length; ++k ){
+				let ob1ob2Constr = ob1ob2Constrs[ob1ob2ConstrIds];
+				let ob2 = ob1ob2Constr.ob2;
+				if( ob2.framePhysGraph ){
+					let obj2Graph = ob2.framePhysGraph;
+					if( obj2Graph && obj2Graph.uid.val != framePhysG.uid.val ){
+						//need to combine colisGroupTimesAndObjs[i].obj colision group and framePhysG
+						//console.log( "combine graphs " + objGraph.uid.val + " and " + framePhysG.uid.val );
+						let obj2Keys = Object.keys( obj2Graph.constrPairs );
 						let strUids = "";
-						DTPrintf("consolidate 3", "consolidate");
-						for( let k = 0; k < objKeys.length; ++k ){
-							strUids += "  " + objKeys[k] + " ";
-							let objConstrPairs = objGraph.constrPairs[objKeys[k]];
-							let objPairKeys = Object.keys( objConstrPairs );
-							DTPrintf("consolidate 4", "consolidate");
-							for( let l = 0; l < objPairKeys.length; ++l ){
-								if(objPairKeys[l] == 'timeSorted')
+						//DTPrintf("consolidate 3", "consolidate");
+						for( let l = 0; l < obj2Keys.length; ++l ){
+							//strUids += "  " + objKeys[l] + " ";
+							let obj2ObjIds = obj2Graph.constrPairs[obj2Keys[l]];
+							let obj2PairKeys = Object.keys( obj2ObjIds );
+							//DTPrintf("consolidate 4", "consolidate");
+							for( let m = 0; m < obj2PairKeys.length; ++m ){
+								let obj2Obj1Constrnts = obj2ObjIds[obj2PairKeys[m]];
+								if(obj2Obj1Constrnts == 'timeSorted')
 									continue;
-								DTPrintf("consolidate 5", "consolidate");
-								let objPair = objConstrPairs[objPairKeys[l]];
-								physG.AddConstraint( 
-											objPair.type,
-											objPair.time, 
-											objPair.normal, 
-											objPair.pos, 
-											objPair.intrD,
-											objPair.ob1, objPair.ob2 );
-								strUids += objPair.ob1.uid.val + ":" + objPair.ob2.uid.val + ",";
-								DTPrintf("consolidate 6", "consolidate");
+									
+								//DTPrintf("consolidate 5", "consolidate");
+								let obj2obj1CnstrIds = Object.keys( obj2Obj1Constrnts );
+								for( let n = 0; n < obj2obj1CnstrIds.length; ++n ){
+									let constrnt = obj2Obj1Constrnts[obj2obj1CnstrIds[n]];
+									PHYSGRPH_AddConstraint( framePhysG, constrnt );
+									//strUids += objPair.ob1.uid.val + ":" + objPair.ob2.uid.val + ",";
+									//DTPrintf("consolidate 6", "consolidate");
+								}
 							}
 						}
-						ob2.physGraph = physG; //ob2's graph has been consolidated with physG
-						//console.log("graphs combined total pairs " + physG.totalConstrPairs + " " + strUids );
+						ob2.framePhysGraph = framePhysG; //ob2's graph has been consolidated with framePhysG
+						//console.log("graphs combined total pairs " + framePhysG.totalConstraints + " " + strUids );
 					}
 				}
 			}
@@ -303,7 +362,7 @@ function PHYSGRPH_ApplyInterpenOffset( physG, ob ){ //apply after consolidating
 					interPenOb = constrPair.ob1;
 					Vect3_MultiplyScalar( tmpInterpenNorm, -1 );
 				}
-				
+
 				//Vect3_MultiplyScalar( tmpInterpenNorm, constrPair.intrD );
 				Vect3_Add( avgInterpenNorm, tmpInterpenNorm );
 				DTPrintf( "\n" +

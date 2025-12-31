@@ -143,8 +143,14 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		//need regatta scene camera update to draw ocean
 		rb3DTris_array[0].activeForFrame = true;
 	}
-	
+
 	SAIL_PlayMusicForMode( sgMode );
+
+
+	//TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
+	//				'shdwBufSun', 'sailDefault',
+	//				sailMenuBgCenPos, sailMenuBgWdthHight,
+	//				sailMenuBgMinUv, sailMenuBgMaxUv, 0.01 );
 
 	//setup strings to draw and handle gameplay input
 	switch( sgMode ){
@@ -317,7 +323,7 @@ function SAIL_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 					if( mOvrdStrs[i] == ":Gear:" )
 						sgMode = SailModes.Menu;
 					if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
-				   (touchMDown && mCoords.x < 40 && mCoords.y < 40) )
+					(touchMDown && mCoords.x < 40 && mCoords.y < 40) )
 						sgMode = SailModes.Menu;
 					break;
 				case SailModes.Leaderboard:

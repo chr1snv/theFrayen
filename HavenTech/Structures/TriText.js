@@ -390,9 +390,9 @@ function TR_QueueText( rb2DTris, x, y, dpth, size, str, interactive, justify=Txt
 	queuedTextSbb.nonHighlightedColor = overideColor;
 	if( bilboard ){
 		let txtOri = [x, y, dpth];
-		Matrix_LookAt( queuedTextSbb.mdl.toWorldMatrix, rb2DTris.camWorldPos, txtOri );
-		//Quat_LookAt( blibQuat, rb2DTris.camWorldPos, txtOri );//queuedTextSbb.mdl.origin ); //x, y, dpth
-		//Matrix_SetQuatRotate( queuedTextSbb.toWorldMatrix, blibQuat );
+		//Matrix_LookAt( queuedTextSbb.mdl.toWorldMatrix, rb2DTris.camWorldPos, txtOri );
+		Quat_LookAt( blibQuat, rb2DTris.camWorldPos, txtOri );//queuedTextSbb.mdl.origin ); //x, y, dpth
+		Matrix_SetQuatRotate( queuedTextSbb.mdl.toWorldMatrix, blibQuat );
 		Matrix_SetTranslate( queuedTextSbb.mdl.toWorldMatrix, txtOri );
 
 		Matrix_Copy( queuedTextSbb.toWorldMatrix, queuedTextSbb.mdl.toWorldMatrix );

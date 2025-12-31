@@ -27,7 +27,9 @@ function PhysObj(AABB, obj, time){
 	this.linearMomentum = Vect3_NewZero();
 
 	this.specificHeatCapac = 4.2; // kj/k/degK (liquid water)
-	this.degC = 50;
+	this.degC = 21; //"room temperature is considered to be between 20 to 25 degrees celcius
+	//https://scienceinsights.org/what-is-standard-temperature-and-pressure-stp/
+	//"The most common application of STP is in the field of chemistry, specifically in stoichiometry problems involving gases. By knowing the standard conditions, chemists can utilize the molar volume concept, which states that one mole of any ideal gas occupies a specific, fixed volume at STP. At the modern IUPAC standard (0 °C and 100 kPa), this molar volume is calculated to be 22.7 liters."
 
 	//collision
 	this.colisCOR = 0.8;
@@ -55,7 +57,8 @@ function PhysObj(AABB, obj, time){
 
 	//objects in contact / affecting this object and type of effect 
 	//(0-kinetic/static colision, 1-spring/rope, 2-electrostatic, 3-magnetic, 4-radiative)
-	this.physGraph = undefined; 
+	this.persistantPhysGraph = undefined;
+	this.framePhysGraph = undefined; 
 	this.radius = (AABB.maxCoord[0] - AABB.minCoord[0])*0.5; //spherical radius of the colider
 	this.capsule = new Capsule(this.radius, this.linVel, this.obj.origin); //sphere swept over time collision time calculator
 
@@ -105,7 +108,7 @@ function PHYSOBJ_GenColisRestitutionVects(pObj, stepTime, intTime, otherObj, col
 
 //if the object collides with a bound then the group/combined kinetic energy 
 //is set to 0 with inifinte mass (subtracting individual object energy doesn't change it)
-function PHYSOBJ_FindBoundsCollisions( pObj, dt, worldRootTnd, statColisCheck=false ){ //dt is length of physics step
+function PHYSOBJ_DetectBoundsCollisions( pObj, dt, worldRootTnd, statColisCheck=false ){ //dt is length of physics step
 	let numColis = 0;
 	let worldBoundsAABB = worldRootTnd.AABB;
 	let secsTillHitWorldBounds = pObj.capsule.ExitAABBTime(pObj.obj.origin, 
@@ -133,14 +136,23 @@ function PHYSOBJ_FindBoundsCollisions( pObj, dt, worldRootTnd, statColisCheck=fa
 			colisType = PHYS_INTERPEN;
 			timeOfWorldBoundCollision = pObj.lastUpdtTime;
 		}
-		PHYSGRPH_AddConstraint( pObj.physGraph, colisType, timeOfWorldBoundCollision, 
-					colisNormal, colisPoint, interpenD, pObj, boundObj.physObj );
+
+
+		let cnstOb1 = pObj;
+		let cnstOb2 = boundObj.physObj;
+		PHYSGRPH_AddConstraint( pObj.framePhysGraph, 
+			{type:colisType, time:timeOfWorldBoundCollision, 
+			 normal:colisNormal, pos:colisPoint, intrD:interpenD, ob1:cnstOb1, ob2:cnstOb2,
+			 cnstrId: PHYGRPH_GenConstraintID( colisType, cnstOb1.uid.val, cnstOb2.uid.val )
+			}
+		);
 		numColis += 1;
 	}
 	return numColis;
 }
 
-function PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
+//checks tree nodes object occupied by pObj for other objects it may intersect with within the timestep
+function PHYSOBJ_DetectColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
 	let numColis = 0;
 	let checkedObjs = {};
 	checkedObjs[pObj.uid.val] = 1;
@@ -167,7 +179,7 @@ function PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
 								pObj.obj.origin, pObj.linVel, pObj.radius, 
 								oOb.obj.origin, oOb.linVel, oOb.radius, intTime );
 							let timeOfColis = intTime + pObj.lastUpdtTime;
-							pObj.physGraph.AddConstraint( PHYS_SURFCOLIS, timeOfColis,
+							pObj.framePhysGraph.AddConstraint( PHYS_SURFCOLIS, timeOfColis,
 								colisNormal, colisPos, interpenD, pObj, oOb );
 							//DTPrintf( "add " + pObj.uid.val + " " + oOb.uid.val, "phys detc" );
 							numColis += 1;
@@ -179,8 +191,8 @@ function PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
 							interpenD = pObj.capsule.OthrCapCollisNormalPosDepth( colisNormal, colisPos,
 								pObj.obj.origin, pObj.linVel, pObj.radius, 
 								oOb.obj.origin, oOb.linVel, oOb.radius, 0 ); //zero to get interpentation at start of frame
-							PHYSGRPH_AddConstraint( pObj.physGraph, PHYS_INTERPEN, pObj.lastUpdtTime, 
-								colisNormal, colisPos, interpenD, pObj, oOb );
+							PHYSGRPH_AddConstraint( pObj.framePhysGraph, PHYS_INTERPEN, [pObj.lastUpdtTime, 
+								colisNormal, colisPos, interpenD], pObj, oOb );
 							//DTPrintf( "add " + pObj.uid.val + " " + oOb.uid.val, "phys detc" );
 							numColis += 1;
 						}
@@ -192,7 +204,8 @@ function PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, statColisCheck=false ){
 	return numColis;
 }
 
-function PHYSOBJ_ApplyExternAffectsAndDetectCollisions( pObj, time, tnd ){
+//applies affects such as gravity, fluid/air drag to the acceleration * dt -> velocity
+function PHYSOBJ_ApplyFieldAffectsAndDetectCollisions( pObj, time, tnd ){
 	if( time == pObj.lastDetectTime )
 		return;
 
@@ -218,13 +231,13 @@ function PHYSOBJ_ApplyExternAffectsAndDetectCollisions( pObj, time, tnd ){
 
 
 		//find any object collisions using linear object position extrapolation from lastUpdtTime to time
-		pObj.physGraph = new PhysConstraintGraph(0, pObj.AABB.minCoord, 
+		pObj.framePhysGraph = new PhysConstraintGraph(pObj.AABB.minCoord, 
 			pObj.AABB.maxCoord, pObj); //clear previous list;
 
-		numCollisions += PHYSOBJ_FindColidingObjsAndTimes( pObj, dt );
+		numCollisions += PHYSOBJ_DetectColidingObjsAndTimes( pObj, dt );
 
 
-		numCollisions += PHYSOBJ_FindBoundsCollisions( pObj, dt, tnd.root); //check if coliding with ground ( y = 0 or canv.height)
+		numCollisions += PHYSOBJ_DetectBoundsCollisions( pObj, dt, tnd.root); //check if coliding with ground ( y = 0 or canv.height)
 
 
 		if( numCollisions >= 1 ){
@@ -239,7 +252,7 @@ function PHYSOBJ_ApplyExternAffectsAndDetectCollisions( pObj, time, tnd ){
 
 		//now have a list of object collisions and times
 		//sort them by time (needed for finding time of first colision)
-		PHYSGRPH_SortByTime( pObj.physGraph );
+		PHYSGRPH_SortByTime( pObj.framePhysGraph );
 	}
 
 	//may need to store node updated from so can check where updated from
@@ -255,33 +268,39 @@ function PHYSOBJ_LinkPhysGraphs( pObj, time ){
 	if( time == pObj.lastAggColisTime )
 		return;
 
-	//check if any object in the colision group have a colisGroup with different sum of obj uids
-	if( !pObj.resting && pObj.physGraph )
-		PHYSGRPH_ConsolidateGraphs( pObj.physGraph );
+	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (sum of obj uids could be an optimization)
+	if( !pObj.resting && pObj.framePhysGraph )
+		PHYSGRPH_ConsolidateGraphs( pObj.framePhysGraph, pObj.persistantPhysGraph );
 
 
 	pObj.lastAggColisTime = time;
 }
 
 function PHYSOBJ_ApplyInterpenOffset( pObj, time ){
-	if( !pObj.resting && pObj.physGraph && !pObj.interpenOffsetApplied ){
+	if( !pObj.resting && pObj.framePhysGraph && !pObj.interpenOffsetApplied ){
 		//DTPrintf("interpen linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
-		PHYSGRPH_ApplyInterpenOffset( pObj.physGraph, pObj );
+		PHYSGRPH_ApplyInterpenOffset( pObj.framePhysGraph, pObj );
 		pObj.interpenOffsetApplied = true;
 	}
 }
 
 
+//the timestep update function, it is called transfer energy because
+//it needs to follow energy conservation to avoid an unstable simulation
+//e.g. the timestep update is a discretization, if the discretized calculation/approximation
+//puts more energy into the momentum / velocity of an object then it started with
+//multiple collisions / spring force updates will cause unrealistic behavior
+//(so for stability it's usally better to tune towards dampning, though it's not completely realistic)
 let aDiffLinEnVec = Vect3_NewZero();
 let aDiffLinVel = Vect3_NewZero();
-function PHYSOBJ_TransferEnergy( pObj, time, treeNode ){
+function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 	if( time == pObj.lastTransEnergTime )
 		return;
 	//DTPrintf("transEnergy linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
 	if( !pObj.resting ){
 		//dt is the timestep for integrating forces into and accelerations into position changes
-		let dt = time - pObj.lastUpdtTime; //time from end of last frame until end of this update interaval frame
-		let constrGraph = pObj.physGraph;
+		let dt = time - pObj.lastUpdtTime; //time from end of last frame until end of this update interval frame
+		let constrGraph = pObj.framePhysGraph;
 		if( constrGraph ){
 
 			if( constrGraph.constrPairs[pObj.uid.val] ){
@@ -289,25 +308,25 @@ function PHYSOBJ_TransferEnergy( pObj, time, treeNode ){
 				//time from last end of frame until first constraint this frame (time when velocity is changed)
 				let timeSortedConstrPairs = constrGraph.constrPairs[pObj.uid.val]['timeSorted'];
 				if( timeSortedConstrPairs.length >= 1 ){
-					
+
 					let constrPair = timeSortedConstrPairs[0];
-					
+
 					dt = constrPair.time - pObj.lastUpdtTime;
-					
+
 					let constrObj = GetOtherConstrObj(constrPair, pObj);
-					
-					let constrNormal = Vect3_CopyNew( constrPair.normal );
-					//given the ratio of kinetic energy (velocity and mass) of  pObj vs combined objects
-					//(and the restitution coef of both?) find the transfered amount of energy
-					//ex. two objs with r=1 m=1 vel=[1,0,0] cr1=0.8 vel2=[-1,0,0] cr2=0.8
-					//surface area of a sphere = 4   pi r^2
-					//volume of a sphere       = 4/3 pi r^3
-					//avgObj m=2 r=1.259 v=[0,0,0]
 
 					if( constrPair.type == PHYS_INTERPEN ){
 						//set all object velocities in group to move out of the interpenetrating object
 						//colisNormal
 					}else if( constrPair.type == PHYS_SURFCOLIS ){
+					
+						let constrNormal = Vect3_CopyNew( constrPair.normal );
+						//given the ratio of kinetic energy (velocity and mass) of  pObj vs combined objects
+						//(and the restitution coef of both?) find the transfered amount of energy
+						//ex. two objs with r=1 m=1 vel=[1,0,0] cr1=0.8 vel2=[-1,0,0] cr2=0.8
+						//surface area of a sphere = 4   pi r^2
+						//volume of a sphere       = 4/3 pi r^3
+						//avgObj m=2 r=1.259 v=[0,0,0]
 
 						//rotat velocity, heat, composition (conductance), sum of mass and center of inertia
 						let diffObjMomentum = Vect3_NewZero();
@@ -357,6 +376,9 @@ function PHYSOBJ_TransferEnergy( pObj, time, treeNode ){
 						Quat_Identity(pObj.rotVelQuat); //x,y,z axis, radian rotation / sec
 
 						//dt = time - pObj.constraintGraph.colisGroupTimesAndObjs[0].time; //for external accel use time from collision vel update to end of frame
+
+					}else if( constrPair.type == PHYS_SPRING ){
+						
 					}
 
 				}
@@ -378,14 +400,14 @@ function PHYSOBJ_DetectAdditionalCollisions( pObj, time, tnd){
 
 	if( !pObj.resting ){
 
-		let constrGraph = pObj.physGraph;
+		let constrGraph = pObj.framePhysGraph;
 		if( constrGraph ){
 			if( constrGraph.constrPairs[pObj.uid.val] ){
 				//time from last end of frame until first interaction this frame (time when velocity is changed)
-				let constrPair = pObj.physGraph.constrPairs[pObj.uid.val]['timeSorted'][0];
+				let constrPair = pObj.framePhysGraph.constrPairs[pObj.uid.val]['timeSorted'][0];
 				let dt = time - constrPair.time;
 
-				//generate list of objects collided with
+				//generate list/constraintGraph  of objects collided with
 				//check other objects
 				//pObj.FindCollisionTimesAndObjs(colisGroupTimesAndObjs);
 				//check if coliding with ground ( y = 0 or canv.height)
@@ -401,9 +423,9 @@ function PHYSOBJ_DetectAdditionalCollisions( pObj, time, tnd){
 						console.log("nan linMom detect additional");
 
 
-				numCollisions += PHYSOBJ_FindColidingObjsAndTimes( pObj, dt, true );
+				numCollisions += PHYSOBJ_DetectColidingObjsAndTimes( pObj, dt, true );
 
-				numCollisions += PHYSOBJ_FindBoundsCollisions( pObj, dt, tnd.root, true ); //check if coliding with ground ( y = 0 or canv.height)
+				numCollisions += PHYSOBJ_DetectBoundsCollisions( pObj, dt, tnd.root, true ); //check if coliding with ground ( y = 0 or canv.height)
 
 
 				if( numCollisions >= 1 ){
@@ -421,7 +443,7 @@ function PHYSOBJ_DetectAdditionalCollisions( pObj, time, tnd){
 
 				//now have a list of object collisions and times
 				//sort them by time (needed for finding time of first colision)
-				PHYSGRPH_SortByTime( pObj.physGraph );
+				PHYSGRPH_SortByTime( pObj.framePhysGraph );
 			}
 		}
 
@@ -445,26 +467,34 @@ function PHYSOBJ_Update( pObj, time, treeNode){
 
 		let prevPosition = Vect3_CopyNew(pObj.obj.origin);
 
+		//check if should enter rest mode
 		if( Vect3_Length( pObj.linVel ) < RESTING_VEL && 
-			pObj.physGraph && pObj.physGraph.totalConstrPairs > 0 ){
+			pObj.framePhysGraph && pObj.framePhysGraph.constrPairs[pObj.uid.val] ){ //must be touching something (or possibly have low enough speed and no external accel [which wouldn't happen because there would always be some gravity or light/radiative pressure]) to stop updating
 			//if there is a contact normal that is opposing the externAccel (gravity) for this frame
-			//then the object should stop moving
+			//(and the objs velocity / total forces have been low enough so it hasn't moved for a few frames)
+			//then the object can be in rest mode (to avoid reduce checks/calculations by the physics simulator per frame)
 			let normGravAccel = Vect3_CopyNew( treeNode.physNode.gravAccelVec ); //pObj.linAccel );
 			Vect3_Normal( normGravAccel );
-			let constrPairs = pObj.physGraph.constrPairs[pObj.uid.val];
-			let constrPairKeys = Object.keys( constrPairs );
-			for( let i = 0; i < constrPairKeys.length; ++i ){
-				if( constrPairKeys[i] == 'timeSorted' )
+			let constrsForPObj = pObj.framePhysGraph.constrPairs[pObj.uid.val];
+			let constrsForPObjOthrObjIds = Object.keys( constrsForPObj );
+			for( let i = 0; i < constrsForPObjOthrObjIds.length; ++i ){
+				if( constrsForPObjOthrObjIds[i] == 'timeSorted' )
 					continue;
-				if( constrPairs[constrPairKeys[i]].type == 0) //resolve interpenetration before suspending updates for object
-					continue;
-				let constrNormDot = Vect3_Dot( constrPairs[constrPairKeys[i]].normal, normGravAccel );
-				if( constrNormDot < -0.8 ){
-					pObj.resting = true;
-					break;
+				////physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
+				let constrsWithOtherObj = constrsForPObj[ constrsForPObjOthrObjIds[i] ];
+				let constrIdsWithOtherObj = Object.keys( constrsWithOtherObj );
+				for( let j = 0; j < constrIdsWithOtherObj.length; ++j ){
+					let constr = constrsWithOtherObj[constrIdsWithOtherObj[j]];
+					if( constr.type == PHYS_INTERPEN || constr.type == PHYS_SPRING) //resolve interpenetration before suspending updates for object
+						continue;
+					let constrNormDot = Vect3_Dot( constr.normal, normGravAccel );
+					if( constrNormDot < -0.8 ){
+						pObj.resting = true;
+						break;
+					}
 				}
 			}
-		}else{
+		}else{ //not resting, preform position update
 
 			//update the position
 			let delP = Vect3_CopyNew(pObj.linVel);
@@ -571,7 +601,7 @@ function PhysNode(){
 	this.radioFluxVec = Vect_NewZero(4); //can be absorbed / converted into heat by objects
 	this.magneticVec  = Vect_NewZero(4); //affects iorn and conductive objects
 	this.dustOpacity = 0; //amount of light scattering / attenuation by dust in air or turbidity in water
-	this.fuelPct = 0; //ex. when ph (oxygen level is high enough) and temperature or energy vectors are high enough, combustion or explosion occurs
+	this.fuelPct = 0; //e.g. voc volativity //ex. when ph (oxygen level is high enough) and temperature or energy vectors are high enough, combustion or explosion occurs
 
 }
 

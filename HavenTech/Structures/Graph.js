@@ -43,9 +43,10 @@ function GRPH_AddEntry(gph, gEntry){
 //links specify strength of connection ( distance of something connected to another )
 
 
-function GRPH_AddObjsToSceneToDraw( gph, time ){
+function GRPH_CreateSceneAndAddObjsToSceneToDrawIfNotAdded( gph, time ){
 	if ( gph.havenScene == null ){
-		gph.havenScene = new HavenScene(gph.name, null, true, [-100,-100,-100], [100,100,100], new PhysNode() );
+		let cubeDim = 20;
+		gph.havenScene = new HavenScene(gph.name, null, true, [-cubeDim,-cubeDim,-cubeDim], [cubeDim,cubeDim,cubeDim], new PhysNode() );
 		gph.havenScene.octTree.physNode.gravAccelVec[1] *= 0.1;
 	}
 
@@ -76,12 +77,17 @@ function GRPH_AddObjsToSceneToDraw( gph, time ){
 			if( entry == null )
 				break;
 
-			if( objLinkedFrom ){ //draw the link
-				GRPH_AddLinkToScene( objLinkedFrom, entry, gph.havenScene );
-			}
 
 			//add the entry to the scene if not added already
-			GRPH_AddEntryToScene( entry, gph.havenScene );
+			GRPH_AddEntryToSceneIfNotAdded( entry, gph.havenScene );
+
+
+			if( objLinkedFrom ){ //draw the link
+				GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, gph.havenScene );
+			}
+			
+			lastGraphVisInsertPosition[0] += 8;
+			lastGraphVisInsertPosition[2] += Math.random()*10;
 
 			//breadth first gather next depth objects from links from the entry
 			let travLinkEntries = Object.entries(entry.links);
@@ -120,29 +126,28 @@ function GRPH_modelLoadedCb( model, cbData ){
 	Quat_FromXRot( cam.userRotation, -blenderToCubeMapEulerRot[0] ); //Math.PI/2 );
 	//Matrix_SetEulerRotate( blenderToCubeMapEulerRot, blenderToCubeMapEulerRot );
 
-	
 }
 
-function GRPH_AddEntryToScene(gphEntry, hvnSc){
+function GRPH_AddEntryToSceneIfNotAdded(gphEntry, hvnSc){
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
 	if( hvnSc.modelNames[gphEntry.val] == undefined && hvnSc.pendingModelNamesToLoad[gphEntry.val] == undefined ){
 
 		hvnSc.pendingModelNamesToLoad[gphEntry.val] = 1;
 
 		//shape for the graph concept / entry / datapoint
+		let rndVals = [ Math.random(), Math.random(), Math.random()];
 		let entryMdl = new Model( nameIn=gphEntry.val, meshNameIn='gphDefaultEntryMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
-				sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
+				sceneNameIn='graph', AABBIn=new AABB([-1+rndVals[0],-1+rndVals[1],-1+rndVals[2]], [1+rndVals[0],1+rndVals[1],1+rndVals[2]]),
 				locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
 				modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
-
-		lastGraphVisInsertPosition[0] += 4;
+		gphEntry.mdl = entryMdl;
 	}
 
 }
 
-function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
-	let name = "lnk:"+objLinkedFrom.val+":"+entry.val;
+function GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, hvnSc ){
+	let name = "lnk."+objLinkedFrom.val+"."+entry.val;
 
 	//update or create the graphical depiction (Model / quadmesh) of the entry in the havenScene
 	if( hvnSc.modelNames[name] == undefined && hvnSc.pendingModelNamesToLoad[name] == undefined ){
@@ -150,13 +155,35 @@ function GRPH_AddLinkToScene( objLinkedFrom, entry, hvnSc ){
 		hvnSc.pendingModelNamesToLoad[name] = 1;
 
 		//create model for the links/lines to other concepts
-		let entryMdl = new Model( nameIn=name, meshNameIn='gphDefaultLinkMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"], 
+
+		let linkRotation = Quat_New();
+		Quat_LookAt( linkRotation, objLinkedFrom.mdl.origin, entry.mdl.origin );
+		
+		let btwnPosn = Vect3_CopyNew( entry.mdl.origin );
+		Vect3_Add( btwnPosn, objLinkedFrom.mdl.origin );
+		Vect3_MultiplyScalar( btwnPosn, 0.5 );
+
+		let linkMdl = new Model( nameIn=name, meshNameIn='gphDefaultLinkMesh', armNameIn=null, ipoNameIn=null, materialNamesIn=["Material"],
 								  sceneNameIn='graph', AABBIn=new AABB([-1,-1,-1], [1,1,1]),
-								  locationIn=Vect3_CopyNew(lastGraphVisInsertPosition), rotationIn=Quat_New_Identity(), scaleIn=Vect3_NewAllOnes(),
+								  locationIn=btwnPosn,
+								  rotationIn=linkRotation,
+								  scaleIn=Vect3_NewAllOnes(),
 								  modelLoadedParameters=hvnSc, modelLoadedCallback=GRPH_modelLoadedCb, isPhysical=true );
 
+		entry.linkMdl = linkMdl;
 
-		lastGraphVisInsertPosition[0] += 4;
+		if( !objLinkedFrom.mdl.physObj.persistantPhysGraph ){
+			let pObj = objLinkedFrom.mdl.physObj;
+			objLinkedFrom.mdl.physObj.persistantPhysGraph =
+				new PhysConstraintGraph(pObj.AABB.minCoord, pObj.AABB.maxCoord, pObj);
+		}
+		let ob1In = entry.mdl.physObj;
+		let ob2In = objLinkedFrom.mdl.physObj;
+		let cnstrType = PHYS_SPRING;
+		PHYSGRPH_AddConstraint( objLinkedFrom.mdl.physObj.persistantPhysGraph, 
+				{ type:cnstrType, length:8, stiffness:1, ob1:ob1In, ob2:ob2In,
+			cnstrId: PHYGRPH_GenConstraintID( cnstrType, ob1In.uid.val, ob2In.uid.val ) }
+		);
 	}
 }
 
@@ -179,6 +206,15 @@ function GRPH_Draw(gph, rastB, time){
 	FlyingCameraControlInput( time, camToUpdate=gph.havenScene.cameras[0] );
 
 	//hvnSc.models[gphEntry.val]
+	
+	let mdlIds = Object.keys(rastB.mdls);
+	for( let i = 0; i < mdlIds.length; ++i ){
+		let mdl = rastB.mdls[mdlIds[i]];
+		let mdlName = mdl.modelName;
+		//DPrintf("mdls " + rastB.mdls[mdlIds[i]].modelName);
+		//( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, 
+		TR_QueueText( /*rb2DTris*/rastB, mdl.origin[0], mdl.origin[1], mdl.origin[2], 0.5, mdlName, false, TxtJustify.Center, overideColor=null, bilboard=true );
+	}
 
 
 	//if objects in havenscene have been out of view for too long
