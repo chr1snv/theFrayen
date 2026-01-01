@@ -141,11 +141,12 @@ function PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1, ob2 ){
 		physG.constrPairs[ob1UidVal] = obConstrs;
 		constraintAdded = true;
 
-		//not yet used (to model the graph as a fluid/finite element field or aggregate to improve performance if there are many interconnected objects)
+		//used ( to calculate collision reactions ) (may also be used for something like modeling the graph as a fluid/finite element field or aggregate if there are many interconnected objects )
 		AddAggregateKineticEnergyAndMass( physG.aggregateObject, ob1.linearMomentum, ob1.mass );
 		AddUIDs( physG.uid, ob1UidVal ); //used to 
+		return constraintAdded;
 	}else{ //other constraints exist on object, check if this one is not yet added
-	
+
 		let ob1ob2Constrs = obConstrs[ob2UidVal];
 		if( ob1ob2Constrs == undefined ){ //don't yet have a collection of constraints under ob1 -> ob2
 			ob1ob2Constrs = {};
@@ -157,23 +158,23 @@ function PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1, ob2 ){
 			constraintAdded = true;
 		}else{
 			DTPrintf("ob1 constrs pair already added ob2 uid " + ob2UidVal + " ob2 mass " + ob2.mass, "constr msg");
-			return; //don't need to time sort because didn't add a new constraint
+			return constraintAdded; //don't need to time sort because didn't add a new constraint
 		}
 
 	}
-	/*
-	let ob1TimeSortedConstrs = ob1Constrs['timeSorted'];
-	if( ob1TimeSortedConstrs.length > 0 ){ 
-		for( let i = 0; i < ob1TimeSortedConstrs.length; ++i ){
-			if( ob1TimeSortedConstrs[i].time > constrPair.time ){
-				ob1TimeSortedConstrs.splice( i, 0, constrPair );
-				break;
-			}
+
+	let ob1TimeSortedConstrs = obConstrs['timeSorted'];
+	let constrInserted = false;
+	for( let i = 0; i < ob1TimeSortedConstrs.length; ++i ){
+		if( ob1TimeSortedConstrs[i].time > constrPair.time ){
+			ob1TimeSortedConstrs.splice( i, 0, constrPair );
+			constrInserted = true;
+			break;
 		}
-	}else{
+	}
+	if(!constrInserted){
 		ob1TimeSortedConstrs.push( constrPair );
 	}
-	*/
 
 	return constraintAdded;
 }
@@ -237,10 +238,10 @@ function PHYSGRPH_AddConstraint( physG, constrPair ){
 			//constrPair is passed into PHYSGRPH_AddConstraint function call
 		}
 
-
-		let constraintAdded = 
-			PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1In, ob2In ) ||
-			PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob2In, ob1In );
+		//store the constraint indexed under both ob1 uid and ob2 uid (because the same physgraph is checked by both in their update function)
+		let constraintAdded1 = PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1In, ob2In );
+		let constraintAdded2 = PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob2In, ob1In );
+		let constraintAdded = constraintAdded1 || constraintAdded2;
 
 
 		if( typeIn == PHYS_INTERPEN ){
@@ -252,7 +253,7 @@ function PHYSGRPH_AddConstraint( physG, constrPair ){
 			physG.totalConstrints += 1;
 
 	}
-	else{ //field type interaction PHYS_PRESSURE, PHYS_ELECTROSTATIC, PHYS_MAGNETIC, PHYS_RADIATIVE
+	else{ //field type interaction (between physObj and treeNode) PHYS_PRESSURE, PHYS_ELECTROSTATIC, PHYS_MAGNETIC, PHYS_RADIATIVE
 	}
 
 
@@ -279,8 +280,19 @@ function PHYSGRPH_ConsolidateGraphs( framePhysG, persistPhysG ){
 	if( persistPhysG != undefined ){
 		let persistConstrPairOtherObjectIds = Object.keys( persistPhysG.constrPairs );
 		for( let i = 0; i < persistConstrPairOtherObjectIds.length; ++i ){
-			let otherObjectConstraints = persistPhysG.constrPairs[persistConstrPairOtherObjectIds[i]];
-			framePhysG.constrPairs[persistConstrPairOtherObjectIds[i]] = otherObjectConstraints;
+			let persistObjConstrs = persistPhysG.constrPairs[persistConstrPairOtherObjectIds[i]];
+			//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
+			let perstObjConstrIds = Object.keys(persistObjConstrs);
+			for( let j = 0; j < perstObjConstrIds.length; ++j ){
+				if(perstObjConstrIds[i] == 'timeSorted') //skip time sorted list (will be rebuilt after consolidation)
+					continue;
+				let constraints = persistObjConstrs[perstObjConstrIds[j]];
+				let constraintIds = Object.keys( constraints );
+				for( let k = 0; k < constraintIds.length; ++k ){
+					let constraint = constraints[constraintIds[k]];
+					PHYSGRPH_AddConstraint( framePhysG, constraint );
+				}
+			}
 		}
 	}
 

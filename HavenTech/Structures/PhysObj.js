@@ -269,7 +269,7 @@ function PHYSOBJ_LinkPhysGraphs( pObj, time ){
 		return;
 
 	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (sum of obj uids could be an optimization)
-	if( !pObj.resting && pObj.framePhysGraph )
+	if( !pObj.resting && (pObj.framePhysGraph || pObj.persistantPhysGraph) )
 		PHYSGRPH_ConsolidateGraphs( pObj.framePhysGraph, pObj.persistantPhysGraph );
 
 
@@ -307,19 +307,18 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 
 				//time from last end of frame until first constraint this frame (time when velocity is changed)
 				let timeSortedConstrPairs = constrGraph.constrPairs[pObj.uid.val]['timeSorted'];
-				if( timeSortedConstrPairs.length >= 1 ){
+				for(let i = 0; i < timeSortedConstrPairs.length; ++i ){
+					let constrPair = timeSortedConstrPairs[i];
 
-					let constrPair = timeSortedConstrPairs[0];
-
-					dt = constrPair.time - pObj.lastUpdtTime;
-
-					let constrObj = GetOtherConstrObj(constrPair, pObj);
+					let otherPObj = GetOtherConstrObj(constrPair, pObj);
 
 					if( constrPair.type == PHYS_INTERPEN ){
 						//set all object velocities in group to move out of the interpenetrating object
 						//colisNormal
 					}else if( constrPair.type == PHYS_SURFCOLIS ){
-					
+
+						dt = constrPair.time - pObj.lastUpdtTime;
+
 						let constrNormal = Vect3_CopyNew( constrPair.normal );
 						//given the ratio of kinetic energy (velocity and mass) of  pObj vs combined objects
 						//(and the restitution coef of both?) find the transfered amount of energy
@@ -334,7 +333,7 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 						let diffPrior = Vect3_CopyNew( diffObjMomentum );
 						Vect3_Subtract( diffObjMomentum, pObj.linearMomentum ); //inverted agg -> pObj for reflection below
 						let diffMomentumMagnitude = Vect3_Length( diffObjMomentum );
-						let combinedCOR = constrObj.colisCOR * pObj.colisCOR;
+						let combinedCOR = otherPObj.colisCOR * pObj.colisCOR;
 						let magnitudeOfMomentumCvtToHeat = diffMomentumMagnitude * (1- combinedCOR);
 
 						//reflect the difference in momentum vector across the normal
@@ -378,7 +377,36 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 						//dt = time - pObj.constraintGraph.colisGroupTimesAndObjs[0].time; //for external accel use time from collision vel update to end of frame
 
 					}else if( constrPair.type == PHYS_SPRING ){
+
+						//type:cnstrType, length:8, stiffness:1, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl cnstrId: 
+						let desiredSpringLength = constrPair['length'];
+						let springConstant = constrPair['stiffness'];
+						let springDamping = constrPair['damping'];
+
+						let thisPObj = pObj;
+
+						let sprNormal = Vect3_CopyNew( otherPObj.obj.origin );
+						Vect3_Subtract( sprNormal, thisPObj.obj.origin );
+						let actualSpringLength = Vect3_Normal( sprNormal );
+
+						let springForce = actualSpringLength/desiredSpringLength * -springConstant;
+						springForce += -springForce * springDamping;
+
+						let springAcceleration = (springForce / thisPObj.mass);
+						let springVelMagnitudeChange = springAcceleration * dt;
+
+						Vect3_MultiplyScalar( sprNormal, springVelMagnitudeChange );
+						Vect3_Add( thisPObj.linVel, sprNormal );
+
+						let springModel = constrPair['sprMdl'];
 						
+						Matrix_SetEulerTransformation( springModel.optTransMat, 
+							[hitBouyDist,hitBouyDist,1],
+							[0, 0, 0],
+							[0, 0, 0] );
+						springModel.optTransformUpdated = true;
+
+
 					}
 
 				}
@@ -405,45 +433,47 @@ function PHYSOBJ_DetectAdditionalCollisions( pObj, time, tnd){
 			if( constrGraph.constrPairs[pObj.uid.val] ){
 				//time from last end of frame until first interaction this frame (time when velocity is changed)
 				let constrPair = pObj.framePhysGraph.constrPairs[pObj.uid.val]['timeSorted'][0];
-				let dt = time - constrPair.time;
+				if( constrPair.type == PHYS_SURFCOLIS ){ 
+					let dt = time - constrPair.time;
 
-				//generate list/constraintGraph  of objects collided with
-				//check other objects
-				//pObj.FindCollisionTimesAndObjs(colisGroupTimesAndObjs);
-				//check if coliding with ground ( y = 0 or canv.height)
-				//pObj.FindBoundsCollisions(colisGroupTimesAndObjs);
-				//if there are still collisions (then group the touching  objects
-				//and set their relative velocities to zero)
+					//generate list/constraintGraph  of objects collided with
+					//check other objects
+					//pObj.FindCollisionTimesAndObjs(colisGroupTimesAndObjs);
+					//check if coliding with ground ( y = 0 or canv.height)
+					//pObj.FindBoundsCollisions(colisGroupTimesAndObjs);
+					//if there are still collisions (then group the touching  objects
+					//and set their relative velocities to zero)
 
-				let accel = Vect3_CopyNew( pObj.linAccel );
-				Vect3_MultiplyScalar( accel, dt );
-				Vect3_Add( pObj.linVel, accel );
-				KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
-				if( isNaN(Vect3_Length(pObj.linearMomentum)) )
-						console.log("nan linMom detect additional");
-
-
-				numCollisions += PHYSOBJ_DetectColidingObjsAndTimes( pObj, dt, true );
-
-				numCollisions += PHYSOBJ_DetectBoundsCollisions( pObj, dt, tnd.root, true ); //check if coliding with ground ( y = 0 or canv.height)
-
-
-				if( numCollisions >= 1 ){
-					//DTPrintf( "detectAdditional " + numCollisions + " uid " + pObj.uid.val, "detc additional" );
-					//subtract the extern accel 
-					//(because it was integrated over the entire timestep, 
-					//though the colision occured before then)
-
-					Vect3_Subtract( pObj.linVel, accel );
+					let accel = Vect3_CopyNew( pObj.linAccel );
+					Vect3_MultiplyScalar( accel, dt );
+					Vect3_Add( pObj.linVel, accel );
 					KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
 					if( isNaN(Vect3_Length(pObj.linearMomentum)) )
-						console.log("nan linMom detect additional remove accel");
+							console.log("nan linMom detect additional");
+
+
+					numCollisions += PHYSOBJ_DetectColidingObjsAndTimes( pObj, dt, true );
+
+					numCollisions += PHYSOBJ_DetectBoundsCollisions( pObj, dt, tnd.root, true ); //check if coliding with ground ( y = 0 or canv.height)
+
+
+					if( numCollisions >= 1 ){
+						//DTPrintf( "detectAdditional " + numCollisions + " uid " + pObj.uid.val, "detc additional" );
+						//subtract the extern accel 
+						//(because it was integrated over the entire timestep, 
+						//though the colision occured before then)
+
+						Vect3_Subtract( pObj.linVel, accel );
+						KineticEnergyVector( pObj.linearMomentum, pObj.linVel, pObj.mass );
+						if( isNaN(Vect3_Length(pObj.linearMomentum)) )
+							console.log("nan linMom detect additional remove accel");
+					}
+
+
+					//now have a list of object collisions and times
+					//sort them by time (needed for finding time of first colision)
+					PHYSGRPH_SortByTime( pObj.framePhysGraph );
 				}
-
-
-				//now have a list of object collisions and times
-				//sort them by time (needed for finding time of first colision)
-				PHYSGRPH_SortByTime( pObj.framePhysGraph );
 			}
 		}
 
