@@ -380,8 +380,8 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 
 						//type:cnstrType, length:8, stiffness:1, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl cnstrId: 
 						let desiredSpringLength = constrPair['length'];
-						let springConstant = constrPair['stiffness'];
-						let springDamping = constrPair['damping'];
+						let springConstant		= constrPair['stiffness'];
+						let springDamping		= constrPair['damping'];
 
 						let thisPObj = pObj;
 
@@ -389,7 +389,7 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 						Vect3_Subtract( sprNormal, thisPObj.obj.origin );
 						let actualSpringLength = Vect3_Normal( sprNormal );
 
-						let springForce = actualSpringLength/desiredSpringLength * -springConstant;
+						let springForce = ((actualSpringLength-desiredSpringLength)/desiredSpringLength) * springConstant;
 						springForce += -springForce * springDamping;
 
 						let springAcceleration = (springForce / thisPObj.mass);
@@ -400,10 +400,15 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 
 						let springModel = constrPair['sprMdl'];
 						
+						let sprMidPos = Vect3_CopyNew( thisPObj.obj.origin );
+						Vect3_Add( sprMidPos, otherPObj.obj.origin );
+						Vect3_MultiplyScalar( sprMidPos, 0.5 );
+
+						//retMat,  scale, rot, trans
 						Matrix_SetEulerTransformation( springModel.optTransMat, 
-							[hitBouyDist,hitBouyDist,1],
+							[actualSpringLength,1,1],
 							[0, 0, 0],
-							[0, 0, 0] );
+							sprMidPos );
 						springModel.optTransformUpdated = true;
 
 
