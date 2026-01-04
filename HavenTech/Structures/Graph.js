@@ -172,15 +172,14 @@ function GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, hvnSc ){
 
 		entry.linkMdl = linkMdl;
 
-		if( !objLinkedFrom.mdl.physObj.persistantPhysGraph ){
-			let pObj = objLinkedFrom.mdl.physObj;
-			objLinkedFrom.mdl.physObj.persistantPhysGraph =
-				new PhysConstraintGraph(pObj.AABB.minCoord, pObj.AABB.maxCoord, pObj);
-		}
+
 		let ob1In = entry.mdl.physObj;
 		let ob2In = objLinkedFrom.mdl.physObj;
+		if( !ob2In.framePhysGraph ){
+			ob2In.framePhysGraph = new PhysConstraintGraph(ob2In.AABB.minCoord, ob2In.AABB.maxCoord, ob2In);
+		}
 		let cnstrType = PHYS_SPRING;
-		PHYSGRPH_AddConstraint( objLinkedFrom.mdl.physObj.persistantPhysGraph, 
+		PHYSGRPH_AddConstraint( ob2In.framePhysGraph, 
 				{ type:cnstrType, length:10, stiffness:150, damping:0.01, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl,
 			cnstrId: PHYGRPH_GenConstraintID( cnstrType, ob1In.uid.val, ob2In.uid.val ) }
 		);

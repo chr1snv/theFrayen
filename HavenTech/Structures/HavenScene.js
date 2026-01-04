@@ -163,7 +163,7 @@ function HVNSC_UpdateInCamViewAreaAndGatherObjsToDraw( hvnsc, time, rastB3DTris,
 				//DTPrintf("=====trans energy " + time.toPrecision(3), "loop" );
 				TND_TransferEnergyViaConstraints(node, time);
 				//DTPrintf("=====detect additional " + time.toPrecision(3), "loop" );
-				numAddionalColis = TND_DetectAdditionalCollisions(node, time);
+				numAddionalColis = TND_CleanupAndDetectAdditionalCollisions(node, time);
 				if( numAddionalColis > 0 ){
 					//DTPrintf("======link numAdditional " + numAddionalColis + " time " + time.toPrecision(3), "loop" );
 					TND_LinkPhysGraphs(node, time);

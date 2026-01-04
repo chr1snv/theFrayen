@@ -103,19 +103,19 @@ function TND_TransferEnergyViaConstraints( t, time ){ //(accel -> vel update ste
 		if( t.subNodes[i] )
 			TND_TransferEnergyViaConstraints( t.subNodes[i], time );
 }
-function TND_DetectAdditionalCollisions( t, time ){
+function TND_CleanupAndDetectAdditionalCollisions( t, time ){
 	//check if objects are still going to collide, 
 	//in which case dissipate more of their energy
 	//and only allow them to move in free directions
 	let additionalColis = 0;
 	for( let i = 0; i < t.objInsertIdx; ++i ){
 		if( t.objects[ i ].physObj != null )
-			additionalColis += PHYSOBJ_DetectAdditionalCollisions( t.objects[ i ].physObj, time, t );
+			additionalColis += PHYSOBJ_CleanupAndDetectAdditionalCollisions( t.objects[ i ].physObj, time, t );
 	}
 
 	for( let i = 0; i < t.subNodes.length; ++i )
 		if( t.subNodes[i] )
-			additionalColis += TND_DetectAdditionalCollisions( t.subNodes[i], time );
+			additionalColis += TND_CleanupAndDetectAdditionalCollisions( t.subNodes[i], time );
 	return additionalColis;
 }
 function TND_Update( t, time ){ //update model logic, animation and if has physObj lineraly update object positions up to the end of the timestep

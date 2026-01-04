@@ -71,49 +71,43 @@ function PhysConstraintGraph(AABBmin, AABBmax, colisRootObj){
 
 }
 
-// helper function for below PHYSGRPH_RemoveObjConstraintsFromGraph
-function PHYSGRPH_removeFromOthrObjPairs( othrObjPairs, objUid ){
-	//
-	delete(othrObjPairs[objUid]);
-	let timeSortedPairs = othrObjPairs['timeSorted'];
-	for( let i = 0; i < timeSortedPairs.length; ++i ){
-		if( timeSortedPairs[i].ob1 == objUid || timeSortedPairs[i].ob2 == objUid ){
-			timeSortedPairs.splice(i,1);
-			i -= 1;
-		}
-	}
-}
-
-	//in the dic[obj1]dic[obj2] find all entries with obj1 or obj2 as obj
-	//and remove them
-function PHYSGRPH_RemoveObjConstraintsFromGraph( physG, obj, type ){
-	let obPairs = physG.constrPairs[obj.uid.val];
-	if( obPairs ){
-
-		//all pairs and time sorted objects under this object
-		//are to be removed
-		delete(obPairs['timeSorted']); 
 
 
-		//remove this object from other object pairs
-		let pairKeys = Object.keys( obPairs );
-		for( let i = 0; i < pairKeys.length; ++i ){ 
-			//each pair has a different object that this interacts with
+//in the constraint structure
+//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
+//find the specified constraint entry with obj and remove it from obj1 or obj2
+function PHYSGRPH_RemoveConstraintFromGraph( physG, cnstr ){
+	let objs = [cnstr.ob1, cnstr.ob2];
+	let cnstrId = cnstr.cnstrId;
+	
+	let constraintRemoved = false;
+	
+	for( let i = 0; i < objs.length; ++i ){
+		let obj1 = objs[i];
+		let obj2 = objs[(i+1)%objs.length];
+		let obPairs = physG.constrPairs[obj1.uid.val];
+		if( obPairs ){
 
-			let pair = obPairs[pairKeys[i]];
-			let othrObj = pair.ob1;
-			if( othrObj.uid.val == obj.uid.val )
-				 othrObj = pair.ob2;
+			//remove the constraint from constrPairs[ob1.uid.val] [ob2.uid.val]
+			let ob1Ob2Constrs = obPairs[obj2.uid.val];
+			let ob1Ob2Constr = ob1Ob2Constrs[ cnstrId ];
+			delete( ob1Ob2Constrs[cnstrId] );
 
-			PHYSGRPH_removeFromOthrObjPairs( 
-				physG.constrPairs[othrObj.uid.val], obj.uid.val );
+			//remove it from time sorted
+			let timeSortedPairs = obPairs['timeSorted'];
+			for( let i = 0; i < timeSortedPairs.length; ++i ){
+				let timeSortedPair = timeSortedPairs[i];
+				if( timeSortedPair.cnstrId == cnstrId ){
+					timeSortedPairs.splice(i,1);
+					i -= 1;
+					constraintRemoved = true;
+				}
+			}
 
 		}
-
-		//remove all pairs for this object now that
-		//pairs with it have been removed from other objects in the physGraph
-		delete(physG.constrPairs[obj.uid.val]);
 	}
+
+	return constraintRemoved;
 
 }
 
@@ -250,7 +244,7 @@ function PHYSGRPH_AddConstraint( physG, constrPair ){
 		}
 
 		if( constraintAdded )
-			physG.totalConstrints += 1;
+			physG.totalConstraints += 1;
 
 	}
 	else{ //field type interaction (between physObj and treeNode) PHYS_PRESSURE, PHYS_ELECTROSTATIC, PHYS_MAGNETIC, PHYS_RADIATIVE
@@ -273,28 +267,8 @@ function PHYSGRPH_SortByTime( physG ){
 }
 
 //consolidate dictionary[obj1] of dictionaries[obj2]
-function PHYSGRPH_ConsolidateGraphs( framePhysG, persistPhysG ){
+function PHYSGRPH_ConsolidateGraphs( framePhysG ){
 
-	//combine the constraint pairs from obj1 persistant physGraph into obj1's framePhysG
-	//so that in PHYSOBJ_TransferEnergy there is a unified list
-	if( persistPhysG != undefined ){
-		let persistConstrPairOtherObjectIds = Object.keys( persistPhysG.constrPairs );
-		for( let i = 0; i < persistConstrPairOtherObjectIds.length; ++i ){
-			let persistObjConstrs = persistPhysG.constrPairs[persistConstrPairOtherObjectIds[i]];
-			//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
-			let perstObjConstrIds = Object.keys(persistObjConstrs);
-			for( let j = 0; j < perstObjConstrIds.length; ++j ){
-				if(perstObjConstrIds[i] == 'timeSorted') //skip time sorted list (will be rebuilt after consolidation)
-					continue;
-				let constraints = persistObjConstrs[perstObjConstrIds[j]];
-				let constraintIds = Object.keys( constraints );
-				for( let k = 0; k < constraintIds.length; ++k ){
-					let constraint = constraints[constraintIds[k]];
-					PHYSGRPH_AddConstraint( framePhysG, constraint );
-				}
-			}
-		}
-	}
 
 	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (first checking sum of obj uids could be an optimization)
 	let graphObjIds = Object.keys( framePhysG.constrPairs );
