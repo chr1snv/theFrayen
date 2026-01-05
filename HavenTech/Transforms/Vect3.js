@@ -65,6 +65,7 @@ function Vect_CopyToFromArr(arrO, arrOIdx, arrI, arrIIdx, n){
 } 
 
 function Vect3_Add(v1, v2) { v1[0] += v2[0]; v1[1] += v2[1]; v1[2] += v2[2]; }
+function Vect_Add(v1, v2) { let leng = v1.length; for(let i = 0; i < leng; ++i){ v1[i] += v2[i]; } }
 
 function Vect3_Subtract(v1, v2) { v1[0] -= v2[0]; v1[1] -= v2[1]; v1[2] -= v2[2]; }
 function Vect3_SubFromArr(v, arr, i){ v[0] -= arr[i]; v[1] -= arr[i+1]; v[2] -= arr[i+2]; }

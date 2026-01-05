@@ -163,6 +163,7 @@ function Quat_Identity( quatRet ){
 	quatRet[3] = 1;
 }
 
+var Quat_Ident = [0,0,0,1];
 function Quat_New_Identity( ){
 	let quatRet = Quat_New();
 	Quat_Identity( quatRet );

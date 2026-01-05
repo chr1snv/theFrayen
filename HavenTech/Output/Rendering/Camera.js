@@ -97,7 +97,7 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 
 	this.cameraName = nameIn;
 	this.sceneName  = sceneNameIn; //used to fetch ipo name / sceneName
-	
+
 	this.lookAtWorldPos = null;
 
 	this.position = Vect3_CopyNew( positionIn ); //spawn position or ipoAnim position of the camera (camTranslation factors in this)

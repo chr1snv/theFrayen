@@ -151,6 +151,12 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
 			FlyingCameraControlInput(time);
+			
+			if( (sceneTime - lastInputTime) > 1.0 ){ //gradually move the camera back to the track if user isn't moving the camera
+				 Quat_Slerp( mainCam.userRotation, mainCam.userRotation, Quat_Ident, 0.1);
+				Vect3_MultiplyScalar( mainCam.userPosition, 0.9 );
+			}
+
 
 			numActiveBatches = 2;
 			break;

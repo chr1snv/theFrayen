@@ -674,7 +674,7 @@ function FlyingCameraControlInput( updateTime, camToUpdate=mainCam ){
 	if( Vect3_LengthSquared( camRotDelEuler ) > 0.000001 || 
 		Vect3_LengthSquared( camPositionUpdate ) > 0.000001 ){
 		lastInputTime = sceneTime;
-		//update the camera position / orientation text
+		//update the camera position / orientation debug text html field display
 		if( posDbgText )
 			UpdateCamTransText(camToUpdate);
 	}
