@@ -88,11 +88,30 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			break;
 		case IcemModes.Objectives:
 			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "Objectives",       false, TxtJustify.Left,   icemMenuHdgColor );
-			
+
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 			
+			let mTextIdx = 1;
+			let missionVertSpcing = -0.06;
+
+			let icemMissions = iceMObjectives.progression.missions;
+			for( let i = 0; i < icemMissions.length; ++i ){
+				let mission = icemMissions[i];
+
+				TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertSpcing*mTextIdx), 0.02,
+					0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
+				mTextIdx += 1;
+/*
+				let objectives = icemMissions[i].objectives;
+				for( let j = 0; j < objectives.length; ++j ){
+					objectives[j]
+				}
+				*/
+			}
+
 			break;
-		
+
+
 		/*
 		case IcemModes.SvrWaitingForPlayers:
 			TR_QueueText( rb2DTris, 0.0, -0.4, 0.02, 0.07, "START REGATTA", true, TxtJustify.Center, menuTxtColor);

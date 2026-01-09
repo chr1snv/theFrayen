@@ -1,8 +1,9 @@
 //# sourceURL=SceneLogic/iceMountian/icemMissions.js
 
 
+var iceMObjectives = new IceMObjectives();
 
-function iceMObjectives(){
+function IceMObjectives(){
 	this.progression = new Progression();
 
 	let newMission = new Mission();
