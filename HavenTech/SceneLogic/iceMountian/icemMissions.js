@@ -53,12 +53,12 @@ function IceMObjectives(){
 	newMission.mname = "Get to Town to save others";
 
 	newObjective = new Objective();
-	newObjective.explination = "Find Battery To Start Craft";
+	newObjective.explination = "Find Battery to Start Craft";
 	newObjective.completed = false;
 	newMission.objectives.push( newObjective );
 
 	newObjective = new Objective();
-	newObjective.explination = "Fly to Town To Repair first network Hub";
+	newObjective.explination = "Fly to Town to Repair first network Hub";
 	newObjective.completed = false;
 	newMission.objectives.push( newObjective );
 

@@ -34,8 +34,9 @@ function ICEM_sceneSpecificLoad(cmpCb){
 
 const IcemModes = {
 	Menu				: 0,
-	Gameplay			: 1,
-	Objectives			: 2
+	MenuGameplay		: 1,
+	Gameplay			: 2,
+	Objectives			: 3
 	//Leaderboard			: 2,
 	//SvrWaitingForPlayers: 3,
 	//ClntWatingForStart  : 4,
@@ -49,9 +50,10 @@ let icemMenuBgWdthHight = [ 1        , 1    ];
 let icemMenuBgMinUv     = [ 0        , 1    ];
 let icemMenuBgMaxUv     = [ 1        , 0    ];
 
-let icemMenuTxtColor = new Float32Array([0.5, 0.5, 0.8]);
-let icemMenuHdgColor = new Float32Array([0.5, 0.5, 0.5]);
-let icemLdrbTimeColor = new Float32Array([0.6, 0.5, 0.7]);
+let icemMenuTxtColor =		new Float32Array([0.5, 0.5, 0.8]);
+let icemMenuHdgColor =		new Float32Array([0.5, 0.5, 0.5]);
+let icemLdrbTimeColor = 	new Float32Array([0.6, 0.5, 0.7]);
+let icemObjCompletedColor = new Float32Array([0.6, 0.2, 0.4]);
 
 
 function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DTris_array, rb3DLines_array ){
@@ -65,19 +67,24 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 	//setup strings to draw and handle gameplay input
 	switch( icemMode ){
+
 		case IcemModes.Menu:
+		case IcemModes.MenuGameplay:
 
 			//menu heading text
-			TR_QueueText( rb2DTris,  0.0, 0.28, 0.02, 0.3, "ICE MTN", false, TxtJustify.Center );
+			TR_QueueText( rb2DTris,  0.0, 0.3, 0.02, 0.22, "ICE MTN", false, TxtJustify.Center );
 			//rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, overideColor=null
 			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "LOCAL",       false, TxtJustify.Left,   icemMenuHdgColor );
-			TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "START",       true,  TxtJustify.Center, icemMenuTxtColor );
+			if( icemMode == IcemModes.Menu )
+				TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "START",       true,  TxtJustify.Center, icemMenuTxtColor );
+			else
+				TR_QueueText( rb2DTris,  0.0,  0.05, 0.02, 0.1,  "Objectives",       true,  TxtJustify.Center, icemMenuTxtColor );
 			TR_QueueText( rb2DTris, -0.4, -0.07, 0.02, 0.07, "Multiplayer", false, TxtJustify.Left,   icemMenuHdgColor );
 			TR_QueueText( rb2DTris, -0.38, -0.2, 0.02, 0.1,  "HOST",        true,  TxtJustify.Left,   icemMenuTxtColor );
 			TR_QueueText( rb2DTris,  0.08, -0.2, 0.02, 0.1,  "CLIENT",      true,  TxtJustify.Left,   icemMenuTxtColor );
 			TR_QueueText( rb2DTris,  0.0, -0.42, 0.02, 0.1,  "LEADERBOARD", true,  TxtJustify.Center, icemMenuTxtColor );
-			
-			TR_QueueText( rb2DTris,  0.1,  0.05, 0.02, 0.1,  "Objectives",       true,  TxtJustify.Left, icemMenuTxtColor );
+
+
 
 			//menu background overlay
 			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
@@ -87,27 +94,41 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			break;
 		case IcemModes.Objectives:
-			TR_QueueText( rb2DTris, -0.4,  0.17, 0.02, 0.07, "Objectives",       false, TxtJustify.Left,   icemMenuHdgColor );
+			TR_QueueText( rb2DTris, 0.0, 0.32, 0.02, 0.2, "Objectives",       false, TxtJustify.Center,   icemMenuHdgColor );
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
-			
-			let mTextIdx = 1;
-			let missionVertSpcing = -0.06;
+
+
+			let missionVertOffset = -0.06;
 
 			let icemMissions = iceMObjectives.progression.missions;
 			for( let i = 0; i < icemMissions.length; ++i ){
 				let mission = icemMissions[i];
 
-				TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertSpcing*mTextIdx), 0.02,
+				TR_QueueText( rb2DTris, -0.45,  0.17+(missionVertOffset), 0.02,
 					0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
-				mTextIdx += 1;
-/*
+				missionVertOffset -= 0.06;
+
+
 				let objectives = icemMissions[i].objectives;
 				for( let j = 0; j < objectives.length; ++j ){
-					objectives[j]
+					let objective = objectives[j];
+					let objColor = icemMenuHdgColor;
+					if( objective.completed )
+						objColor = icemObjCompletedColor;
+					TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertOffset), 0.02,
+						0.04, objective.explination,       false, TxtJustify.Left,   objColor );
+					missionVertOffset -= 0.04;
 				}
-				*/
+				missionVertOffset -= 0.04;
+
 			}
+
+			//menu background overlay
+			TRI_G_prepareScreenSpaceTexturedQuad(graphics.triGraphics, rb2DTris, 
+					'menuBg0.png', 'sailDefault',
+					icemMenuBgCenPos, icemMenuBgWdthHight,
+					icemMenuBgMinUv, icemMenuBgMaxUv, 0.01 );
 
 			break;
 
@@ -177,6 +198,36 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			}
 
 
+
+
+			/*
+			let missionVertOffset = -0.06;
+
+			let icemMissions = iceMObjectives.progression.missions;
+			for( let i = 0; i < icemMissions.length; ++i ){
+				let mission = icemMissions[i];
+
+				TR_QueueText( rb2DTris, -0.45,  0.17+(missionVertOffset), 0.02,
+					0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
+				missionVertOffset -= 0.06;
+
+
+				let objectives = icemMissions[i].objectives;
+				for( let j = 0; j < objectives.length; ++j ){
+					let objective = objectives[j];
+					let objColor = icemMenuHdgColor;
+					if( objective.completed )
+						continue;
+
+					TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertOffset), 0.02,
+						0.04, objective.explination,       false, TxtJustify.Left,   objColor );
+					missionVertOffset -= 0.04;
+				}
+				missionVertOffset -= 0.04;
+
+			}
+			*/
+
 			numActiveBatches = 2;
 			break;
 
@@ -215,6 +266,7 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 		for( let i = 0; i < numMOvrdStrs; ++i ){
 			switch( icemMode ){
 				case IcemModes.Menu:
+				case IcemModes.MenuGameplay:
 
 					if( mOvrdStrs[i] == "START" ){
 						icemMode = IcemModes.Gameplay;
@@ -259,10 +311,10 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 				case IcemModes.NetworkGameplay:
 				case IcemModes.Gameplay:
 					if( mOvrdStrs[i] == ":Gear:" )
-						icemMode = IcemModes.Menu;
+						icemMode = IcemModes.MenuGameplay;
 					if( (mDown && mDownCoords.x < 40 && mDownCoords.y < 40) ||
 						(touchMDown && mCoords.x < 40 && mCoords.y < 40) )
-						icemMode = IcemModes.Menu;
+						icemMode = IcemModes.MenuGameplay;
 					break;
 				case IcemModes.Leaderboard:
 					if( mOvrdStrs[i] == "Main Menu" ){
