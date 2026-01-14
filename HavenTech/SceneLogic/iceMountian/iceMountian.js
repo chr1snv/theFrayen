@@ -98,30 +98,31 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
+			{ //draw the missions and objectives to the menu onscreen {}'s to decrease variable scope for let missionVertOffset
+				let missionVertOffset = -0.06;
 
-			let missionVertOffset = -0.06;
+				let icemMissions = iceMObjectives.progression.missions;
+				for( let i = 0; i < icemMissions.length; ++i ){
+					let mission = icemMissions[i];
 
-			let icemMissions = iceMObjectives.progression.missions;
-			for( let i = 0; i < icemMissions.length; ++i ){
-				let mission = icemMissions[i];
-
-				TR_QueueText( rb2DTris, -0.45,  0.17+(missionVertOffset), 0.02,
-					0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
-				missionVertOffset -= 0.06;
+					TR_QueueText( rb2DTris, -0.45,  0.17+(missionVertOffset), 0.02,
+						0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
+					missionVertOffset -= 0.06;
 
 
-				let objectives = icemMissions[i].objectives;
-				for( let j = 0; j < objectives.length; ++j ){
-					let objective = objectives[j];
-					let objColor = icemMenuHdgColor;
-					if( objective.completed )
-						objColor = icemObjCompletedColor;
-					TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertOffset), 0.02,
-						0.04, objective.explination,       false, TxtJustify.Left,   objColor );
+					let objectives = mission.objectives;
+					for( let j = 0; j < objectives.length; ++j ){
+						let objective = objectives[j];
+						let objColor = icemMenuHdgColor;
+						if( objective.completed )
+							objColor = icemObjCompletedColor;
+						TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertOffset), 0.02,
+							0.04, objective.explination,       false, TxtJustify.Left,   objColor );
+						missionVertOffset -= 0.04;
+					}
 					missionVertOffset -= 0.04;
-				}
-				missionVertOffset -= 0.04;
 
+				}
 			}
 
 			//menu background overlay
@@ -191,42 +192,40 @@ function ICEM_sceneSpecificUpdateAndGatherObjsToDraw( time, cam, rb2DTris, rb3DT
 			TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(), 0.87, 0.03, 0.1, ":Gear:", true );
 
 			FlyingCameraControlInput(time);
-			
+
 			if( (sceneTime - lastInputTime) > 1.0 ){ //gradually move the camera back to the track if user isn't moving the camera
 				 Quat_Slerp( mainCam.userRotation, mainCam.userRotation, Quat_Ident, 0.1);
 				Vect3_MultiplyScalar( mainCam.userPosition, 0.9 );
 			}
 
 
-
-
-			/*
+			//draw the active mission name and objective on screen
 			let missionVertOffset = -0.06;
 
 			let icemMissions = iceMObjectives.progression.missions;
-			for( let i = 0; i < icemMissions.length; ++i ){
-				let mission = icemMissions[i];
+			if( icemMissions.length > 0 ){
+				let mission = icemMissions[0];
 
-				TR_QueueText( rb2DTris, -0.45,  0.17+(missionVertOffset), 0.02,
+				TR_QueueText( rb2DTris, -0.98*graphics.GetScreenAspect(),  0.8+(missionVertOffset), 0.02,
 					0.07, mission.mname,       false, TxtJustify.Left,   icemMenuHdgColor );
 				missionVertOffset -= 0.06;
 
 
-				let objectives = icemMissions[i].objectives;
+				let objectives = mission.objectives;
 				for( let j = 0; j < objectives.length; ++j ){
 					let objective = objectives[j];
 					let objColor = icemMenuHdgColor;
 					if( objective.completed )
 						continue;
 
-					TR_QueueText( rb2DTris, -0.4,  0.17+(missionVertOffset), 0.02,
+					TR_QueueText( rb2DTris, -0.95*graphics.GetScreenAspect(),  0.8+(missionVertOffset), 0.02,
 						0.04, objective.explination,       false, TxtJustify.Left,   objColor );
 					missionVertOffset -= 0.04;
 				}
 				missionVertOffset -= 0.04;
 
 			}
-			*/
+
 
 			numActiveBatches = 2;
 			break;
