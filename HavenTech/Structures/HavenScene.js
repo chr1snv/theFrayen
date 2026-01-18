@@ -25,9 +25,10 @@
 
 
 
-function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, sceneMin, sceneMax, physNode=null ){
+function HavenScene( sceneNameIn, sceneLoadedCallback, sceneLoadedCbParams=null, createEmptyScene=false, sceneMin, sceneMax, physNode=null ){
 
 	this.sceneLoadedCallback = sceneLoadedCallback;
+	this.sceneLoadedCbParams = sceneLoadedCbParams;
 
 	this.sceneName = sceneNameIn;
 	this.isValid = false;
@@ -41,6 +42,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 	this.numLights = 0;
 	this.cameras   = [];
 	this.armatures = [];
+	this.subScns   = [];
 
 	this.pendingModelNamesToLoad = {};
 	
@@ -48,6 +50,7 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, createEmptyScene=false, s
 	this.pendingLghtsToAdd 		= 0;
 	this.pendingCamsToAdd 		= 0;
 	this.pendingArmaturesToAdd 	= 0;
+	this.pendingSubScnsToAdd	= 0;
 
 	this.pendingObjsToAdd = 0;
 
@@ -302,7 +305,7 @@ function HVNSC_checkIfIsLoaded(hvnsc){
 		//HVNSC_Update( hvnsc, 0.0 ); //init animated objs
 		hvnsc.isValid = true;
 		if( hvnsc.sceneLoadedCallback )
-			hvnsc.sceneLoadedCallback(hvnsc);
+			hvnsc.sceneLoadedCallback(hvnsc, hvnsc.sceneLoadedCbParams);
 	}
 }
 
@@ -340,9 +343,19 @@ function HVNSC_ObjLoadedCallback(obj, hvnsc){
 		hvnsc.pendingArmaturesToAdd -= 1;
 	}else if( obj.constructor.name == Light.name ){
 		hvnsc.pendingLghtsToAdd -= 1;
+	}else if( obj.constructor.name == HavenScene.name ){
+		hvnsc.pendingSubScnsToAdd -= 1;
 	}
 	HVNSC_checkIfIsLoaded(hvnsc);
 }
+
+
+
+function HVNSC_subSceneLoadedCallback(subScn, hvnsc){
+	HVNSC_ObjLoadedCallback(subScn, hvnsc);
+}
+
+
 
 //called to read from text file models, lights, and cameras in the scene
 function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
@@ -368,17 +381,23 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	let numLghts	 = parseInt( sceneObjLghtCamCtTxt[4] );
 	let numCams		 = parseInt( sceneObjLghtCamCtTxt[6] );
 	let numArmatures = parseInt( sceneObjLghtCamCtTxt[8] );
+	let numSubScns = 0;
+	if( sceneObjLghtCamCtTxt.length > 10 )
+		numSubScns	 = parseInt( sceneObjLghtCamCtTxt[10] );
 
 	hvnsc.pendingLghtsToAdd = numLghts;
 	
+	hvnsc.pendingSubScnsToAdd = numSubScns;
+
 	hvnsc.pendingSceneFileRead = true;
 
-	hvnsc.pendingObjsToAdd = numMdls + numLghts + numCams + numArmatures + 1;
+	hvnsc.pendingObjsToAdd = numMdls + numLghts + numCams + numArmatures + numSubScns + 1;
 
 	hvnsc.cameras = new Array(numCams);
 	hvnsc.camInsertIdx = 0;
 	hvnsc.armatures = new Array(numArmatures);
 	hvnsc.armatureInsertIdx = 0;
+
 
 	//per obj vars while parsing
 	let scneObjName			= '';
@@ -408,6 +427,21 @@ function HVNSC_parseSceneTextFile( hvnsc, textFileLines )
 	{
 		//statusElm.innerHTML = "Scn Lines " + (i+1) + "/" + txtNumLines;
 		let txtLineParts = textFileLines[i].split( ' ' );
+
+
+		if(txtLineParts[0] == 's' ){ 
+			//this is a scene to be appended to the scene at the given 
+			//location, rotation, scale (usually a character model or vehicle with multiple armatures, models, lights)
+			//to be positioned and enabled / disabled for rendering as a group
+			scneObjName = txtLineParts[1];
+			for( ; i < txtNumLines; ++i ){
+				let txtLineParts = textFileLines[i].split( ' ' );
+				if( txtLineParts[0] == 'sEnd' ){
+					hvnsc.subScns.push( new HavenScene(scneObjName, HVNSC_subSceneLoadedCallback, hvnsc) );
+					break;
+				}
+			}
+		}
 
 		if(txtLineParts[0] == 'm' ){ //this is a model to be read in 
 		//(load the model and then append it to the scenegraph)

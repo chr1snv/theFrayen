@@ -46,7 +46,7 @@ function GRPH_AddEntry(gph, gEntry){
 function GRPH_CreateSceneAndAddObjsToSceneToDrawIfNotAdded( gph, time ){
 	if ( gph.havenScene == null ){
 		let cubeDim = 20;
-		gph.havenScene = new HavenScene(gph.name, null, true, [-cubeDim,-cubeDim,-cubeDim], [cubeDim,cubeDim,cubeDim], new PhysNode() );
+		gph.havenScene = new HavenScene(gph.name, null, null, true, [-cubeDim,-cubeDim,-cubeDim], [cubeDim,cubeDim,cubeDim], new PhysNode() );
 		gph.havenScene.octTree.physNode.gravAccelVec[1] *= 0.1;
 	}
 
