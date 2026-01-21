@@ -354,6 +354,9 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 	for( let i = 0; i < mdlKeys.length; ++i ){
 		let mdlUid = mdlKeys[i];
 		let mdl = rastBatch.mdls[mdlUid];
+		if(mdl.isHavenScene){
+			continue;
+		}
 		let qm = mdl.quadmesh;
 		for( let matID = 0; matID < mdl.materials.length; ++matID ){
 			let material = mdl.materials[matID];
@@ -381,6 +384,11 @@ function RastB_PrepareBatchToDraw( rastBatch ){
 	for( let i = 0; i < mdlKeys.length; ++i ){
 		let mdlUid = mdlKeys[i];
 		let mdl = rastBatch.mdls[mdlUid];
+
+		if(mdl.isHavenScene){
+			continue;
+		}
+
 		let qm = mdl.quadmesh;
 		
 		//for each model in view

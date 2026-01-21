@@ -44,6 +44,8 @@ function HavenScene( sceneNameIn, sceneLoadedCallback, sceneLoadedCbParams=null,
 	this.armatures = [];
 	this.subScns   = [];
 
+	this.uid       = NewUID();
+
 	this.pendingModelNamesToLoad = {};
 	
 	this.pendingModelsToAdd		= 0;
@@ -345,6 +347,11 @@ function HVNSC_ObjLoadedCallback(obj, hvnsc){
 		hvnsc.pendingLghtsToAdd -= 1;
 	}else if( obj.constructor.name == HavenScene.name ){
 		hvnsc.pendingSubScnsToAdd -= 1;
+		obj.modelName = obj.sceneName;
+		obj.isHavenScene = true;
+		obj.treeNodes = {};
+		obj.AABB = obj.octTree.AABB;
+		HVNSC_FinishAddingLoadedModelToScene(hvnsc, obj);
 	}
 	HVNSC_checkIfIsLoaded(hvnsc);
 }
