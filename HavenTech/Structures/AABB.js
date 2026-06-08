@@ -123,6 +123,19 @@ function AABB_othrObRangeOverlapPct( Am, AM, bm, bM ){
 		return 0;
 }
 
+function AABBFromCenterRadius( cen, radiusLength ){
+	this.center   = cen;
+	this.diag     = Vect3_NewAllOnes();
+	Vect3_MultiplyScalar( this.diag, radiusLength );
+	this.diagLen  = radiusLength;
+	
+	this.minCoord = Vect3_CopyNew(this.center);
+	this.maxCoord = Vect3_CopyNew(this.center);
+	
+	Vect3_Subtract( this.minCoord, this.diag );
+	Vect3_Add( this.maxCoord, this.diag );
+}
+
 function AABB( minCorner, maxCorner ){
 	
 	this.minCoord = Vect3_NewZero();

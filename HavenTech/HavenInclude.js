@@ -30,6 +30,7 @@ var incFiles = ['DPrintf.js',
 				'webgl-utils.js',
 				'webgl-debug.js',
 
+
 				'Structures/Light.js',
 				'Output/Rendering/Camera.js',
 				'Structures/Frustum.js',
@@ -62,11 +63,17 @@ var incFiles = ['DPrintf.js',
 				'Structures/TriText.js',
 
 				'Output/Rendering/Overlay.js',
+				
 
 				'Input/SwitchAndOptical/HavenInputHandlers.js',
 				'Input/CapacitiveAndGFieldSensing/TouchScreenControls.js',
 				'Input/CapacitiveAndGFieldSensing/InertialSensors.js',
-				//'CameraStream.js',
+
+				//'CameraStream.js',				
+				
+				//'Transforms/AI/aiIO.js',///AI_Input_Routing.js',
+				//'Transforms/LTN.js',
+				'Structures/CognitiveBayesianNeuroSymbolicNode.js',
 
 
 				'HavenMain.js',

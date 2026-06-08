@@ -1,14 +1,21 @@
 //# sourceURL=Structures/PhysObj.js
 const RESTING_VEL = 0.1;
 
-function PhysObj(AABB, obj, time){
+function PhysObj(AABB, obj, time, physStatus=0){
 	this.uid = NewUID();
+
 
 	this.obj = obj; //the parent object added to the oct tree
 
+
 	this.AABB = AABB; //alias to parent's aabb for position
 
-	this.physStatus = 0; //0-kinematic, 1-static contact with other object, 2-fixed (immutable object)
+	//how to update the properties of the object
+	//0-kinematic (moves in response to forces)
+	//1-static contact with other object
+	//2-fixed (immutable object (not affected by outside forces, though can apply them to others) )
+	//3-immutable point source like object (has no collider, 
+	this.physStatus = 0;
 
 	//physics simulation state and constants
 	this.lastDetectTime = time;
@@ -22,9 +29,13 @@ function PhysObj(AABB, obj, time){
 	this.linAccel = Vect3_NewZero();
 	this.linVel = Vect3_NewZero(); //meters/sec
 	this.rotVelQuat = Quat_New_Identity( ); //x,y,z axis, radian rotation / sec
-	this.mass = 1; //kg
+	this.mass = 1; //kg (affects momentum, also generation of gravity field)
 
 	this.linearMomentum = Vect3_NewZero();
+
+
+	this.electrostaticCharge = 0; //surplus/difficency of electrons / ionic charge
+	this.magneticPolarization = Vect_NewZero(4); //magnetic north in object frame of reference and intensity
 
 	this.specificHeatCapac = 4.2; // kj/k/degK (liquid water)
 	this.degC = 21; //"room temperature is considered to be between 20 to 25 degrees celcius
@@ -51,7 +62,7 @@ function PhysObj(AABB, obj, time){
 	this.resting = false;
 
 	//if an object is inside another, it should be continuously moved towards the
-	//surface
+	//surface where the collision occured
 	this.penVec = Vect3_NewZero();
 	this.penObj = undefined;
 
@@ -59,8 +70,20 @@ function PhysObj(AABB, obj, time){
 	//(0-kinetic/static colision, 1-spring/rope, 2-electrostatic, 3-magnetic, 4-radiative)
 	this.framePhysGraph = undefined; 
 	this.radius = (AABB.maxCoord[0] - AABB.minCoord[0])*0.5; //spherical radius of the colider
-	this.capsule = new Capsule(this.radius, this.linVel, this.obj.origin); //sphere swept over time collision time calculator
+	this.capsule = new Capsule(this.radius, this.linVel, this.AABB.center); //sphere swept over time collision time calculator
 
+}
+
+
+function PHYSOBJ_CreateNewPointAttractor( center, mass, minRad, maxRad, time ){
+	this.center = center;
+	this.mass = mass;
+	this.minRad = minRad;
+	this.maxRad = maxRad;
+	this.lastUpdtTime = time;
+	let gravObj = new PhysObj( new AABBFromCenterRadius( center, 10 ), null, time, physStatus=3 );
+	gravObj.mass = 1000000; //1 million kg
+	return gravObj;
 }
 
 
@@ -273,7 +296,7 @@ function PHYSOBJ_LinkPhysGraphs( pObj, time ){
 
 	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (sum of obj uids could be an optimization)
 	if( !pObj.resting && pObj.framePhysGraph )
-		PHYSGRPH_ConsolidateGraphs( pObj.framePhysGraph );
+		PHYSGRPH_ConsolidateGraphs( pObj, pObj.framePhysGraph );
 
 
 	pObj.lastAggColisTime = time;
@@ -541,7 +564,7 @@ function PHYSOBJ_Update( pObj, time, treeNode){
 	if(time == pObj.lastUpdtTime) //only once per frame (avoid multiple tree node calls)
 		return;
 	let dt = time - pObj.lastUpdtTime;
-	//DTPrintf("updt linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel" );
+	DTPrintf(" uid " + pObj.uid.val + " name " + pObj.obj.modelName + " updt linvel " + pObj.linVel + " resting " + pObj.resting + " physGraph " + pObj.framePhysGraph, "linvel" );
 	//if linVel is below a threshold and obj is resting dont update position
 	if( !pObj.resting ){
 
@@ -634,7 +657,13 @@ function PhysNode(){
 	//i.e vaccum, air, water, elemental material, etc
 	//(for ray energy dissipation / participating media scattering )
 
-	this.gravAccelVec = Vect3_CopyNew( earthGravityAccel );
+	//these are like gl light sources (should limit to 8 or so affecting any one object/physNode at a time)
+	//cache of sources that may be outside this node affecting objects inside it (when position or properties of a point source change, the point source updates affected caches)
+	this.externForceSources = []; //references/links to electro static/magenetic, gravitational (mass,center and min radius) sources with sphere of influence that overlaps this node
+	//another way to do this may be to pass it in/down oct tree hierarcy in update
+	//would avoid having to update cache, though still would do many checks and pass many values down update tree recursion
+	this.gravAccelVec = Vect3_NewZero();//CopyNew( earthGravityAccel );
+
 	this.fillType    = PHYS_FILL_AIR;
 	this.relHumidity = 0.5; //for heat conduction, condensate precipiation etc
 	this.pH = 7; //also indicates oxygen/oxidizer percentage
@@ -655,6 +684,11 @@ function PhysNode(){
 	this.fuelPct = 0; //e.g. voc volativity //ex. when ph (oxygen level is high enough) and temperature or energy vectors are high enough, combustion or explosion occurs
 
 }
+
+function PHYSOBJ_AddToOrUpdatePointSourceCache( treeNd, pointSource ){
+	treeNd.physNode.externForceSources.push( pointSource );
+}
+
 
 function PHYS_ND_CopyNew( physNd ){
 	let ret = new PhysNode();

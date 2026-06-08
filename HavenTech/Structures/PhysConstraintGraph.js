@@ -137,7 +137,7 @@ function PHYSGRPH_AddConstraintAndTimeSort( physG, constrPair, ob1, ob2 ){
 
 		//used ( to calculate collision reactions ) (may also be used for something like modeling the graph as a fluid/finite element field or aggregate if there are many interconnected objects )
 		AddAggregateKineticEnergyAndMass( physG.aggregateObject, ob1.linearMomentum, ob1.mass );
-		AddUIDs( physG.uid, ob1UidVal ); //used to 
+		AddUIDs( physG.uid, ob1.uid ); //used to 
 		return constraintAdded;
 	}else{ //other constraints exist on object, check if this one is not yet added
 
@@ -254,6 +254,9 @@ function PHYSGRPH_AddConstraint( physG, constrPair ){
 	DTPrintf("total pairs " + physG.totalConstraints + " numInterpen " + physG.numInterPen, "constr msg");
 }
 
+
+//insertion sort done inside PHYSGRPH_AddConstraintAndTimeSort
+//though this is used in PHYSOBJ_ApplyFieldAffectsAndDetectCollisions
 function PHYSGRPH_SortByTime( physG ){
 	//given a list of object collisions and times
 	//sort them by time (needed for finding time of first colision)
@@ -266,9 +269,76 @@ function PHYSGRPH_SortByTime( physG ){
 	}
 }
 
-//consolidate dictionary[obj1] of dictionaries[obj2]
-function PHYSGRPH_ConsolidateGraphs( framePhysG ){
 
+
+
+//    Let G = #graphs touched, M = #constraints touched. This approach is O(M α(G) + M) ~ O(M) practically, much better than nested scans.
+
+//    collectConstraints(framePhysG) -> returns {constraints[], graphsSet}
+//    buildUnionFind(graphs, constraints) -> union-find instance
+//    assignConstraintsToReps(constraints, uf, repMap) -> applies PHYSGRPH_AddConstraint with dedupe
+//    updateObjectGraphPointers(movedConstraints, repMap)
+//    cleanupMergedGraphs(mergedReps)
+//    rebuildTimeSorted(graph)
+
+
+function PHYSGRPH_CombineGraphs(framePhysG, obj2Graph){
+	//console.log( "combine graphs " + objGraph.uid.val + " and " + framePhysG.uid.val );
+	let obj2Keys = Object.keys( obj2Graph.constrPairs );
+	let strUids = "";
+	//DTPrintf("consolidate 3", "consolidate");
+	for( let l = 0; l < obj2Keys.length; ++l ){
+		//strUids += "  " + objKeys[l] + " ";
+		let obj2ObjPairs = obj2Graph.constrPairs[obj2Keys[l]];
+		let obj2PairKeys = Object.keys( obj2ObjPairs );
+		//DTPrintf("consolidate 4", "consolidate");
+		for( let m = 0; m < obj2PairKeys.length; ++m ){
+			if(obj2PairKeys[m] == 'timeSorted')
+				continue;
+			let obj2Obj1Constrnts = obj2ObjPairs[obj2PairKeys[m]];
+				
+			//DTPrintf("consolidate 5", "consolidate");
+			let obj2obj1CnstrIds = Object.keys( obj2Obj1Constrnts );
+			for( let n = 0; n < obj2obj1CnstrIds.length; ++n ){
+				let constrnt = obj2Obj1Constrnts[obj2obj1CnstrIds[n]];
+				PHYSGRPH_AddConstraint( framePhysG, constrnt );
+				//strUids += objPair.ob1.uid.val + ":" + objPair.ob2.uid.val + ",";
+				//DTPrintf("consolidate 6", "consolidate");
+			}
+		}
+	}
+}
+
+function PHYSGRPH_checkEachConstraintIsInEachPhysObjsGraph(pObj, framePhysG, ob1ob2Constrs){
+	let ob1ob2ConstrIds = Object.keys(ob1ob2Constrs);
+	for( let k = 0; k < ob1ob2ConstrIds.length; ++k ){
+		let ob1ob2Constr = ob1ob2Constrs[ob1ob2ConstrIds[k]];
+		//check ob1 and 2 in the constraint (because could have been created with either as ob1
+		let obsInConstr = [ ob1ob2Constr.ob1, ob1ob2Constr.ob2];
+		for( let l = 0; l < obsInConstr.length; ++l ){
+			let constrOb = obsInConstr[l];
+			if( constrOb.uid.val != pObj.uid.val ){
+				if( constrOb.framePhysGraph ){
+					let obj2Graph = constrOb.framePhysGraph;
+					if( obj2Graph && obj2Graph.uid.val != framePhysG.uid.val ){
+						//need to combine colisGroupTimesAndObjs[i].obj colision group and framePhysG
+						//console.log( "combine graphs " + objGraph.uid.val + " and " + framePhysG.uid.val );
+						PHYSGRPH_CombineGraphs(framePhysG, obj2Graph);
+						constrOb.framePhysGraph = framePhysG; //ob2's graph has been consolidated with framePhysG
+						//console.log("graphs combined total pairs " + framePhysG.totalConstraints + " " + strUids );
+					}
+				}else{
+					//a constraint between ob1 ob2 wasn't added to ob2 and
+					//ob2 dosen't have a graph yet, add the graph on ob1 to ob2
+					constrOb.framePhysGraph = framePhysG;
+				}
+			}
+		}
+	}
+}
+
+//consolidate dictionary[obj1] of dictionaries[obj2]
+function PHYSGRPH_ConsolidateGraphs( pObj, framePhysG ){
 
 	//check if any object in the colision group have a colisGroup/constraintGraph with different obj uids (first checking sum of obj uids could be an optimization)
 	let graphObjIds = Object.keys( framePhysG.constrPairs );
@@ -277,50 +347,16 @@ function PHYSGRPH_ConsolidateGraphs( framePhysG ){
 			continue;
 		let obj1Constraints = framePhysG.constrPairs[graphObjIds[i]]; //objs that the key/this object interacts with
 		let obj2Ids = Object.keys( obj1Constraints );
-		for( let j = 0; j < obj2Ids.length; ++j ){
+		for( let j = 0; j < obj2Ids.length; ++j ){ // j = for each obj ob1 interacts with
 			if( obj2Ids[j] == 'timeSorted' )
 				continue;
 			//physG.constrPairs[ob1UidVal] = obConstrs = { 'timeSorted':[constrPair], ob2UidVal:{constrPair.cnstrId:constrPair}};
 			let ob1ob2Constrs = obj1Constraints[obj2Ids[j]];
-			let ob1ob2ConstrIds = Object.keys(ob1ob2Constrs);
-			for( let k = 0; k < ob1ob2ConstrIds.length; ++k ){
-				let ob1ob2Constr = ob1ob2Constrs[ob1ob2ConstrIds];
-				let ob2 = ob1ob2Constr.ob2;
-				if( ob2.framePhysGraph ){
-					let obj2Graph = ob2.framePhysGraph;
-					if( obj2Graph && obj2Graph.uid.val != framePhysG.uid.val ){
-						//need to combine colisGroupTimesAndObjs[i].obj colision group and framePhysG
-						//console.log( "combine graphs " + objGraph.uid.val + " and " + framePhysG.uid.val );
-						let obj2Keys = Object.keys( obj2Graph.constrPairs );
-						let strUids = "";
-						//DTPrintf("consolidate 3", "consolidate");
-						for( let l = 0; l < obj2Keys.length; ++l ){
-							//strUids += "  " + objKeys[l] + " ";
-							let obj2ObjIds = obj2Graph.constrPairs[obj2Keys[l]];
-							let obj2PairKeys = Object.keys( obj2ObjIds );
-							//DTPrintf("consolidate 4", "consolidate");
-							for( let m = 0; m < obj2PairKeys.length; ++m ){
-								let obj2Obj1Constrnts = obj2ObjIds[obj2PairKeys[m]];
-								if(obj2Obj1Constrnts == 'timeSorted')
-									continue;
-									
-								//DTPrintf("consolidate 5", "consolidate");
-								let obj2obj1CnstrIds = Object.keys( obj2Obj1Constrnts );
-								for( let n = 0; n < obj2obj1CnstrIds.length; ++n ){
-									let constrnt = obj2Obj1Constrnts[obj2obj1CnstrIds[n]];
-									PHYSGRPH_AddConstraint( framePhysG, constrnt );
-									//strUids += objPair.ob1.uid.val + ":" + objPair.ob2.uid.val + ",";
-									//DTPrintf("consolidate 6", "consolidate");
-								}
-							}
-						}
-						ob2.framePhysGraph = framePhysG; //ob2's graph has been consolidated with framePhysG
-						//console.log("graphs combined total pairs " + framePhysG.totalConstraints + " " + strUids );
-					}
-				}
-			}
+			PHYSGRPH_checkEachConstraintIsInEachPhysObjsGraph(pObj, framePhysG, ob1ob2Constrs);
+			
 		}
 	}
+
 }
 
 let avgInterpenNorm = Vect3_NewZero();

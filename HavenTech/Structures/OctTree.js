@@ -148,6 +148,7 @@ function TND_Update( t, time ){ //update model logic, animation and if has physO
 		let unDivRes = t.TryUnsubdivide();
 	}
 
+	return numUpdated + numUpdatedInSubNodes;
 }
 
 function TND_traceAddedTo( nd ){
@@ -198,8 +199,8 @@ function TND_GetEmptySpaceRangesForAxis( t, a ){
 		}
 		ranges.push( [ rmin, t.AABB.maxCoord[i] ] );
 	}
-	return ranges;
 
+	return ranges;
 }
 
 function TND_addToThisNode( t, nLvsMDpth, object ){

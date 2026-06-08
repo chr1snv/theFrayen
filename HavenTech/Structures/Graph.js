@@ -10,6 +10,8 @@ function GraphLink(target, type, strength){
 
 function GraphEntry(val){
 	this.val = val;
+	this.origin = [0,0,0];
+	this.color = [1,1,1,1];
 	this.links = {};
 	this.minRadius = 2; //the distance where the node will start pushing away other objects
 }
@@ -45,9 +47,19 @@ function GRPH_AddEntry(gph, gEntry){
 
 function GRPH_CreateSceneAndAddObjsToSceneToDrawIfNotAdded( gph, time ){
 	if ( gph.havenScene == null ){
-		let cubeDim = 20;
-		gph.havenScene = new HavenScene(gph.name, null, null, true, [-cubeDim,-cubeDim,-cubeDim], [cubeDim,cubeDim,cubeDim], new PhysNode() );
-		gph.havenScene.octTree.physNode.gravAccelVec[1] *= 0.1;
+		let g3DSCubeSz = 20;
+		gph.havenScene = new HavenScene(gph.name, null, null, true, [-g3DSCubeSz,-g3DSCubeSz,-g3DSCubeSz], [g3DSCubeSz,g3DSCubeSz,g3DSCubeSz], new PhysNode() );
+		
+		//generate a force that pulls graph nodes to the center of the display area
+		//center point with springs to each node
+		//or gravity
+		//or electro static/magnetic attractor
+		
+		//gph.havenScene.octTree.physNode.gravAccelVec[1] *= 0.1;
+		let graphCenGravObj = PHYSOBJ_CreateNewPointAttractor( Vect3_NewZero(),  time );
+		
+		PHYSOBJ_AddToOrUpdatePointSourceCache( gph.havenScene.octTree, graphCenGravObj );
+
 	}
 
 	//active entry is the selected node or one closest to the camera
@@ -158,7 +170,7 @@ function GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, hvnSc ){
 
 		let linkRotation = Quat_New();
 		Quat_LookAt( linkRotation, objLinkedFrom.mdl.origin, entry.mdl.origin );
-		
+
 		let btwnPosn = Vect3_CopyNew( entry.mdl.origin );
 		Vect3_Add( btwnPosn, objLinkedFrom.mdl.origin );
 		Vect3_MultiplyScalar( btwnPosn, 0.5 );
@@ -173,16 +185,25 @@ function GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, hvnSc ){
 		entry.linkMdl = linkMdl;
 
 
-		let ob1In = entry.mdl.physObj;
+		let ob1In = entry.mdl.physObj;		
 		let ob2In = objLinkedFrom.mdl.physObj;
 		if( !ob2In.framePhysGraph ){
 			ob2In.framePhysGraph = new PhysConstraintGraph(ob2In.AABB.minCoord, ob2In.AABB.maxCoord, ob2In);
 		}
+		/*
+		//doing this fixes only one object moving (though shouldn't have to do if graph consolidation is working properly)
+		if( !ob1In.framePhysGraph ){
+			ob1In.framePhysGraph = ob2In.framePhysGraph;
+		}
+		*/
 		let cnstrType = PHYS_SPRING;
-		PHYSGRPH_AddConstraint( ob2In.framePhysGraph, 
-				{ type:cnstrType, length:10, stiffness:150, damping:0.01, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl,
-			cnstrId: PHYGRPH_GenConstraintID( cnstrType, ob1In.uid.val, ob2In.uid.val ) }
-		);
+		let springConstraint = { type:cnstrType, length:10, stiffness:150, damping:0.05, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl,
+			cnstrId: PHYGRPH_GenConstraintID( cnstrType, ob1In.uid.val, ob2In.uid.val ) };
+
+		PHYSGRPH_AddConstraint( ob2In.framePhysGraph, springConstraint );
+		
+		DTPrintf("AddLink uid " + ob1In.uid.val + " name " + ob1In.obj.modelName + " updt linvel " + ob1In.linVel + " resting " + ob1In.resting + " physGraph " + ob1In.framePhysGraph, "linvel" );
+		DTPrintf("AddLink uid " + ob2In.uid.val + " name " + ob2In.obj.modelName + " updt linvel " + ob2In.linVel + " resting " + ob2In.resting + " physGraph " + ob2In.framePhysGraph, "linvel" );
 	}
 }
 
