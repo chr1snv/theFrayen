@@ -1,6 +1,8 @@
 //# sourceURL=Structures/PhysObj.js
 const RESTING_VEL = 0.1;
 
+const maxDT = 0.10;
+
 function PhysObj(AABB, obj, time, physStatus=0){
 	this.uid = NewUID();
 
@@ -232,6 +234,8 @@ function PHYSOBJ_ApplyFieldAffectsAndDetectCollisions( pObj, time, tnd ){
 		return;
 
 	let dt = time - pObj.lastUpdtTime;
+	if( dt > maxDT )
+		dt = maxDT;
 
 	//DTPrintf("externAccel linvel " + pObj.linVel + " uid " + pObj.uid.val, "linvel");
 
@@ -326,6 +330,8 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 	if( !pObj.resting ){
 		//dt is the timestep for integrating forces into and accelerations into position changes
 		let dt = time - pObj.lastUpdtTime; //time from end of last frame until end of this update interval frame
+		if( dt > maxDT )
+			dt = maxDT;
 		let constrGraph = pObj.framePhysGraph;
 		if( constrGraph ){
 
@@ -344,6 +350,8 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 					}else if( constrPair.type == PHYS_SURFCOLIS ){
 
 						dt = constrPair.time - pObj.lastUpdtTime;
+						if( dt > maxDT )
+							dt = maxDT;
 
 						let constrNormal = Vect3_CopyNew( constrPair.normal );
 						//given the ratio of kinetic energy (velocity and mass) of  pObj vs combined objects
@@ -473,6 +481,8 @@ function PHYSOBJ_CleanupAndDetectAdditionalCollisions( pObj, time, tnd){
 						if( checkedForAdditionalColisions ){
 							//time from last end of frame interaction until first interaction this frame (time when velocity is changed)
 							let dt = time - constrPair.time;
+							if( dt > maxDT )
+								dt = maxDT;
 
 							//generate list/constraintGraph  of objects collided with
 							//check other objects
@@ -564,6 +574,8 @@ function PHYSOBJ_Update( pObj, time, treeNode){
 	if(time == pObj.lastUpdtTime) //only once per frame (avoid multiple tree node calls)
 		return;
 	let dt = time - pObj.lastUpdtTime;
+	if( dt > maxDT )
+		dt = maxDT;
 	DTPrintf(" uid " + pObj.uid.val + " name " + pObj.obj.modelName + " updt linvel " + pObj.linVel + " resting " + pObj.resting + " physGraph " + pObj.framePhysGraph, "linvel" );
 	//if linVel is below a threshold and obj is resting dont update position
 	if( !pObj.resting ){
