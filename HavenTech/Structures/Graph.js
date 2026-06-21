@@ -197,7 +197,7 @@ function GRPH_AddLinkToSceneIfNotAdded( objLinkedFrom, entry, hvnSc ){
 		}
 		*/
 		let cnstrType = PHYS_SPRING;
-		let springConstraint = { type:cnstrType, length:10, stiffness:150, damping:0.05, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl,
+		let springConstraint = { type:cnstrType, length:10, stiffness:150, damping:0.15, ob1:ob1In, ob2:ob2In, sprMdl:linkMdl,
 			cnstrId: PHYGRPH_GenConstraintID( cnstrType, ob1In.uid.val, ob2In.uid.val ) };
 
 		PHYSGRPH_AddConstraint( ob2In.framePhysGraph, springConstraint );
@@ -233,7 +233,7 @@ function GRPH_Draw(gph, rastB, time){
 		let mdlName = mdl.modelName;
 		//DPrintf("mdls " + rastB.mdls[mdlIds[i]].modelName);
 		//( rb2DTris, x, y, dpth, size, str, interactive, justify=TxtJustify.Left, 
-		TR_QueueText( /*rb2DTris*/rastB, mdl.origin[0], mdl.origin[1], mdl.origin[2], 0.5, mdlName, false, TxtJustify.Center, overideColor=null, bilboard=true );
+		TR_QueueText( /*rb2DTris*/rastB, mdl.origin[0], mdl.origin[1]-1.5, mdl.origin[2], 0.5, mdlName, false, TxtJustify.Center, overideColor=null, bilboard=true );
 	}
 
 

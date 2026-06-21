@@ -203,13 +203,15 @@ function Matrix_SetTranslate(retMat, trans){
 
 let mLA_diff = Vect3_New();
 var mLA_rot = Vect3_New();
-function Matrix_LookAt( retMat, dst, src ){
+function Matrix_GetLookAtAngles( dst, src ){
 	//generates a rotation for z up text towards location dst
 	//tilting down first along the x axis, and then rotating around z
 	Vect3_Copy( mLA_diff, dst );
 	Vect3_Subtract( mLA_diff, src );
 
 	Vect3_Normal( mLA_diff );
+	
+	mLA_rot[1] = 0;
 
 	//get inclination from diff vec
 	mLA_rot[0] = Math.PI/2 - Math.asin( mLA_diff[2] );
@@ -218,9 +220,13 @@ function Matrix_LookAt( retMat, dst, src ){
 	mLA_rot[2] = (Math.PI/2)+Math.atan2( mLA_diff[1], mLA_diff[0] ); //sceneTime; //
 
 	//Matrix_SetEulerRotate(retMat, mLA_rot);
-	Matrix_SetXRot(tempRMat1, Math.PI/2);//rotVect[0]);
-	Matrix_SetZRot(tempRMat2, mLA_rot[2]);
-			Matrix_Multiply(  retMat, tempRMat2, tempRMat1 );
+	
+	//Matrix_Copy( tempRMat2, retMat );
+	//Matrix_Multiply ( retMat, tempRMat2, tempRMat1 );
+	
+	//Matrix_SetXRot(tempRMat1, Math.PI/2);//rotVect[0]);
+	//Matrix_SetZRot(tempRMat2, mLA_rot[2]);
+	//		Matrix_Multiply(  retMat, tempRMat2, tempRMat1 );
 }
 
 

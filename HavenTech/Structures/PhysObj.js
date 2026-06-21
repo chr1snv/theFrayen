@@ -424,25 +424,47 @@ function PHYSOBJ_TransferEnergyViaConstraints( pObj, time, treeNode ){
 						let actualSpringLength = Vect3_Normal( sprNormal );
 
 						let springForce = ((actualSpringLength-desiredSpringLength)/desiredSpringLength) * springConstant;
-						springForce += -springForce * springDamping;
 
-						let springAcceleration = (springForce / thisPObj.mass);
+						// 2. Calculate Damping Force based on Relative Velocity
+						// Get the relative velocity vector between the two objects
+						Vect3_Copy( aDiffLinVel, thisPObj.linVel );
+						Vect3_Subtract( aDiffLinVel, otherPObj.linVel ); // or otherPObj.linVel minus thisPObj.linVel depending on convention
+
+						// Project the relative velocity onto the spring normal (Dot Product)
+						// (Replace 'Vect3_Dot' with your engine's actual dot product function name)
+						let relVelAlongNormal = Vect3_Dot( aDiffLinVel, sprNormal ); 
+
+						// Damping force opposes the relative velocity along the normal axis
+						let dampingForce = -relVelAlongNormal * springDamping;
+
+						// 3. Combine both forces
+						let totalSpringForce = springForce + dampingForce;
+						
+
+						let springAcceleration = (totalSpringForce / thisPObj.mass);
 						let springVelMagnitudeChange = springAcceleration * dt;
 
 						Vect3_MultiplyScalar( sprNormal, springVelMagnitudeChange );
 						Vect3_Add( thisPObj.linVel, sprNormal );
 
+
+						//draw/reprsent the spring
 						let springModel = constrPair['sprMdl'];
 						
 						let sprMidPos = Vect3_CopyNew( thisPObj.obj.origin );
 						Vect3_Add( sprMidPos, otherPObj.obj.origin );
 						Vect3_MultiplyScalar( sprMidPos, 0.5 );
+						
+
+						Matrix_GetLookAtAngles( otherPObj.obj.origin , thisPObj.obj.origin );
 
 						//retMat,  scale, rot, trans
 						Matrix_SetEulerTransformation( springModel.optTransMat, 
-							[actualSpringLength,1,1],
-							[0, 0, 0],
+							[1,1,actualSpringLength],
+							[ mLA_rot[0], 0, mLA_rot[2] ],
 							sprMidPos );
+						
+						
 						springModel.optTransformUpdated = true;
 
 						//PHYSGRPH_RemoveConstraintFromGraph( constrGraph, constrPair );

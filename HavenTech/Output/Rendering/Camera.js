@@ -159,7 +159,10 @@ function Camera( nameIn, sceneNameIn, args, camReadyCallback, camReadyParameters
 			Matrix_SetQuatRotate( rotMat, rotMatRotQuatTemp );
 		}else{ //use look at position and this position for rotation
 			//assumes this.getLocation( this.camTranslation ); was called before getRotationMatrix
-			Matrix_LookAt( rotMat, this.lookAtWorldPos, this.camTranslation );
+			Matrix_LookAt( this.lookAtWorldPos, this.camTranslation );
+			Matrix_SetXRot(tempRMat1, mLA_rot[0]);//Math.PI/2);//rotVect[0]);
+			Matrix_SetZRot(tempRMat2, mLA_rot[2]);
+			Matrix_Multiply(  rotMat, tempRMat2, tempRMat1 );
 		}
 	}
 
