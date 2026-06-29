@@ -103,7 +103,7 @@ class CognitiveNode {
 		// 1. Calculate Learned Window
 		// Offset looks back, Width decides how many tokens to 'attend' to
 		const lookback = this.weights.lookBack;
-		const windowSize = this.weights.width;
+		const windowSize = this.weights.width; //If lookback=5 and width=3, it examines the last 5 tokens and takes a 3-token window.
 
 		const start = Math.max(0, currentIndex - lookback);
 		const windowTokens = tokenStream.slice(start, start + windowSize);
@@ -124,23 +124,12 @@ class CognitiveNode {
 		const bestToken = this.findHighestActivation(windowTokens, relevantInfo);
 	  
 		if (bestToken.score > this.weights.gateThreshold) {
-			var spoTriple = this.extractSPO(windowTokens, bestToken.score);
-			if( spoTriple )
-				this.addToGraph(spoTriple);
+			//var spoTriple = extractSPO(windowTokens, bestToken.score);
+			//if( spoTriple )
+			//	this.addToGraph(spoTriple);
 		}
 	}
 	
-	extractSPO(windowTokens,score) {
-		if (windowTokens.length < 3)
-			return null;
-
-		return {
-		    subject: windowTokens[0].text,
-		    predicate: windowTokens[1].text,
-		    object: windowTokens[2].text,
-		    score: score
-		};
-	}
 
 
 	addToGraph(spo) {
@@ -152,6 +141,19 @@ class CognitiveNode {
 			this.graphDB[spo.subject].push( spo );
 			console.log("add grph mem: " + spo.subject + " " + spo.predicate + " " + spo.object );
 		}
+		
+		
+		//let testEntry = new GraphEntry('testFilter');
+		//GRPH_AddEntry(micInputGraph, testEntry);
+
+
+		//create an object linking to the first one
+		//let testEntry1 = new GraphEntry('testSink');
+		//let testLink1 = new GraphLink(testEntry, 'connection', 1.0);
+		//testEntry1.links['testLink1'] = testLink1;
+		
+		
+		//micInputGraph.activeEntry = testEntry1;
 	}
 
 
@@ -179,7 +181,111 @@ class CognitiveNode {
 
 
 
+/*
+function extractSPO(text){
+
+	//let subject = null;
+	//let predicate = null;
+	//let object = null;
+	
+	const nlp = window.WinkNLP.nlp;
+	let doc = nlp.readDoc( text );
+	let tokens = doc.tokens();
+	
+
+	// Find the predicate (ROOT verb)
+	const rootToken = tokens.filter(
+		(token) => token.out('dep') === 'ROOT'
+	)[0];
+	const predicate = rootToken ? rootToken.out() : null;
+
+	// Find the subject (nsubj or nsubjpass)
+	const subjectToken = tokens.filter(
+	(token) =>
+	  token.out('dep') === 'nsubj' ||
+	  token.out('dep') === 'nsubjpass'
+	)[0];
+	const subject = subjectToken ? subjectToken.out() : null;
+
+	// Find the object (dobj or pobj)
+	const objectToken = tokens.filter(
+	(token) =>
+	  token.out('dep') === 'dobj' ||
+	  token.out('dep') === 'pobj'
+	)[0];
+	const object = objectToken ? objectToken.out() : null;
+
+	return { subject, predicate, object };
+}
+
+
+//demo test of ai parsing
+
+const result = extractSPO("the mouse was chased by the cat");
+console.log(result); // { subject: "mouse", predicate: "chased", object: "cat" }
+*/
+
 const prompt = "the User likes Javascript";
 const node = new CognitiveNode(); //default to word/window embedding vector size of 64
 node.generate(prompt);
+document.getElementById("showCognitiveBayesianNodeGraph").style.display="";
 
+
+
+//libraries to help parse subject predicate object
+//spaCy
+//MaltParser
+//wink-nlp
+//compromise.js
+
+//code based small vocabulary huristic for extracting subject predicate object
+
+/*
+
+function extractSPO(text) {
+  const tokens = text.toLowerCase().split(/\s+/);
+  const triples = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    // Find verb (predicate)
+    if (isVerb(tokens[i])) {
+      const predicate = tokens[i];
+      const subject = findSubject(tokens, i);
+      const object = findObject(tokens, i);
+
+      if (subject && predicate) {
+        triples.push({ subject, predicate, object: object || "" });
+      }
+    }
+  }
+
+  return triples;
+}
+
+function isVerb(word) {
+  const verbs = ["chased", "ate", "ran", "is", "has"];
+  return verbs.includes(word);
+}
+
+function findSubject(tokens, verbIndex) {
+  // Look left for the first noun
+  for (let i = verbIndex - 1; i >= 0; i--) {
+    if (isNoun(tokens[i])) return tokens[i];
+  }
+  return null;
+}
+
+function findObject(tokens, verbIndex) {
+  // Look right for the first noun
+  for (let i = verbIndex + 1; i < tokens.length; i++) {
+    if (isNoun(tokens[i])) return tokens[i];
+  }
+  return null;
+}
+
+function isNoun(word) {
+  const nouns = ["cat", "dog", "mouse", "restaurant"];
+  return nouns.includes(word);
+}
+
+*/

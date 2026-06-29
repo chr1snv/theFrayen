@@ -52,6 +52,10 @@
 				</tr>
 			</table>
 			<table id="settingsTable" style="display:none;">
+				<tr>
+					<td><button type="button" id="soundInputShowGraphButton" onclick="ShowSoundInputGraph(this)" style="display: none;">Show Sound Input Graph</button></td>
+					<td><button type="button" id="showCognitiveBayesianNodeGraph" onclick="ShowCognitiveBayesianNodeGraph(this)" style="display: none;">Show Cognitive Bayesian Node Graph</button></td>
+				</tr>
 
 				<tr>
 					<td>Mouse X Sensitivity</td>
@@ -151,7 +155,6 @@
 	<div id="aftrCanv">
 		<canvas id="soundCanvas" width=640px; height=480px; ></canvas>
 		<canvas id="spectInputVisCanvas" width=512px; height=512px;></canvas>
-		<button type="button" id="soundInputShowGraphButton" onclick="ShowSoundInputGraph(this)" style="display: none;">Show Sound Input Graph</button>
 	</div>
 	
 	<div id="cliId">0</div>
@@ -161,6 +164,9 @@
 <script src="commonFunctions.js"></script>
 <script src="HavenTech/NetworkCommunications/Iohelpers.js"></script>
 <script src="HavenTech/jszip.min.js"></script>
+<!--<script src="HavenTech/compromise.js"></script>-->
+<script src="HavenTech/wink-nlp-bundle.umd.js"></script>
+<!--<script src="HavenTech/tf.min.js"></script>-->
 <script>
 
 	function havenLoadCompFileViewer(){

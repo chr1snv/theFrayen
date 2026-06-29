@@ -73,6 +73,7 @@ var incFiles = ['DPrintf.js',
 				
 				//'Transforms/AI/aiIO.js',///AI_Input_Routing.js',
 				//'Transforms/LTN.js',
+				'Transforms/BufStackArcParser.js',
 				'Structures/CognitiveBayesianNeuroSymbolicNode.js',
 
 
