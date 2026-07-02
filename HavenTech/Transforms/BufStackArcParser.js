@@ -5,23 +5,117 @@
 
 
 // --- NUMERIC PART-OF-SPEECH CONSTANTS ---
+const NUMPOFSPCH  = 8;
 const POS_UNKNOWN = 0;
 const POS_NOUN    = 1;
 const POS_VERB    = 2;
 const POS_AUX     = 3; // "is", "are", "was", "been"
 const POS_ADP     = 4; // Prepositions like "by", "with"
-const POS_OTHER   = 5;
+const POS_DET     = 5; // Determiners like Track "the", "a", "an", "this"
+const POS_ADV_ADJ = 6; // Modifiers like "quickly" (ADV) or "big" (ADJ)
+const POS_OTHER   = 7; // Shifted up
+
+function POStoSTR(pos){
+	switch( pos ){
+		case 0: return "UNKOWN";
+		case 1: return "NOUN";
+		case 2: return "VERB";
+		case 3: return "AUX";
+		case 4: return "ADP";
+		case 5: return "DET";
+		case 6: return "ADV_ADJ";
+		case 7: return "OTHER";
+	}
+}
 
 // Map raw Wink-NLP string values to our hard-coded execution integer constants
+/*
+function convertWinkPosToNumeric(posStr) {
+  // Read native Wink-NLP Universal Dependency string formats directly
+  if (posStr === 'DET')   return POS_DET;     // Catches: the, a, an, this, that
+  if (posStr === 'AUX')   return POS_AUX;     // Catches: can, will, must, was, did, are...
+  if (posStr === 'ADJ'  || posStr === 'ADV')  return POS_ADV_ADJ; // Modifiers
+  if (posStr === 'NOUN' || posStr === 'PROPN' || posStr === 'PRON') return POS_NOUN;
+  if (posStr === 'VERB')  return POS_VERB;
+  if (posStr === 'ADP')   return POS_ADP;     // Prepositions like "by"
+  
+  return POS_UNKNOWN; // Fallback for punctuation (PUNCT), symbols, etc.
+}
+*/
+// Force core structural game actions to translate into true structural VERBs
+const VERB_FALLBACK_SET = new Set(["chase", "chased", "strike", "strikes", "like", "likes", "defeat", "defeats", "summon", "summons", "find", "finds"]);
+const MODAL_AUX_SET  = new Set(["can", "will", "could", "must", "should", "would", "might", "did", "does", "do"]);
+const COPULA_AUX_SET = new Set(["is", "am", "are", "was", "were", "been", "be"]);
+const DETERMINER_SET = new Set(["the", "a", "an", "this", "that"]);
+
+// A fast lookup set for common passive past-participle overrides that don't end in "-ed"
+const PASSIVE_VERB_SET = new Set(["struck", "taken", "beaten", "hidden", "slain", "thrown", "caught", "broken"]);
+
+
 function convertWinkPosToNumeric(posStr, wordStr) {
   let lowerWord = wordStr.toLowerCase();
-  // Catch passive helpers inline
-  if (lowerWord === "are" || lowerWord === "was" || lowerWord === "been" || lowerWord === "is") return POS_AUX;
+  
+  if (DETERMINER_SET.has(lowerWord)) return POS_DET;
+  if (COPULA_AUX_SET.has(lowerWord) || MODAL_AUX_SET.has(lowerWord) || posStr === 'AUX') return POS_AUX;
+  if (VERB_FALLBACK_SET.has(lowerWord) || posStr === 'VERB') return POS_VERB;
+  if (posStr === 'ADJ' || posStr === 'ADV') return POS_ADV_ADJ;
   if (posStr === 'NOUN' || posStr === 'PROPN' || posStr === 'PRON') return POS_NOUN;
-  if (posStr === 'VERB') return POS_VERB;
-  if (posStr === 'ADP') return POS_ADP; //(Prepositions like "by")
-  return POS_OTHER;
+  if (posStr === 'ADP') return POS_ADP; 
+  
+  return POS_UNKNOWN;
 }
+
+
+function hasPassiveContextInline(bufferSize, wordsArray) {
+  let lookAheadIdx = bufferSize - 2; // Step past b0
+  
+  while (lookAheadIdx >= 0) {
+    // Decode the absolute token index out of the flat buffer segment array
+    let tokenIdx = stateMemory[MEM_STK_FRM_SZ + MAX_TOKENS + lookAheadIdx];
+    
+    if (tokenPosTags[tokenIdx] === POS_VERB) {
+      let verbStr = wordsArray[tokenIdx].toLowerCase();
+      
+      // Strict structural passive identification evaluation
+      if (verbStr.endsWith("ed") || PASSIVE_VERB_SET.has(verbStr)) {
+        return 1; // Passive verb detected downstream
+      }
+    }
+    lookAheadIdx = lookAheadIdx - 1;
+  }
+  return 0; // Stays active (identity copula or basic statement layout)
+}
+
+
+// --- PRINTS GRAPH RELATIONSHIP ARCS AT SENTENCE TERMINATION ---
+function printSentenceDependencyGraph(wordsArray) {
+  let totalArcs = stateMemory[MEM_ARC_PTR];
+  let arcBase   = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
+  
+  console.log(`\n=== Final Parsed Relationship Graph (${totalArcs} Arcs) ===`);
+  
+  let a = 0;
+  while (a < totalArcs) {
+    let headIdx = stateMemory[arcBase + a];
+    let depIdx  = stateMemory[arcBase + MAX_TOKENS + a];
+    let relType = stateMemory[arcBase + (MAX_TOKENS * 2) + a];
+    
+    // Translate structural relation integer flags back into human-readable Universal Dependency tags
+    let relLabel = "dep";
+    if (relType === 4)  relLabel = "amod";
+    if (relType === 6)  relLabel = "aux";
+    if (relType === 14) relLabel = "cop";
+    if (relType === 17) relLabel = "det";
+    if (relType === 28) relLabel = "nsubj";
+    if (relType === 30) relLabel = "obj";
+    if (relType === 31) relLabel = "obl";
+
+    console.log(`Arc [${a}]:  "${wordsArray[headIdx]}" ──(${relLabel})──> "${wordsArray[depIdx]}"`);
+    a = a + 1;
+  }
+  console.log("==================================================\n");
+}
+
 
 
 // Universal Dependency Relation Enum Indices (0 to 36)
@@ -210,44 +304,47 @@ function checkpointStateRollback() {
 
 // --- PART 3: THE 75-MACRO-ACTION DECODER IMPLEMENTATION ---
 // Decoder map to process the 75 macro actions
-function executeMacroAction(actionID, s0, b0, stackSize, bufferSize, arcCount) {
-  let arcBase = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
+function executeMacroAction(actionID, wordsArray, s0, b0, stackSize, bufferSize, arcCount) {
+	let arcBase = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
 
-  if (actionID === 0) {
-    // 1. ACTION: SHIFT
-    stateMemory[MEM_STK_FRM_SZ + stackSize] = b0;
-    stateMemory[MEM_STACK_PTR] = stackSize + 1;
-    stateMemory[MEM_BUFFER_PTR] = bufferSize - 1;
-    
-    // Dynamic Passive Tracking State Check:
-    // If the element shifted to the stack is an auxiliary word, throw our operational feature bit flag
-    if (tokenPosTags[b0] === 3) {
-    	stateMemory[MEM_PASSIVE_FLG] = 1;
-    }
-  } 
-  else if (actionID >= 1 && actionID <= 37) {
-    // ACTION: LEFT_ARC (The dependency index matches actionID - 1)
-    let udRelation = actionID - 1;
-    stateMemory[arcBase + arcCount] = b0; // Parent Head
-    stateMemory[arcBase + MAX_TOKENS + arcCount] = s0; // Subject Dependent
-    stateMemory[arcBase + (MAX_TOKENS * 2) + arcCount] = udRelation; 
-    stateMemory[MEM_ARC_PTR] = arcCount + 1;
-    stateMemory[MEM_STACK_PTR] = stackSize - 1; // Pop stack element
-  } 
-  else if (actionID >= 38 && actionID <= 74) {
-    // ACTION: RIGHT_ARC  (The dependency index matches actionID - 38)
-    let udRelation = actionID - 38;
-    stateMemory[arcBase + arcCount] = s0; 
-    stateMemory[arcBase + MAX_TOKENS + arcCount] = b0; 
-    stateMemory[arcBase + (MAX_TOKENS * 2) + arcCount] = udRelation; 
-    stateMemory[MEM_ARC_PTR] = arcCount + 1;
-    
-    // Traditional Arc-Eager rule configuration specifies pushing target elements to stack
-    // Push buffer front onto stack, advance buffer pointer
-    stateMemory[MEM_STK_FRM_SZ + stackSize] = b0;
-    stateMemory[MEM_STACK_PTR] = stackSize + 1;
-    stateMemory[MEM_BUFFER_PTR] = bufferSize - 1;
-  }
+
+	if (actionID === ACT_SHIFT) { // 0
+		stateMemory[MEM_STK_FRM_SZ + stackSize] = b0;
+		stateMemory[MEM_STACK_PTR]  = stackSize + 1;
+		stateMemory[MEM_BUFFER_PTR] = bufferSize - 1;
+
+		// Clean, readable passive layer validation mapping
+		if (tokenPosTags[b0] === POS_AUX && COPULA_AUX_SET.has(wordsArray[b0].toLowerCase())) {
+			if (hasPassiveContextInline(bufferSize, wordsArray) === 1) {
+				stateMemory[MEM_PASSIVE_FLG] = 1;
+			}
+		}
+	}
+
+
+	else if (actionID >= 1 && actionID <= 37) {
+	// ACTION: LEFT_ARC (The dependency index matches actionID - 1)
+	let udRelation = actionID - 1;
+	stateMemory[arcBase + arcCount] = b0; // Parent Head
+	stateMemory[arcBase + MAX_TOKENS + arcCount] = s0; // Subject Dependent
+	stateMemory[arcBase + (MAX_TOKENS * 2) + arcCount] = udRelation; 
+	stateMemory[MEM_ARC_PTR] = arcCount + 1;
+	stateMemory[MEM_STACK_PTR] = stackSize - 1; // Pop stack element
+	} 
+	else if (actionID >= 38 && actionID <= 74) {
+	// ACTION: RIGHT_ARC  (The dependency index matches actionID - 38)
+	let udRelation = actionID - 38;
+	stateMemory[arcBase + arcCount] = s0; 
+	stateMemory[arcBase + MAX_TOKENS + arcCount] = b0; 
+	stateMemory[arcBase + (MAX_TOKENS * 2) + arcCount] = udRelation; 
+	stateMemory[MEM_ARC_PTR] = arcCount + 1;
+
+	// Traditional Arc-Eager rule configuration specifies pushing target elements to stack
+	// Push buffer front onto stack, advance buffer pointer
+	stateMemory[MEM_STK_FRM_SZ + stackSize] = b0;
+	stateMemory[MEM_STACK_PTR] = stackSize + 1;
+	stateMemory[MEM_BUFFER_PTR] = bufferSize - 1;
+	}
 }
 
 
@@ -287,6 +384,8 @@ function parseSentenceLoop(wordsArray) {
 			computeSemanticHashInline(s0_word, vecS0);
 			computeSemanticHashInline(b0_word, vecB0);
 
+	
+			//find the best of the actions to do
 			let bestActionID = 0;
 			let highestScore = -999999.0;
 		  
@@ -317,67 +416,57 @@ function parseSentenceLoop(wordsArray) {
 				}
 				actionIdx = actionIdx + 1;
 			}
+			
+			// --- VERIFICATION TRACKING INJECTS ---
+			let actionName = "SHIFT";
+			if (bestActionID >= 1 && bestActionID <= 37) actionName = "LEFT_ARC_" + (bestActionID - 1);
+			if (bestActionID >= 38 && bestActionID <= 74) actionName = "RIGHT_ARC_" + (bestActionID - 38);
 
-			// Fire action macro updates
-			executeMacroAction(bestActionID, s0, b0, stackSize, bufferSize, arcCount);
+			console.log(
+			  `S0: "${s0 !== -1 ? wordsArray[s0] : 'EMPTY'}" (${POStoSTR(s0_pos)}) | ` +
+			  `B0: "${b0 !== -1 ? wordsArray[b0] : 'EMPTY'}" (${POStoSTR(b0_pos)}) | ` +
+			  `Psv Md: ${isPassive} | FetIdx: ${stateFeatureIndex} | ` +
+			  `Ac Sel: ${actionName} (Scr: ${highestScore.toFixed(2)})`
+			);
+
+
+			// Fire best action macro updates
+			executeMacroAction(bestActionID, wordsArray, s0, b0, stackSize, bufferSize, arcCount);
 		}
 	}
+	
+	// --- PLACE THIS IMMEDIATELY AFTER YOUR MAIN RUN===1 LOOP CLOSING BRACE ---
+	let stackSize = stateMemory[MEM_STACK_PTR];
+	let arcCount  = stateMemory[MEM_ARC_PTR];
+	let arcBase   = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
+
+	// Optimized structural clean-up for copula remnants sitting on the stack
+	if (stackSize >= 3) {
+		// Pull absolute word tokens out of the top three stack frame frames
+		let topWordIdx = stateMemory[MEM_STK_FRM_SZ + stackSize - 1]; // "mouse"
+		let midWordIdx = stateMemory[MEM_STK_FRM_SZ + stackSize - 2]; // "is"
+		let botWordIdx = stateMemory[MEM_STK_FRM_SZ + stackSize - 3]; // "user"
+
+		// Verify structural syntax format: NOUN ("user") -> AUX ("is") -> NOUN ("mouse")
+		if (tokenPosTags[botWordIdx] === POS_NOUN && tokenPosTags[midWordIdx] === POS_AUX && tokenPosTags[topWordIdx] === POS_NOUN) {
+
+			// Draw the final missing nominal subject arc relation (mouse -> user: Label 28)
+			stateMemory[arcBase + arcCount] = topWordIdx; // Head ("mouse")
+			stateMemory[arcBase + MAX_TOKENS + arcCount] = botWordIdx; // Dependent ("user")
+			stateMemory[arcBase + (MAX_TOKENS * 2) + arcCount] = 28; // UD_NSUBJ
+
+			stateMemory[MEM_ARC_PTR] = arcCount + 1;
+		}
+	}
+
+
 }
 
 
 
 
 
-// Trains or fills your model matrix by comparing state scores using a learning rate
-// THE WEIGHT MATRIX UPDATE SYSTEM
-function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRate) {
-  // Generate word semantic arrays inline
-  computeSemanticHashInline(wordS0, vecS0);
-  computeSemanticHashInline(wordB0, vecB0);
-  
-  // 1. Predict current best action using dot product evaluation
-  let bestActionID = 0;
-  let highestScore = -999999.0;
-  
-  let actionIdx = 0;
-  while (actionIdx < NUM_ACTIONS) {
-    let score = 0.0;
-    let dimIdx = 0;
-    
-    // Offset inside the massive flat multiModalWeights block
-    let baseOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      // Evaluate combined feature score weight matrices
-      score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
-      dimIdx = dimIdx + 1;
-    }
-    
-    if (score > highestScore) {
-      highestScore = score;
-      bestActionID = actionIdx;
-    }
-    actionIdx = actionIdx + 1;
-  }
-  
-  // 2. Adjust weights inline if prediction is incorrect
-  if (bestActionID !== goldActionID) {
-    let dimIdx = 0;
-    let correctOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (goldActionID * TOKEN_VEC_DIM);
-    let wrongOffset   = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (bestActionID * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      let featureValue = vecS0[dimIdx] + vecB0[dimIdx];
-      // Reward the features of the correct structural action choice
-      multiModalWeights[correctOffset + dimIdx] += learningRate * featureValue;
-      // Penalize the features of the incorrect choice
-      multiModalWeights[wrongOffset + dimIdx]   -= learningRate * featureValue;
-      dimIdx = dimIdx + 1;
-    }
-    return 0; //Signifies an error occured (misclassification)
-  }
-  return 1; //Signifies a perfect prediction
-}
+
 
 // --- PART 5: HIGH LEVEL PRODUCTION GRAPH INGEST STRIP ---
 // --- 3. HIGH-LEVEL KNOWLEDGE GRAPH EXTRACTION BRIDGE ---
@@ -394,12 +483,15 @@ function extractSPO(text, winkNlpInstance) {
   for (let i = 0; i < numTokens; i += 1) {
 	let posStr = posArray[i];
 	let wordStr = wordsArray[i];
-	tokenPosTags[i] = convertWinkPosToNumeric(posStr, wordStr)
+	tokenPosTags[i] = convertWinkPosToNumeric(posStr, wordStr);
   }
 
   // Bind and run our linear zero-allocation parsing state machine loop
   initParserState(numTokens);
   parseSentenceLoop(wordsArray);
+  
+  // Execute the call to log outputs to your devtools workspace
+	printSentenceDependencyGraph(wordsArray);
 
   // Read raw structural results directly out of the flat Arc memory segment
   let totalArcs = stateMemory[MEM_ARC_PTR];
@@ -417,12 +509,13 @@ function extractSPO(text, winkNlpInstance) {
 
     // Map structural dependency arcs back to human-readable strings
     if (relType === UD_NSUBJ) {
-      subject = wordsArray[depIdx];
-      predicate = wordsArray[headIdx];
+    	subject = wordsArray[depIdx];
+		predicate = wordsArray[headIdx];
     } 
     else if (relType === UD_OBJ) {
       object = wordsArray[depIdx];
     }
+    
     a = a + 1;
   }
 
@@ -438,194 +531,11 @@ function extractSPO(text, winkNlpInstance) {
 
 
 
-// THE WEIGHT MATRIX UPDATE SYSTEM
-function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRate) {
-  computeSemanticHashInline(wordS0, vecS0);
-  computeSemanticHashInline(wordB0, vecB0);
-  
-  let bestActionID = 0;
-  let highestScore = -999999.0;
-  
-  let actionIdx = 0;
-  while (actionIdx < NUM_ACTIONS) {
-    let score = 0.0;
-    let dimIdx = 0;
-    let baseOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
-      dimIdx = dimIdx + 1;
-    }
-    
-    if (score > highestScore) {
-      highestScore = score;
-      bestActionID = actionIdx;
-    }
-    actionIdx = actionIdx + 1;
-  }
-  
-  // Perceptron learning adjustment rule if the parser chooses poorly
-  if (bestActionID !== goldActionID) {
-    let dimIdx = 0;
-    let correctOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (goldActionID * TOKEN_VEC_DIM);
-    let wrongOffset   = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (bestActionID * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      let featureValue = vecS0[dimIdx] + vecB0[dimIdx];
-      multiModalWeights[correctOffset + dimIdx] += learningRate * featureValue;
-      multiModalWeights[wrongOffset + dimIdx]   -= learningRate * featureValue;
-      dimIdx = dimIdx + 1;
-    }
-    return 0; // Signifies an error occurred (misclassification)
-  }
-  return 1; // Signifies a perfect prediction
-}
-
-// AUTOMATED DATA LOOPER UTILITY
-function runAutomatedTraining(dataset, epochs, baseLearningRate) {
-  console.log(`Starting context-fused training loop: ${epochs} epochs...`);
-  
-  let epoch = 0;
-  while (epoch < epochs) {
-    let totalSteps = 0;
-    let correctSteps = 0;
-    
-    // Decay learning rate over time to stabilize final network weights
-    let learningRate = baseLearningRate / (1.0 + (epoch * 0.1));
-    
-    let itemIdx = 0;
-    while (itemIdx < dataset.length) {
-      let sentenceData = dataset[itemIdx];
-      let tokens = sentenceData.tokens;
-      let posTags = sentenceData.posTags;
-      let recipe = sentenceData.goldRecipe;
-      
-      let stepIdx = 0;
-      while (stepIdx < recipe.length) {
-        let step = recipe[stepIdx];
-        
-        let s0_word = (step.s0_idx === -1) ? "" : tokens[step.s0_idx];
-        let b0_word = (step.b0_idx === -1) ? "" : tokens[step.b0_idx];
-        
-        let s0_pos = (step.s0_idx === -1) ? 0 : posTags[step.s0_idx];
-        let b0_pos = (step.b0_idx === -1) ? 0 : posTags[step.b0_idx];
-        
-        // CONTEXT FUSION: Mix POS codes with the operational state flag
-        // Uses a bitwise shift to keep active vs passive contexts completely isolated
-        let stateFeatureIndex = (s0_pos * 6) + b0_pos;
-        if (step.isPassiveContext === 1) {
-          stateFeatureIndex += 36; // Shift to completely separate memory rows if passive
-        }
-        
-        let result = trainStep(stateFeatureIndex, step.actionID, s0_word, b0_word, learningRate);
-        
-        correctSteps = correctSteps + result;
-        totalSteps = totalSteps + 1;
-        stepIdx = stepIdx + 1;
-      }
-      itemIdx = itemIdx + 1;
-    }
-    
-    let accuracy = (correctSteps / totalSteps) * 100;
-    console.log(`Epoch ${epoch + 1}/${epochs} -> Dynamic Training Accuracy: ${accuracy.toFixed(2)}%`);
-    
-    if (accuracy === 100.0) {
-      console.log(`Perfect 100% Convergence reached at Epoch ${epoch + 1}!`);
-      break;
-    }
-    epoch = epoch + 1;
-  }
-  return multiModalWeights;
-}
-
-
-
-// Automated utility to build your raw data objects using a Wink-NLP instance
-function prepareTrainingItem(text, goldRecipe, winkNlpInstance) {
-  const doc = winkNlpInstance.readDoc(text);
-  const tokens = doc.tokens().out(winkNlpInstance.its.value);
-  const posStrings = doc.tokens().out(winkNlpInstance.its.pos);
-  
-  let posTags = new Int32Array(tokens.length);
-  let i = 0;
-  while (i < tokens.length) {
-    posTags[i] = convertWinkPosToNumeric(posStrings[i], tokens[i]);
-    i = i + 1;
-  }
-  
-  return {
-    tokens: tokens,
-    posTags: posTags,
-    goldRecipe: goldRecipe
-  };
-}
-
-// --- DEFINE RECIPES TRACKING PASSIVE ENVIRONMENT FLAGS ---
-// Action 0 = Shift, Action 29 = Left-Arc(nsubj), Action 68 = Right-Arc(obj)
-const activeRecipe = [
-  { s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 },  // Shift "Cats"
-  { s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 29 }, // Left-Arc Subject
-  { s0_idx: -1, b0_idx: 1, isPassiveContext: 0, actionID: 0 },  // Shift "chase"
-  { s0_idx: 1,  b0_idx: 2, isPassiveContext: 0, actionID: 68 }  // Right-Arc Object
-];
-
-const passiveRecipe = [
-  { s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 },  // Shift "Mice"
-  { s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 0 },  // Shift "are" (Live runtime flips flag AFTER this step)
-  { s0_idx: 1,  b0_idx: 2, isPassiveContext: 1, actionID: 0 },  // Shift "chased"
-  { s0_idx: 2,  b0_idx: 3, isPassiveContext: 1, actionID: 0 },  // Shift "by"
-  { s0_idx: 3,  b0_idx: 4, isPassiveContext: 1, actionID: 29 }  // Left-Arc structural subject
-];
-
-// Initialize and execute the automated setup
-const wink = window.WinkNLP.nlp;
-const trainingDataset = [
-  prepareTrainingItem("Cats chase mice", activeRecipe, wink),
-  prepareTrainingItem("Mice are chased by cats", passiveRecipe, wink)
-];
-
-// Execute with an optimal baseline learning rate
-// RUN THE EXECUTION METHOD ON SEED INGESTION
-const finalTrainedMatrix = runAutomatedTraining(trainingDataset, 40, 0.2);
-
-
-
-
-function downloadWeightsFile(weightsArray) {
-  // Convert our Float32 representation to a raw downloadable browser binary chunk
-  const blob = new Blob([weightsArray.buffer], { type: 'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'textPOSpchToGraphWeights.bin'; // Weighs exactly 76,800 bytes!
-  link.click();
-}
-
-// Call this to generate your client asset file
-downloadWeightsFile(finalTrainedMatrix);
-
-
-async function loadWeightsIntoGameMemory(engineWeightsTablePointer) {
-  const response = await fetch('/TextPOSpchToGraph/textPOSpchToGraphWeights.bin');
-  const buffer = await response.arrayBuffer();
-  
-  // Copy raw binary asset directly into your pre-allocated array memory layer
-  let loadedWeightsView = new Float32Array(buffer);
-  engineWeightsTablePointer.set(loadedWeightsView);
-  console.log("Semantic Parser Weights loaded into system memory context.");
-}
 
 
 
 
 
-//test case
-
-// Run pipeline
-let bufStackArcSPOResult = extractSPO("Cats chase mice", window.WinkNLP.nlp);
-console.log("Knowledge Graph Triple:", bufStackArcSPOResult);
-// Output will structure cleanly into: { subject: "Cats", predicate: "chase", object: "mice" }
 
 
 /*
