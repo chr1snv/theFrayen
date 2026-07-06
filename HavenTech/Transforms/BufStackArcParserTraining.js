@@ -21,7 +21,7 @@ function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRa
     let baseOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
     
     while (dimIdx < TOKEN_VEC_DIM) {
-      // Evaluate combined feature score weight matrices
+	  // Evaluate combined feature score weight matrices
       score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
       dimIdx = dimIdx + 1;
     }
@@ -34,6 +34,7 @@ function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRa
   }
   
   // 2. Adjust weights inline if prediction is incorrect
+  // Perceptron learning adjustment rule if the parser chooses poorly
   if (bestActionID !== goldActionID) {
     let dimIdx = 0;
     let correctOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (goldActionID * TOKEN_VEC_DIM);
@@ -44,51 +45,6 @@ function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRa
       // Reward the features of the correct structural action choice
       multiModalWeights[correctOffset + dimIdx] += learningRate * featureValue;
       // Penalize the features of the incorrect choice
-      multiModalWeights[wrongOffset + dimIdx]   -= learningRate * featureValue;
-      dimIdx = dimIdx + 1;
-    }
-    return 0; //Signifies an error occured (misclassification)
-  }
-  return 1; //Signifies a perfect prediction
-}
-
-
-
-// THE WEIGHT MATRIX UPDATE SYSTEM
-function trainStep(posCombinationIndex, goldActionID, wordS0, wordB0, learningRate) {
-  computeSemanticHashInline(wordS0, vecS0);
-  computeSemanticHashInline(wordB0, vecB0);
-  
-  let bestActionID = 0;
-  let highestScore = -999999.0;
-  
-  let actionIdx = 0;
-  while (actionIdx < NUM_ACTIONS) {
-    let score = 0.0;
-    let dimIdx = 0;
-    let baseOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
-      dimIdx = dimIdx + 1;
-    }
-    
-    if (score > highestScore) {
-      highestScore = score;
-      bestActionID = actionIdx;
-    }
-    actionIdx = actionIdx + 1;
-  }
-  
-  // Perceptron learning adjustment rule if the parser chooses poorly
-  if (bestActionID !== goldActionID) {
-    let dimIdx = 0;
-    let correctOffset = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (goldActionID * TOKEN_VEC_DIM);
-    let wrongOffset   = (posCombinationIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (bestActionID * TOKEN_VEC_DIM);
-    
-    while (dimIdx < TOKEN_VEC_DIM) {
-      let featureValue = vecS0[dimIdx] + vecB0[dimIdx];
-      multiModalWeights[correctOffset + dimIdx] += learningRate * featureValue;
       multiModalWeights[wrongOffset + dimIdx]   -= learningRate * featureValue;
       dimIdx = dimIdx + 1;
     }
@@ -162,29 +118,6 @@ function runAutomatedTraining(dataset, epochs, baseLearningRate) {
 
 
 
-
-// --- ACTION ID MATRIX OFFSETS ---
-// Formula for Left-Arc:  1  + UD_CONSTANT
-// Formula for Right-Arc: 38 + UD_CONSTANT
-const ACT_SHIFT     = 0;
-const ACT_L_NSUBJ   = 1  + 28; // 29
-const ACT_R_OBJ     = 38 + 30; // 68
-const ACT_L_DET     = 1  + 17; // 18
-const ACT_R_DET     = 38 + 17; // 55
-const ACT_L_AMOD    = 1  + 4;  // 5
-const ACT_R_ADVMOD  = 38 + 3;  // 41
-const ACT_L_AUX     = 1  + 6;  // 7
-const ACT_R_OBL     = 38 + 31; // 69
-const ACT_R_COP    = 38 + 14; // Right-Arc Copula relation (UD_COP = 14 -> 38 + 14 = 52)
-const ACT_R_NSUBJ  = 38 + 28; // Right-Arc Nominal Subject variant (38 + 28 = 66)
-const ACT_R_NMOD   = 38 + 27; // Right-Arc Noun Modifier (UD_NMOD = 27 -> 38 + 27 = 65)
-const ACT_R_CASE   = 38 + 8;  // Right-Arc Case Marking (UD_CASE = 8 -> 38 + 8 = 46)
-const ACT_L_ADVMOD = 1  + 3;  // Left-Arc Adverbial Modifier (UD_ADVMOD = 3 -> 1 + 3 = 4)
-
-
-
-
-
 // Automated utility to build your raw data objects using a Wink-NLP instance
 function prepareTrainingItem(text, goldRecipe, winkNlpInstance) {
   const doc = winkNlpInstance.readDoc(text);
@@ -206,259 +139,142 @@ function prepareTrainingItem(text, goldRecipe, winkNlpInstance) {
 }
 
 
-/*
-// --- DEFINE RECIPES TRACKING PASSIVE ENVIRONMENT FLAGS ---
-// Action 0 = Shift, Action 29 = Left-Arc(nsubj), Action 68 = Right-Arc(obj)
-const activeRecipe = [
-  { s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 },  // Shift "Cats"
-  { s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 29 }, // Left-Arc Subject
-  { s0_idx: -1, b0_idx: 1, isPassiveContext: 0, actionID: 0 },  // Shift "chase"
-  { s0_idx: 1,  b0_idx: 2, isPassiveContext: 0, actionID: 68 }  // Right-Arc Object
-];
-
-const passiveRecipe = [
-  { s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 },  // Shift "Mice"
-  { s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 0 },  // Shift "are" (Live runtime flips flag AFTER this step)
-  { s0_idx: 1,  b0_idx: 2, isPassiveContext: 1, actionID: 0 },  // Shift "chased"
-  { s0_idx: 2,  b0_idx: 3, isPassiveContext: 1, actionID: 0 },  // Shift "by"
-  { s0_idx: 3,  b0_idx: 4, isPassiveContext: 1, actionID: 29 }  // Left-Arc structural subject
-];
-
-// Initialize and execute the automated setup
-const wink = window.WinkNLP.nlp;
-const trainingDataset = [
-  prepareTrainingItem("Cats chase mice", activeRecipe, wink),
-  prepareTrainingItem("Mice are chased by cats", passiveRecipe, wink)
-];
-
-// Execute with an optimal baseline learning rate
-// RUN THE EXECUTION METHOD ON SEED INGESTION
-const finalTrainedMatrix = runAutomatedTraining(trainingDataset, 40, 0.2);
-
-
-
-
-
-// Synthesizes a perfect gold transition step array from simple structural parts
-function generateSyntheticGoldRecipe(subjectWord, verbWord, objectWord, isPassiveVoice) {
-  let recipe = [];
-  
-  if (!isPassiveVoice) {
-    // Layout sequence: [Subject, Verb, Object] -> e.g., "The player holds an item"
-    // (Assuming simple 3-word core patterns for rapid perceptron weight generation)
-    recipe.push({ s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 });  // Shift Subject
-    recipe.push({ s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 29 }); // Left-Arc Subject (UD_NSUBJ = 28 -> 1 + 28)
-    recipe.push({ s0_idx: -1, b0_idx: 1, isPassiveContext: 0, actionID: 0 });  // Shift Verb
-    recipe.push({ s0_idx: 1,  b0_idx: 2, isPassiveContext: 0, actionID: 68 }); // Right-Arc Object (UD_OBJ = 30 -> 38 + 30)
-  } else {
-    // Layout sequence: [Object, Auxiliary, Verb, Preposition, Subject] -> "The chest was opened by the player"
-    recipe.push({ s0_idx: -1, b0_idx: 0, isPassiveContext: 0, actionID: 0 });  // Shift Object
-    recipe.push({ s0_idx: 0,  b0_idx: 1, isPassiveContext: 0, actionID: 0 });  // Shift Aux ("was") -> Runtime flips passive bit
-    recipe.push({ s0_idx: 1,  b0_idx: 2, isPassiveContext: 1, actionID: 0 });  // Shift Verb ("opened")
-    recipe.push({ s0_idx: 2,  b0_idx: 3, isPassiveContext: 1, actionID: 0 });  // Shift Prep ("by")
-    recipe.push({ s0_idx: 3,  b0_idx: 4, isPassiveContext: 1, actionID: 29 }); // Left-Arc true Subject back to Verb
-  }
-  
-  return recipe;
-}
-
-
-// Upgraded synthetic recipe generator that adapts dynamically to sentence length
-export function generateFlexibleGoldRecipe(tokens, posTags) {
-  let recipe = [];
-  // For a generic browser setup, we can use a small rules map 
-  // to generate the training recipes automatically:
-  let i = 0;
-  let stack = [];
-  let buffer = [];
-  
-  // Fill initial buffer trackers
-  while(i < tokens.length) { buffer.push(i); i++; }
-  
-  // Rule-based oracle simulation loop to compile training recipes
-  while (buffer.length > 0) {
-    let s0 = stack.length > 0 ? stack[stack.length - 1] : -1;
-    let b0 = buffer[0];
-    
-    let s0_pos = s0 === -1 ? 0 : posTags[s0];
-    let b0_pos = posTags[b0];
-    
-    if (s0 === -1) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, actionID: 0 }); // Must SHIFT if stack empty
-      stack.push(buffer.shift());
-    } 
-    else if (s0_pos === POS_DET && b0_pos === POS_NOUN) {
-      // "the" -> "user" attachment link (UD_DET = 17 -> 1 + 17 = 18)
-      recipe.push({ s0_idx: s0, b0_idx: b0, actionID: 18 }); 
-      stack.pop(); // Left arc removes S0 from stack
-    }
-    else if (s0_pos === POS_NOUN && b0_pos === POS_VERB) {
-      // Nominal Subject attachment link (UD_NSUBJ = 28 -> 1 + 28 = 29)
-      recipe.push({ s0_idx: s0, b0_idx: b0, actionID: 29 });
-      stack.pop();
-    }
-    else if (s0_pos === POS_VERB && b0_pos === POS_NOUN) {
-      // Direct Object attachment link (UD_OBJ = 30 -> 38 + 30 = 68)
-      recipe.push({ s0_idx: s0, b0_idx: b0, actionID: 68 });
-      stack.push(buffer.shift());
-    }
-    else {
-      // Fallback transition step rule
-      recipe.push({ s0_idx: s0, b0_idx: b0, actionID: 0 }); // SHIFT
-      stack.push(buffer.shift());
-    }
-  }
-  return recipe;
-}
-
-
-// Quick Macro Loop to quickly generate 20+ varied training variants
-function buildLargeSyntheticDataset(winkInstance) {
-  let dataPool = [];
-  let nouns = ["player", "monster", "wizard", "hero", "goblin", "knight", "witch", "dragon"];
-  let verbs = ["strikes", "defeats", "summons", "heals", "finds", "attacks", "blocks", "takes"];
-  
-  let i = 0;
-  while (i < nouns.length - 1) {
-    let s = nouns[i];
-    let v = verbs[i];
-    let o = nouns[i + 1];
-    
-    // 1. Ingest Active Variant
-    let activeText = `${s} ${v} ${o}`;
-    let activeRecipe = generateSyntheticGoldRecipe(s, v, o, false);
-    dataPool.push(prepareTrainingItem(activeText, activeRecipe, winkInstance));
-    
-    // 2. Ingest Passive Variant 
-    let passiveText = `${o} was ${v} by ${s}`;
-    let passiveRecipe = generateSyntheticGoldRecipe(o, v, s, true);
-    dataPool.push(prepareTrainingItem(passiveText, passiveRecipe, winkInstance));
-    
-    i = i + 1;
-  }
-  return dataPool;
-}
-
-*/
-
-
-
-
-
-
 
 
 function generateFlexibleGoldRecipe(tokens, posTags) {
-  let recipe = [];
-  let stack = [];
-  let buffer = [];
-  
-  let i = 0;
-  while (i < tokens.length) { 
-    buffer.push(i); 
-    i = i + 1; 
-  }
-  
-  let isPassiveContext = 0;
+	// 1. Run the structural normalization preprocessor
+	let finalLength = preProcessSentenceStructure(tokens, posTags, tokens.length, outputIndexMap, timeContextTracker);
 
-  while (buffer.length > 0) {
-    let s0 = stack.length > 0 ? stack[stack.length - 1] : -1;
-    let b0 = buffer[0];
-    
-    let s0_pos = s0 === -1 ? POS_UNKNOWN : posTags[s0];
-    let b0_pos = posTags[b0];
-    
-    // Dynamic runtime context tracking for passive markers
-	if (s0 !== -1 && posTags[s0] === POS_AUX) {
-		isPassiveContext = hasPassiveContextInline(buffer.length, tokens);
+
+	let recipe = [];
+	let stack  = [];
+	let buffer = [];
+
+	// 2. Load the transformed index sequence into our workspace buffer
+	for (let b = 0; b < finalLength; b++) {
+		buffer.push(outputIndexMap[b]);
 	}
+
+	// Because the stream is normalized, it compiles as a clean active sequence
+	while (buffer.length > 0) {
+		let s0 = stack.length > 0 ? stack[stack.length - 1] : -1;
+		let b0 = buffer[0];
+
+		let s0_pos = s0 === -1 ? POS_UNKNOWN : posTags[s0];
+		let b0_pos = posTags[b0];
+    
 	
+		//LEFT_ARC mutations must pop the stack (stack.pop()) because the modifier token is consumed and assigned to a head forward in the buffer
+		//RIGHT_ARC mutations must push the buffer element onto the stack (stack.push(buffer.shift())). The verb attaches to the incoming noun, but that noun remains active because it might have modifiers coming up later
+		//REDUCE actions must pop the stack (stack.pop()) without shifting
+	
+//////Group 1: Core Setup & Modifiers//////
+	
+		//Rule 1: Empty Stack Boundary
+		if (s0 === -1) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_SHIFT });
+		  stack.push(buffer.shift());
+		} //Why: You cannot draw arcs with nothing on the stack. Push the first buffer token.
 
-    if (s0 === -1) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_SHIFT });
-      stack.push(buffer.shift());
-    } 
-    // Rule 1: S0 is Determiner ("the"), B0 is Noun ("user") -> Left-Arc Det
-    else if (s0_pos === POS_DET && b0_pos === POS_NOUN) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_DET });
-      stack.pop();
-    }
-    // Rule 2: S0 is Adjective/Adverb, B0 is Noun/Verb -> Left-Arc Modifier
-    else if (s0_pos === POS_ADV_ADJ && (b0_pos === POS_NOUN || b0_pos === POS_VERB)) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_AMOD });
-      stack.pop();
-    }
-    // Rule 3: S0 is Noun, B0 is Verb -> Left-Arc Nominal Subject (Active Voice)
-    else if (s0_pos === POS_NOUN && b0_pos === POS_VERB && isPassiveContext === 0) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_NSUBJ });
-      stack.pop();
-    }
-    // Rule 4: S0 is Aux ("did"), B0 is Verb ("like") -> Left-Arc Auxiliary
-    else if (s0_pos === POS_AUX && b0_pos === POS_VERB) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_AUX });
-      stack.pop();
-    }
-    // Rule 5: S0 is Verb, B0 is Noun -> Right-Arc Direct Object
-    else if (s0_pos === POS_VERB && b0_pos === POS_NOUN) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_OBJ });
-      stack.push(buffer.shift());
-    }
-    // Rule 6: S0 is Verb, B0 is Preposition ("by") -> Right-Arc Oblique
-    else if (s0_pos === POS_VERB && b0_pos === POS_ADP) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_OBL });
-      stack.push(buffer.shift());
-    }
-    // Rule 7: Passive Voice Special Resolution -> Connecting agent noun back to verb
-    else if (s0_pos === POS_ADP && b0_pos === POS_NOUN && isPassiveContext === 1) {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_NSUBJ });
-      stack.pop();
-    }
-    
-    
-    // Add these rules inside your generateFlexibleGoldRecipe while-loop:
+		// Rule 2: S0 is Determiner ("the"), B0 is Noun ("user") -> Left-Arc Det
+		else if (s0_pos === POS_DET && b0_pos === POS_NOUN) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_L_DET });
+		  stack.pop();
+		} //Why: Attaches the article directly to the incoming noun, then pops the article off.
 
-	// Rule A: S0 is Noun ("user"), B0 is Aux/Copula ("is") -> Shift to wait for the root predicate noun
-	else if (s0_pos === POS_NOUN && b0_pos === POS_AUX && isPassiveContext === 0) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_SHIFT });
-	  stack.push(buffer.shift());
-	}
-	// Rule B: S0 is Aux/Copula ("is"), B0 is Noun ("cat") -> Right-Arc Copula link (attaches "is" to "cat")
-	else if (s0_pos === POS_AUX && b0_pos === POS_NOUN) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_COP });
-	  stack.push(buffer.shift());
-	}
-	// Rule C: S0 is Noun ("user"), B0 is Noun ("cat") -> Right-Arc Subject (attaches "user" as subject of "cat")
-	else if (s0_pos === POS_NOUN && b0_pos === POS_NOUN) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_NSUBJ });
-	  stack.push(buffer.shift());
-	}
+		// Rule 3: S0 is Adjective/Adverb, B0 is Noun/Verb -> Left-Arc Modifier
+		else if (s0_pos === POS_ADV_ADJ && (b0_pos === POS_NOUN || b0_pos === POS_VERB)) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_L_AMOD });
+		  stack.pop();
+		} //Why: Binds descriptive descriptors to their target concept immediately.
 
-    
-    // Rule A: S0 is Adverb/Adjective ("where"), B0 is Auxiliary Verb ("are") -> Left-Arc Adverbial Modifier
-	else if (s0_pos === POS_ADV_ADJ && b0_pos === POS_AUX) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_L_ADVMOD });
-	  stack.pop();
-	}
-	// Rule B: S0 is Noun ("legs"), B0 is Preposition ("of") -> Right-Arc to bind the preposition context
-	else if (s0_pos === POS_NOUN && b0_pos === POS_ADP) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_NMOD });
-	  stack.push(buffer.shift());
-	}
-	// Rule C: S0 is Preposition ("of"), B0 is Noun ("cat") -> Right-Arc Case
-	else if (s0_pos === POS_ADP && b0_pos === POS_NOUN) {
-	  recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_R_CASE });
-	  stack.push(buffer.shift());
-	}
 
-    
-    
-    // Default Fallback: Shift elements smoothly onto the stack
-    else {
-      recipe.push({ s0_idx: s0, b0_idx: b0, isPassiveContext: isPassiveContext, actionID: ACT_SHIFT });
-      stack.push(buffer.shift());
-    }
-  }
-  return recipe;
+//////Group 2: Spatial & Prepositional Chains//////
+
+		//Rule 4: Noun to Preposition (e.g., "legs" → "of")
+		else if (s0_pos === POS_NOUN && b0_pos === POS_ADP) {
+			recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_R_NMOD }); // ID 65
+			stack.push(buffer.shift());
+		} //Why: Tells the engine the noun has a spatial modifier coming up. It pushes "of" to the stack.
+
+
+		//Rule 5: Preposition to Target Noun (e.g., "of" → "cat")
+		else if (s0_pos === POS_ADP && b0_pos === POS_NOUN) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_R_CASE }); // ID 46
+		  stack.push(buffer.shift());
+		} //Why: Links the preposition to its target object. It pushes the target noun to the stack.
+
+
+//////Group 3: Verbs & Clause Transitions//////
+
+
+		//Rule 6: Auxiliary Verbs (e.g., "did" → "like")
+		else if (s0_pos === POS_AUX && b0_pos === POS_VERB) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_L_AUX });
+		  stack.pop();
+		} //Why: Attaches the helper verb to the main action root.
+
+
+		//Rule 7: Stack-Draining Evacuation (The "Attached" Trigger)
+		else if (s0_pos === POS_NOUN && b0_pos === POS_AUX) {
+		  // If S0 is an inner modifier noun ("cat") that already has a structural parent head,
+		  // we issue a REDUCE step to pop it off the stack, exposing the true main subject ("legs") beneath it!
+		  if (hasHead(s0, recipe.length) === 1) {
+			recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_REDUCE });
+			stack.pop();
+		  } else {
+			recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_SHIFT });
+			stack.push(buffer.shift());
+		  }
+		} //Why: Crucial for complex clauses. It pops completed spatial modifiers (like "cat") off the stack to uncover the sentence's true primary subject ("legs")
+
+
+//////Group 4: Subject/Object Binding//////
+
+		//Rule 8: Active Voice Subject (e.g., "cats" → "chase")
+		else if (s0_pos === POS_NOUN && b0_pos === POS_VERB ) {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_L_NSUBJ });
+		  stack.pop();
+		} //Why: Standard active voice subject hook.
+
+		////Rule 9: Passive Voice Target (e.g., "legs" → "attached")
+		//else if (s0_pos === POS_NOUN && b0_pos === POS_VERB && isPassiveContext === 1) {
+		//	recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_L_NSUBJ });
+		//	stack.pop();
+		//} //Why: This uses the same NSUBJ relation code, but your feature hash maps it to separate memory cells so the perceptron doesn't overlap active and passive behaviors.
+
+		//Rule 10: Direct Object (e.g., "chase" → "mice")
+		else if (s0_pos === POS_VERB && b0_pos === POS_NOUN) {
+			recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_R_OBJ });
+			stack.push(buffer.shift()); // FIXED
+		} //Why: Binds traditional direct objects to active verb roots.
+
+		//Rule 11: Oblique Spatial Locations (e.g., "attached" → "rear")
+		else if (s0_pos === POS_VERB && (b0_pos === POS_ADP || b0_pos === POS_NOUN) ) {
+			recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_R_OBL });
+			stack.push(buffer.shift()); // FIXED
+		} //Why: Binds locational targets directly back to spatial verbs or actions.
+
+
+		// Rule 12: Interrogative Copula Alignment (e.g., "are" [AUX] -> "we" [NOUN])
+		else if (s0_pos === POS_AUX && b0_pos === POS_NOUN) {
+		  // In questions, map the pronoun/noun as the active subject of the auxiliary predicate root
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: (1 + 28) }); // LEFT_ARC_NSUBJ (29)
+		  stack.pop();
+		}
+
+
+
+		// Default Fallback: Shift elements smoothly onto the stack
+		else {
+		  recipe.push({ s0_idx: s0, b0_idx: b0, actionID: ACT_SHIFT });
+		  stack.push(buffer.shift());
+		}
+
+
+
+	}
+	return recipe;
 }
 
 
@@ -472,9 +288,25 @@ function buildLargeSyntheticDataset(winkInstance) {
   let objects    = ["cat", "mouse", "chest", "sword", "potion", "gold", "shield", "door"];
   let modifiers  = ["brave", "swift", "dark", "magic", "wild", "heavy", "old", "hidden"];
   let auxiliaries = ["did", "can", "will", "could", "must", "should", "would", "might"];
+  
+  // Add these text inputs to your synthetic dataset generation system
+  let additionalCases = [
+  	"where are we",          // Interrogative / Question structure
+  	"who are you",           // Interrogative / Question structure
+  	"the player is here",    // Copula state structure
+  	"monsters are active"    // Copula state structure
+  ];
+  
+  for( let i = 0; i < additionalCases.length; ++i ){
+  	let txt = additionalCases[i];
+    let item = prepareTrainingItem(txt, null, winkInstance); // Build raw tokens via Wink-NLP first
+    item.goldRecipe = generateFlexibleGoldRecipe(item.tokens, item.posTags);
+    dataPool.push(item);
+  }
 
-  let i = 0;
-  while (i < subjects.length) {
+
+
+  for( let i = 0; i < subjects.length; ++i ) {
     let s = subjects[i];
     let v = verbs[i];
     let o = objects[i];
@@ -516,15 +348,28 @@ function buildLargeSyntheticDataset(winkInstance) {
 	dataPool.push(item5);
 
 
-    i = i + 1;
+	// Question Template: "where are we", "where can players find gold"
+	let questionText = `where are ${s}`;
+	let qItem = prepareTrainingItem(questionText, null, winkInstance);
+	qItem.goldRecipe = generateFlexibleGoldRecipe(qItem.tokens, qItem.posTags);
+	dataPool.push(qItem);
+
+	// Prepositional Chain Template: "the legs of the cat are attached to the rear"
+	let prepText = `the legs of the ${s} are attached to the rear`;
+	let pItem = prepareTrainingItem(prepText, null, winkInstance);
+	pItem.goldRecipe = generateFlexibleGoldRecipe(pItem.tokens, pItem.posTags);
+	dataPool.push(pItem);
+
   }
   
   console.log(`Generated ${dataPool.length} comprehensive synthetic training variants.`);
   return dataPool;
 }
 
-let trainSet = buildLargeSyntheticDataset(window.WinkNLP.nlp);
-let finalTrainedMatrix = runAutomatedTraining(trainSet, 40, 0.2);
+var generatedFiftySixVariants = buildLargeSyntheticDataset(window.WinkNLP.nlp);
+
+/*
+let finalTrainedMatrix = runAutomatedTraining(generatedFiftySixVariants, 40, 0.2);
 
 
 
@@ -556,7 +401,7 @@ async function loadWeightsIntoGameMemory(engineWeightsTablePointer) {
   console.log("Semantic Parser Weights loaded into system memory context.");
 }
 
-
+*/
 
 
 

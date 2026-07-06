@@ -75,6 +75,7 @@ var incFiles = ['DPrintf.js',
 				//'Transforms/LTN.js',
 				'Transforms/BufStackArcParser.js',
 				'Transforms/BufStackArcParserTraining.js',
+				'Transforms/BufStackArcParserTrainValidation.js',
 				'Structures/CognitiveBayesianNeuroSymbolicNode.js',
 
 

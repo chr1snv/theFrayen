@@ -158,6 +158,26 @@
 	</div>
 	
 	<div id="cliId">0</div>
+	
+	<div>
+		<input type="text" id="SentenceParseTest" checked placeholder="Test Buffer Stack Arc parser">
+		<input type="button" onclick="handleParseRequest()" value=Parse>
+	</div>
+	
+	<div class="flex-container">
+    <div class="flex-child">
+      <h3>1. Step Decision Traces</h3>
+      <div id="decisionLogOutput" class="panel decision" style="text-align:left;"></div>
+    </div>
+    <div class="flex-child">
+      <h3>2. Dependency Graph Tree</h3>
+      <div id="dependencyGraphOutput" class="panel graph"></div>
+    </div>
+  </div>
+
+  <h3>3. Extracted Knowledge Graph Triples</h3>
+  <div id="tripleStoreOutput" class="panel triple"></div>
+
 
 </body>
 
