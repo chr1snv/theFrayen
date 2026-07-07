@@ -573,13 +573,28 @@ function parseSentenceLoop(wordsArray) {
 			let actionName = "SHIFT";
 			if (bestActionID >= 1 && bestActionID <= 37) actionName = "LEFT_ARC_" + (bestActionID - 1);
 			if (bestActionID >= 38 && bestActionID <= 74) actionName = "RIGHT_ARC_" + (bestActionID - 38);
+			
+			
+			// 1. Prepare clean, fixed-width string segments
+			let s0Text = `S0: "${s0 !== -1 ? wordsArray[s0] : 'EMPTY'}"`.padEnd(12, " ");
+			let s0Pos  = `(${POStoSTR(s0_pos)})`.padEnd(9, " ");
+			let b0Text = `B0: "${b0 !== -1 ? wordsArray[b0] : 'EMPTY'}"`.padEnd(12, " ");
+			let b0Pos  = `(${POStoSTR(b0_pos)})`.padEnd(9, " ");
+			let ftIdx  = `FtIdx: ${stateFeatureIndex}`.padEnd(10, " ");
+			let actTxt = `Act: ${actionName}`.padEnd(17, " ");
+			let scrTxt = `(Scr: ${highestScore.toFixed(2)})`.padStart(17, " ");
 
+
+			// 2. Append the perfectly aligned columns to the UI panel
+			decisionTraceOut.innerHTML += `${s0Text} ${s0Pos} | ${b0Text} ${b0Pos} | ${ftIdx} | ${actTxt} ${scrTxt}<br>`;
+/*
 			decisionTraceOut.innerHTML +=
 			  `S0: "${s0 !== -1 ? wordsArray[s0] : 'EMPTY'}" (${POStoSTR(s0_pos)}) | ` +
 			  `B0: "${b0 !== -1 ? wordsArray[b0] : 'EMPTY'}" (${POStoSTR(b0_pos)}) | ` +
 			  `FtIdx: ${stateFeatureIndex} | ` +
 			  `Act: ${actionName} (Scr: ${highestScore.toFixed(2)})<br>`
 			;
+			*/
 			//`Psv: ${isPassive} | 
 
 
@@ -715,7 +730,7 @@ function printTriplesArrayToHtml(spoTriples, tripleStorePanelDiv) {
 	tripleStorePanelDiv.innerHTML = "=== Knowledge Triples for Storage ===<br>";
 
 	for(let i = 0; i < spoTriples.length; ++i){
-		let tenseIndicator = spoTriples[i].happenedInPast ? "[⏱️ PAST]" : "[⏳ PRESENT/ACTIVE]";
+		let tenseIndicator = spoTriples[i].happenedInPast ? "[PAST]" : "[PRESENT/ACTIVE]";
 		tripleStorePanelDiv.innerHTML += `Parsed Fact:   ( <b>${spoTriples[i].subject}</b>, <i>${spoTriples[i].predicate}</i>, <b>${spoTriples[i].object}</b> )<br>` +
 			`Temporal Axis: ${tenseIndicator}<br>` +
 			`Source Action: ${spoTriples[i].sourceVerbToken ? spoTriples[i].sourceVerbToken : 'None'}<br>`;
