@@ -93,6 +93,19 @@ const ACT_R_CASE    = 38 + 8;  // 46 Right-Arc Case Marker (UD_CASE = 8 -> 38 + 
 const ACT_L_ADVMOD  = 1  + 3;  // 4 Left-Arc Adverbial Modifier (UD_ADVMOD = 3 -> 1 + 3 = 4)
 
 
+function RelTypeToString(relType){
+    let relLabel = "dep";
+    if (relType === 4)  relLabel = "amod";
+    if (relType === 6)  relLabel = "aux";
+    if (relType === 14) relLabel = "cop";
+    if (relType === 17) relLabel = "det";
+    if (relType === 28) relLabel = "nsubj";
+    if (relType === 30) relLabel = "obj";
+    if (relType === 31) relLabel = "obl";
+    return relLabel;
+}
+
+
 
 // Global Configuration limits to bound memory allocation safely at startup
 // --- CONSTANTS MATCHING THE COMPRESSED PARSER LAYOUT ---
@@ -137,35 +150,6 @@ let vecB0 = new Float32Array(TOKEN_VEC_DIM);
 
 
 
-// --- PRINTS GRAPH RELATIONSHIP ARCS AT SENTENCE TERMINATION ---
-function printSentenceDependencyGraph(wordsArray) {
-  let totalArcs = stateMemory[MEM_ARC_PTR];
-  let arcBase   = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
-  
-  console.log(`\n=== Final Parsed Relationship Graph (${totalArcs} Arcs) ===`);
-  
-  let a = 0;
-  while (a < totalArcs) {
-    let headIdx = stateMemory[arcBase + a];
-    let depIdx  = stateMemory[arcBase + MAX_TOKENS + a];
-    let relType = stateMemory[arcBase + (MAX_TOKENS * 2) + a];
-    
-    // Translate structural relation integer flags back into human-readable Universal Dependency tags
-    let relLabel = "dep";
-    if (relType === 4)  relLabel = "amod";
-    if (relType === 6)  relLabel = "aux";
-    if (relType === 14) relLabel = "cop";
-    if (relType === 17) relLabel = "det";
-    if (relType === 28) relLabel = "nsubj";
-    if (relType === 30) relLabel = "obj";
-    if (relType === 31) relLabel = "obl";
-
-    console.log(`Arc [${a}]:  "${wordsArray[headIdx]}" ──(${relLabel})──> "${wordsArray[depIdx]}"`);
-    a = a + 1;
-  }
-  console.log("==================================================\n");
-}
-
 
 
 
@@ -192,72 +176,6 @@ function convertWinkPosToNumeric(posStr, wordStr) {
   return POS_UNKNOWN;
 }
 
-/*
-// Pre-allocated index tracking array to prevent heap garbage collection during transformation
-let transformIndexMap = new Int32Array(MAX_TOKENS);
-
-function preProcessPassiveTransformation(wordsArray, posTagsArray, numTokens) {
-  let byIdx = -1;
-  let auxIdx = -1;
-  let i = 0;
-
-  // Track key token positions
-  while (i < numTokens) {
-    let wordLower = wordsArray[i].toLowerCase();
-    if (wordLower === "by") byIdx = i;
-    if (posTagsArray[i] === 3) auxIdx = i; // 3 = POS_AUX ("was", "are")
-    i = i + 1;
-  }
-
-  // If "by" and an auxiliary verb are found, transform the token indices
-  if (byIdx > 0 && auxIdx > 0 && byIdx + 1 < numTokens) {
-    let writePtr = 0;
-    
-    // 1. Relocate the true Actor (Nouns following "by") to the front
-    let targetIdx = byIdx + 1;
-    while (targetIdx < numTokens) {
-      transformIndexMap[writePtr] = targetIdx;
-      writePtr = writePtr + 1;
-      targetIdx = targetIdx + 1;
-    }
-
-    // 2. Relocate the core Action Verb
-    let verbIdx = auxIdx + 1;
-    if (verbIdx < byIdx) {
-      transformIndexMap[writePtr] = verbIdx;
-      writePtr = writePtr + 1;
-    }
-
-    // 3. Relocate the semantic Target (Nouns preceding the auxiliary)
-    let originIdx = 0;
-    while (originIdx < auxIdx) {
-      transformIndexMap[writePtr] = originIdx;
-      writePtr = writePtr + 1;
-      originIdx = originIdx + 1;
-    }
-
-    return writePtr; // Returns the updated length of our active token array
-  }
-
-  // If the structure is already active, preserve the default index order
-  i = 0;
-  while (i < numTokens) {
-    transformIndexMap[i] = i;
-    i = i + 1;
-  }
-
-
-
-    let b = 0;
-    while (b < finalLength) {
-      // Fill the buffer back-to-front using our sorted index maps
-      stateMemory[MEM_STK_FRM_SZ + MAX_TOKENS + b] = transformIndexMap[(finalLength - 1) - b];
-      b = b + 1;
-    }
-  
-  return numTokens;
-}
-*/
 
 
 function preProcessSentenceStructure(wordsArray, posTagsArray, numTokens, outIndexMap, outTimeTracker) {
@@ -372,14 +290,14 @@ function computeSemanticHashInline(word, outVec) {
 function initParserState(numTokens, indexMap ) {
 	stateMemory[MEM_STACK_PTR]  	= 0; 
 	stateMemory[MEM_BUFFER_PTR] 	= numTokens; 
-	stateMemory[MEM_ARC_PTR]    	= 0; 
-	//stateMemory[MEM_PASSIVE_FLG] 	= 0; // Wipe our runtime passive context trackers on entry
+	stateMemory[MEM_ARC_PTR]    	= 0;
 
-	
+
 	for (let i = 0; i < numTokens; ++i) {
 		// Fill the buffer section backward so the first token is at the execution tip
 		stateMemory[MEM_STK_FRM_SZ + MAX_TOKENS + i] = indexMap[(numTokens - 1) - i]; // Pack buffer stack structures back-to-front
 	}
+
 }
 
 function getStackTopOffset() {
@@ -405,6 +323,7 @@ function hasHead(tokenIndex, totalArcs) {
 }
 
 
+/*
 let STATE_BLOCK_SIZE = MAX_TOKENS * 5 + MEM_STK_FRM_SZ;
 
 // Create a checkpoint of the active parser state
@@ -425,6 +344,7 @@ function checkpointStateRollback() {
     i = i + 1;
   }
 }
+*/
 
 
 // --- PART 3: THE 75-MACRO-ACTION DECODER IMPLEMENTATION ---
@@ -438,14 +358,7 @@ function executeMacroAction(actionID, wordsArray, s0, b0, stackSize, bufferSize,
 		stateMemory[MEM_STACK_PTR]  = stackSize + 1;
 		stateMemory[MEM_BUFFER_PTR] = bufferSize - 1;
 
-/*
-		// Clean, readable passive layer validation mapping
-		if (tokenPosTags[b0] === POS_AUX && COPULA_AUX_SET.has(wordsArray[b0].toLowerCase())) {
-			if (hasPassiveContextInline(bufferSize, wordsArray) === 1) {
-				stateMemory[MEM_PASSIVE_FLG] = 1;
-			}
-		}
-		*/
+
 	}
 
 
@@ -483,124 +396,87 @@ function executeMacroAction(actionID, wordsArray, s0, b0, stackSize, bufferSize,
 
 
 function parseSentenceLoop(wordsArray) {
-	let run = 1;
 
+	let run = 1;
 	while (run === 1) {
 		let stackSize  = stateMemory[MEM_STACK_PTR];
 		let bufferSize = stateMemory[MEM_BUFFER_PTR];
 		let arcCount   = stateMemory[MEM_ARC_PTR];
-		
-		
+
+
 		if (bufferSize === 0) {
 			run = 0;
+			break;
 		}
 
-		if (run === 1) {
-			let s0 = getStackTopOffset();
-			let b0 = getBufferFrontOffset();
 
-			let s0_pos = (s0 === -1) ? 0 : tokenPosTags[s0];
-			let b0_pos = (b0 === -1) ? 0 : tokenPosTags[b0];
 
-			let s0_word = (s0 === -1) ? "" : wordsArray[s0];
-			let b0_word = (b0 === -1) ? "" : wordsArray[b0];
+		let s0 = getStackTopOffset();
+		let b0 = getBufferFrontOffset();
+
+		let s0_pos = (s0 === -1) ? 0 : tokenPosTags[s0];
+		let b0_pos = (b0 === -1) ? 0 : tokenPosTags[b0];
+
+		let s0_word = (s0 === -1) ? "" : wordsArray[s0];
+		let b0_word = (b0 === -1) ? "" : wordsArray[b0];
+		
+
+
+		let stateFeatureIndex = (s0_pos * NUM_POFSPCH) + b0_pos;
+
+
+		// generate semantic vector matrices (word hashes)
+		computeSemanticHashInline(s0_word, vecS0);
+		computeSemanticHashInline(b0_word, vecB0);
+
+
+		//find the best of the actions to do
+		let bestActionID = 0;
+		let highestScore = -999999.0;
+	  
+		for(let actionIdx = 0; actionIdx < NUM_ACTIONS; ++actionIdx) {
+			let score = 0.0;
+			// Calculate the final memory lookup address without magic offsets
+			let baseOffset = (stateFeatureIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
+
+			// --- COMPUTE ACTION SCORE VIA SEMANTIC FEATURE FUSION ---
+			for(let dimIdx=0; dimIdx < TOKEN_VEC_DIM; ++dimIdx) { //loop each char bigram vec dimensions
+				//add sematic features of s0 and b0 to capture combined context
+				//multiply sum by trained weight matrix slice to calculate score for action
+		  		score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
+			}
+
+			// Strict Validation Checks matching transition capabilities
+			// --- STRICT TRANSITION VALIDATION & ARBITRATION ---
 			
-
-/*
-			// Live Passive Context Check: Use the shared helper starting exactly from the b0 token pointer
-			let isPassive = 0;
-			if(b0 !== -1){
-				isPassive = determinePassiveContextUniversal(b0, wordsArray, tokenPosTags);
+			// CASE 0: SHIFT OPERATION
+			if (actionIdx === 0 && bufferSize > 0 && score > highestScore) {
+				highestScore = score;
+				bestActionID = actionIdx;
 			}
-				
-			if(isPassive === 1){
-				stateMemory[MEM_PASSIVE_FLG] = 1;
+			// CASE 1 to 37: LEFT-ARC OPERATIONS (with specific Universal Dependency label)
+			if (actionIdx >= 1 && actionIdx <= 37 && stackSize > 0 && hasHead(s0, arcCount) === 0 && score > highestScore) {
+				highestScore = score;
+				bestActionID = actionIdx;
 			}
-			let activePassiveState  = stateMemory[MEM_PASSIVE_FLG];
-
-			// Calculate dot product index signature using live structural indicators
-			// Calculate the exact contextual cell matching active vs passive execution tracks
-			*/
-			let stateFeatureIndex = (s0_pos * NUM_POFSPCH) + b0_pos;
-			/*
-			if (activePassiveState === 1) {
-				// Safely jumps past cell 36 into isolated memory blocks
-				stateFeatureIndex += (NUM_POFSPCH * NUMPOFSPCH); // Shift pointer space if passive structures are active
+			// CASE 38 to 74: RIGHT-ARC OPERATIONS (with specific Universal Dependency label)
+			if (actionIdx >= 38 && actionIdx <= 74 && stackSize > 0 && score > highestScore) {
+				highestScore = score;
+				bestActionID = actionIdx;
 			}
-			*/
-
-			// Load semantic vector matrices
-			computeSemanticHashInline(s0_word, vecS0);
-			computeSemanticHashInline(b0_word, vecB0);
-
-	
-			//find the best of the actions to do
-			let bestActionID = 0;
-			let highestScore = -999999.0;
-		  
-			let actionIdx = 0;
-			while (actionIdx < NUM_ACTIONS) {
-				let score = 0.0;
-				// Calculate the final memory lookup address without magic offsets
-				let baseOffset = (stateFeatureIndex * TOKEN_VEC_DIM * NUM_ACTIONS) + (actionIdx * TOKEN_VEC_DIM);
-
-				for(let dimIdx=0; dimIdx < TOKEN_VEC_DIM; ++dimIdx) {
-			  		score = score + (vecS0[dimIdx] + vecB0[dimIdx]) * multiModalWeights[baseOffset + dimIdx];
-				}
-
-				// Strict Validation Checks matching transition capabilities
-				if (actionIdx === 0 && bufferSize > 0 && score > highestScore) {
-					highestScore = score;
-					bestActionID = actionIdx;
-				}
-				if (actionIdx >= 1 && actionIdx <= 37 && stackSize > 0 && hasHead(s0, arcCount) === 0 && score > highestScore) {
-					highestScore = score;
-					bestActionID = actionIdx;
-				}
-				if (actionIdx >= 38 && actionIdx <= 74 && stackSize > 0 && score > highestScore) {
-					highestScore = score;
-					bestActionID = actionIdx;
-				}
-				if (actionIdx === ACT_REDUCE && stackSize > 0 && hasHead(s0, arcCount) === 1 && score > highestScore) {
-					highestScore = score;
-					bestActionID = actionIdx;
-				}
-				
-				actionIdx = actionIdx + 1;
+			// CASE: REDUCE OPERATION (allows state machine to pop modifiers once attached)
+			if (actionIdx === ACT_REDUCE && stackSize > 0 && hasHead(s0, arcCount) === 1 && score > highestScore) {
+				highestScore = score;
+				bestActionID = actionIdx;
 			}
 			
-			// --- VERIFICATION TRACKING INJECTS ---
-			let actionName = "SHIFT";
-			if (bestActionID >= 1 && bestActionID <= 37) actionName = "LEFT_ARC_" + (bestActionID - 1);
-			if (bestActionID >= 38 && bestActionID <= 74) actionName = "RIGHT_ARC_" + (bestActionID - 38);
-			
-			
-			// 1. Prepare clean, fixed-width string segments
-			let s0Text = `S0: "${s0 !== -1 ? wordsArray[s0] : 'EMPTY'}"`.padEnd(12, " ");
-			let s0Pos  = `(${POStoSTR(s0_pos)})`.padEnd(9, " ");
-			let b0Text = `B0: "${b0 !== -1 ? wordsArray[b0] : 'EMPTY'}"`.padEnd(12, " ");
-			let b0Pos  = `(${POStoSTR(b0_pos)})`.padEnd(9, " ");
-			let ftIdx  = `FtIdx: ${stateFeatureIndex}`.padEnd(10, " ");
-			let actTxt = `Act: ${actionName}`.padEnd(17, " ");
-			let scrTxt = `(Scr: ${highestScore.toFixed(2)})`.padStart(17, " ");
-
-
-			// 2. Append the perfectly aligned columns to the UI panel
-			decisionTraceOut.innerHTML += `${s0Text} ${s0Pos} | ${b0Text} ${b0Pos} | ${ftIdx} | ${actTxt} ${scrTxt}<br>`;
-/*
-			decisionTraceOut.innerHTML +=
-			  `S0: "${s0 !== -1 ? wordsArray[s0] : 'EMPTY'}" (${POStoSTR(s0_pos)}) | ` +
-			  `B0: "${b0 !== -1 ? wordsArray[b0] : 'EMPTY'}" (${POStoSTR(b0_pos)}) | ` +
-			  `FtIdx: ${stateFeatureIndex} | ` +
-			  `Act: ${actionName} (Scr: ${highestScore.toFixed(2)})<br>`
-			;
-			*/
-			//`Psv: ${isPassive} | 
-
-
-			// Fire best action macro updates
-			executeMacroAction(bestActionID, wordsArray, s0, b0, stackSize, bufferSize, arcCount);
 		}
+		
+		printDecisionTrace( bestActionID, highestScore, s0, b0, wordsArray, tokenPosTags, stateFeatureIndex );
+
+
+		// Fire best action macro updates
+		executeMacroAction(bestActionID, wordsArray, s0, b0, stackSize, bufferSize, arcCount);
 	}
 	
 	// --- PLACE THIS IMMEDIATELY AFTER YOUR MAIN RUN===1 LOOP CLOSING BRACE ---
@@ -637,18 +513,22 @@ function parseSentenceLoop(wordsArray) {
 
 // --- PART 5: HIGH LEVEL PRODUCTION GRAPH INGEST STRIP ---
 // --- 3. HIGH-LEVEL KNOWLEDGE GRAPH EXTRACTION BRIDGE ---
-function extractSPO(text, winkNlpInstance) {
+function extractSPO(text, winkNlpInstance, dbgPrint=false) {
 
   // Read text tokens natively via the browser-loaded WinkNLP engine
   const doc = winkNlpInstance.readDoc(text);
-  const wordsArray = doc.tokens().out(winkNlpInstance.its.value);
-  const posArray = doc.tokens().out(winkNlpInstance.its.pos);
+  let wordsArray = doc.tokens().out(winkNlpInstance.its.value);
+  let posArray = doc.tokens().out(winkNlpInstance.its.pos);
   
-  let numTokens = wordsArray.length;
+  wordsArray.unshift( "VIRTUAL_ROOT" ); //+1 for virtual root token
+  posArray.unshift( POS_OTHER ); //reserved as our structural global anchor point
+  
+  let numTokens = wordsArray.length; 
   if (numTokens > MAX_TOKENS) numTokens = MAX_TOKENS;
+  
 
   // Convert text POS strings into numeric tokens to avoid string allocations inside the parsing engine
-  for (let i = 0; i < numTokens; i += 1) {
+  for (let i = 0; i < numTokens; ++i ) {
 	tokenPosTags[i] = convertWinkPosToNumeric(posArray[i], wordsArray[i]);
   }
   
@@ -663,8 +543,11 @@ function extractSPO(text, winkNlpInstance) {
   initParserState(numTokens, outputIndexMap);
   parseSentenceLoop(wordsArray);
   
-  // Execute the call to log outputs to your devtools workspace
-	printSentenceDependencyGraph(wordsArray);
+	// Execute the call to log outputs to your devtools workspace
+	if( dbgPrint ){
+		printSentenceDependencyGraph(wordsArray);
+		printFullDependencyTree(wordsArray);
+	}
 
   
 	// --- NEW ARRAYS GRAPH EXTRACTOR FOR MULTI-RELATION SENTENCES ---
@@ -720,6 +603,9 @@ function extractSPO(text, winkNlpInstance) {
 	  }
 	  a = a + 1;
 	}
+	
+	if( dbgPrint )
+		printTriplesArrayToHtml(triplesArray, tripleDiv);
 
 	return triplesArray; // Returns a clean array of facts!
 
@@ -738,9 +624,157 @@ function printTriplesArrayToHtml(spoTriples, tripleStorePanelDiv) {
 }
 
 
+// --- PRINTS GRAPH RELATIONSHIP ARCS AT SENTENCE TERMINATION ---
+function printSentenceDependencyGraph(wordsArray) {
+  let totalArcs = stateMemory[MEM_ARC_PTR];
+  let arcBase   = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
+  
+  depGrphTraceOut.innerHTML += `\n=== Final Parsed Relationship Graph (${totalArcs} Arcs) ===\n`;
+  
+  for( let a = 0; a < totalArcs; ++a) {
+    let headIdx = stateMemory[arcBase + a];
+    let depIdx  = stateMemory[arcBase + MAX_TOKENS + a];
+    let relType = stateMemory[arcBase + (MAX_TOKENS * 2) + a];
+    
+    // Translate structural relation integer flags back into human-readable Universal Dependency tags
+    let relLabel = RelTypeToString(relType);
 
-decisionTraceOut = document.getElementById("decisionLogOutput");
-depGrphTraceOut = document.getElementById("dependencyGraphOutput");
+    depGrphTraceOut.innerHTML += `Arc [${a}]:  "${wordsArray[headIdx]}" ──(${relLabel})──> "${wordsArray[depIdx]}"\n`;
+  }
+  depGrphTraceOut.innerHTML += "==================================================\n";
+}
+
+
+
+// --- HIERARCHICAL DEPENDENCY GRAPH VISUALIZER ---
+// Recursively steps through flat memory arrays to print a clean structural tree
+function printHierarchyNode(headIndex, wordsArray, totalArcs, currentDepth) {
+  let arcBase = MEM_STK_FRM_SZ + (MAX_TOKENS * 2);
+  let a = 0;
+
+  // Search the entire flat arc block memory for dependents belonging to this head node
+  while (a < totalArcs) {
+    let parentHead = stateMemory[arcBase + a];
+    let dependentChild = stateMemory[arcBase + MAX_TOKENS + a];
+    let relationType = stateMemory[arcBase + (MAX_TOKENS * 2) + a];
+
+    if (parentHead === headIndex) {
+      // 1. Build a fixed indentation indicator string based on current tree depth
+      let indent = "";
+      let d = 0;
+      while (d < currentDepth) {
+        indent += "    "; // 4 spaces per sub-level
+        d = d + 1;
+      }
+
+      // 2. Format and append the child node slice using textContent to protect fixed-width layouts
+      let childWord = wordsArray[dependentChild];
+      let relName = RelTypeToString(relationType); // Converts number ID back to string like "nsubj" or "det"
+      
+
+      depGrphTraceOut.textContent += `${indent}├───(${relName})──> "${childWord}"\n`;
+
+      // 3. Recursively plunge downward to print any modifiers attached to this child node
+      printHierarchyNode(dependentChild, wordsArray, totalArcs, currentDepth + 1);
+    }
+    a = a + 1;
+  }
+}
+
+/*
+function printFullDependencyTree(wordsArray) {
+  let totalArcs = stateMemory[MEM_ARC_PTR];
+  
+  // The global root is now deterministically fixed to our virtual index position
+  let rootIndex = 0; 
+
+
+  depGrphTraceOut.textContent += `\n=== Hierarchical Relationship Graph ===\n`;
+  
+  // Create an explicit virtual tag wrapper string layer
+  depGrphTraceOut.textContent += `[ROOT]\n`;
+  
+  // Create a localized virtual token map reader to prevent out-of-bounds pointer crashes
+  let virtualWordsArray = ["VIRTUAL_ROOT"];
+  let w = 0;
+  while(w < wordsArray.length) {
+     virtualWordsArray.push(wordsArray[w]);
+     w++;
+  }
+
+  // Fire our recursive engine to branch down using the virtual array wrapper
+  printHierarchyNode(rootIndex, virtualWordsArray, totalArcs, 1);
+}
+*/
+
+// THE WRAPPER BRIDGE CALLED AT THE TAIL END OF EXTRACTSPO
+function printFullDependencyTree(wordsArray) {
+  let totalArcs = stateMemory[MEM_ARC_PTR];
+  
+  // Find the true Root verb node of the sentence (the head with no parent)
+  let rootIndex = -1;
+  let s = 0;
+  let numTokens = stateMemory[MEM_BUFFER_PTR] + stateMemory[MEM_STACK_PTR]; // Total processed items
+  
+  // Find a verb or action node that does not have an active head assigned to it
+  while (s < numTokens) {
+    if (tokenPosTags[s] === 2 && hasHead(s, totalArcs) === 0) { // POS_VERB = 2
+      rootIndex = s;
+      break;
+    }
+    s = s + 1;
+  }
+
+
+  depGrphTraceOut.textContent += `\n=== Hierarchical Relationship Graph ===\n`;
+  
+  if (rootIndex !== -1) {
+    depGrphTraceOut.textContent += `[ROOT] "${wordsArray[rootIndex]}"\n`;
+    // Fire our recursive engine to branch downward from the root verb position
+    printHierarchyNode(rootIndex, wordsArray, totalArcs, 1);
+  } else {
+    depGrphTraceOut.textContent += `Error: No valid structural ROOT node found.\n`;
+  }
+}
+
+
+
+
+
+function printDecisionTrace(bestActionID, highestScore, s0, b0, wordsArray, tokenPosTags, stateFeatureIndex){
+
+	let s0_pos = (s0 === -1) ? 0 : tokenPosTags[s0];
+	let b0_pos = (b0 === -1) ? 0 : tokenPosTags[b0];
+
+	let s0_word = (s0 === -1) ? "" : wordsArray[s0];
+	let b0_word = (b0 === -1) ? "" : wordsArray[b0];
+
+	// --- VERIFICATION TRACKING INJECTS ---
+	let actionName = "SHIFT";
+	if (bestActionID >= 1 && bestActionID <= 37)
+		actionName = "LEFT_ARC_" + (bestActionID - 1);
+	if (bestActionID >= 38 && bestActionID <= 74)
+		actionName = "RIGHT_ARC_" + (bestActionID - 38);
+
+
+	// 1. Prepare clean, fixed-width string segments
+	let s0Text = `S0:`+ `${s0} `.padStart(4, " ") + `${s0 !== -1 ? s0_word : 'EMPTY'}`.padEnd(12, " ");
+	let s0Pos  = `(${POStoSTR(s0_pos)})`.padEnd(9, " ");
+	let b0Text = `B0:`+ `${b0} `.padStart(4, " ") + `${b0 !== -1 ? b0_word : 'EMPTY'}`.padEnd(12, " ");
+	let b0Pos  = `(${POStoSTR(b0_pos)})`.padEnd(9, " ");
+	let ftIdx  = `FtIdx: ${stateFeatureIndex}`.padEnd(10, " ");
+	let actTxt = `Act: ${actionName}`.padEnd(17, " ");
+	let scrTxt = `(Scr: ${highestScore.toFixed(2)})`.padStart(17, " ");
+
+
+	// 2. Append the perfectly aligned columns to the UI panel
+	decisionTraceOut.innerHTML += `${s0Text} ${s0Pos} | ${b0Text} ${b0Pos} | ${ftIdx} | ${actTxt} ${scrTxt}<br>`;
+}
+
+
+let decisionTraceOut = document.getElementById("decisionLogOutput");
+let depGrphTraceOut = document.getElementById("dependencyGraphOutput");
+let tripleDiv = document.getElementById("tripleStoreOutput");
 
 function handleParseRequest() {
 
@@ -749,9 +783,9 @@ function handleParseRequest() {
 
 	let inputText = document.getElementById("SentenceParseTest").value;
 	if(!inputText.trim()) return;
-	let tripleDiv = document.getElementById("tripleStoreOutput"); // Fire execution extraction sequence
-	let extractedSpoTriples = extractSPO(inputText, window.WinkNLP.nlp); // Render clean triplet data blocks to document storage view panels
-	printTriplesArrayToHtml(extractedSpoTriples, tripleDiv);
+	// Fire execution extraction sequence
+	let extractedSpoTriples = extractSPO(inputText, window.WinkNLP.nlp, true); // Render clean triplet data blocks to document storage view panels
+	
 }
 
 
